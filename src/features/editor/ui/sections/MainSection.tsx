@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useOutletContext } from "react-router-dom";
 import BottomBar from "../parts/BottomBar";
 import type { CanvasDocument } from "../../model/pageTypes";
@@ -59,6 +65,7 @@ export interface OutletContext {
   docName: string;
   setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
   setRetryAutoSave: (retryFn: () => void) => void;
+  setManualSave: (saveFn: () => void) => void;
 }
 
 const MainSection = () => {
@@ -73,10 +80,11 @@ const MainSection = () => {
     docName,
     setAutoSaveState,
     setRetryAutoSave,
+    setManualSave,
   } = useOutletContext<OutletContext>();
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const setSelectedTemplate = useTemplateStore(
-    (state) => state.setSelectedTemplate
+    (state) => state.setSelectedTemplate,
   );
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
@@ -91,19 +99,21 @@ const MainSection = () => {
   const isSyncingOrientationRef = useRef(false);
   const isApplyingHistoryRef = useRef(false);
   const isApplyingTemplateRef = useRef(false);
-  const { beginTransaction, commitTransaction, recordHistory } = useHistorySync({
-    pages,
-    selectedPageId,
-    selectedIds,
-    pagesRef,
-    selectedPageIdRef,
-    selectedIdsRef,
-    setPages,
-    setSelectedPageId,
-    setSelectedIds,
-    isApplyingHistoryRef,
-    isApplyingTemplateRef,
-  });
+  const { beginTransaction, commitTransaction, recordHistory } = useHistorySync(
+    {
+      pages,
+      selectedPageId,
+      selectedIds,
+      pagesRef,
+      selectedPageIdRef,
+      selectedIdsRef,
+      setPages,
+      setSelectedPageId,
+      setSelectedIds,
+      isApplyingHistoryRef,
+      isApplyingTemplateRef,
+    },
+  );
   useImageFillSubscription({
     pagesRef,
     selectedPageIdRef,
@@ -122,16 +132,26 @@ const MainSection = () => {
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
 
-  const { retrySave } = useAutoSave({
+  // 데이터 로딩 완료 여부:
+  // 1) docId가 없는 신규 문서이거나
+  // 2) docId가 있고 loadedDocument가 처리되었고 pages가 실제로 존재함
+  const isDataLoaded = !docId || (loadedDocument !== null && pages.length > 0);
+
+  const { retrySave, manualSave } = useAutoSave({
     pages,
     docId,
     docName,
     onSaveStateChange: setAutoSaveState,
+    isDataLoaded,
   });
 
   useEffect(() => {
     setRetryAutoSave(retrySave);
   }, [retrySave, setRetryAutoSave]);
+
+  useEffect(() => {
+    setManualSave(manualSave);
+  }, [manualSave, setManualSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
 
   const setActivePage = useActivePageManager({
@@ -378,14 +398,13 @@ const MainSection = () => {
         onMovePage={handleMovePage}
         onDuplicatePage={handleDuplicatePage}
       />
-      <PdfPreviewContainer
-        pages={pages}
-        fallbackOrientation={orientation}
-      />
+      <PdfPreviewContainer pages={pages} fallbackOrientation={orientation} />
 
       <TemplateChoiceDialog
         open={!!templateChoiceDialog}
-        onClose={() => { setTemplateChoiceDialog(null); }}
+        onClose={() => {
+          setTemplateChoiceDialog(null);
+        }}
         onApplyCurrent={handleApplyTemplateToCurrent}
         onApplyNew={handleApplyTemplateToNew}
       />

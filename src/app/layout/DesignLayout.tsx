@@ -47,6 +47,7 @@ const DesignLayout = () => {
     "saving" | "saved" | "error" | null
   >(null);
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
+  const manualSaveRef = useRef<(() => void) | null>(null);
   const { docId } = useParams<{ docId?: string }>();
   const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
     null,
@@ -78,6 +79,14 @@ const DesignLayout = () => {
   }, []);
   const getCanvasData = useCallback(() => canvasGetterRef.current(), []);
   const getName = useCallback(() => docName.trim() || "제목 없음", [docName]);
+
+  const setRetryAutoSave = useCallback((retryFn: () => void) => {
+    retryAutoSaveRef.current = retryFn;
+  }, []);
+
+  const setManualSave = useCallback((saveFn: () => void) => {
+    manualSaveRef.current = saveFn;
+  }, []);
 
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const activeTemplate = selectedTemplate
@@ -222,6 +231,13 @@ const DesignLayout = () => {
   };
 
   const handleSave = async () => {
+    // manualSave가 설정되어 있으면 사용 (자동 저장 훅 활용)
+    if (manualSaveRef.current) {
+      manualSaveRef.current();
+      return;
+    }
+
+    // 폴백: 기존 저장 로직
     setIsSaving(true);
     try {
       const { data } = await supabase.auth.getUser();
@@ -317,7 +333,9 @@ const DesignLayout = () => {
               <input
                 placeholder="제목을 입력해주세요"
                 value={docName}
-                onChange={(event) => { setDocName(event.target.value); }}
+                onChange={(event) => {
+                  setDocName(event.target.value);
+                }}
                 className="flex w-72 h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
               />
             </div>
@@ -406,7 +424,9 @@ const DesignLayout = () => {
               <div className="flex h-10 rounded-xl bg-black-10 p-1 gap-1">
                 <button
                   type="button"
-                  onClick={() => { handleOrientationChange("horizontal"); }}
+                  onClick={() => {
+                    handleOrientationChange("horizontal");
+                  }}
                   className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
                     effectiveOrientation === "horizontal"
                       ? "bg-white-100 shadow-sm cursor-pointer"
@@ -440,7 +460,9 @@ const DesignLayout = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { handleOrientationChange("vertical"); }}
+                  onClick={() => {
+                    handleOrientationChange("vertical");
+                  }}
                   className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
                     effectiveOrientation === "vertical"
                       ? "bg-white-100 shadow-sm cursor-pointer"
@@ -554,16 +576,17 @@ const DesignLayout = () => {
             docId,
             docName,
             setAutoSaveState,
-            setRetryAutoSave: (retryFn: () => void) => {
-              retryAutoSaveRef.current = retryFn;
-            },
+            setRetryAutoSave,
+            setManualSave,
           }}
         />
       </main>
       <ExportModal
         key={exportModalKey}
         open={isExportModalOpen}
-        onClose={() => { setIsExportModalOpen(false); }}
+        onClose={() => {
+          setIsExportModalOpen(false);
+        }}
         userId={exportUserId}
         documentId={docId}
         autoSaveOnDownload
