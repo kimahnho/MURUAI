@@ -8,6 +8,7 @@ import { findItemTemplate } from "./findItemTemplate";
 import { normal_1 } from "../normal_templates/normal_1";
 import { normal_2 } from "../normal_templates/normal_2";
 import { wordPairTemplate } from "./wordPairTemplate";
+import { visualScheduleTemplate } from "./visualScheduleTemplate";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -40,6 +41,12 @@ export const TEMPLATE_REGISTRY = {
     id: "wordPair",
     label: "낱말 짝꿍 (단어+그림)",
     template: wordPairTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  visualSchedule: {
+    id: "visualSchedule",
+    label: "시각적 스케줄표",
+    template: visualScheduleTemplate,
     orientation: "vertical-only" as TemplateOrientation,
   },
   normal_1: {

@@ -46,6 +46,16 @@ const ALL_TEMPLATES = Object.values(TEMPLATE_REGISTRY).map((template) => ({
 const isNormalTemplate = (templateId: string) =>
   templateId.startsWith("normal_");
 
+const isBasicTemplate = (templateId: string) =>
+  isNormalTemplate(templateId) || templateId === "visualSchedule";
+
+const sortBasicTemplates = (a: string, b: string) => {
+  // 시각적 스케줄표를 기본 템플릿 상단에 우선 배치
+  if (a === "visualSchedule" && b !== "visualSchedule") return -1;
+  if (b === "visualSchedule" && a !== "visualSchedule") return 1;
+  return sortNormalTemplates(a, b);
+};
+
 const sortNormalTemplates = (a: string, b: string) => {
   const aIndex = Number.parseInt(a.replace("normal_", ""), 10);
   const bIndex = Number.parseInt(b.replace("normal_", ""), 10);
@@ -56,12 +66,12 @@ const sortNormalTemplates = (a: string, b: string) => {
 };
 
 const POPULAR_TEMPLATES = ALL_TEMPLATES.filter(
-  (template) => !isNormalTemplate(template.id)
+  (template) => !isBasicTemplate(template.id),
 );
 
 const BASIC_TEMPLATES = ALL_TEMPLATES.filter((template) =>
-  isNormalTemplate(template.id)
-).sort((a, b) => sortNormalTemplates(a.id, b.id));
+  isBasicTemplate(template.id),
+).sort((a, b) => sortBasicTemplates(a.id, b.id));
 
 const addElementId = (element: TemplateElement, id: string): CanvasElement => ({
   ...(element as CanvasElement),
@@ -70,7 +80,7 @@ const addElementId = (element: TemplateElement, id: string): CanvasElement => ({
 
 const toPreviewElements = (template: Template): CanvasElement[] =>
   template.elements.map((element, index) =>
-    addElementId(fitTemplateTextElement(element), `${template.id}-${index}`)
+    addElementId(fitTemplateTextElement(element), `${template.id}-${index}`),
   );
 
 type PreviewMetrics = {
@@ -84,14 +94,15 @@ type PreviewMetrics = {
 };
 
 const getPreviewMetrics = (
-  orientation: "vertical" | "horizontal"
+  orientation: "vertical" | "horizontal",
 ): PreviewMetrics => {
-  const baseWidth = orientation === "horizontal" ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
+  const baseWidth =
+    orientation === "horizontal" ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const baseHeight =
     orientation === "horizontal" ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
   const scale = Math.min(
     PREVIEW_BOX_WIDTH / baseWidth,
-    PREVIEW_BOX_HEIGHT / baseHeight
+    PREVIEW_BOX_HEIGHT / baseHeight,
   );
   return {
     boxWidth: PREVIEW_BOX_WIDTH,
@@ -107,7 +118,7 @@ const getPreviewMetrics = (
 const parseNumberInRange = (
   value: string,
   min: number,
-  max: number
+  max: number,
 ): number | null => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
@@ -246,7 +257,7 @@ const TemplateCarousel = ({
   const startIndex = currentPage * itemsPerPage;
   const visibleTemplates = templates.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
   const placeholders = Array.from({
     length: Math.max(0, itemsPerPage - visibleTemplates.length),
@@ -263,11 +274,7 @@ const TemplateCarousel = ({
   return (
     <div className="flex flex-col w-full gap-3">
       <div className="flex items-center justify-between">
-        <SectionHeader
-          icon={icon}
-          iconColor={iconColor}
-          title={title}
-        />
+        <SectionHeader icon={icon} iconColor={iconColor} title={title} />
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -315,7 +322,9 @@ const TemplateCarousel = ({
               <div
                 key={template.id}
                 className="flex flex-col w-full gap-2 cursor-pointer"
-                onClick={() => { handleTemplateClick(template.id); }}
+                onClick={() => {
+                  handleTemplateClick(template.id);
+                }}
               >
                 <div className="w-full aspect-[1/1.414] bg-white-100 border border-black-25 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
                   {templateData ? (
@@ -490,24 +499,28 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <span className="text-14-semibold text-black-90">판 개수</span>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    value={aac.rows}
-                    onChange={(event) => { aac.onChangeRows(event.target.value); }}
-                    className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
-                    min={1}
-                    max={5}
-                  />
-                  <span className="text-14-regular text-black-70">X</span>
-                  <input
-                    type="number"
-                    value={aac.columns}
-                    onChange={(event) => { aac.onChangeColumns(event.target.value); }}
-                    className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
-                    min={1}
-                    max={5}
-                  />
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={aac.rows}
+                  onChange={(event) => {
+                    aac.onChangeRows(event.target.value);
+                  }}
+                  className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
+                  min={1}
+                  max={5}
+                />
+                <span className="text-14-regular text-black-70">X</span>
+                <input
+                  type="number"
+                  value={aac.columns}
+                  onChange={(event) => {
+                    aac.onChangeColumns(event.target.value);
+                  }}
+                  className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
+                  min={1}
+                  max={5}
+                />
                 <span className="text-12-regular text-black-50">
                   최대 5 X 5
                 </span>
@@ -516,18 +529,20 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
 
             <div className="flex flex-col gap-2">
               <span className="text-14-semibold text-black-90">용지 방향</span>
-                <div className="flex gap-2">
-                  {(["vertical", "horizontal"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => { aac.onSelectOrientation(value); }}
-                      className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
-                        aac.orientation === value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-black-25 text-black-70 hover:border-black-40"
-                      }`}
-                    >
+              <div className="flex gap-2">
+                {(["vertical", "horizontal"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      aac.onSelectOrientation(value);
+                    }}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
+                      aac.orientation === value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-black-25 text-black-70 hover:border-black-40"
+                    }`}
+                  >
                     {value === "vertical" ? "세로" : "가로"}
                   </button>
                 ))}
@@ -535,7 +550,9 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-14-semibold text-black-90">텍스트 위치</span>
+              <span className="text-14-semibold text-black-90">
+                텍스트 위치
+              </span>
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
@@ -547,7 +564,9 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => { aac.onSelectLabelPosition(option.value); }}
+                    onClick={() => {
+                      aac.onSelectLabelPosition(option.value);
+                    }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       aac.labelPosition === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -605,18 +624,18 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <span className="text-14-semibold text-black-90">카드 개수</span>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    value={story.count}
-                    onChange={(event) => { story.onChangeCount(event.target.value); }}
-                    className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
-                    min={1}
-                    max={8}
-                  />
-                  <span className="text-12-regular text-black-50">
-                    최대 8개
-                </span>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={story.count}
+                  onChange={(event) => {
+                    story.onChangeCount(event.target.value);
+                  }}
+                  className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
+                  min={1}
+                  max={8}
+                />
+                <span className="text-12-regular text-black-50">최대 8개</span>
               </div>
             </div>
 
@@ -634,7 +653,9 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => { story.onSelectDirection(option.value); }}
+                    onClick={() => {
+                      story.onSelectDirection(option.value);
+                    }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       story.direction === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -659,7 +680,9 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => { story.onSelectRatio(option.value); }}
+                    onClick={() => {
+                      story.onSelectRatio(option.value);
+                    }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       story.ratio === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -674,18 +697,20 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
 
             <div className="flex flex-col gap-2">
               <span className="text-14-semibold text-black-90">용지 방향</span>
-                <div className="flex gap-2">
-                  {(["vertical", "horizontal"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => { story.onSelectOrientation(value); }}
-                      className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
-                        story.orientation === value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-black-25 text-black-70 hover:border-black-40"
-                      }`}
-                    >
+              <div className="flex gap-2">
+                {(["vertical", "horizontal"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      story.onSelectOrientation(value);
+                    }}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
+                      story.orientation === value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-black-25 text-black-70 hover:border-black-40"
+                    }`}
+                  >
                     {value === "vertical" ? "세로" : "가로"}
                   </button>
                 ))}
@@ -746,7 +771,7 @@ const TemplateContent = () => {
       columns: aacColumns,
       orientation: aacOrientation,
       labelPosition: aacLabelPosition,
-    })
+    }),
   ).map((element, index) => ({
     ...(element as CanvasElement),
     id: `aac-preview-${index}`,
@@ -758,7 +783,7 @@ const TemplateContent = () => {
       direction: storyDirection,
       orientation: storyOrientation,
       ratio: storyRatio,
-    })
+    }),
   ).map((element, index) => ({
     ...(element as CanvasElement),
     id: `story-preview-${index}`,
@@ -802,8 +827,8 @@ const TemplateContent = () => {
     Array.isArray(previewTemplateData.pages)
       ? previewTemplateData.pages
       : previewTemplateData
-      ? [previewTemplateData.template]
-      : [];
+        ? [previewTemplateData.template]
+        : [];
 
   const handleApplyAllPages = () => {
     if (previewTemplate) {
@@ -836,10 +861,18 @@ const TemplateContent = () => {
             elements: previewElements,
             metrics: aacPreviewMetrics,
           },
-          onOpen: () => { setIsAacModalOpen(true); },
-          onClose: () => { setIsAacModalOpen(false); },
-          onChangeRows: (value) => { handleCountChange(value, setAacRows); },
-          onChangeColumns: (value) => { handleCountChange(value, setAacColumns); },
+          onOpen: () => {
+            setIsAacModalOpen(true);
+          },
+          onClose: () => {
+            setIsAacModalOpen(false);
+          },
+          onChangeRows: (value) => {
+            handleCountChange(value, setAacRows);
+          },
+          onChangeColumns: (value) => {
+            handleCountChange(value, setAacColumns);
+          },
           onSelectOrientation: setAacOrientation,
           onSelectLabelPosition: setAacLabelPosition,
           onApply: handleApplyAacBoard,
@@ -854,8 +887,12 @@ const TemplateContent = () => {
             elements: storyPreviewElements,
             metrics: storyPreviewMetrics,
           },
-          onOpen: () => { setIsStoryModalOpen(true); },
-          onClose: () => { setIsStoryModalOpen(false); },
+          onOpen: () => {
+            setIsStoryModalOpen(true);
+          },
+          onClose: () => {
+            setIsStoryModalOpen(false);
+          },
           onChangeCount: handleStoryCountChange,
           onSelectDirection: setStoryDirection,
           onSelectRatio: setStoryRatio,

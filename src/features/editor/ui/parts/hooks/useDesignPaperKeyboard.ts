@@ -64,7 +64,7 @@ export const useDesignPaperKeyboard = ({
         if (currentSelectedIds.length === 1) {
           const selectedId = currentSelectedIds[0];
           const selectedElement = elements.find(
-            (element) => element.id === selectedId
+            (element) => element.id === selectedId,
           );
           if (
             selectedElement &&
@@ -87,7 +87,7 @@ export const useDesignPaperKeyboard = ({
         if (currentSelectedIds.length === 1) {
           const selectedId = currentSelectedIds[0];
           const selectedElement = elements.find(
-            (element) => element.id === selectedId
+            (element) => element.id === selectedId,
           );
           if (
             selectedElement &&
@@ -95,15 +95,12 @@ export const useDesignPaperKeyboard = ({
             !selectedElement.locked
           ) {
             event.preventDefault();
-            const nextText = event.key;
-            const nextRichText = event.key;
-            onElementsChange(
-              elements.map((element) =>
-                element.id === selectedId
-                  ? { ...element, text: nextText, richText: nextRichText }
-                  : element
-              )
+            const updatedElements = elements.map((element) =>
+              element.id === selectedId && element.type === "text"
+                ? { ...element, text: event.key, richText: "" }
+                : element,
             );
+            onElementsChange(updatedElements);
             onEditingTextIdChange?.(selectedId);
             return;
           }
@@ -121,7 +118,7 @@ export const useDesignPaperKeyboard = ({
       if (event.key === "Backspace" || event.key === "Delete") {
         if (editingImageId) {
           const targetElement = elements.find(
-            (element) => element.id === editingImageId
+            (element) => element.id === editingImageId,
           );
           if (targetElement && isEmotionSlotShape(targetElement)) {
             event.preventDefault();
@@ -135,7 +132,9 @@ export const useDesignPaperKeyboard = ({
         if (currentSelectedIds.length > 0) {
           event.preventDefault();
           onElementsChange(
-            elements.filter((element) => !currentSelectedIds.includes(element.id))
+            elements.filter(
+              (element) => !currentSelectedIds.includes(element.id),
+            ),
           );
           selectedIdsRef.current = [];
           onSelectedIdsChange?.([]);
@@ -159,13 +158,13 @@ export const useDesignPaperKeyboard = ({
           event.key === "ArrowLeft"
             ? { x: -1, y: 0 }
             : event.key === "ArrowRight"
-            ? { x: 1, y: 0 }
-            : event.key === "ArrowUp"
-            ? { x: 0, y: -1 }
-            : { x: 0, y: 1 };
+              ? { x: 1, y: 0 }
+              : event.key === "ArrowUp"
+                ? { x: 0, y: -1 }
+                : { x: 0, y: 1 };
 
         const selectedElements = elements.filter((el) =>
-          currentSelectedIds.includes(el.id)
+          currentSelectedIds.includes(el.id),
         );
         const rects = selectedElements
           .map((el) => getRectFromElement(el))
@@ -192,7 +191,7 @@ export const useDesignPaperKeyboard = ({
             (el) =>
               !currentSelectedIds.includes(el.id) &&
               el.visible !== false &&
-              !el.locked
+              !el.locked,
           )
           .map((el) => getRectFromElement(el))
           .filter((rect): rect is Rect => Boolean(rect));
@@ -261,7 +260,7 @@ export const useDesignPaperKeyboard = ({
         event.preventDefault();
 
         const selectableElements = elements.filter(
-          (element) => !element.locked && element.selectable !== false
+          (element) => !element.locked && element.selectable !== false,
         );
 
         if (selectableElements.length === 0) return;
@@ -281,7 +280,7 @@ export const useDesignPaperKeyboard = ({
         const currentIndex =
           selectedIdsRef.current.length > 0
             ? sortedElements.findIndex(
-                (el) => el.id === selectedIdsRef.current[0]
+                (el) => el.id === selectedIdsRef.current[0],
               )
             : -1;
 
@@ -290,8 +289,8 @@ export const useDesignPaperKeyboard = ({
             ? sortedElements.length - 1
             : currentIndex - 1
           : currentIndex >= sortedElements.length - 1
-          ? 0
-          : currentIndex + 1;
+            ? 0
+            : currentIndex + 1;
 
         const nextElement = sortedElements[nextIndex];
         if (nextElement) {
