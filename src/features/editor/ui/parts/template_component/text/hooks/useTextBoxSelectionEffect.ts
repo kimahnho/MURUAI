@@ -27,28 +27,33 @@ export const useTextBoxSelectionEffect = ({
       if (!editable) return;
       editable.focus();
 
-      // Step 3: select word at the double-click point.
-      const pendingWordSelect = pendingWordSelectRef.current;
-      if (pendingWordSelect) {
-        pendingWordSelectRef.current = null;
-        if (selectWordAtPoint(editable, pendingWordSelect)) {
-          return;
+      // IME 초기화를 위한 추가 프레임 대기 (한글 자모 분리 방지)
+      requestAnimationFrame(() => {
+        // Step 3: select word at the double-click point.
+        const pendingWordSelect = pendingWordSelectRef.current;
+        if (pendingWordSelect) {
+          pendingWordSelectRef.current = null;
+          if (selectWordAtPoint(editable, pendingWordSelect)) {
+            return;
+          }
         }
-      }
 
-      // Attempt to place the caret at the click point.
-      const pendingCaret = pendingCaretRef.current;
-      if (pendingCaret) {
-        pendingCaretRef.current = null;
-        if (placeCaretAtPoint(editable, pendingCaret)) {
-          return;
+        // Attempt to place the caret at the click point.
+        const pendingCaret = pendingCaretRef.current;
+        if (pendingCaret) {
+          pendingCaretRef.current = null;
+          if (placeCaretAtPoint(editable, pendingCaret)) {
+            return;
+          }
         }
-      }
 
-      // Default: place caret at the end without selecting all.
-      placeCaretAtEnd(editable);
+        // Default: place caret at the end without selecting all.
+        placeCaretAtEnd(editable);
+      });
     });
 
-    return () => { cancelAnimationFrame(frame); };
+    return () => {
+      cancelAnimationFrame(frame);
+    };
   }, [isEditing, editableRef, pendingCaretRef, pendingWordSelectRef]);
 };
