@@ -50,7 +50,7 @@ export const useAutoSave = ({
     }
     // 모든 페이지에 요소가 없는 경우 차단
     const hasAnyElements = pagesToSave.some(
-      (page) => page.elements && page.elements.length > 0
+      (page) => page.elements && page.elements.length > 0,
     );
     if (!hasAnyElements) {
       console.warn("Save blocked: All pages are empty");
@@ -60,7 +60,7 @@ export const useAutoSave = ({
     // 추가 안전장치: 총 요소 수가 너무 적으면 경고 (배포 시 데이터 손실 방지)
     const totalElements = pagesToSave.reduce(
       (sum, page) => sum + (page.elements?.length || 0),
-      0
+      0,
     );
     if (totalElements < 1) {
       console.warn("Save blocked: Total elements count is suspiciously low", {
@@ -73,73 +73,76 @@ export const useAutoSave = ({
     return true;
   }, []);
 
-  const performSave = useCallback(async (isManual = false) => {
-    if (!docId) {
-      // docId가 없으면 저장 대상 없음 (UI는 파생값으로 null 처리)
-      return;
-    }
-
-    // 데이터 유효성 검증
-    if (!validateData(lastPagesRef.current)) {
-      if (isManual) {
-        emitSaveState("error");
-        setTimeout(() => emitSaveState(null), 2000);
-      }
-      return;
-    }
-
-    const myRevision = ++clientRevisionRef.current;
-
-    try {
-      // 수동 저장 시에만 상태 표시
-      if (isManual) {
-        setSaveState("saving");
-        emitSaveState("saving");
+  const performSave = useCallback(
+    async (isManual = false) => {
+      if (!docId) {
+        // docId가 없으면 저장 대상 없음 (UI는 파생값으로 null 처리)
+        return;
       }
 
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-
-      if (!user) {
-        // 최신 요청일 때만 상태 반영
-        if (myRevision === clientRevisionRef.current && isManual) {
-          setSaveState(null);
-          emitSaveState(null);
+      // 데이터 유효성 검증
+      if (!validateData(lastPagesRef.current)) {
+        if (isManual) {
+          emitSaveState("error");
+          setTimeout(() => emitSaveState(null), 2000);
         }
         return;
       }
 
-      await updateUserMadeVersion({
-        docId,
-        name: docName || "제목 없음",
-        canvasData: { pages: lastPagesRef.current },
-      });
+      const myRevision = ++clientRevisionRef.current;
 
-      // ✅ 레이스 방지: 최신 저장만 반영
-      if (myRevision !== clientRevisionRef.current) return;
+      try {
+        // 수동 저장 시에만 상태 표시
+        if (isManual) {
+          setSaveState("saving");
+          emitSaveState("saving");
+        }
 
-      // 수동 저장 시에만 "저장됨" 표시
-      if (isManual) {
-        setSaveState("saved");
-        emitSaveState("saved");
-        // 2초 후 상태 초기화
-        setTimeout(() => {
-          if (clientRevisionRef.current === myRevision) {
+        const { data } = await supabase.auth.getUser();
+        const user = data.user;
+
+        if (!user) {
+          // 최신 요청일 때만 상태 반영
+          if (myRevision === clientRevisionRef.current && isManual) {
             setSaveState(null);
             emitSaveState(null);
           }
-        }, 2000);
-      }
-    } catch (error) {
-      if (myRevision !== clientRevisionRef.current) return;
+          return;
+        }
 
-      console.error("Save failed:", error);
-      if (isManual) {
-        setSaveState("error");
-        emitSaveState("error");
+        await updateUserMadeVersion({
+          docId,
+          name: docName || "제목 없음",
+          canvasData: { pages: lastPagesRef.current },
+        });
+
+        // ✅ 레이스 방지: 최신 저장만 반영
+        if (myRevision !== clientRevisionRef.current) return;
+
+        // 수동 저장 시에만 "저장됨" 표시
+        if (isManual) {
+          setSaveState("saved");
+          emitSaveState("saved");
+          // 2초 후 상태 초기화
+          setTimeout(() => {
+            if (clientRevisionRef.current === myRevision) {
+              setSaveState(null);
+              emitSaveState(null);
+            }
+          }, 2000);
+        }
+      } catch (error) {
+        if (myRevision !== clientRevisionRef.current) return;
+
+        console.error("Save failed:", error);
+        if (isManual) {
+          setSaveState("error");
+          emitSaveState("error");
+        }
       }
-    }
-  }, [docId, docName, validateData]);
+    },
+    [docId, docName, validateData],
+  );
 
   useEffect(() => {
     lastPagesRef.current = pages;

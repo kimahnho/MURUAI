@@ -124,12 +124,13 @@ export const generatePdfFromDomPages = async ({
   quality?: number;
   pageIds?: string[];
 } = {}): Promise<Blob> => {
-  const pages = Array.from(document.querySelectorAll<HTMLElement>(".pdf-page"))
-    .filter((page) => {
-      if (!pageIds || pageIds.length === 0) return true;
-      const pageId = page.dataset.pageId;
-      return pageId ? pageIds.includes(pageId) : false;
-    });
+  const pages = Array.from(
+    document.querySelectorAll<HTMLElement>(".pdf-page"),
+  ).filter((page) => {
+    if (!pageIds || pageIds.length === 0) return true;
+    const pageId = page.dataset.pageId;
+    return pageId ? pageIds.includes(pageId) : false;
+  });
   if (pages.length === 0) {
     throw new Error("No .pdf-page elements found");
   }
@@ -150,27 +151,33 @@ export const generatePdfFromDomPages = async ({
           await img.decode();
         } catch {
           await new Promise<void>((resolve) => {
-            const done = () => { resolve(); };
+            const done = () => {
+              resolve();
+            };
             img.addEventListener("load", done, { once: true });
             img.addEventListener("error", done, { once: true });
           });
         }
-      })
+      }),
     );
   };
 
   const waitForNextFrame = () =>
-    new Promise<void>((resolve) => requestAnimationFrame(() => { resolve(); }));
+    new Promise<void>((resolve) =>
+      requestAnimationFrame(() => {
+        resolve();
+      }),
+    );
 
   const normalizePdfTextLayout = (root: HTMLElement) => {
     const pdfTextYOffset = -10;
     const restores: Array<() => void> = [];
     const boxes = Array.from(
-      root.querySelectorAll<HTMLElement>("[data-textbox=\"true\"]")
+      root.querySelectorAll<HTMLElement>('[data-textbox="true"]'),
     );
     boxes.forEach((box) => {
       const content = box.querySelector<HTMLElement>(
-        "[data-textbox-content=\"true\"]"
+        '[data-textbox-content="true"]',
       );
       if (!content) return;
       const boxRect = box.getBoundingClientRect();
@@ -215,7 +222,9 @@ export const generatePdfFromDomPages = async ({
       });
     });
     return () => {
-      restores.forEach((restore) => { restore(); });
+      restores.forEach((restore) => {
+        restore();
+      });
     };
   };
 
@@ -224,8 +233,10 @@ export const generatePdfFromDomPages = async ({
 
     // 이미지를 포함하는 절대 위치 요소들을 찾아서 정수 픽셀로 고정
     const imageContainers = Array.from(
-      root.querySelectorAll<HTMLElement>("img")
-    ).map((img) => img.parentElement).filter((el): el is HTMLElement => el !== null);
+      root.querySelectorAll<HTMLElement>("img"),
+    )
+      .map((img) => img.parentElement)
+      .filter((el): el is HTMLElement => el !== null);
 
     imageContainers.forEach((container) => {
       const style = getComputedStyle(container);
@@ -240,7 +251,8 @@ export const generatePdfFromDomPages = async ({
 
       // 현재 계산된 값을 정수 픽셀로 고정
       const rect = container.getBoundingClientRect();
-      const parentRect = container.offsetParent?.getBoundingClientRect() ?? rect;
+      const parentRect =
+        container.offsetParent?.getBoundingClientRect() ?? rect;
 
       const left = Math.round(rect.left - parentRect.left);
       const top = Math.round(rect.top - parentRect.top);
@@ -261,7 +273,9 @@ export const generatePdfFromDomPages = async ({
     });
 
     return () => {
-      restores.forEach((restore) => { restore(); });
+      restores.forEach((restore) => {
+        restore();
+      });
     };
   };
 
