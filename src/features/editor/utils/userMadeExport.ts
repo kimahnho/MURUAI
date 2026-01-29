@@ -96,6 +96,8 @@ export const updateUserMadeVersion = async ({
     });
     throw error;
   }
+
+  // ✅ 백업은 DB 트리거가 자동으로 처리 (60초 throttle 적용)
 };
 
 export const assignUserMadeToTarget = async ({

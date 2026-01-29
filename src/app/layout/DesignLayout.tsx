@@ -47,6 +47,7 @@ const DesignLayout = () => {
     "saving" | "saved" | "error" | null
   >(null);
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
+  const manualSaveRef = useRef<(() => void) | null>(null);
   const { docId } = useParams<{ docId?: string }>();
   const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
     null,
@@ -78,6 +79,14 @@ const DesignLayout = () => {
   }, []);
   const getCanvasData = useCallback(() => canvasGetterRef.current(), []);
   const getName = useCallback(() => docName.trim() || "제목 없음", [docName]);
+
+  const setRetryAutoSave = useCallback((retryFn: () => void) => {
+    retryAutoSaveRef.current = retryFn;
+  }, []);
+
+  const setManualSave = useCallback((saveFn: () => void) => {
+    manualSaveRef.current = saveFn;
+  }, []);
 
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const activeTemplate = selectedTemplate
@@ -222,6 +231,13 @@ const DesignLayout = () => {
   };
 
   const handleSave = async () => {
+    // manualSave가 설정되어 있으면 사용 (자동 저장 훅 활용)
+    if (manualSaveRef.current) {
+      manualSaveRef.current();
+      return;
+    }
+
+    // 폴백: 기존 저장 로직
     setIsSaving(true);
     try {
       const { data } = await supabase.auth.getUser();
@@ -554,9 +570,8 @@ const DesignLayout = () => {
             docId,
             docName,
             setAutoSaveState,
-            setRetryAutoSave: (retryFn: () => void) => {
-              retryAutoSaveRef.current = retryFn;
-            },
+            setRetryAutoSave,
+            setManualSave,
           }}
         />
       </main>

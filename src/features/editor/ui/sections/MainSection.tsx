@@ -59,6 +59,7 @@ export interface OutletContext {
   docName: string;
   setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
   setRetryAutoSave: (retryFn: () => void) => void;
+  setManualSave: (saveFn: () => void) => void;
 }
 
 const MainSection = () => {
@@ -73,6 +74,7 @@ const MainSection = () => {
     docName,
     setAutoSaveState,
     setRetryAutoSave,
+    setManualSave,
   } = useOutletContext<OutletContext>();
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const setSelectedTemplate = useTemplateStore(
@@ -122,16 +124,26 @@ const MainSection = () => {
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
 
-  const { retrySave } = useAutoSave({
+  // 데이터 로딩 완료 여부: 
+  // 1) docId가 없는 신규 문서이거나
+  // 2) docId가 있고 loadedDocument가 처리되었고 pages가 실제로 존재함
+  const isDataLoaded = !docId || (loadedDocument !== null && pages.length > 0);
+
+  const { retrySave, manualSave } = useAutoSave({
     pages,
     docId,
     docName,
     onSaveStateChange: setAutoSaveState,
+    isDataLoaded,
   });
 
   useEffect(() => {
     setRetryAutoSave(retrySave);
   }, [retrySave, setRetryAutoSave]);
+
+  useEffect(() => {
+    setManualSave(manualSave);
+  }, [manualSave, setManualSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
 
   const setActivePage = useActivePageManager({
