@@ -97,6 +97,7 @@ const ColorPickerPopover = ({
       />
       {isOpen && (
         <div
+          data-textbox-toolbar="true"
           className="absolute left-0 top-full mt-2 w-56 rounded-lg border border-black-25 bg-white-100 p-3 shadow-lg z-50"
           onPointerDown={(event) => { event.stopPropagation(); }}
           onMouseDown={(event) => { event.preventDefault(); }}
@@ -106,6 +107,7 @@ const ColorPickerPopover = ({
               <button
                 key={color}
                 type="button"
+                onMouseDown={(event) => { event.preventDefault(); }}
                 onClick={() => { handleSwatchClick(color); }}
                 className="h-8 w-8 rounded-full border border-black-30"
                 style={{ backgroundColor: color }}
@@ -118,6 +120,7 @@ const ColorPickerPopover = ({
               <input
                 type="color"
                 value={value}
+                onMouseDown={(event) => { event.preventDefault(); }}
                 onChange={(event) => { onChange(event.target.value.toUpperCase()); }}
                 className="color-input h-8 w-8 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
                 style={{ WebkitAppearance: "none", appearance: "none" }}

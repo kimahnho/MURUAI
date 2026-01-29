@@ -88,6 +88,11 @@ export type ShapeElement = ElementBase & {
     color?: string;
   };
   labelId?: string;
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number; // 0, 90, 180, 270
+  };
 };
 
 export type LineElement = ElementBase & {
@@ -97,6 +102,12 @@ export type LineElement = ElementBase & {
   stroke: {
     color: string;
     width: number;
+    style?: "solid" | "dashed" | "dotted";
+  };
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number; // 0, 90, 180, 270
   };
 };
 

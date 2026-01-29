@@ -256,9 +256,19 @@ const SquareToolBar = ({
           </div>
         </>
       )}
-      <label className="flex items-center gap-2">
+      <label
+        className="flex items-center gap-2"
+        onClick={() => {
+          // 테두리 패널 닫기
+          setIsBorderPanelOpen(false);
+        }}
+      >
         <span className="text-14-regular text-black-60">박스 색상</span>
-        <ColorPickerPopover value={color} onChange={onColorChange} />
+        <ColorPickerPopover
+          key={isBorderPanelOpen ? "border-open" : "border-closed"}
+          value={color}
+          onChange={onColorChange}
+        />
       </label>
       <div className="relative">
         <button
@@ -277,7 +287,7 @@ const SquareToolBar = ({
         </button>
         {isBorderPanelOpen && (
           <div
-            className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg"
+            className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg z-50"
             onPointerDown={(event) => {
               event.stopPropagation();
             }}
@@ -360,13 +370,9 @@ const SquareToolBar = ({
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-14-regular text-black-60">색상</span>
-              <input
-                type="color"
+              <ColorPickerPopover
                 value={borderColor}
-                onChange={(event) => onBorderColorChange?.(event.target.value)}
-                disabled={!borderEnabled}
-                className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ WebkitAppearance: "none", appearance: "none" }}
+                onChange={(value) => onBorderColorChange?.(value)}
               />
             </div>
           </div>

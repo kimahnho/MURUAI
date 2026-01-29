@@ -21,7 +21,10 @@ import {
   type ContextMenuState,
   type LayerDirection,
 } from "./DesignPaperContextMenu";
-import { GroupSelectionOverlay, SelectionRectOverlay } from "./DesignPaperOverlays";
+import {
+  GroupSelectionOverlay,
+  SelectionRectOverlay,
+} from "./DesignPaperOverlays";
 import { useSmartGuides } from "../../model/useSmartGuides";
 import Arrow from "./template_component/arrow/Arrow";
 import CircleBox from "./template_component/circle/CircleBox";
@@ -63,7 +66,7 @@ interface DesignPaperProps {
   onEditingTextIdChange?: (id: string | null) => void;
   onInteractionChange?: (
     isActive: boolean,
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize" },
   ) => void;
   readOnly?: boolean;
   className?: string;
@@ -96,7 +99,6 @@ const PAGE_HEIGHT_PX = mmToPx(297);
 const GUIDE_THRESHOLD_PX = 6;
 const SNAP_THRESHOLD_PX = 3;
 
-
 const DesignPaper = ({
   pageId,
   orientation,
@@ -122,7 +124,9 @@ const DesignPaper = ({
   } | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
-  const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(null);
+  const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(
+    null,
+  );
   const [isFocused, setIsFocused] = useState(false);
   const activeInteractionRef = useRef<{
     id: string;
@@ -155,7 +159,9 @@ const DesignPaper = ({
     const frame = requestAnimationFrame(() => {
       containerRef.current?.focus();
     });
-    return () => { cancelAnimationFrame(frame); };
+    return () => {
+      cancelAnimationFrame(frame);
+    };
   }, [editingTextId, readOnly, selectedIds]);
 
   const clearContextMenu = useCallback(() => {
@@ -176,7 +182,7 @@ const DesignPaper = ({
   };
 
   const getPointerPosition = (
-    event: PointerEvent | ReactPointerEvent<HTMLElement>
+    event: PointerEvent | ReactPointerEvent<HTMLElement>,
   ) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
@@ -187,68 +193,71 @@ const DesignPaper = ({
     };
   };
 
-  const updateElement = useCallback((id: string, patch: ElementPatch) => {
-    if (readOnly || !onElementsChange) return;
-    const nextElements = elements.map((element): CanvasElement => {
-      if (element.id !== id) return element;
-      if (element.type === "text" && "style" in patch) {
-        const nextStyle = {
-          ...(element).style,
-          ...(patch as TextElementPatch).style,
-        };
-        return {
-          ...(element),
-          ...patch,
-          style: nextStyle,
-        };
-      }
-      if (
-        (element.type === "rect" ||
-          element.type === "roundRect" ||
-          element.type === "ellipse") &&
-        "border" in patch
-      ) {
-        const baseBorder = element.border ?? {
-          enabled: false,
-          color: "#000000",
-          width: 2,
-          style: "solid",
-        };
-        const patchBorder = (patch as ShapeElementPatch).border;
-        const nextBorder: ShapeElement["border"] = patchBorder
-          ? {
-              ...baseBorder,
-              ...patchBorder,
-            }
-          : element.border;
-        return {
-          ...(element),
-          ...patch,
-          border: nextBorder,
-        };
-      }
-      if (
-        (element.type === "line" || element.type === "arrow") &&
-        "stroke" in patch
-      ) {
-        const baseStroke = (element).stroke ?? DEFAULT_STROKE;
-        const patchStroke = (patch as LineElementPatch).stroke;
-        const nextStroke = patchStroke
-          ? {
-              ...baseStroke,
-              ...patchStroke,
-            }
-          : baseStroke;
-        return {
-          ...(element),
-          ...patch,
-          stroke: nextStroke,
-        };
-      }
-      return { ...element, ...patch } as CanvasElement;
-    });
-    onElementsChange(nextElements);
-  }, [elements, onElementsChange, readOnly]);
+  const updateElement = useCallback(
+    (id: string, patch: ElementPatch) => {
+      if (readOnly || !onElementsChange) return;
+      const nextElements = elements.map((element): CanvasElement => {
+        if (element.id !== id) return element;
+        if (element.type === "text" && "style" in patch) {
+          const nextStyle = {
+            ...element.style,
+            ...(patch as TextElementPatch).style,
+          };
+          return {
+            ...element,
+            ...patch,
+            style: nextStyle,
+          };
+        }
+        if (
+          (element.type === "rect" ||
+            element.type === "roundRect" ||
+            element.type === "ellipse") &&
+          "border" in patch
+        ) {
+          const baseBorder = element.border ?? {
+            enabled: false,
+            color: "#000000",
+            width: 2,
+            style: "solid",
+          };
+          const patchBorder = (patch as ShapeElementPatch).border;
+          const nextBorder: ShapeElement["border"] = patchBorder
+            ? {
+                ...baseBorder,
+                ...patchBorder,
+              }
+            : element.border;
+          return {
+            ...element,
+            ...patch,
+            border: nextBorder,
+          };
+        }
+        if (
+          (element.type === "line" || element.type === "arrow") &&
+          "stroke" in patch
+        ) {
+          const baseStroke = element.stroke ?? DEFAULT_STROKE;
+          const patchStroke = (patch as LineElementPatch).stroke;
+          const nextStroke = patchStroke
+            ? {
+                ...baseStroke,
+                ...patchStroke,
+              }
+            : baseStroke;
+          return {
+            ...element,
+            ...patch,
+            stroke: nextStroke,
+          };
+        }
+        return { ...element, ...patch } as CanvasElement;
+      });
+      onElementsChange(nextElements);
+    },
+    [elements, onElementsChange, readOnly],
+  );
 
   const {
     emotionSlotTextIds,
@@ -333,7 +342,7 @@ const DesignPaper = ({
           element.id !== activeId &&
           element.visible !== false &&
           !element.locked &&
-          !excludeIds?.has(element.id)
+          !excludeIds?.has(element.id),
       )
       .map((element) => getRectFromElement(element))
       .filter((rect): rect is Rect => Boolean(rect));
@@ -360,11 +369,11 @@ const DesignPaper = ({
         const minY = Math.min(item.line.start.y, item.line.end.y) + delta.y;
         const width = Math.max(
           Math.abs(item.line.end.x - item.line.start.x),
-          1
+          1,
         );
         const height = Math.max(
           Math.abs(item.line.end.y - item.line.start.y),
-          1
+          1,
         );
         rects.push({
           x: minX,
@@ -390,7 +399,9 @@ const DesignPaper = ({
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
-      const targetElement = elements.find((element) => element.id === elementId);
+      const targetElement = elements.find(
+        (element) => element.id === elementId,
+      );
       const updates: Partial<ShapeElement> = {
         w: nextRect.width,
         h: nextRect.height,
@@ -402,10 +413,15 @@ const DesignPaper = ({
       }
 
       // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
-      if (targetElement &&
-          (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
-          targetElement.fill &&
-          (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))) {
+      if (
+        targetElement &&
+        (targetElement.type === "rect" ||
+          targetElement.type === "roundRect" ||
+          targetElement.type === "ellipse") &&
+        targetElement.fill &&
+        (targetElement.fill.startsWith("url(") ||
+          targetElement.fill.startsWith("data:"))
+      ) {
         updates.imageBox = {
           x: 0,
           y: 0,
@@ -529,9 +545,12 @@ const DesignPaper = ({
     if (
       activeInteraction.type === "resize" &&
       targetElement &&
-      (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
+      (targetElement.type === "rect" ||
+        targetElement.type === "roundRect" ||
+        targetElement.type === "ellipse") &&
       targetElement.fill &&
-      (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))
+      (targetElement.fill.startsWith("url(") ||
+        targetElement.fill.startsWith("data:"))
     ) {
       updateElement(elementId, {
         x: nextRect.x,
@@ -556,10 +575,12 @@ const DesignPaper = ({
     elementId: string,
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize"; handle?: ResizeHandle }
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle },
   ) => {
     if (isDragging) {
-      const targetElement = elements.find((element) => element.id === elementId);
+      const targetElement = elements.find(
+        (element) => element.id === elementId,
+      );
       const startRect =
         finalRect ??
         (targetElement && "x" in targetElement && "w" in targetElement
@@ -608,7 +629,9 @@ const DesignPaper = ({
       groupDragRef.current = null;
     }
     if (finalRect && !hadGroupDrag) {
-      const targetElement = elements.find((element) => element.id === elementId);
+      const targetElement = elements.find(
+        (element) => element.id === elementId,
+      );
       const activeInteraction = activeInteractionRef.current;
       if (
         targetElement &&
@@ -632,10 +655,9 @@ const DesignPaper = ({
           handle != null && (handle.includes("e") || handle.includes("w"));
         const shouldScaleFont =
           handle != null && ["nw", "ne", "sw", "se"].includes(handle);
-        const heightRatio =
-          activeInteraction.startRect.height
-            ? finalRect.height / activeInteraction.startRect.height
-            : 1;
+        const heightRatio = activeInteraction.startRect.height
+          ? finalRect.height / activeInteraction.startRect.height
+          : 1;
         const baseFontSize =
           activeInteraction.startFontSize ?? targetElement.style.fontSize;
         const nextFontSize = shouldScaleFont
@@ -664,11 +686,16 @@ const DesignPaper = ({
         };
 
         // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
-        if (targetElement &&
-            (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
-            targetElement.fill &&
-            (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:")) &&
-            isResize) {
+        if (
+          targetElement &&
+          (targetElement.type === "rect" ||
+            targetElement.type === "roundRect" ||
+            targetElement.type === "ellipse") &&
+          targetElement.fill &&
+          (targetElement.fill.startsWith("url(") ||
+            targetElement.fill.startsWith("data:")) &&
+          isResize
+        ) {
           updates.imageBox = {
             x: 0,
             y: 0,
@@ -735,7 +762,7 @@ const DesignPaper = ({
 
   const handleLineChange = (
     elementId: string,
-    nextLine: { start: Point; end: Point }
+    nextLine: { start: Point; end: Point },
   ) => {
     const groupDrag = groupDragRef.current;
     if (
@@ -751,14 +778,99 @@ const DesignPaper = ({
       applyGroupDelta(delta);
       return;
     }
-    updateElement(elementId, { start: nextLine.start, end: nextLine.end });
+
+    // 스마트 가이드 적용
+    const minX = Math.min(nextLine.start.x, nextLine.end.x);
+    const minY = Math.min(nextLine.start.y, nextLine.end.y);
+    const maxX = Math.max(nextLine.start.x, nextLine.end.x);
+    const maxY = Math.max(nextLine.start.y, nextLine.end.y);
+    const centerX = (nextLine.start.x + nextLine.end.x) / 2;
+    const centerY = (nextLine.start.y + nextLine.end.y) / 2;
+    const lineRect = {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+
+    const context = activeInteractionRef.current;
+    if (context?.type === "resize") {
+      // 리사이즈 시: 움직이는 끝점만 스냅
+      const currentElement = elements.find((e) => e.id === elementId);
+      const isMovingStart =
+        currentElement &&
+        (currentElement.type === "line" || currentElement.type === "arrow")
+          ? nextLine.start.x !== currentElement.start.x ||
+            nextLine.start.y !== currentElement.start.y
+          : false;
+      const activeX = isMovingStart ? [nextLine.start.x] : [nextLine.end.x];
+      const activeY = isMovingStart ? [nextLine.start.y] : [nextLine.end.y];
+
+      const { snapOffset } = smartGuides.compute({
+        activeRect: lineRect,
+        otherRects: getTargetRects(
+          elementId,
+          groupDrag ? new Set(groupDrag.items.keys()) : undefined,
+        ),
+        activeX,
+        activeY,
+      });
+
+      const adjustedLine = {
+        start: isMovingStart
+          ? {
+              x: nextLine.start.x + snapOffset.x,
+              y: nextLine.start.y + snapOffset.y,
+            }
+          : nextLine.start,
+        end: isMovingStart
+          ? nextLine.end
+          : {
+              x: nextLine.end.x + snapOffset.x,
+              y: nextLine.end.y + snapOffset.y,
+            },
+      };
+      updateElement(elementId, {
+        start: adjustedLine.start,
+        end: adjustedLine.end,
+      });
+    } else {
+      // 드래그 시: 중앙점만 스냅
+      const activeX = [centerX];
+      const activeY = [centerY];
+
+      const { snapOffset } = smartGuides.compute({
+        activeRect: lineRect,
+        otherRects: getTargetRects(
+          elementId,
+          groupDrag ? new Set(groupDrag.items.keys()) : undefined,
+        ),
+        activeX,
+        activeY,
+      });
+
+      const adjustedLine = {
+        start: {
+          x: nextLine.start.x + snapOffset.x,
+          y: nextLine.start.y + snapOffset.y,
+        },
+        end: {
+          x: nextLine.end.x + snapOffset.x,
+          y: nextLine.end.y + snapOffset.y,
+        },
+      };
+      updateElement(elementId, {
+        start: adjustedLine.start,
+        end: adjustedLine.end,
+      });
+    }
   };
 
   const handleLineDragStateChange = (
     elementId: string,
     isDragging: boolean,
     _nextLine?: { start: Point; end: Point },
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize" },
   ) => {
     void _nextLine;
     if (isDragging) {
@@ -781,32 +893,37 @@ const DesignPaper = ({
     if (context?.type) {
       onInteractionChange?.(false, context);
     }
+    smartGuides.clear();
   };
 
   const handleSelect = (
     elementId: string,
-    options?: { keepContextMenu?: boolean; additive?: boolean }
+    options?: { keepContextMenu?: boolean; additive?: boolean },
   ) => {
     if (readOnly) return;
     const currentSelectedIds = selectedIdsRef.current;
-    const selectedElement = elements.find((element) => element.id === elementId);
-    if (!selectedElement || selectedElement.selectable === false || selectedElement.locked) return;
+    const selectedElement = elements.find(
+      (element) => element.id === elementId,
+    );
+    if (
+      !selectedElement ||
+      selectedElement.selectable === false ||
+      selectedElement.locked
+    )
+      return;
     const groupedIds =
       selectedElement.groupId != null
         ? elements
             .filter(
               (element) =>
                 element.groupId === selectedElement.groupId &&
-                element.selectable !== false
+                element.selectable !== false,
             )
             .map((element) => element.id)
         : [elementId];
     const orderedGroupedIds =
       selectedElement?.groupId != null
-        ? [
-            elementId,
-            ...groupedIds.filter((id) => id !== elementId),
-          ]
+        ? [elementId, ...groupedIds.filter((id) => id !== elementId)]
         : [elementId];
     const baseIds = options?.additive ? currentSelectedIds : [];
     const nextSelectedIds = [
@@ -836,7 +953,7 @@ const DesignPaper = ({
 
   const openContextMenu = (
     event: ReactMouseEvent<HTMLElement>,
-    elementId: string
+    elementId: string,
   ) => {
     if (readOnly) return;
     event.preventDefault();
@@ -853,11 +970,11 @@ const DesignPaper = ({
     const menuHeight = 4 * 36 + 8;
     const clampedX = Math.min(
       Math.max(rawX, 8),
-      Math.max(8, pageWidth - menuWidth)
+      Math.max(8, pageWidth - menuWidth),
     );
     const clampedY = Math.min(
       Math.max(rawY, 8),
-      Math.max(8, pageHeight - menuHeight)
+      Math.max(8, pageHeight - menuHeight),
     );
     setContextMenu({
       x: clampedX,
@@ -866,9 +983,7 @@ const DesignPaper = ({
     });
   };
 
-  const openCanvasContextMenu = (
-    event: ReactMouseEvent<HTMLDivElement>
-  ) => {
+  const openCanvasContextMenu = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (readOnly) return;
     if (event.target !== event.currentTarget) return;
     event.preventDefault();
@@ -880,11 +995,11 @@ const DesignPaper = ({
     const menuHeight = 36 + 8;
     const clampedX = Math.min(
       Math.max(rawX, 8),
-      Math.max(8, pageWidth - menuWidth)
+      Math.max(8, pageWidth - menuWidth),
     );
     const clampedY = Math.min(
       Math.max(rawY, 8),
-      Math.max(8, pageHeight - menuHeight)
+      Math.max(8, pageHeight - menuHeight),
     );
     const scale = getContainerScale();
     const pastePosition = {
@@ -934,7 +1049,7 @@ const DesignPaper = ({
     if (ids.length < 2) return;
     const nextGroupId = crypto.randomUUID();
     const nextElements = elements.map((element) =>
-      ids.includes(element.id) ? { ...element, groupId: nextGroupId } : element
+      ids.includes(element.id) ? { ...element, groupId: nextGroupId } : element,
     );
     onElementsChange(nextElements);
     setContextMenu(null);
@@ -946,13 +1061,13 @@ const DesignPaper = ({
     const groupIds = new Set(
       elements
         .filter((element) => ids.includes(element.id) && element.groupId)
-        .map((element) => element.groupId as string)
+        .map((element) => element.groupId as string),
     );
     if (groupIds.size === 0) return;
     const nextElements = elements.map((element) =>
       element.groupId && groupIds.has(element.groupId)
         ? { ...element, groupId: undefined }
-        : element
+        : element,
     );
     onElementsChange(nextElements);
     setContextMenu(null);
@@ -980,10 +1095,10 @@ const DesignPaper = ({
     if (readOnly || !onElementsChange) return;
     const allIdsToDelete = getLinkedIdsToDelete([id]);
     onElementsChange(
-      elements.filter((element) => !allIdsToDelete.has(element.id))
+      elements.filter((element) => !allIdsToDelete.has(element.id)),
     );
     const nextSelected = selectedIdsRef.current.filter(
-      (selectedId) => !allIdsToDelete.has(selectedId)
+      (selectedId) => !allIdsToDelete.has(selectedId),
     );
     selectedIdsRef.current = nextSelected;
     onSelectedIdsChange?.(nextSelected);
@@ -996,7 +1111,7 @@ const DesignPaper = ({
     setContextMenu((prev) =>
       prev?.target.type === "element" && allIdsToDelete.has(prev.target.id)
         ? null
-        : prev
+        : prev,
     );
   };
 
@@ -1005,7 +1120,7 @@ const DesignPaper = ({
     if (selectedIds.length === 0) return;
     const allIdsToDelete = getLinkedIdsToDelete(selectedIds);
     onElementsChange(
-      elements.filter((element) => !allIdsToDelete.has(element.id))
+      elements.filter((element) => !allIdsToDelete.has(element.id)),
     );
     selectedIdsRef.current = [];
     onSelectedIdsChange?.([]);
@@ -1027,7 +1142,7 @@ const DesignPaper = ({
   const handleSelectChange = (
     elementId: string,
     isSelected: boolean,
-    options?: { keepContextMenu?: boolean; additive?: boolean }
+    options?: { keepContextMenu?: boolean; additive?: boolean },
   ) => {
     if (isSelected) {
       handleSelect(elementId, options);
@@ -1037,7 +1152,7 @@ const DesignPaper = ({
   const transformElementRect = (
     elementId: string,
     nextRect: Rect,
-    context: { type: "drag" | "resize"; handle?: ResizeHandle }
+    context: { type: "drag" | "resize"; handle?: ResizeHandle },
   ) => {
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
@@ -1054,13 +1169,13 @@ const DesignPaper = ({
       const activeX = handle.includes("e")
         ? [nextRect.x + nextRect.width]
         : handle.includes("w")
-        ? [nextRect.x]
-        : [];
+          ? [nextRect.x]
+          : [];
       const activeY = handle.includes("s")
         ? [nextRect.y + nextRect.height]
         : handle.includes("n")
-        ? [nextRect.y]
-        : [];
+          ? [nextRect.y]
+          : [];
       const { snapOffset } = smartGuides.compute({
         activeRect: nextRect,
         otherRects: getTargetRects(elementId, guideExcludeIds),
@@ -1099,7 +1214,8 @@ const DesignPaper = ({
   };
 
   const renderTextElement = (element: TextElement) => {
-    const showToolbar = selectedIds[0] === element.id && selectedIds.length === 1;
+    const showToolbar =
+      selectedIds[0] === element.id && selectedIds.length === 1;
     const isEditing = editingTextId === element.id;
     const isEmotionSlotText = emotionSlotTextIds.has(element.id);
     const forceEditable = isEmotionSlotText && isEditing;
@@ -1135,12 +1251,13 @@ const DesignPaper = ({
           fontFamily: element.style.fontFamily,
           fontStyle: element.style.italic ? "italic" : "normal",
           color: element.style.color,
-          textDecoration: [
-            element.style.underline ? "underline" : null,
-            element.style.strikethrough ? "line-through" : null,
-          ]
-            .filter(Boolean)
-            .join(" ") || "none",
+          textDecoration:
+            [
+              element.style.underline ? "underline" : null,
+              element.style.strikethrough ? "line-through" : null,
+            ]
+              .filter(Boolean)
+              .join(" ") || "none",
           lineHeight,
           letterSpacing,
         }}
@@ -1177,82 +1294,103 @@ const DesignPaper = ({
               fontWeight: fontWeight,
             });
           },
-          onFontSizeChange: (value) =>
-            { updateElement(element.id, {
+          onFontSizeChange: (value) => {
+            updateElement(element.id, {
               style: { fontSize: clampFontSize(value) },
-            }); },
-          onFontSizeStep: (delta) =>
-            { updateElement(element.id, {
+            });
+          },
+          onFontSizeStep: (delta) => {
+            updateElement(element.id, {
               style: {
-                fontSize: clampFontSize(
-                  element.style.fontSize + delta
-                ),
+                fontSize: clampFontSize(element.style.fontSize + delta),
               },
-            }); },
-          onLineHeightChange: (value) =>
-            { updateElement(element.id, { style: { lineHeight: value } }); },
-          onLetterSpacingChange: (value) =>
-            { updateElement(element.id, {
+            });
+          },
+          onLineHeightChange: (value) => {
+            updateElement(element.id, { style: { lineHeight: value } });
+          },
+          onLetterSpacingChange: (value) => {
+            updateElement(element.id, {
               style: { letterSpacing: value },
-            }); },
-          onColorChange: (color) =>
-            { updateElement(element.id, {
+            });
+          },
+          onColorChange: (color) => {
+            updateElement(element.id, {
               style: { color },
-              richText: element.richText ? stripStyleTags(element.richText, "color") : undefined,
-            }); },
-          onToggleBold: () =>
-            { updateElement(element.id, {
+              richText: element.richText
+                ? stripStyleTags(element.richText, "color")
+                : undefined,
+            });
+          },
+          onToggleBold: () => {
+            updateElement(element.id, {
               style: {
                 fontWeight:
-                  element.style.fontWeight === "bold"
-                    ? "normal"
-                    : "bold",
+                  element.style.fontWeight === "bold" ? "normal" : "bold",
               },
-              richText: element.richText ? stripStyleTags(element.richText, "bold") : undefined,
-            }); },
-          onToggleUnderline: () =>
-            { updateElement(element.id, {
+              richText: element.richText
+                ? stripStyleTags(element.richText, "bold")
+                : undefined,
+            });
+          },
+          onToggleUnderline: () => {
+            updateElement(element.id, {
               style: { underline: !element.style.underline },
-              richText: element.richText ? stripStyleTags(element.richText, "underline") : undefined,
-            }); },
-          onToggleItalic: () =>
-            { updateElement(element.id, {
+              richText: element.richText
+                ? stripStyleTags(element.richText, "underline")
+                : undefined,
+            });
+          },
+          onToggleItalic: () => {
+            updateElement(element.id, {
               style: { italic: !element.style.italic },
-              richText: element.richText ? stripStyleTags(element.richText, "italic") : undefined,
-            }); },
-          onToggleStrikethrough: () =>
-            { updateElement(element.id, {
+              richText: element.richText
+                ? stripStyleTags(element.richText, "italic")
+                : undefined,
+            });
+          },
+          onToggleStrikethrough: () => {
+            updateElement(element.id, {
               style: { strikethrough: !element.style.strikethrough },
-              richText: element.richText ? stripStyleTags(element.richText, "strikethrough") : undefined,
-            }); },
-          onAlignChange: (align) =>
-            { updateElement(element.id, { style: { alignX: align } }); },
-          onAlignYChange: (alignY) =>
-            { updateElement(element.id, { style: { alignY } }); },
+              richText: element.richText
+                ? stripStyleTags(element.richText, "strikethrough")
+                : undefined,
+            });
+          },
+          onAlignChange: (align) => {
+            updateElement(element.id, { style: { alignX: align } });
+          },
+          onAlignYChange: (alignY) => {
+            updateElement(element.id, { style: { alignY } });
+          },
         }}
-        onTextChange={(nextText, nextRichText) =>
-          { updateElement(element.id, { text: nextText, richText: nextRichText }); }
-        }
+        onTextChange={(nextText, nextRichText) => {
+          updateElement(element.id, { text: nextText, richText: nextRichText });
+        }}
         onRectChange={
           isEmotionSlotText
             ? undefined
-            : (nextRect) => { handleRectChange(element.id, nextRect); }
+            : (nextRect) => {
+                handleRectChange(element.id, nextRect);
+              }
         }
-        onWidthModeChange={(mode) =>
-          { updateElement(element.id, { widthMode: mode }); }
-        }
-        onDragStateChange={(isDragging, finalRect, context) =>
-          { handleDragStateChange(element.id, isDragging, finalRect, context); }
-        }
-        onSelectChange={(isSelected, options) =>
-          { handleSelectChange(element.id, isSelected, options); }
-        }
-        onContextMenu={(event) => { openContextMenu(event, element.id); }}
-        onStartEditing={() =>
-          onEditingTextIdChange?.(element.id)
-        }
+        onWidthModeChange={(mode) => {
+          updateElement(element.id, { widthMode: mode });
+        }}
+        onDragStateChange={(isDragging, finalRect, context) => {
+          handleDragStateChange(element.id, isDragging, finalRect, context);
+        }}
+        onSelectChange={(isSelected, options) => {
+          handleSelectChange(element.id, isSelected, options);
+        }}
+        onContextMenu={(event) => {
+          openContextMenu(event, element.id);
+        }}
+        onStartEditing={() => onEditingTextIdChange?.(element.id)}
         onFinishEditing={() => onEditingTextIdChange?.(null)}
-        onRequestDelete={() => { deleteElementById(element.id); }}
+        onRequestDelete={() => {
+          deleteElementById(element.id);
+        }}
         transformRect={(nextRect, context) =>
           transformElementRect(element.id, nextRect, context)
         }
@@ -1267,23 +1405,73 @@ const DesignPaper = ({
     const radius =
       element.type === "ellipse"
         ? Math.min(rect.width, rect.height) / 2
-        : element.radius ?? 0;
+        : (element.radius ?? 0);
     const isImageFill =
-      element.fill.startsWith("url(") ||
-      element.fill.startsWith("data:");
+      element.fill.startsWith("url(") || element.fill.startsWith("data:");
     const isImageEditing =
       isImageFill && editingImageId === element.id && isSelected;
     const imageBox = element.imageBox;
 
-    const ShapeComponent =
-      element.type === "ellipse" ? CircleBox : RoundBox;
+    const ShapeComponent = element.type === "ellipse" ? CircleBox : RoundBox;
     const handleImageBoxChange =
       readOnly || element.locked || !isImageFill
         ? undefined
-        : (value: { x: number; y: number; w: number; h: number }) =>
-            { updateElement(element.id, { imageBox: value }); };
+        : (value: { x: number; y: number; w: number; h: number }) => {
+            updateElement(element.id, { imageBox: value });
+          };
 
     const isShapeTextEditing = editingShapeTextId === element.id;
+
+    // Transform 핸들러
+    const handleFlipX =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            updateElement(element.id, {
+              transform: {
+                ...currentTransform,
+                flipX: !currentTransform.flipX,
+              },
+            });
+          };
+
+    const handleFlipY =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            updateElement(element.id, {
+              transform: {
+                ...currentTransform,
+                flipY: !currentTransform.flipY,
+              },
+            });
+          };
+
+    const handleRotateCW =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            const currentRotation = currentTransform.rotation ?? 0;
+            const newRotation = (currentRotation + 90) % 360;
+            updateElement(element.id, {
+              transform: { ...currentTransform, rotation: newRotation },
+            });
+          };
+
+    const handleRotateCCW =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            const currentRotation = currentTransform.rotation ?? 0;
+            const newRotation = (currentRotation - 90 + 360) % 360;
+            updateElement(element.id, {
+              transform: { ...currentTransform, rotation: newRotation },
+            });
+          };
 
     return (
       <ShapeComponent
@@ -1302,21 +1490,21 @@ const DesignPaper = ({
         isTextEditing={isShapeTextEditing}
         locked={readOnly || element.locked}
         selectable={element.selectable !== false && !element.locked}
-        onImageEditingChange={(isEditing: boolean) =>
-          { setEditingImageId(isEditing ? element.id : null); }
-        }
-        onTextEditingChange={(isEditing: boolean) =>
-          { setEditingShapeTextId(isEditing ? element.id : null); }
-        }
-        onTextChange={(text: string) =>
-          { updateElement(element.id, { text }); }
-        }
+        onImageEditingChange={(isEditing: boolean) => {
+          setEditingImageId(isEditing ? element.id : null);
+        }}
+        onTextEditingChange={(isEditing: boolean) => {
+          setEditingShapeTextId(isEditing ? element.id : null);
+        }}
+        onTextChange={(text: string) => {
+          updateElement(element.id, { text });
+        }}
         onImageBoxChange={handleImageBoxChange}
         onImageDrop={
           readOnly || element.locked
             ? undefined
-            : (imageUrl) =>
-                { updateElement(element.id, {
+            : (imageUrl) => {
+                updateElement(element.id, {
                   fill: imageUrl.startsWith("url(")
                     ? imageUrl
                     : `url(${imageUrl})`,
@@ -1326,27 +1514,87 @@ const DesignPaper = ({
                     w: rect.width,
                     h: rect.height,
                   },
-                }); }
+                });
+              }
         }
-        onRectChange={(nextRect) =>
-          { handleRectChange(element.id, nextRect); }
-        }
-        onDragStateChange={(isDragging, finalRect, context) =>
-          { handleDragStateChange(element.id, isDragging, finalRect, context); }
-        }
-        onSelectChange={(isSelected, options) =>
-          { handleSelectChange(element.id, isSelected, options); }
-        }
-        onContextMenu={(event) => { openContextMenu(event, element.id); }}
+        onRectChange={(nextRect) => {
+          handleRectChange(element.id, nextRect);
+        }}
+        onDragStateChange={(isDragging, finalRect, context) => {
+          handleDragStateChange(element.id, isDragging, finalRect, context);
+        }}
+        onSelectChange={(isSelected, options) => {
+          handleSelectChange(element.id, isSelected, options);
+        }}
+        onContextMenu={(event) => {
+          openContextMenu(event, element.id);
+        }}
         transformRect={(nextRect, context) =>
           transformElementRect(element.id, nextRect, context)
         }
+        transform={element.transform}
+        onFlipX={handleFlipX}
+        onFlipY={handleFlipY}
+        onRotateCW={handleRotateCW}
+        onRotateCCW={handleRotateCCW}
       />
     );
   };
 
   const renderLineElement = (element: LineElement) => {
     const stroke = element.stroke ?? DEFAULT_STROKE;
+
+    // Transform 핸들러
+    const handleFlipX =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            updateElement(element.id, {
+              transform: {
+                ...currentTransform,
+                flipX: !currentTransform.flipX,
+              },
+            });
+          };
+
+    const handleFlipY =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            updateElement(element.id, {
+              transform: {
+                ...currentTransform,
+                flipY: !currentTransform.flipY,
+              },
+            });
+          };
+
+    const handleRotateCW =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            const currentRotation = currentTransform.rotation ?? 0;
+            const newRotation = (currentRotation + 90) % 360;
+            updateElement(element.id, {
+              transform: { ...currentTransform, rotation: newRotation },
+            });
+          };
+
+    const handleRotateCCW =
+      readOnly || element.locked
+        ? undefined
+        : () => {
+            const currentTransform = element.transform ?? {};
+            const currentRotation = currentTransform.rotation ?? 0;
+            const newRotation = (currentRotation - 90 + 360) % 360;
+            updateElement(element.id, {
+              transform: { ...currentTransform, rotation: newRotation },
+            });
+          };
+
     const sharedProps = {
       id: element.id,
       start: element.start,
@@ -1354,23 +1602,30 @@ const DesignPaper = ({
       stroke,
       isSelected: shouldShowIndividualBorder(element.id),
       locked: readOnly || element.locked,
-      onLineChange: (nextLine: { start: Point; end: Point }) =>
-        { handleLineChange(element.id, nextLine); },
+      onLineChange: (nextLine: { start: Point; end: Point }) => {
+        handleLineChange(element.id, nextLine);
+      },
       onDragStateChange: (
         isDragging: boolean,
         nextLine?: { start: Point; end: Point },
-        context?: { type: "drag" | "resize" }
-      ) =>
-        { handleLineDragStateChange(
-          element.id,
-          isDragging,
-          nextLine,
-          context
-        ); },
-      onSelectChange: (isSelected: boolean, options?: { keepContextMenu?: boolean; additive?: boolean }) =>
-        { handleSelectChange(element.id, isSelected, options); },
-      onContextMenu: (event: ReactMouseEvent<HTMLElement>) =>
-        { openContextMenu(event, element.id); },
+        context?: { type: "drag" | "resize" },
+      ) => {
+        handleLineDragStateChange(element.id, isDragging, nextLine, context);
+      },
+      onSelectChange: (
+        isSelected: boolean,
+        options?: { keepContextMenu?: boolean; additive?: boolean },
+      ) => {
+        handleSelectChange(element.id, isSelected, options);
+      },
+      onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
+        openContextMenu(event, element.id);
+      },
+      transform: element.transform,
+      onFlipX: handleFlipX,
+      onFlipY: handleFlipY,
+      onRotateCW: handleRotateCW,
+      onRotateCCW: handleRotateCCW,
     };
     return element.type === "line" ? (
       <Line key={element.id} {...sharedProps} />
@@ -1408,14 +1663,19 @@ const DesignPaper = ({
       style={{ width: pageWidth, height: pageHeight }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
-      onBlur={() => { setIsFocused(false); }}
+      onBlur={() => {
+        setIsFocused(false);
+      }}
       onKeyDown={(event) => {
         // 하단 바가 캔버스 키보드 이벤트를 처리하지 않도록 전파를 막는다.
         if (!readOnly) {
           event.stopPropagation();
 
           // 선택 요소 삭제 키 동작을 처리한다.
-          if ((event.key === "Delete" || event.key === "Backspace") && !editingTextId) {
+          if (
+            (event.key === "Delete" || event.key === "Backspace") &&
+            !editingTextId
+          ) {
             // 입력 중인 텍스트 필드에서는 삭제하지 않는다.
             if (isEditableTarget(event.target)) {
               return;
@@ -1425,7 +1685,9 @@ const DesignPaper = ({
             if (currentSelectedIds.length > 0 && onElementsChange) {
               event.preventDefault();
               onElementsChange(
-                elements.filter((element) => !currentSelectedIds.includes(element.id))
+                elements.filter(
+                  (element) => !currentSelectedIds.includes(element.id),
+                ),
               );
               selectedIdsRef.current = [];
               onSelectedIdsChange?.([]);
@@ -1471,7 +1733,9 @@ const DesignPaper = ({
         isGroupedSelection={isGroupedSelection}
         canPaste={Boolean(getClipboard())}
         onCopy={copySelectedElements}
-        onPaste={(position) => { pasteElements(position); }}
+        onPaste={(position) => {
+          pasteElements(position);
+        }}
         onGroup={groupSelectedElements}
         onUngroup={ungroupSelectedElements}
         onDelete={deleteSelectedElements}

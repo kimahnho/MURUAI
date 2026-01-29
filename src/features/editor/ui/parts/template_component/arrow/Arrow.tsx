@@ -1,27 +1,40 @@
-import {
-  useEffect,
-  useRef,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { normalizePoint } from "../../../../utils/domUtils";
 import { useLineInteraction } from "../line/useLineInteraction";
+import TransformToolbar from "../TransformToolbar";
 
 interface ArrowShapeProps {
   id: string;
   start: Point;
   end: Point;
-  stroke: { color: string; width: number };
+  stroke: {
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted";
+  };
   isSelected?: boolean;
   locked?: boolean;
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
     isDragging: boolean,
     value?: { start: Point; end: Point },
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize" },
   ) => void;
-  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
+  onSelectChange?: (
+    isSelected: boolean,
+    options?: { additive?: boolean },
+  ) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+  onFlipX?: () => void;
+  onFlipY?: () => void;
+  onRotateCW?: () => void;
+  onRotateCCW?: () => void;
 }
 
 const Arrow = ({
@@ -35,6 +48,11 @@ const Arrow = ({
   onDragStateChange,
   onSelectChange,
   onContextMenu,
+  transform,
+  onFlipX,
+  onFlipY,
+  onRotateCW,
+  onRotateCCW,
 }: ArrowShapeProps) => {
   const safeStart = normalizePoint(start);
   const safeEnd = normalizePoint(end);
@@ -95,6 +113,18 @@ const Arrow = ({
     });
 
   const showOutline = !locked && isSelected;
+  const showTransformToolbar =
+    isSelected && !locked && onFlipX && onFlipY && onRotateCW && onRotateCCW;
+
+  // Transform 스타일 계산
+  const transformStyle = (() => {
+    const transforms: string[] = [];
+    if (transform?.flipX) transforms.push("scaleX(-1)");
+    if (transform?.flipY) transforms.push("scaleY(-1)");
+    if (transform?.rotation)
+      transforms.push(`rotate(${transform.rotation}deg)`);
+    return transforms.length > 0 ? transforms.join(" ") : undefined;
+  })();
 
   return (
     <div
@@ -116,7 +146,11 @@ const Arrow = ({
         width={boxWidth}
         height={boxHeight}
         className="absolute inset-0"
-        style={{ overflow: "visible" }}
+        style={{
+          overflow: "visible",
+          transform: transformStyle,
+          transformOrigin: "center center",
+        }}
       >
         <defs>
           <marker
@@ -149,6 +183,13 @@ const Arrow = ({
           stroke={stroke.color}
           strokeWidth={stroke.width}
           strokeLinecap="round"
+          strokeDasharray={
+            stroke.style === "dashed"
+              ? "6 3"
+              : stroke.style === "dotted"
+                ? "2 3"
+                : undefined
+          }
           markerEnd={`url(#${markerId})`}
           pointerEvents="none"
         />
@@ -164,7 +205,9 @@ const Arrow = ({
               top: startRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => { startResize(event, "start"); }}
+            onPointerDown={(event) => {
+              startResize(event, "start");
+            }}
           />
           <div
             className="absolute rounded-full border border-primary bg-white-100"
@@ -175,7 +218,9 @@ const Arrow = ({
               top: endRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => { startResize(event, "end"); }}
+            onPointerDown={(event) => {
+              startResize(event, "end");
+            }}
           />
         </>
       )}
@@ -186,6 +231,14 @@ const Arrow = ({
         >
           각도: {Math.round(angleDeg)}°
         </div>
+      )}
+      {showTransformToolbar && (
+        <TransformToolbar
+          onFlipX={onFlipX}
+          onFlipY={onFlipY}
+          onRotateCW={onRotateCW}
+          onRotateCCW={onRotateCCW}
+        />
       )}
     </div>
   );

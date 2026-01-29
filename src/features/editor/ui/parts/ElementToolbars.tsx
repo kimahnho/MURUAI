@@ -59,7 +59,7 @@ const ElementToolbars = ({
 }: ElementToolbarsProps) => {
   const updateSelectedPageElement = (
     elementId: string,
-    updater: (element: CanvasElement) => CanvasElement
+    updater: (element: CanvasElement) => CanvasElement,
   ) => {
     setPages((prevPages) =>
       prevPages.map((page) =>
@@ -67,11 +67,31 @@ const ElementToolbars = ({
           ? {
               ...page,
               elements: page.elements.map((el) =>
-                el.id === elementId ? updater(el) : el
+                el.id === elementId ? updater(el) : el,
               ),
             }
-          : page
-      )
+          : page,
+      ),
+    );
+  };
+
+  const updateSelectedLines = (
+    updater: (element: LineElement) => Partial<LineElement>,
+  ) => {
+    setPages((prevPages) =>
+      prevPages.map((page) =>
+        page.id === selectedPageId
+          ? {
+              ...page,
+              elements: page.elements.map((el) => {
+                if ((el.type === "line" || el.type === "arrow") && !el.locked) {
+                  return { ...el, ...updater(el) };
+                }
+                return el;
+              }),
+            }
+          : page,
+      ),
     );
   };
 
@@ -79,7 +99,7 @@ const ElementToolbars = ({
     elementId: string,
     newLength: number,
     angleRad: number,
-    start: { x: number; y: number }
+    start: { x: number; y: number },
   ) => {
     const newEnd = {
       x: start.x + newLength * Math.cos(angleRad),
@@ -128,34 +148,34 @@ const ElementToolbars = ({
               height={shapeToolbarData.rect.height}
               minWidth={1}
               minHeight={1}
-              onBorderRadiusChange={(value: number) =>
-                { updateSelectedPageElement(
+              onBorderRadiusChange={(value: number) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
                     radius: shapeToolbarData.clampRadius(value),
-                  })
-                ); }
-              }
-              onBorderRadiusStep={(delta: number) =>
-                { updateSelectedPageElement(
+                  }),
+                );
+              }}
+              onBorderRadiusStep={(delta: number) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
                     radius: shapeToolbarData.clampRadius(
-                      shapeToolbarData.radius + delta
+                      shapeToolbarData.radius + delta,
                     ),
-                  })
-                ); }
-              }
-              onColorChange={(color: string) =>
-                { updateSelectedPageElement(
+                  }),
+                );
+              }}
+              onColorChange={(color: string) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
-                  (el) => ({ ...el, fill: color })
-                ); }
-              }
-              onImageUpload={(imageUrl: string) =>
-                { updateSelectedPageElement(
+                  (el) => ({ ...el, fill: color }),
+                );
+              }}
+              onImageUpload={(imageUrl: string) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -166,11 +186,11 @@ const ElementToolbars = ({
                       w: shapeToolbarData.rect.width,
                       h: shapeToolbarData.rect.height,
                     },
-                  })
-                ); }
-              }
-              onBorderEnabledChange={(enabled: boolean) =>
-                { updateSelectedPageElement(
+                  }),
+                );
+              }}
+              onBorderEnabledChange={(enabled: boolean) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -180,11 +200,11 @@ const ElementToolbars = ({
                       width: shapeToolbarData.borderWidth,
                       style: shapeToolbarData.borderStyle,
                     },
-                  })
-                ); }
-              }
-              onBorderStyleChange={(style: BorderStyle) =>
-                { updateSelectedPageElement(
+                  }),
+                );
+              }}
+              onBorderStyleChange={(style: BorderStyle) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -194,11 +214,11 @@ const ElementToolbars = ({
                       width: shapeToolbarData.borderWidth,
                       style,
                     },
-                  })
-                ); }
-              }
-              onBorderColorChange={(color: string) =>
-                { updateSelectedPageElement(
+                  }),
+                );
+              }}
+              onBorderColorChange={(color: string) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) =>
                     ({
@@ -209,11 +229,11 @@ const ElementToolbars = ({
                         enabled:
                           shapeToolbarData.element.border?.enabled ?? false,
                       },
-                    } as CanvasElement)
-                ); }
-              }
-              onBorderWidthChange={(value: number) =>
-                { updateSelectedPageElement(
+                    }) as CanvasElement,
+                );
+              }}
+              onBorderWidthChange={(value: number) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) =>
                     ({
@@ -224,20 +244,22 @@ const ElementToolbars = ({
                         enabled:
                           shapeToolbarData.element.border?.enabled ?? false,
                       },
-                    } as CanvasElement)
-                ); }
-              }
-              onSizeChange={(width: number, height: number) =>
-                { updateSelectedPageElement(
+                    }) as CanvasElement,
+                );
+              }}
+              onSizeChange={(width: number, height: number) => {
+                updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
                     w: width,
                     h: height,
-                  })
-                ); }
-              }
-              onPointerDown={(event) => { event.stopPropagation(); }}
+                  }),
+                );
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
             />
           </div>
         </div>
@@ -250,35 +272,38 @@ const ElementToolbars = ({
               isVisible
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
+              style={lineToolbarData.element.stroke.style}
               length={Math.round(lineToolbarData.length)}
               angle={Math.round(lineToolbarData.angle)}
-              onColorChange={(color: string) =>
-                { updateSelectedPageElement(
-                  lineToolbarData.element.id,
-                  (el) => ({
-                    ...el,
-                    stroke: {
-                      ...lineToolbarData.stroke,
-                      color,
-                    },
-                  })
-                ); }
-              }
-              onWidthChange={(width: number) =>
-                { updateSelectedPageElement(
-                  lineToolbarData.element.id,
-                  (el) => ({
-                    ...el,
-                    stroke: {
-                      ...lineToolbarData.stroke,
-                      width,
-                    },
-                  })
-                ); }
-              }
+              onColorChange={(color: string) => {
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    color,
+                  },
+                }));
+              }}
+              onWidthChange={(width: number) => {
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    width,
+                  },
+                }));
+              }}
+              onStyleChange={(style: "solid" | "dashed" | "dotted") => {
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    style,
+                  },
+                }));
+              }}
               onLengthChange={handleLengthChange}
               onAngleChange={handleAngleChange}
-              onPointerDown={(event) => { event.stopPropagation(); }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
             />
           </div>
         </div>
@@ -291,35 +316,38 @@ const ElementToolbars = ({
               isVisible
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
+              style={lineToolbarData.element.stroke.style}
               length={Math.round(lineToolbarData.length)}
               angle={Math.round(lineToolbarData.angle)}
               onColorChange={(color: string) =>
-                { updateSelectedPageElement(
-                  lineToolbarData.element.id,
-                  (el) => ({
-                    ...el,
-                    stroke: {
-                      ...lineToolbarData.stroke,
-                      color,
-                    },
-                  })
-                ); }
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    color,
+                  },
+                }))
               }
               onWidthChange={(width: number) =>
-                { updateSelectedPageElement(
-                  lineToolbarData.element.id,
-                  (el) => ({
-                    ...el,
-                    stroke: {
-                      ...lineToolbarData.stroke,
-                      width,
-                    },
-                  })
-                ); }
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    width,
+                  },
+                }))
+              }
+              onStyleChange={(style: "solid" | "dashed" | "dotted") =>
+                updateSelectedLines((el) => ({
+                  stroke: {
+                    ...el.stroke,
+                    style,
+                  },
+                }))
               }
               onLengthChange={handleLengthChange}
               onAngleChange={handleAngleChange}
-              onPointerDown={(event) => { event.stopPropagation(); }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
             />
           </div>
         </div>
@@ -333,7 +361,9 @@ const ElementToolbars = ({
                 isVisible
                 labelPosition={aacToolbarData.labelPosition}
                 onLabelPositionChange={onAacLabelPositionChange}
-                onPointerDown={(event) => { event.stopPropagation(); }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                }}
               />
             </Suspense>
           </div>
