@@ -46,7 +46,6 @@ export const wordPairTemplate: Template = {
       w: mmToPx(pageWidthMm),
       h: mmToPx(headerHeightMm),
       fill: "#93C5FD",
-      locked: true,
     },
     {
       type: "rect",
@@ -97,9 +96,13 @@ export const wordPairTemplate: Template = {
       const imageYmm = cardYmm + cardLabelHeightMm + cardLabelGapMm;
       const underlineYmm = imageYmm + cardImageSizeMm + cardUnderlineGapMm;
 
+      const labelTempId = `word-label-${index}`;
+      const cardTempId = `word-card-${index}`;
+
       return [
         {
           type: "text" as const,
+          tempId: labelTempId,
           x: mmToPx(cardXmm),
           y: mmToPx(cardYmm),
           w: mmToPx(cardWidthMm),
@@ -108,7 +111,7 @@ export const wordPairTemplate: Template = {
           style: {
             fontSize: 14,
             fontWeight: "normal" as const,
-            color: "#111827",
+            color: "#6B7280",
             underline: false as const,
             alignX: "center" as const,
             alignY: "middle" as const,
@@ -116,6 +119,8 @@ export const wordPairTemplate: Template = {
         },
         {
           type: "roundRect" as const,
+          tempId: cardTempId,
+          labelId: labelTempId,
           x: mmToPx(cardXmm),
           y: mmToPx(imageYmm),
           w: mmToPx(cardWidthMm),
@@ -123,11 +128,12 @@ export const wordPairTemplate: Template = {
           fill: "#E5E7EB",
           radius: mmToPx(2),
           border: {
-            enabled: false,
+            enabled: true,
             color: "#E5E7EB",
-            width: 1,
+            width: 2,
             style: "solid" as const,
           },
+          selectable: true,
         },
         {
           type: "rect" as const,
@@ -136,7 +142,6 @@ export const wordPairTemplate: Template = {
           w: mmToPx(cardWidthMm),
           h: mmToPx(cardUnderlineHeightMm),
           fill: "#111827",
-          locked: true,
         },
       ];
     }),

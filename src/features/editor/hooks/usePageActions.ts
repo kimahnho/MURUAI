@@ -1,8 +1,4 @@
-import {
-  useCallback,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
@@ -16,7 +12,7 @@ type PageActionsParams = {
   setEditingTextId: Dispatch<SetStateAction<string | null>>;
   setActivePage: (
     pageId: string,
-    nextOrientation?: "horizontal" | "vertical"
+    nextOrientation?: "horizontal" | "vertical",
   ) => void;
 };
 
@@ -63,7 +59,7 @@ export const usePageActions = ({
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
     },
-    [orientation, pages, setActivePage, setPages]
+    [orientation, pages, setActivePage, setPages],
   );
 
   const handleSelectPage = useCallback(
@@ -72,14 +68,14 @@ export const usePageActions = ({
       setSelectedIds([]);
       setEditingTextId(null);
     },
-    [setActivePage, setEditingTextId, setSelectedIds]
+    [setActivePage, setEditingTextId, setSelectedIds],
   );
 
   const handleReorderPages = useCallback(
     (reorderedPages: Page[]) => {
       setPages(reorderedPages);
     },
-    [setPages]
+    [setPages],
   );
 
   const handleDuplicatePage = useCallback(
@@ -107,7 +103,7 @@ export const usePageActions = ({
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
     },
-    [pages, setActivePage, setPages]
+    [pages, setActivePage, setPages],
   );
 
   const handleCopyPage = useCallback((pageId: string) => {
@@ -147,12 +143,25 @@ export const usePageActions = ({
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
     },
-    [pages, setActivePage, setPages]
+    [pages, setActivePage, setPages],
   );
 
   const handleDeletePage = useCallback(
     (pageId: string) => {
-      if (pages.length <= 1) return;
+      // 페이지가 1개만 있으면 템플릿을 제거하고 빈 페이지로 만듦
+      if (pages.length <= 1) {
+        setPages((prevPages) =>
+          prevPages.map((page) => {
+            if (page.id !== pageId) return page;
+            return {
+              ...page,
+              templateId: null,
+              elements: withLogoCanvasElements([]),
+            };
+          }),
+        );
+        return;
+      }
 
       const deletedIndex = pages.findIndex((page) => page.id === pageId);
       const updatedPages = pages
@@ -172,7 +181,7 @@ export const usePageActions = ({
         }
       }
     },
-    [pages, selectedPageId, setActivePage, setPages]
+    [pages, selectedPageId, setActivePage, setPages],
   );
 
   const handleDeleteElements = useCallback(
@@ -201,15 +210,15 @@ export const usePageActions = ({
           return {
             ...page,
             elements: page.elements.filter(
-              (element) => !allIdsToDelete.has(element.id)
+              (element) => !allIdsToDelete.has(element.id),
             ),
           };
-        })
+        }),
       );
       setSelectedIds([]);
       setEditingTextId(null);
     },
-    [selectedPageId, setEditingTextId, setPages, setSelectedIds]
+    [selectedPageId, setEditingTextId, setPages, setSelectedIds],
   );
 
   const handleClearPage = useCallback(
@@ -221,15 +230,15 @@ export const usePageActions = ({
                 ...page,
                 elements: page.elements.filter((element) => element.locked),
               }
-            : page
-        )
+            : page,
+        ),
       );
       setSelectedIds([]);
       setEditingTextId(null);
       sessionStorage.removeItem("copiedElements");
       sessionStorage.removeItem("copiedElementsMeta");
     },
-    [setEditingTextId, setPages, setSelectedIds]
+    [setEditingTextId, setPages, setSelectedIds],
   );
 
   const handleMovePage = useCallback(
@@ -252,7 +261,7 @@ export const usePageActions = ({
 
       setPages(reorderedPages);
     },
-    [pages, setPages]
+    [pages, setPages],
   );
 
   return {

@@ -7,12 +7,14 @@ interface LineToolBarProps {
   isVisible: boolean;
   color: string;
   width: number;
+  style?: "solid" | "dashed" | "dotted";
   minWidth?: number;
   maxWidth?: number;
   length?: number;
   angle?: number;
   onColorChange: (value: string) => void;
   onWidthChange: (value: number) => void;
+  onStyleChange?: (value: "solid" | "dashed" | "dotted") => void;
   onLengthChange?: (value: number) => void;
   onAngleChange?: (value: number) => void;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -22,12 +24,14 @@ const LineToolBar = ({
   isVisible,
   color,
   width,
+  style = "solid",
   minWidth = 1,
   maxWidth = 20,
   length,
   angle,
   onColorChange,
   onWidthChange,
+  onStyleChange,
   onLengthChange,
   onAngleChange,
   onPointerDown,
@@ -57,6 +61,76 @@ const LineToolBar = ({
 
   return (
     <div className="flex items-center gap-3" onPointerDown={onPointerDown}>
+      <div className="flex items-center gap-2">
+        <span className="text-14-regular text-black-60">선 종류</span>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => onStyleChange?.("solid")}
+            className={`flex h-8 w-12 items-center justify-center rounded border ${
+              style === "solid"
+                ? "border-blue-500 bg-blue-50"
+                : "border-black-30 bg-white hover:bg-black-5"
+            }`}
+            title="실선"
+          >
+            <svg width="32" height="2" viewBox="0 0 32 2">
+              <line
+                x1="0"
+                y1="1"
+                x2="32"
+                y2="1"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onStyleChange?.("dashed")}
+            className={`flex h-8 w-12 items-center justify-center rounded border ${
+              style === "dashed"
+                ? "border-blue-500 bg-blue-50"
+                : "border-black-30 bg-white hover:bg-black-5"
+            }`}
+            title="긴 점선"
+          >
+            <svg width="32" height="2" viewBox="0 0 32 2">
+              <line
+                x1="0"
+                y1="1"
+                x2="32"
+                y2="1"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="6 3"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onStyleChange?.("dotted")}
+            className={`flex h-8 w-12 items-center justify-center rounded border ${
+              style === "dotted"
+                ? "border-blue-500 bg-blue-50"
+                : "border-black-30 bg-white hover:bg-black-5"
+            }`}
+            title="점선"
+          >
+            <svg width="32" height="2" viewBox="0 0 32 2">
+              <line
+                x1="0"
+                y1="1"
+                x2="32"
+                y2="1"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="2 3"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
       <div className="flex items-center text-14-regular text-black-60">
         선 굵기
       </div>

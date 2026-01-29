@@ -58,8 +58,8 @@ export const buildAacBoardElements = ({
   const elements: AacBoardElement[] = [];
   let cellIndex = 0;
 
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < columns; col += 1) {
+  for (let col = 0; col < columns; col += 1) {
+    for (let row = 0; row < rows; row += 1) {
       const cardTempId = `aac-card-${cellIndex}`;
       const labelTempId = `aac-label-${cellIndex}`;
       const cellX = snapPx(mmToPx(startXMm + col * (cellWidthMm + gapMm)));
@@ -79,8 +79,8 @@ export const buildAacBoardElements = ({
         labelPosition === "top"
           ? boxY + labelInset
           : labelPosition === "bottom"
-          ? boxY + boxHeight - labelHeight - labelInset
-          : boxY;
+            ? boxY + boxHeight - labelHeight - labelInset
+            : boxY;
       const labelAreaHeight =
         labelPosition === "none" ? 0 : labelHeight + labelGap;
       const imageAreaX = boxX + imagePadding;
@@ -89,18 +89,18 @@ export const buildAacBoardElements = ({
         boxY + imagePadding + (labelPosition === "top" ? labelAreaHeight : 0);
       const imageAreaHeight = Math.max(
         1,
-        boxHeight - imagePadding * 2 - labelAreaHeight
+        boxHeight - imagePadding * 2 - labelAreaHeight,
       );
-      const imageBoxSize = clampPx(
-        Math.min(imageAreaWidth, imageAreaHeight)
+      const imageBoxSize = clampPx(Math.min(imageAreaWidth, imageAreaHeight));
+      const imageBoxX = snapPx(
+        imageAreaX + (imageAreaWidth - imageBoxSize) / 2,
       );
-      const imageBoxX = snapPx(imageAreaX + (imageAreaWidth - imageBoxSize) / 2);
       // 이미지를 아래로 내림 (중앙 정렬 대신 상단에서 오프셋 적용)
       const imageTopOffset = snapPx(mmToPx(2)); // 상단에서 2mm 여백
       const imageBoxY = snapPx(imageAreaY + imageTopOffset);
       const radius = Math.min(
         snapPx(mmToPx(6)),
-        Math.min(boxWidth, boxHeight) / 2
+        Math.min(boxWidth, boxHeight) / 2,
       );
 
       elements.push({

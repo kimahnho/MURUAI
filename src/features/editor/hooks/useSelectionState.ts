@@ -8,10 +8,7 @@ import type {
 } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
 import type { AacLabelPosition } from "../utils/aacBoardUtils";
-import {
-  findLabelElementId,
-  isAacLabelElement,
-} from "../utils/imageFillUtils";
+import { findLabelElementId, isAacLabelElement } from "../utils/imageFillUtils";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -67,8 +64,7 @@ const buildAacIndex = (elements: CanvasElement[]) => {
     const tempId = getTempId(element);
     const isExplicitAac = tempId?.startsWith(AAC_CARD_PREFIX);
     const hasLinkedAacLabel =
-      Boolean(element.labelId) &&
-      aacLabelIds.has(element.labelId ?? "");
+      Boolean(element.labelId) && aacLabelIds.has(element.labelId ?? "");
     const isFallbackAac =
       !element.labelId && hasAacBorder(element) && hasInsetImageBox(element);
     if (!isExplicitAac && !hasLinkedAacLabel && !isFallbackAac) return;
@@ -104,42 +100,37 @@ export const useSelectionState = ({
 }: SelectionStateParams) => {
   const activePage = pages.find((page) => page.id === selectedPageId) ?? null;
   const selectedElements = activePage
-    ? activePage.elements.filter((element) =>
-        selectedIds.includes(element.id)
-      )
+    ? activePage.elements.filter((element) => selectedIds.includes(element.id))
     : [];
   const activeToolbarElementId =
     selectedIds.length === 1 ? selectedIds[0] : null;
 
   const isColorTarget = (
-    element: CanvasElement
+    element: CanvasElement,
   ): element is TextElement | ShapeElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse";
   const isMultiColorSelection =
-    selectedElements.length > 1 &&
-    selectedElements.every(isColorTarget);
-  const multiColorSource =
-    isMultiColorSelection
-      ? selectedElements.find((element) => !element.locked) ??
-        selectedElements[0] ??
-        null
-      : null;
+    selectedElements.length > 1 && selectedElements.every(isColorTarget);
+  const multiColorSource = isMultiColorSelection
+    ? (selectedElements.find((element) => !element.locked) ??
+      selectedElements[0] ??
+      null)
+    : null;
   const multiColorValue = (() => {
     if (!multiColorSource) return "#000000";
     if (multiColorSource.type === "text") {
       return multiColorSource.style.color ?? "#000000";
     }
     const fill = multiColorSource.fill ?? "#ffffff";
-    const isImageFill =
-      fill.startsWith("url(") || fill.startsWith("data:");
+    const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
     return isImageFill ? "#ffffff" : fill;
   })();
 
   const isFontTarget = (
-    element: CanvasElement
+    element: CanvasElement,
   ): element is TextElement | ShapeElement =>
     element.type === "text" ||
     element.type === "rect" ||
@@ -150,15 +141,15 @@ export const useSelectionState = ({
     : [];
   const multiFontSource =
     multiFontTargets.length > 0
-      ? multiFontTargets.find((element) => !element.locked) ??
+      ? (multiFontTargets.find((element) => !element.locked) ??
         multiFontTargets[0] ??
-        null
+        null)
       : null;
   const hasMultiFontTargets = multiFontTargets.length > 0;
   const multiFontFamily =
     multiFontSource && multiFontSource.type === "text"
-      ? multiFontSource.style.fontFamily ?? "Pretendard"
-      : multiFontSource?.textStyle?.fontFamily ?? "Pretendard";
+      ? (multiFontSource.style.fontFamily ?? "Pretendard")
+      : (multiFontSource?.textStyle?.fontFamily ?? "Pretendard");
   const multiFontLabel = getFontLabel(multiFontFamily);
   const multiFontWeight = multiFontSource
     ? multiFontSource.type === "text"
@@ -168,14 +159,14 @@ export const useSelectionState = ({
   const multiFontSize =
     multiFontSource && multiFontSource.type === "text"
       ? multiFontSource.style.fontSize
-      : multiFontSource?.textStyle?.fontSize ?? 16;
+      : (multiFontSource?.textStyle?.fontSize ?? 16);
   const minMultiFontSize = 12;
   const maxMultiFontSize = 120;
   const applyMultiFontSize = (value: number) => {
     if (!activePage) return;
     const nextSize = Math.min(
       maxMultiFontSize,
-      Math.max(minMultiFontSize, value)
+      Math.max(minMultiFontSize, value),
     );
     setPages((prevPages) =>
       prevPages.map((page) =>
@@ -211,8 +202,8 @@ export const useSelectionState = ({
                 return el;
               }),
             }
-          : page
-      )
+          : page,
+      ),
     );
   };
   const multiFontSizeInput = useNumberInput({
@@ -222,9 +213,7 @@ export const useSelectionState = ({
     onChange: applyMultiFontSize,
   });
 
-  const isBorderTarget = (
-    element: CanvasElement
-  ): element is ShapeElement =>
+  const isBorderTarget = (element: CanvasElement): element is ShapeElement =>
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse";
@@ -233,9 +222,9 @@ export const useSelectionState = ({
     : [];
   const multiBorderSource =
     multiBorderTargets.length > 0
-      ? multiBorderTargets.find((element) => !element.locked) ??
+      ? (multiBorderTargets.find((element) => !element.locked) ??
         multiBorderTargets[0] ??
-        null
+        null)
       : null;
   const hasMultiBorderTargets = multiBorderTargets.length > 0;
   const multiBorderEnabled = multiBorderSource?.border?.enabled ?? false;
@@ -253,11 +242,8 @@ export const useSelectionState = ({
   const activeBorderStyle: BorderStyle | "none" = multiBorderEnabled
     ? multiBorderStyle
     : "none";
-  const clampBorderWidth = (value: number) =>
-    Math.min(20, Math.max(1, value));
-  const applyMultiBorderPatch = (
-    patch: Partial<ShapeElement["border"]>
-  ) => {
+  const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
+  const applyMultiBorderPatch = (patch: Partial<ShapeElement["border"]>) => {
     if (!activePage) return;
     setPages((prevPages) =>
       prevPages.map((page) => {
@@ -290,7 +276,7 @@ export const useSelectionState = ({
             };
           }),
         };
-      })
+      }),
     );
   };
 
@@ -298,15 +284,22 @@ export const useSelectionState = ({
     ? activePage?.elements.find((el) => el.id === activeToolbarElementId)
     : null;
   const lineToolbarData = (() => {
-    if (
-      !selectedElement ||
-      selectedElement.locked ||
-      (selectedElement.type !== "line" && selectedElement.type !== "arrow")
-    ) {
-      return null;
-    }
+    if (!activePage) return null;
 
-    const element = selectedElement;
+    // 선택된 요소들 중 line/arrow만 필터링
+    const selectedLines = selectedIds
+      .map((id) => activePage.elements.find((el) => el.id === id))
+      .filter(
+        (el): el is Extract<CanvasElement, { type: "line" | "arrow" }> =>
+          el != null &&
+          !el.locked &&
+          (el.type === "line" || el.type === "arrow"),
+      );
+
+    if (selectedLines.length === 0) return null;
+
+    // 첫 번째 선택된 선을 기준으로 툴바 데이터 생성
+    const element = selectedLines[0];
     const stroke = element.stroke ?? { color: "#000000", width: 2 };
     const dx = element.end.x - element.start.x;
     const dy = element.end.y - element.start.y;
@@ -314,6 +307,7 @@ export const useSelectionState = ({
     const angleRad = Math.atan2(dy, dx);
     const rawAngle = ((angleRad * 180) / Math.PI + 360) % 360;
     const angle = Math.round(rawAngle) % 360;
+
     return {
       element,
       stroke,
@@ -343,7 +337,7 @@ export const useSelectionState = ({
     const radius =
       element.type === "ellipse"
         ? Math.min(rect.width, rect.height) / 2
-        : element.radius ?? 0;
+        : (element.radius ?? 0);
     const maxRadius = Math.min(rect.width, rect.height) / 2;
     const minRadius = 0;
     const clampRadius = (value: number) =>
@@ -371,9 +365,7 @@ export const useSelectionState = ({
     };
   })();
 
-  const aacIndex = activePage
-    ? buildAacIndex(activePage.elements)
-    : null;
+  const aacIndex = activePage ? buildAacIndex(activePage.elements) : null;
 
   // AAC 카드 선택 감지 (단일 또는 다중 선택, 라벨 클릭 포함)
   const aacCardTargets = (() => {
@@ -392,7 +384,8 @@ export const useSelectionState = ({
         if (!isAacBoardLabel(element)) return;
         const matchedCard = aacCards.find(
           (card) =>
-            findLabelElementId(elements, card, isAacLabelElement) === element.id
+            findLabelElementId(elements, card, isAacLabelElement) ===
+            element.id,
         );
         if (matchedCard) {
           targets.set(matchedCard.id, matchedCard);
@@ -441,14 +434,12 @@ export const useSelectionState = ({
   const applyAacLabelPosition = (position: AacLabelPosition) => {
     if (!activePage || aacCardTargets.length === 0) return;
 
-    const targetCardIds = new Set(
-      aacCardTargets.map((card) => card.id)
-    );
+    const targetCardIds = new Set(aacCardTargets.map((card) => card.id));
     const getDefaultLabelHeight = (cardHeight: number) => {
       const maxLabelHeight = 12 * 3.7795;
       const rawHeight = Math.min(
         maxLabelHeight,
-        Math.max(0, cardHeight * 0.22)
+        Math.max(0, cardHeight * 0.22),
       );
       return Math.max(1, Math.round(rawHeight * 2) / 2);
     };
@@ -459,16 +450,15 @@ export const useSelectionState = ({
 
         const elements = page.elements;
         const elementById = new Map(
-          elements.map((element) => [element.id, element])
+          elements.map((element) => [element.id, element]),
         );
         const targetCards = elements.filter(
-          (element): element is ShapeElement =>
-            targetCardIds.has(element.id)
+          (element): element is ShapeElement => targetCardIds.has(element.id),
         );
         if (targetCards.length === 0) return page;
 
         const targetCardById = new Map(
-          targetCards.map((card) => [card.id, card])
+          targetCards.map((card) => [card.id, card]),
         );
         const labelInfoMap = new Map<
           string,
@@ -561,10 +551,7 @@ export const useSelectionState = ({
                 const availableHeight =
                   card.h - imagePadding * 2 - labelAreaHeight;
                 const availableWidth = card.w - imagePadding * 2;
-                const imageBoxSize = Math.min(
-                  availableWidth,
-                  availableHeight
-                );
+                const imageBoxSize = Math.min(availableWidth, availableHeight);
 
                 // 이미지 박스 위치 계산
                 const imageBoxX = (card.w - imageBoxSize) / 2;
@@ -627,7 +614,7 @@ export const useSelectionState = ({
             ...newLabels,
           ],
         };
-      })
+      }),
     );
   };
 

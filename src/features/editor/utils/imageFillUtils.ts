@@ -4,7 +4,7 @@ const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
 export const isAacLabelElement = (
-  element: CanvasElement
+  element: CanvasElement,
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   (element.style.fontSize === 14 || element.style.fontSize === 18) &&
@@ -14,7 +14,7 @@ export const isAacLabelElement = (
   element.style.alignY === "middle";
 
 export const isEmotionLabelElement = (
-  element: CanvasElement
+  element: CanvasElement,
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   (element.style.fontSize === 14 || element.style.fontSize === 20) &&
@@ -27,8 +27,8 @@ export const findLabelElementId = (
   elements: CanvasElement[],
   shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
   isLabelElement: (
-    element: CanvasElement
-  ) => element is Extract<CanvasElement, { type: "text" }>
+    element: CanvasElement,
+  ) => element is Extract<CanvasElement, { type: "text" }>,
 ) => {
   const shapeLeft = shape.x;
   const shapeRight = shape.x + shape.w;
@@ -67,8 +67,11 @@ export const findLabelElementId = (
 
 export const isAacCardElement = (
   elements: CanvasElement[],
-  element: CanvasElement
-): element is Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }> => {
+  element: CanvasElement,
+): element is Extract<
+  CanvasElement,
+  { type: "rect" | "roundRect" | "ellipse" }
+> => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
@@ -76,12 +79,14 @@ export const isAacCardElement = (
   ) {
     return false;
   }
-  const labelId = findLabelElementId(
-    elements,
-    element,
-    isAacLabelElement
-  );
+  // labelId가 명시적으로 설정되어 있으면 AAC 카드로 인식
+  if (element.labelId !== undefined) return true;
+
+  // labelId가 없으면 findLabelElementId로 label을 찾아봄
+  const labelId = findLabelElementId(elements, element, isAacLabelElement);
   if (labelId) return true;
+
+  // label이 없으면 imageBox와 border 스타일로 판단
   if (!element.imageBox) return false;
   const sizeTolerance = 2;
   const hasInsetImageBox =
@@ -96,30 +101,33 @@ export const isAacCardElement = (
 
 export const getNextAacCardId = (
   elements: CanvasElement[],
-  currentId: string
+  currentId: string,
 ) => {
-  const rowTolerance = mmToPx(2);
+  const colTolerance = mmToPx(2);
   const aacCards = elements.filter((element) =>
-    isAacCardElement(elements, element)
+    isAacCardElement(elements, element),
   );
   if (aacCards.length === 0) return null;
   const orderedCards = [...aacCards].sort((a, b) => {
-    const yDiff = a.y - b.y;
-    if (Math.abs(yDiff) > rowTolerance) {
-      return yDiff;
+    const xDiff = a.x - b.x;
+    if (Math.abs(xDiff) > colTolerance) {
+      return xDiff;
     }
-    return a.x - b.x;
+    return a.y - b.y;
   });
   const currentIndex = orderedCards.findIndex(
-    (element) => element.id === currentId
+    (element) => element.id === currentId,
   );
   if (currentIndex < 0) return null;
   return orderedCards[currentIndex + 1]?.id ?? null;
 };
 
 export const isEmotionInferenceCard = (
-  element: CanvasElement
-): element is Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }> => {
+  element: CanvasElement,
+): element is Extract<
+  CanvasElement,
+  { type: "rect" | "roundRect" | "ellipse" }
+> => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
@@ -136,22 +144,22 @@ export const isEmotionInferenceCard = (
 
 export const getNextEmotionCardId = (
   elements: CanvasElement[],
-  currentId: string
+  currentId: string,
 ) => {
-  const rowTolerance = mmToPx(2);
+  const colTolerance = mmToPx(2);
   const emotionCards = elements.filter((element) =>
-    isEmotionInferenceCard(element)
+    isEmotionInferenceCard(element),
   );
   if (emotionCards.length === 0) return null;
   const orderedCards = [...emotionCards].sort((a, b) => {
-    const yDiff = a.y - b.y;
-    if (Math.abs(yDiff) > rowTolerance) {
-      return yDiff;
+    const xDiff = a.x - b.x;
+    if (Math.abs(xDiff) > colTolerance) {
+      return xDiff;
     }
-    return a.x - b.x;
+    return a.y - b.y;
   });
   const currentIndex = orderedCards.findIndex(
-    (element) => element.id === currentId
+    (element) => element.id === currentId,
   );
   if (currentIndex < 0) return null;
   return orderedCards[currentIndex + 1]?.id ?? null;

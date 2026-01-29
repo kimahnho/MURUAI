@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
+import TransformToolbar from "../TransformToolbar";
 
 type ImageHandle = ResizeHandle;
 
@@ -51,23 +52,40 @@ interface RoundBoxProps {
   selectable?: boolean;
   transformRect?: (
     rect: Rect,
-    context: { type: "drag" | "resize"; handle?: ResizeHandle }
+    context: { type: "drag" | "resize"; handle?: ResizeHandle },
   ) => Rect;
   onRectChange?: (rect: Rect) => void;
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize" },
   ) => void;
   onImageScaleChange?: (value: number) => void;
   onImageOffsetChange?: (value: { x: number; y: number }) => void;
-  onImageBoxChange?: (value: { x: number; y: number; w: number; h: number }) => void;
-  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
+  onImageBoxChange?: (value: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }) => void;
+  onSelectChange?: (
+    isSelected: boolean,
+    options?: { additive?: boolean },
+  ) => void;
   onImageEditingChange?: (isEditing: boolean) => void;
   onTextEditingChange?: (isEditing: boolean) => void;
   onTextChange?: (text: string) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onImageDrop?: (imageUrl: string) => void;
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+  onFlipX?: () => void;
+  onFlipY?: () => void;
+  onRotateCW?: () => void;
+  onRotateCCW?: () => void;
 }
 
 interface ActiveListeners {
@@ -106,6 +124,11 @@ const RoundBox = ({
   onTextChange,
   onContextMenu,
   onImageDrop,
+  transform,
+  onFlipX,
+  onFlipY,
+  onRotateCW,
+  onRotateCCW,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isImageEditingState, setIsImageEditingState] = useState(false);
@@ -116,7 +139,8 @@ const RoundBox = ({
   // Use controlled prop if provided, otherwise use local state
   const isImageEditing = isImageEditingProp ?? isImageEditingState;
   const setIsImageEditing = (value: boolean | ((prev: boolean) => boolean)) => {
-    const newValue = typeof value === 'function' ? value(isImageEditing) : value;
+    const newValue =
+      typeof value === "function" ? value(isImageEditing) : value;
     if (isImageEditingProp === undefined) {
       setIsImageEditingState(newValue);
     }
@@ -125,7 +149,7 @@ const RoundBox = ({
 
   const isTextEditing = isTextEditingProp ?? isTextEditingState;
   const setIsTextEditing = (value: boolean | ((prev: boolean) => boolean)) => {
-    const newValue = typeof value === 'function' ? value(isTextEditing) : value;
+    const newValue = typeof value === "function" ? value(isTextEditing) : value;
     if (isTextEditingProp === undefined) {
       setIsTextEditingState(newValue);
     }
@@ -134,7 +158,9 @@ const RoundBox = ({
   const rectRef = useRef(rect);
   const imageScaleRef = useRef(imageScale);
   const imageOffsetRef = useRef(imageOffset);
-  const imageBoxRef = useRef(imageBox ?? { x: 0, y: 0, w: rect.width, h: rect.height });
+  const imageBoxRef = useRef(
+    imageBox ?? { x: 0, y: 0, w: rect.width, h: rect.height },
+  );
   const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -151,8 +177,12 @@ const RoundBox = ({
   }, [imageOffset]);
 
   useEffect(() => {
-    imageBoxRef.current =
-      imageBox ?? { x: 0, y: 0, w: rect.width, h: rect.height };
+    imageBoxRef.current = imageBox ?? {
+      x: 0,
+      y: 0,
+      w: rect.width,
+      h: rect.height,
+    };
   }, [imageBox, rect.width, rect.height]);
 
   useEffect(() => {
@@ -176,13 +206,18 @@ const RoundBox = ({
     };
   }, []);
 
-  const clampImageScale = (value: number) =>
-    Math.min(3, Math.max(0.5, value));
+  const clampImageScale = (value: number) => Math.min(3, Math.max(0.5, value));
 
   const startAction = (
     event: ReactPointerEvent<HTMLDivElement>,
-    type: "drag" | "resize" | "imageScale" | "imageMove" | "imageBoxResize" | "imageBoxMove",
-    handle?: ResizeHandle  
+    type:
+      | "drag"
+      | "resize"
+      | "imageScale"
+      | "imageMove"
+      | "imageBoxResize"
+      | "imageBoxMove",
+    handle?: ResizeHandle,
   ) => {
     if (locked) return;
     if (event.button !== 0) return;
@@ -222,7 +257,7 @@ const RoundBox = ({
                 width: startRect.width,
                 height: startRect.height,
               },
-              { type, handle }
+              { type, handle },
             )
           : {
               x: startRect.x + dx,
@@ -293,8 +328,7 @@ const RoundBox = ({
         if (handle.length === 2) {
           const scaleX = nextW / startBox.w;
           const scaleY = nextH / startBox.h;
-          const scale =
-            Math.abs(scaleX) > Math.abs(scaleY) ? scaleX : scaleY;
+          const scale = Math.abs(scaleX) > Math.abs(scaleY) ? scaleX : scaleY;
           nextW = startBox.w * scale;
           nextH = startBox.h * scale;
           if (handle.includes("w")) {
@@ -420,7 +454,7 @@ const RoundBox = ({
               width: nextWidth,
               height: nextHeight,
             },
-            { type, handle }
+            { type, handle },
           )
         : {
             x: nextX,
@@ -456,23 +490,41 @@ const RoundBox = ({
       handle === "nw"
         ? { left: -halfHandle, top: -halfHandle }
         : handle === "ne"
-        ? { right: -halfHandle, top: -halfHandle }
-        : handle === "sw"
-        ? { left: -halfHandle, bottom: -halfHandle }
-        : handle === "se"
-        ? { right: -halfHandle, bottom: -halfHandle }
-        : handle === "n"
-        ? { left: "50%", top: -halfHandle, transform: "translateX(-50%)" }
-        : handle === "s"
-        ? { left: "50%", bottom: -halfHandle, transform: "translateX(-50%)" }
-        : handle === "e"
-        ? { right: -halfHandle, top: "50%", transform: "translateY(-50%)" }
-        : { left: -halfHandle, top: "50%", transform: "translateY(-50%)" };
+          ? { right: -halfHandle, top: -halfHandle }
+          : handle === "sw"
+            ? { left: -halfHandle, bottom: -halfHandle }
+            : handle === "se"
+              ? { right: -halfHandle, bottom: -halfHandle }
+              : handle === "n"
+                ? {
+                    left: "50%",
+                    top: -halfHandle,
+                    transform: "translateX(-50%)",
+                  }
+                : handle === "s"
+                  ? {
+                      left: "50%",
+                      bottom: -halfHandle,
+                      transform: "translateX(-50%)",
+                    }
+                  : handle === "e"
+                    ? {
+                        right: -halfHandle,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      }
+                    : {
+                        left: -halfHandle,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      };
 
     return (
       <div
         key={handle}
-        onPointerDown={(event) => { startAction(event, "resize", handle); }}
+        onPointerDown={(event) => {
+          startAction(event, "resize", handle);
+        }}
         data-capture-handle="true"
         className="absolute rounded-sm border bg-white-100"
         style={{
@@ -489,36 +541,39 @@ const RoundBox = ({
   const renderImageHandle = (
     handle: ImageHandle,
     cursor: string,
-    box: { x: number; y: number; w: number; h: number }
+    box: { x: number; y: number; w: number; h: number },
   ) => {
     const position =
       handle === "nw"
         ? { left: box.x - halfHandle, top: box.y - halfHandle }
         : handle === "ne"
-        ? { left: box.x + box.w - halfHandle, top: box.y - halfHandle }
-        : handle === "sw"
-        ? { left: box.x - halfHandle, top: box.y + box.h - halfHandle }
-        : handle === "se"
-        ? { left: box.x + box.w - halfHandle, top: box.y + box.h - halfHandle }
-        : handle === "n"
-        ? {
-            left: box.x + box.w / 2 - halfHandle,
-            top: box.y - halfHandle,
-          }
-        : handle === "s"
-        ? {
-            left: box.x + box.w / 2 - halfHandle,
-            top: box.y + box.h - halfHandle,
-          }
-        : handle === "e"
-        ? {
-            left: box.x + box.w - halfHandle,
-            top: box.y + box.h / 2 - halfHandle,
-          }
-        : {
-            left: box.x - halfHandle,
-            top: box.y + box.h / 2 - halfHandle,
-          };
+          ? { left: box.x + box.w - halfHandle, top: box.y - halfHandle }
+          : handle === "sw"
+            ? { left: box.x - halfHandle, top: box.y + box.h - halfHandle }
+            : handle === "se"
+              ? {
+                  left: box.x + box.w - halfHandle,
+                  top: box.y + box.h - halfHandle,
+                }
+              : handle === "n"
+                ? {
+                    left: box.x + box.w / 2 - halfHandle,
+                    top: box.y - halfHandle,
+                  }
+                : handle === "s"
+                  ? {
+                      left: box.x + box.w / 2 - halfHandle,
+                      top: box.y + box.h - halfHandle,
+                    }
+                  : handle === "e"
+                    ? {
+                        left: box.x + box.w - halfHandle,
+                        top: box.y + box.h / 2 - halfHandle,
+                      }
+                    : {
+                        left: box.x - halfHandle,
+                        top: box.y + box.h / 2 - halfHandle,
+                      };
 
     return (
       <div
@@ -546,6 +601,27 @@ const RoundBox = ({
   const selectionColor = "var(--primary)";
   const borderStyle = border?.style ?? "solid";
   const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
+
+  // Transform 툴바 표시 조건: 선택됨, 잠금 아님, 이미지/텍스트 편집 중 아님
+  const showTransformToolbar =
+    isActive &&
+    !locked &&
+    !isImageEditing &&
+    !isTextEditing &&
+    onFlipX &&
+    onFlipY &&
+    onRotateCW &&
+    onRotateCCW;
+
+  // 요소 전체 transform 스타일 계산
+  const elementTransformStyle = (() => {
+    const transforms: string[] = [];
+    if (transform?.flipX) transforms.push("scaleX(-1)");
+    if (transform?.flipY) transforms.push("scaleY(-1)");
+    if (transform?.rotation)
+      transforms.push(`rotate(${transform.rotation}deg)`);
+    return transforms.length > 0 ? transforms.join(" ") : undefined;
+  })();
   const backgroundStyle: CSSProperties = isImageFill
     ? {}
     : { backgroundColor: fill };
@@ -554,7 +630,8 @@ const RoundBox = ({
       ? fill.slice(4, -1).replace(/(^['"]|['"]$)/g, "")
       : fill
     : "";
-  const showResizeHandles = !locked && (isHovered || isActive) && !isImageEditing;
+  const showResizeHandles =
+    !locked && (isHovered || isActive) && !isImageEditing;
   const showImageHandles =
     isImageFill && !locked && isActive && isImageEditing && onImageBoxChange;
   const imageCenterThreshold = 2;
@@ -621,8 +698,12 @@ const RoundBox = ({
         if (!imageUrl) return;
         onImageDrop(imageUrl);
       }}
-      onMouseEnter={() => { setIsHovered(true); }}
-      onMouseLeave={() => { setIsHovered(false); }}
+      onMouseEnter={() => {
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+      }}
       className={`absolute select-none outline-2 ${className}`}
       style={{
         left: rect.x,
@@ -642,7 +723,12 @@ const RoundBox = ({
         className={`absolute inset-0 flex items-center justify-center ${
           showImageOverflow ? "overflow-visible" : "overflow-hidden"
         }`}
-        style={{ borderRadius, ...backgroundStyle }}
+        style={{
+          borderRadius,
+          ...backgroundStyle,
+          transform: elementTransformStyle,
+          transformOrigin: "center center",
+        }}
         onDoubleClick={(event) => {
           if (!isImageFill) return;
           event.stopPropagation();
@@ -765,7 +851,9 @@ const RoundBox = ({
             ref={textInputRef}
             type="text"
             value={editingText}
-            onChange={(e) => { setEditingText(e.target.value); }}
+            onChange={(e) => {
+              setEditingText(e.target.value);
+            }}
             onBlur={() => {
               setIsTextEditing(false);
               onTextChange?.(editingText);
@@ -787,8 +875,12 @@ const RoundBox = ({
               color: textStyle?.color ?? "#000000",
               caretColor: textStyle?.color ?? "#000000",
             }}
-            onClick={(e) => { e.stopPropagation(); }}
-            onPointerDown={(e) => { e.stopPropagation(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
           />
         )}
         {children}
@@ -824,6 +916,14 @@ const RoundBox = ({
         >
           가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}
         </div>
+      )}
+      {showTransformToolbar && (
+        <TransformToolbar
+          onFlipX={onFlipX}
+          onFlipY={onFlipY}
+          onRotateCW={onRotateCW}
+          onRotateCCW={onRotateCCW}
+        />
       )}
     </div>
   );

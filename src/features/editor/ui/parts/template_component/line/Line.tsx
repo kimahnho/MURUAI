@@ -1,27 +1,40 @@
-import {
-  useEffect,
-  useRef,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { normalizePoint } from "../../../../utils/domUtils";
 import { useLineInteraction } from "./useLineInteraction";
+import TransformToolbar from "../TransformToolbar";
 
 interface LineShapeProps {
   id: string;
   start: Point;
   end: Point;
-  stroke: { color: string; width: number };
+  stroke: {
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted";
+  };
   isSelected?: boolean;
   locked?: boolean;
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
     isDragging: boolean,
     value?: { start: Point; end: Point },
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize" },
   ) => void;
-  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
+  onSelectChange?: (
+    isSelected: boolean,
+    options?: { additive?: boolean },
+  ) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+  onFlipX?: () => void;
+  onFlipY?: () => void;
+  onRotateCW?: () => void;
+  onRotateCCW?: () => void;
 }
 
 const Line = ({
@@ -34,6 +47,11 @@ const Line = ({
   onDragStateChange,
   onSelectChange,
   onContextMenu,
+  transform,
+  onFlipX,
+  onFlipY,
+  onRotateCW,
+  onRotateCCW,
 }: LineShapeProps) => {
   const safeStart = normalizePoint(start);
   const safeEnd = normalizePoint(end);
@@ -91,6 +109,18 @@ const Line = ({
   });
 
   const showOutline = !locked && isSelected;
+  const showTransformToolbar =
+    isSelected && !locked && onFlipX && onFlipY && onRotateCW && onRotateCCW;
+
+  // Transform 스타일 계산
+  const transformStyle = (() => {
+    const transforms: string[] = [];
+    if (transform?.flipX) transforms.push("scaleX(-1)");
+    if (transform?.flipY) transforms.push("scaleY(-1)");
+    if (transform?.rotation)
+      transforms.push(`rotate(${transform.rotation}deg)`);
+    return transforms.length > 0 ? transforms.join(" ") : undefined;
+  })();
 
   return (
     <div
@@ -107,7 +137,15 @@ const Line = ({
       {showOutline && (
         <div className="absolute inset-0 rounded border border-primary/60 pointer-events-none" />
       )}
-      <svg width={boxWidth} height={boxHeight} className="absolute inset-0">
+      <svg
+        width={boxWidth}
+        height={boxHeight}
+        className="absolute inset-0"
+        style={{
+          transform: transformStyle,
+          transformOrigin: "center center",
+        }}
+      >
         <line
           x1={startRel.x}
           y1={startRel.y}
@@ -126,6 +164,13 @@ const Line = ({
           stroke={stroke.color}
           strokeWidth={stroke.width}
           strokeLinecap="round"
+          strokeDasharray={
+            stroke.style === "dashed"
+              ? "6 3"
+              : stroke.style === "dotted"
+                ? "2 3"
+                : undefined
+          }
           pointerEvents="none"
         />
       </svg>
@@ -140,7 +185,9 @@ const Line = ({
               top: startRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => { startResize(event, "start"); }}
+            onPointerDown={(event) => {
+              startResize(event, "start");
+            }}
           />
           <div
             className="absolute rounded-full border border-primary bg-white-100"
@@ -151,7 +198,9 @@ const Line = ({
               top: endRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => { startResize(event, "end"); }}
+            onPointerDown={(event) => {
+              startResize(event, "end");
+            }}
           />
         </>
       )}
@@ -162,6 +211,14 @@ const Line = ({
         >
           각도: {Math.round(angleDeg)}°
         </div>
+      )}
+      {showTransformToolbar && (
+        <TransformToolbar
+          onFlipX={onFlipX}
+          onFlipY={onFlipY}
+          onRotateCW={onRotateCW}
+          onRotateCCW={onRotateCCW}
+        />
       )}
     </div>
   );
