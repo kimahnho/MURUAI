@@ -52,6 +52,8 @@ export const useTextBoxSelectionEffect = ({
       });
     });
 
-    return () => { cancelAnimationFrame(frame); };
+    return () => {
+      cancelAnimationFrame(frame);
+    };
   }, [isEditing, editableRef, pendingCaretRef, pendingWordSelectRef]);
 };
