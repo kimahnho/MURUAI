@@ -10,7 +10,7 @@ const frameYmm = marginMm;
 const frameWidthMm = pageWidthMm - marginMm * 2;
 
 // 내부 콘텐츠 여백 (좌우/상하)
-const innerPaddingXmm = 10;
+const innerPaddingXmm = 4;
 const innerPaddingYmm = 10;
 
 // Inner content layout
@@ -22,31 +22,19 @@ const titleGapMm = 10;
 const headerHeightMm = 12;
 const headerGapMm = 8;
 
-const colGapMm = 6;
-const leftColWidthMm = 24;
+const colGapMm = 4;
+const leftColWidthMm = 20;
 // Remaining width for task columns
 const taskColsTotalWidthMm = contentWidth - leftColWidthMm - colGapMm * 2;
 const taskColWidthMm = taskColsTotalWidthMm / 2;
 
-const rowHeightMm = 46;
-const rowGapMm = 8;
+const rowHeightMm = 50;
+const rowGapMm = 6;
 const rowCount = 4;
 
 const titleYmm = frameYmm + innerPaddingYmm;
 const headerYmm = titleYmm + titleHeightMm + titleGapMm;
 const bodyStartYmm = headerYmm + headerHeightMm + headerGapMm;
-
-const footerGapMm = 12;
-
-const frameHeightMm =
-  innerPaddingYmm +
-  titleHeightMm +
-  titleGapMm +
-  headerHeightMm +
-  headerGapMm +
-  rowCount * rowHeightMm +
-  (rowCount - 1) * rowGapMm +
-  footerGapMm;
 
 const colors = {
   background: "#F7F4EC",
@@ -67,21 +55,6 @@ export const visualScheduleTemplate: Template = {
   id: "visualSchedule",
   name: "시각적 스케줄표",
   elements: [
-    {
-      type: "roundRect",
-      x: mmToPx(frameXmm),
-      y: mmToPx(frameYmm),
-      w: mmToPx(frameWidthMm),
-      h: mmToPx(frameHeightMm),
-      fill: colors.background,
-      radius: mmToPx(8),
-      border: {
-        enabled: true,
-        color: colors.border,
-        width: 1,
-        style: "solid" as const,
-      },
-    },
     {
       type: "roundRect",
       x: mmToPx(contentStartX),

@@ -412,7 +412,7 @@ const DesignPaper = ({
         updates.y = nextRect.y;
       }
 
-      // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
+      // 이미지가 있는 요소의 경우 imageBox 비율을 유지하며 업데이트
       if (
         targetElement &&
         (targetElement.type === "rect" ||
@@ -422,12 +422,40 @@ const DesignPaper = ({
         (targetElement.fill.startsWith("url(") ||
           targetElement.fill.startsWith("data:"))
       ) {
-        updates.imageBox = {
-          x: 0,
-          y: 0,
-          w: nextRect.width,
-          h: nextRect.height,
-        };
+        const oldImageBox = targetElement.imageBox;
+        if (oldImageBox) {
+          // 기존 imageBox의 비율 유지
+          const imageAspectRatio = oldImageBox.w / oldImageBox.h;
+          const newElementAspectRatio = nextRect.width / nextRect.height;
+
+          let newBoxW: number;
+          let newBoxH: number;
+
+          if (imageAspectRatio > newElementAspectRatio) {
+            // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
+            newBoxH = nextRect.height;
+            newBoxW = nextRect.height * imageAspectRatio;
+          } else {
+            // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
+            newBoxW = nextRect.width;
+            newBoxH = nextRect.width / imageAspectRatio;
+          }
+
+          updates.imageBox = {
+            x: (nextRect.width - newBoxW) / 2,
+            y: (nextRect.height - newBoxH) / 2,
+            w: newBoxW,
+            h: newBoxH,
+          };
+        } else {
+          // imageBox가 없으면 요소 크기로 초기화
+          updates.imageBox = {
+            x: 0,
+            y: 0,
+            w: nextRect.width,
+            h: nextRect.height,
+          };
+        }
       }
 
       updateElement(elementId, updates);
@@ -541,7 +569,7 @@ const DesignPaper = ({
       }
     }
 
-    // Shape 요소의 resize 중 이미지가 있으면 실시간으로 imageBox 업데이트
+    // Shape 요소의 resize 중 이미지가 있으면 실시간으로 imageBox 비율 유지하며 업데이트
     if (
       activeInteraction.type === "resize" &&
       targetElement &&
@@ -552,17 +580,49 @@ const DesignPaper = ({
       (targetElement.fill.startsWith("url(") ||
         targetElement.fill.startsWith("data:"))
     ) {
+      const oldImageBox = targetElement.imageBox;
+      let newImageBox: { x: number; y: number; w: number; h: number };
+
+      if (oldImageBox) {
+        // 기존 imageBox의 비율 유지
+        const imageAspectRatio = oldImageBox.w / oldImageBox.h;
+        const newElementAspectRatio = nextRect.width / nextRect.height;
+
+        let newBoxW: number;
+        let newBoxH: number;
+
+        if (imageAspectRatio > newElementAspectRatio) {
+          // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
+          newBoxH = nextRect.height;
+          newBoxW = nextRect.height * imageAspectRatio;
+        } else {
+          // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
+          newBoxW = nextRect.width;
+          newBoxH = nextRect.width / imageAspectRatio;
+        }
+
+        newImageBox = {
+          x: (nextRect.width - newBoxW) / 2,
+          y: (nextRect.height - newBoxH) / 2,
+          w: newBoxW,
+          h: newBoxH,
+        };
+      } else {
+        // imageBox가 없으면 요소 크기로 초기화
+        newImageBox = {
+          x: 0,
+          y: 0,
+          w: nextRect.width,
+          h: nextRect.height,
+        };
+      }
+
       updateElement(elementId, {
         x: nextRect.x,
         y: nextRect.y,
         w: nextRect.width,
         h: nextRect.height,
-        imageBox: {
-          x: 0,
-          y: 0,
-          w: nextRect.width,
-          h: nextRect.height,
-        },
+        imageBox: newImageBox,
       });
       setActivePreview({ id: elementId, rect: nextRect });
       return;
@@ -685,7 +745,7 @@ const DesignPaper = ({
           h: finalRect.height,
         };
 
-        // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
+        // 이미지가 있는 요소의 경우 imageBox 비율을 유지하며 업데이트
         if (
           targetElement &&
           (targetElement.type === "rect" ||
@@ -696,12 +756,40 @@ const DesignPaper = ({
             targetElement.fill.startsWith("data:")) &&
           isResize
         ) {
-          updates.imageBox = {
-            x: 0,
-            y: 0,
-            w: finalRect.width,
-            h: finalRect.height,
-          };
+          const oldImageBox = targetElement.imageBox;
+          if (oldImageBox) {
+            // 기존 imageBox의 비율 유지
+            const imageAspectRatio = oldImageBox.w / oldImageBox.h;
+            const newElementAspectRatio = finalRect.width / finalRect.height;
+
+            let newBoxW: number;
+            let newBoxH: number;
+
+            if (imageAspectRatio > newElementAspectRatio) {
+              // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
+              newBoxH = finalRect.height;
+              newBoxW = finalRect.height * imageAspectRatio;
+            } else {
+              // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
+              newBoxW = finalRect.width;
+              newBoxH = finalRect.width / imageAspectRatio;
+            }
+
+            updates.imageBox = {
+              x: (finalRect.width - newBoxW) / 2,
+              y: (finalRect.height - newBoxH) / 2,
+              w: newBoxW,
+              h: newBoxH,
+            };
+          } else {
+            // imageBox가 없으면 요소 크기로 초기화
+            updates.imageBox = {
+              x: 0,
+              y: 0,
+              w: finalRect.width,
+              h: finalRect.height,
+            };
+          }
         }
         const labelId =
           targetElement &&
