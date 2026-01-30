@@ -72,7 +72,7 @@ export const visualScheduleTemplate: Template = {
       h: mmToPx(titleHeightMm),
       text: "오늘의 수업",
       style: {
-        fontSize: 24,
+        fontSize: 30,
         fontWeight: "bold" as const,
         color: colors.titleText,
         underline: false,
@@ -116,7 +116,7 @@ export const visualScheduleTemplate: Template = {
       h: mmToPx(headerHeightMm),
       text: "순서",
       style: {
-        fontSize: 15,
+        fontSize: 30,
         fontWeight: "bold" as const,
         color: colors.textDark,
         underline: false,
@@ -132,7 +132,7 @@ export const visualScheduleTemplate: Template = {
       h: mmToPx(headerHeightMm),
       text: "할일",
       style: {
-        fontSize: 15,
+        fontSize: 30,
         fontWeight: "bold" as const,
         color: colors.textDark,
         underline: false,
@@ -148,7 +148,7 @@ export const visualScheduleTemplate: Template = {
       h: mmToPx(headerHeightMm),
       text: "끝!",
       style: {
-        fontSize: 15,
+        fontSize: 30,
         fontWeight: "bold" as const,
         color: colors.textDark,
         underline: false,
@@ -183,7 +183,7 @@ export const visualScheduleTemplate: Template = {
           h: mmToPx(rowHeightMm),
           text: numberText,
           style: {
-            fontSize: 22,
+            fontSize: 30,
             fontWeight: "bold" as const,
             color: colors.textDark,
             underline: false,
