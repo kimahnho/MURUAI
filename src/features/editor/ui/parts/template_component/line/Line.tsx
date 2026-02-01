@@ -163,12 +163,12 @@ const Line = ({
           y2={endRel.y}
           stroke={stroke.color}
           strokeWidth={stroke.width}
-          strokeLinecap="round"
+          strokeLinecap={stroke.style === "dotted" ? "square" : "round"}
           strokeDasharray={
             stroke.style === "dashed"
-              ? "6 3"
+              ? `${stroke.width * 3} ${stroke.width * 2}`
               : stroke.style === "dotted"
-                ? "2 3"
+                ? `${stroke.width * 0.5} ${stroke.width * 2}`
                 : undefined
           }
           pointerEvents="none"
