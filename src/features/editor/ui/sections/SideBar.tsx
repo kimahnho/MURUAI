@@ -3,6 +3,7 @@ import {
   Layout,
   Smile,
   Box,
+  Image,
   Type,
   Upload,
   Grid2X2Icon,
@@ -12,6 +13,7 @@ import UploadContent from "../parts/detail_content/UploadContent";
 import AACContent from "../parts/detail_content/AACContent";
 import EmotionContent from "../parts/detail_content/EmotionContent";
 import ElementContent from "../parts/detail_content/ElementContent";
+import ImageLibraryContent from "../parts/detail_content/ImageLibraryContent";
 import TextContent from "../parts/detail_content/TextContent";
 import FontContent from "../parts/detail_content/FontContent";
 import TemplateContent from "../parts/detail_content/TemplateContent";
@@ -25,6 +27,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   template: "템플릿",
   emotion: "감정",
   element: "요소",
+  image: "이미지",
   text: "텍스트",
   font: "글꼴",
   upload: "업로드",
@@ -36,6 +39,7 @@ const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "template", icon: Layout },
   { id: "emotion", icon: Smile },
   { id: "element", icon: Box },
+  { id: "image", icon: Image },
   { id: "text", icon: Type },
   { id: "upload", icon: Upload },
   { id: "aac", icon: Grid2X2Icon },
@@ -49,6 +53,7 @@ const CONTENT_COMPONENTS: Record<
   template: TemplateContent,
   emotion: EmotionContent,
   element: ElementContent,
+  image: ImageLibraryContent,
   text: TextContent,
   font: FontContent,
   upload: UploadContent,

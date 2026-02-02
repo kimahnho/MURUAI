@@ -5,6 +5,7 @@ export type SideBarMenu =
   | "template"
   | "emotion"
   | "element"
+  | "image"
   | "text"
   | "font"
   | "upload"
