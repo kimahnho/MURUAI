@@ -127,7 +127,17 @@ const DesignPaper = ({
   const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(
     null,
   );
+  const [isRotating, setIsRotating] = useState(false);
+  const [rotationBadge, setRotationBadge] = useState<{
+    elementId: string;
+    rotationDeg: number;
+  } | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const rotationStateRef = useRef<{
+    elementId: string;
+    startRotation: number;
+    startPointerAngle: number;
+  } | null>(null);
   const activeInteractionRef = useRef<{
     id: string;
     type: "drag" | "resize";
@@ -191,6 +201,126 @@ const DesignPaper = ({
       x: (event.clientX - rect.left) / scale,
       y: (event.clientY - rect.top) / scale,
     };
+  };
+
+  const getRotatedCorners = (rect: Rect, rotationDeg: number) => {
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    const rad = (rotationDeg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
+    const corners = [
+      { x: -halfW, y: -halfH },
+      { x: halfW, y: -halfH },
+      { x: halfW, y: halfH },
+      { x: -halfW, y: halfH },
+    ];
+    return corners.map((pt) => ({
+      x: cx + pt.x * cos - pt.y * sin,
+      y: cy + pt.x * sin + pt.y * cos,
+    }));
+  };
+
+  const getBottomCenterAnchor = (
+    rect: Rect,
+    rotationDeg: number,
+    offset: number,
+  ) => {
+    const corners = getRotatedCorners(rect, rotationDeg);
+    const xs = corners.map((pt) => pt.x);
+    const ys = corners.map((pt) => pt.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return {
+      x: (minX + maxX) / 2,
+      y: maxY + offset,
+    };
+  };
+
+  const getRotatedLocalAnchor = (
+    rect: Rect,
+    rotationDeg: number,
+    ax: number,
+    ay: number,
+  ) => {
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    const rad = (rotationDeg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: cx + ax * cos - ay * sin,
+      y: cy + ax * sin + ay * cos,
+    };
+  };
+
+  const startShapeRotation = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    element: ShapeElement,
+    rect: Rect,
+  ) => {
+    if (element.locked) return;
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    const pointer = getPointerPosition(event);
+    const startPointerAngle = Math.atan2(
+      pointer.y - center.y,
+      pointer.x - center.x,
+    );
+    const startRotation = element.transform?.rotation ?? 0;
+    rotationStateRef.current = {
+      elementId: element.id,
+      startRotation,
+      startPointerAngle,
+    };
+    setIsRotating(true);
+    setRotationBadge({
+      elementId: element.id,
+      rotationDeg: startRotation,
+    });
+    onInteractionChange?.(true, { type: "drag" });
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (!rotationStateRef.current) return;
+      const currentPointer = getPointerPosition(moveEvent);
+      const currentAngle = Math.atan2(
+        currentPointer.y - center.y,
+        currentPointer.x - center.x,
+      );
+      const deltaRad =
+        currentAngle - rotationStateRef.current.startPointerAngle;
+      const deltaDeg = (deltaRad * 180) / Math.PI;
+      const nextRotation =
+        (rotationStateRef.current.startRotation + deltaDeg + 360) % 360;
+      updateElement(element.id, {
+        transform: {
+          ...(element.transform ?? {}),
+          rotation: Math.round(nextRotation),
+        },
+      });
+      setRotationBadge({
+        elementId: element.id,
+        rotationDeg: nextRotation,
+      });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      rotationStateRef.current = null;
+      setIsRotating(false);
+      setRotationBadge(null);
+      onInteractionChange?.(false, { type: "drag" });
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
   };
 
   const updateElement = useCallback(
@@ -1537,13 +1667,18 @@ const DesignPaper = ({
             });
           };
 
+    const getLatestElement = () =>
+      elements.find((el) => el.id === element.id) ?? element;
+
     const handleRotateCW =
       readOnly || element.locked
         ? undefined
         : () => {
-            const currentTransform = element.transform ?? {};
+            const latest = getLatestElement();
+            const currentTransform =
+              "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation + 90) % 360;
+            const newRotation = (currentRotation + 1) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1553,9 +1688,11 @@ const DesignPaper = ({
       readOnly || element.locked
         ? undefined
         : () => {
-            const currentTransform = element.transform ?? {};
+            const latest = getLatestElement();
+            const currentTransform =
+              "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation - 90 + 360) % 360;
+            const newRotation = (currentRotation - 1 + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1625,6 +1762,8 @@ const DesignPaper = ({
         onFlipY={handleFlipY}
         onRotateCW={handleRotateCW}
         onRotateCCW={handleRotateCCW}
+        onRotationChange={undefined}
+        showInlineMetrics={false}
       />
     );
   };
@@ -1807,6 +1946,95 @@ const DesignPaper = ({
     >
       {elements.map((element) => renderElement(element))}
       <SelectionRectOverlay selectionRect={selectionRect} />
+      {(() => {
+        if (selectedIds.length !== 1) return null;
+        const element = elements.find((el) => el.id === selectedIds[0]);
+        if (
+          !element ||
+          element.locked ||
+          (element.type !== "rect" &&
+            element.type !== "roundRect" &&
+            element.type !== "ellipse")
+        ) {
+          return null;
+        }
+        const rect =
+          activePreview?.id === element.id
+            ? activePreview.rect
+            : getRectFromElement(element);
+        if (!rect) return null;
+        const rotationDeg = element.transform?.rotation ?? 0;
+        const showRotateHandle =
+          !isRotating &&
+          editingImageId !== element.id &&
+          editingShapeTextId !== element.id;
+        const showSizeLabel = !isRotating;
+        const labelOffset = 16;
+        const labelHeight = 20;
+        const handleRadius = 10;
+        const handleGap = 8;
+        const rotateHandleOffset =
+          labelOffset + labelHeight / 2 + handleRadius + handleGap;
+        const rotatePos = getBottomCenterAnchor(
+          rect,
+          rotationDeg,
+          rotateHandleOffset,
+        );
+        const labelPos = getBottomCenterAnchor(
+          rect,
+          rotationDeg,
+          labelOffset,
+        );
+
+        return (
+          <>
+            {showRotateHandle && (
+              <button
+                type="button"
+                className="absolute flex items-center justify-center rounded-full border-2 bg-white-100 cursor-grab active:cursor-grabbing z-50"
+                style={{
+                  left: rotatePos.x,
+                  top: rotatePos.y,
+                  width: 20,
+                  height: 20,
+                  borderColor: "var(--primary)",
+                  transform: "translate(-50%, -50%)",
+                }}
+                onPointerDown={(event) => {
+                  startShapeRotation(event, element, rect);
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+              </button>
+            )}
+            {showSizeLabel && (
+              <div
+                className="absolute rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
+                style={{
+                  left: labelPos.x,
+                  top: labelPos.y,
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }}
+              >
+                가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}
+              </div>
+            )}
+          </>
+        );
+      })()}
       <GroupSelectionOverlay
         isGroupedSelection={isGroupedSelection}
         readOnly={readOnly}
@@ -1831,6 +2059,42 @@ const DesignPaper = ({
         setContextMenu={setContextMenu}
       />
       <SmartGuideOverlay guides={smartGuides.guides} />
+      {isRotating && rotationBadge && (() => {
+        const element = elements.find((el) => el.id === rotationBadge.elementId);
+        if (
+          !element ||
+          (element.type !== "rect" &&
+            element.type !== "roundRect" &&
+            element.type !== "ellipse")
+        ) {
+          return null;
+        }
+        const rect = getRectFromElement(element);
+        if (!rect) return null;
+        const rotationDeg = element.transform?.rotation ?? 0;
+        const badgeOffset = 42;
+        const badgePos = getRotatedLocalAnchor(
+          rect,
+          rotationDeg,
+          0,
+          rect.height / 2 + badgeOffset,
+        );
+        const angleValue = Math.round(rotationBadge.rotationDeg) % 360;
+        const normalized = angleValue < 0 ? angleValue + 360 : angleValue;
+        return (
+          <div
+            className="absolute rounded bg-black-90 px-2 py-1 text-12-medium text-white-100 shadow-lg z-[9999]"
+            style={{
+              left: badgePos.x,
+              top: badgePos.y,
+              transform: "translate(-50%, -50%)",
+              pointerEvents: "none",
+            }}
+          >
+            {normalized}°
+          </div>
+        );
+      })()}
     </div>
   );
 };

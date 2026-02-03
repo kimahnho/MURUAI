@@ -34,9 +34,9 @@ export const buildAacBoardElements = ({
   const contentWidthMm = pageWidthMm - paddingHorizontalMm * 2;
   const contentHeightMm = pageHeightMm - paddingTopMm - paddingBottomMm;
 
-  // 박스 크기를 130x130px로 고정
+  // 박스 크기를 150x150px로 고정
   // 용지 방향, 그리드 크기와 관계없이 동일한 박스 크기 유지
-  const fixedBoxSizePx = 130;
+  const fixedBoxSizePx = 150;
   const boxInset = snapPx(mmToPx(1)); // boxInset이 적용되므로 미리 보정
   const cellSizePx = fixedBoxSizePx + boxInset * 2;
   const cellWidthMm = cellSizePx / MM_TO_PX;
@@ -91,17 +91,18 @@ export const buildAacBoardElements = ({
         1,
         boxHeight - imagePadding * 2 - labelAreaHeight,
       );
-      const imageBoxSize = clampPx(Math.min(imageAreaWidth, imageAreaHeight));
-      const imageBoxX = snapPx(
-        imageAreaX + (imageAreaWidth - imageBoxSize) / 2,
+      const imageBoxSize = clampPx(
+        Math.min(imageAreaWidth, imageAreaHeight) * 1.5,
       );
-      // 이미지를 아래로 내림 (중앙 정렬 대신 상단에서 오프셋 적용)
-      const imageTopOffset = snapPx(mmToPx(2)); // 상단에서 2mm 여백
-      const imageBoxY = snapPx(imageAreaY + imageTopOffset);
-      const radius = Math.min(
-        snapPx(mmToPx(6)),
-        Math.min(boxWidth, boxHeight) / 2,
+      // 이미지를 박스 내 이미지 영역 중앙에 배치 (상대 좌표)
+      const imageRelX = snapPx(
+        imageAreaX - boxX + (imageAreaWidth - imageBoxSize) / 2,
       );
+      const imageOffsetY = snapPx(mmToPx(2)); // 이미지를 아래로 2mm 내림
+      const imageRelY = snapPx(
+        imageAreaY - boxY + (imageAreaHeight - imageBoxSize) / 2 + imageOffsetY,
+      );
+      const radius = 0;
 
       elements.push({
         type: "roundRect",
@@ -112,14 +113,14 @@ export const buildAacBoardElements = ({
         fill: "#ffffff",
         radius,
         imageBox: {
-          x: Math.max(0, imageBoxX - boxX),
-          y: Math.max(0, imageBoxY - boxY),
+          x: imageRelX,
+          y: imageRelY,
           w: imageBoxSize,
           h: imageBoxSize,
         },
         border: {
           enabled: true,
-          color: "#E5E7EB",
+          color: "#000000",
           width: 2,
           style: "solid",
         },

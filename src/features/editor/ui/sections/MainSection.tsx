@@ -288,6 +288,9 @@ const MainSection = () => {
     shapeToolbarData,
     aacToolbarData,
     applyAacLabelPosition,
+    canDistribute,
+    distributeHorizontal,
+    distributeVertical,
   } = useSelectionState({
     pages,
     selectedPageId,
@@ -358,11 +361,15 @@ const MainSection = () => {
         borderStyleOptions={borderStyleOptions}
         clampBorderWidth={clampBorderWidth}
         applyMultiBorderPatch={applyMultiBorderPatch}
+        canDistribute={canDistribute}
+        onDistributeHorizontal={distributeHorizontal}
+        onDistributeVertical={distributeVertical}
       />
       <ElementToolbars
         shapeToolbarData={shapeToolbarData}
         lineToolbarData={lineToolbarData}
         aacToolbarData={aacToolbarData}
+        selectedIds={selectedIds}
         selectedPageId={selectedPageId}
         setPages={setPages}
         onAacLabelPositionChange={applyAacLabelPosition}
