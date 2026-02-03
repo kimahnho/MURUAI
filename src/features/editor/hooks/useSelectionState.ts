@@ -3,7 +3,6 @@ import { useNumberInput } from "../model/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import type {
   CanvasElement,
-  LineElement,
   ShapeElement,
   TextElement,
 } from "../model/canvasTypes";
