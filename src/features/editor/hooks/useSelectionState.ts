@@ -3,9 +3,11 @@ import { useNumberInput } from "../model/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import type {
   CanvasElement,
+  LineElement,
   ShapeElement,
   TextElement,
 } from "../model/canvasTypes";
+import { getRectFromElement } from "../utils/designPaperUtils";
 import type { Page } from "../model/pageTypes";
 import type { AacLabelPosition } from "../utils/aacBoardUtils";
 import { findLabelElementId, isAacLabelElement } from "../utils/imageFillUtils";
@@ -625,6 +627,109 @@ export const useSelectionState = ({
       }
     : null;
 
+  // 다중 선택 시 요소 간격 균등 분배
+  const canDistribute = selectedElements.length >= 3;
+
+  const distributeHorizontal = () => {
+    if (!activePage || selectedElements.length < 3) return;
+    const rects = selectedElements
+      .map((el) => ({ id: el.id, rect: getRectFromElement(el) }))
+      .filter(
+        (item): item is { id: string; rect: NonNullable<ReturnType<typeof getRectFromElement>> } =>
+          item.rect !== null,
+      );
+    if (rects.length < 3) return;
+
+    rects.sort((a, b) => a.rect.x - b.rect.x);
+
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    const totalElementWidth = rects.reduce((sum, r) => sum + r.rect.width, 0);
+    const totalSpan = last.rect.x + last.rect.width - first.rect.x;
+    const gap = (totalSpan - totalElementWidth) / (rects.length - 1);
+
+    const positionMap = new Map<string, number>();
+    let currentX = first.rect.x;
+    for (const item of rects) {
+      positionMap.set(item.id, currentX);
+      currentX += item.rect.width + gap;
+    }
+
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return {
+          ...page,
+          elements: page.elements.map((el) => {
+            const newX = positionMap.get(el.id);
+            if (newX === undefined || el.locked) return el;
+            if (el.type === "line" || el.type === "arrow") {
+              const rect = getRectFromElement(el);
+              if (!rect) return el;
+              const dx = newX - rect.x;
+              return {
+                ...el,
+                start: { x: el.start.x + dx, y: el.start.y },
+                end: { x: el.end.x + dx, y: el.end.y },
+              };
+            }
+            return { ...el, x: newX };
+          }),
+        };
+      }),
+    );
+  };
+
+  const distributeVertical = () => {
+    if (!activePage || selectedElements.length < 3) return;
+    const rects = selectedElements
+      .map((el) => ({ id: el.id, rect: getRectFromElement(el) }))
+      .filter(
+        (item): item is { id: string; rect: NonNullable<ReturnType<typeof getRectFromElement>> } =>
+          item.rect !== null,
+      );
+    if (rects.length < 3) return;
+
+    rects.sort((a, b) => a.rect.y - b.rect.y);
+
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    const totalElementHeight = rects.reduce((sum, r) => sum + r.rect.height, 0);
+    const totalSpan = last.rect.y + last.rect.height - first.rect.y;
+    const gap = (totalSpan - totalElementHeight) / (rects.length - 1);
+
+    const positionMap = new Map<string, number>();
+    let currentY = first.rect.y;
+    for (const item of rects) {
+      positionMap.set(item.id, currentY);
+      currentY += item.rect.height + gap;
+    }
+
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return {
+          ...page,
+          elements: page.elements.map((el) => {
+            const newY = positionMap.get(el.id);
+            if (newY === undefined || el.locked) return el;
+            if (el.type === "line" || el.type === "arrow") {
+              const rect = getRectFromElement(el);
+              if (!rect) return el;
+              const dy = newY - rect.y;
+              return {
+                ...el,
+                start: { x: el.start.x, y: el.start.y + dy },
+                end: { x: el.end.x, y: el.end.y + dy },
+              };
+            }
+            return { ...el, y: newY };
+          }),
+        };
+      }),
+    );
+  };
+
   return {
     activePage,
     isMultiColorSelection,
@@ -646,5 +751,8 @@ export const useSelectionState = ({
     shapeToolbarData,
     aacToolbarData,
     applyAacLabelPosition,
+    canDistribute,
+    distributeHorizontal,
+    distributeVertical,
   };
 };

@@ -140,7 +140,21 @@ const Arrow = ({
       onContextMenu={onContextMenu}
     >
       {showOutline && (
-        <div className="absolute inset-0 rounded border border-primary/60 pointer-events-none" />
+        <svg
+          width={boxWidth}
+          height={boxHeight}
+          className="absolute inset-0 pointer-events-none"
+        >
+          <line
+            x1={startRel.x}
+            y1={startRel.y}
+            x2={endRel.x}
+            y2={endRel.y}
+            stroke="rgba(59, 130, 246, 0.6)"
+            strokeWidth={stroke.width + 4}
+            strokeLinecap="round"
+          />
+        </svg>
       )}
       <svg
         width={boxWidth}
@@ -238,6 +252,10 @@ const Arrow = ({
           onFlipY={onFlipY}
           onRotateCW={onRotateCW}
           onRotateCCW={onRotateCCW}
+          showFlipX={false}
+          showFlipY={false}
+          showRotateCCW={false}
+          showRotateCW={false}
         />
       )}
     </div>

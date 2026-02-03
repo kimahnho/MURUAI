@@ -30,7 +30,7 @@ interface RoundBoxProps {
     w: number;
     h: number;
   };
-  borderRadius?: number;
+  borderRadius?: number | string;
   border?: {
     enabled: boolean;
     color: string;
@@ -86,6 +86,8 @@ interface RoundBoxProps {
   onFlipY?: () => void;
   onRotateCW?: () => void;
   onRotateCCW?: () => void;
+  onRotationChange?: (angle: number) => void;
+  showInlineMetrics?: boolean;
 }
 
 interface ActiveListeners {
@@ -129,8 +131,11 @@ const RoundBox = ({
   onFlipY,
   onRotateCW,
   onRotateCCW,
+  onRotationChange,
+  showInlineMetrics = true,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
   const [isImageEditingState, setIsImageEditingState] = useState(false);
   const [isTextEditingState, setIsTextEditingState] = useState(false);
   const [editingText, setEditingText] = useState(text);
@@ -613,7 +618,55 @@ const RoundBox = ({
     onRotateCW &&
     onRotateCCW;
 
-  // 요소 전체 transform 스타일 계산
+  // 회전 핸들 표시 조건
+  const showRotateHandle =
+    isActive &&
+    !locked &&
+    !isImageEditing &&
+    !isTextEditing &&
+    !!onRotationChange;
+
+  const handleRotatePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!onRotationChange) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const box = boxRef.current;
+    if (!box) return;
+
+    setIsRotating(true);
+
+    const boxRect = box.getBoundingClientRect();
+    const centerX = boxRect.left + boxRect.width / 2;
+    const centerY = boxRect.top + boxRect.height / 2;
+
+    const currentRotation = transform?.rotation ?? 0;
+    const startAngleRad = Math.atan2(
+      event.clientY - centerY,
+      event.clientX - centerX,
+    );
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const currentAngleRad = Math.atan2(
+        moveEvent.clientY - centerY,
+        moveEvent.clientX - centerX,
+      );
+      const deltaRad = currentAngleRad - startAngleRad;
+      const deltaDeg = (deltaRad * 180) / Math.PI;
+      const newRotation = Math.round((currentRotation + deltaDeg + 360) % 360);
+      onRotationChange(newRotation);
+    };
+
+    const onPointerUp = () => {
+      setIsRotating(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
+  // 요소 전체 transform 스타일 계산 (최상위 div에 적용)
   const elementTransformStyle = (() => {
     const transforms: string[] = [];
     if (transform?.flipX) transforms.push("scaleX(-1)");
@@ -717,6 +770,8 @@ const RoundBox = ({
         border: border?.enabled
           ? `${border.width}px ${borderStyle} ${border.color}`
           : "none",
+        transform: elementTransformStyle,
+        transformOrigin: "center center",
       }}
     >
       <div
@@ -726,8 +781,6 @@ const RoundBox = ({
         style={{
           borderRadius,
           ...backgroundStyle,
-          transform: elementTransformStyle,
-          transformOrigin: "center center",
         }}
         onDoubleClick={(event) => {
           if (!isImageFill) return;
@@ -909,7 +962,17 @@ const RoundBox = ({
           {renderImageHandle("se", "nwse-resize", renderImageBox)}
         </>
       )}
-      {!locked && (isHovered || isActive) && (
+      {/* 회전 중: 각도만 표시 */}
+      {showInlineMetrics && isRotating && (
+        <div
+          className="absolute left-1/2 top-full mt-1 -translate-x-1/2 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
+          style={{ pointerEvents: "none" }}
+        >
+          {transform?.rotation ?? 0}°
+        </div>
+      )}
+      {/* 회전 중이 아닐 때: 가로/세로 표시 */}
+      {showInlineMetrics && !isRotating && !locked && (isHovered || isActive) && (
         <div
           className="absolute left-1/2 top-full mt-1 w-32 -translate-x-1/2 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
           style={{ pointerEvents: "none" }}
@@ -917,13 +980,60 @@ const RoundBox = ({
           가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}
         </div>
       )}
-      {showTransformToolbar && (
+      {/* 회전 중이 아닐 때: TransformToolbar를 하단에 표시 */}
+      {!isRotating && showTransformToolbar && (
         <TransformToolbar
           onFlipX={onFlipX}
           onFlipY={onFlipY}
           onRotateCW={onRotateCW}
           onRotateCCW={onRotateCCW}
+          showFlipX={false}
+          showFlipY={false}
+          showRotateCCW={false}
+          showRotateCW={false}
+          position="bottom"
         />
+      )}
+      {/* 회전 중이 아닐 때: 회전 핸들 하단에 표시 (TransformToolbar 아래) */}
+      {!isRotating && showRotateHandle && (
+        <>
+          {/* 회전 핸들 연결선 */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: "calc(100% + 60px)",
+              width: 1,
+              height: 20,
+              backgroundColor: "var(--primary)",
+              pointerEvents: "none",
+            }}
+          />
+          {/* 회전 핸들 아이콘 */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center rounded-full border-2 bg-white-100 cursor-grab active:cursor-grabbing z-50"
+            style={{
+              top: "calc(100% + 80px)",
+              width: 20,
+              height: 20,
+              borderColor: "var(--primary)",
+            }}
+            onPointerDown={handleRotatePointerDown}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+          </div>
+        </>
       )}
     </div>
   );

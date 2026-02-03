@@ -3,9 +3,8 @@ import RoundBox from "../round_box/RoundBox";
 
 type CircleBoxProps = ComponentProps<typeof RoundBox>;
 
-const CircleBox = ({ rect, ...props }: CircleBoxProps) => {
-  const radius = Math.min(rect.width, rect.height) / 2;
-  return <RoundBox rect={rect} borderRadius={radius} {...props} />;
+const CircleBox = ({ rect, borderRadius: _, ...props }: CircleBoxProps) => {
+  return <RoundBox rect={rect} {...props} borderRadius="50%" />;
 };
 
 export default CircleBox;

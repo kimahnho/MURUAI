@@ -58,6 +58,7 @@ const ArrowToolBar = ({
     min: 0,
     max: 359,
     onChange: onAngleChange ?? (() => {}),
+    immediate: true,
   });
 
   if (!isVisible) return null;

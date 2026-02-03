@@ -5,6 +5,8 @@ interface UseNumberInputOptions {
   min?: number;
   max?: number;
   onChange: (value: number) => void;
+  /** true이면 입력할 때마다 즉시 onChange를 호출 */
+  immediate?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export const useNumberInput = ({
   min,
   max,
   onChange,
+  immediate = false,
 }: UseNumberInputOptions) => {
   const [inputValue, setInputValue] = useState(() => String(Math.round(value)));
   const [isEditing, setIsEditing] = useState(false);
@@ -62,6 +65,10 @@ export const useNumberInput = ({
   const handleChange = (newValue: string) => {
     const digits = newValue.replace(/[^0-9]/g, "");
     setInputValue(digits);
+    if (immediate && digits) {
+      const nextValue = clamp(Number(digits));
+      onChange(nextValue);
+    }
   };
 
   // 포커스

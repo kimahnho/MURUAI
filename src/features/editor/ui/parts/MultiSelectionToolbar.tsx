@@ -1,5 +1,5 @@
 import { useState, type FocusEvent } from "react";
-import { Ban } from "lucide-react";
+import { AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Ban } from "lucide-react";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
@@ -37,6 +37,9 @@ type MultiSelectionToolbarProps = {
   borderStyleOptions: Array<BorderStyle | "none">;
   clampBorderWidth: (value: number) => number;
   applyMultiBorderPatch: (patch: BorderPatch) => void;
+  canDistribute?: boolean;
+  onDistributeHorizontal?: () => void;
+  onDistributeVertical?: () => void;
 };
 
 const MultiSelectionToolbar = ({
@@ -56,6 +59,9 @@ const MultiSelectionToolbar = ({
   borderStyleOptions,
   clampBorderWidth,
   applyMultiBorderPatch,
+  canDistribute,
+  onDistributeHorizontal,
+  onDistributeVertical,
 }: MultiSelectionToolbarProps) => {
   const [isMultiBorderPanelOpen, setIsMultiBorderPanelOpen] = useState(false);
 
@@ -264,6 +270,33 @@ const MultiSelectionToolbar = ({
                 </div>
               )}
             </div>
+          )}
+          {canDistribute && onDistributeHorizontal && onDistributeVertical && (
+            <>
+              <div className="w-px h-5 bg-black-25" />
+              <button
+                type="button"
+                onClick={onDistributeHorizontal}
+                className="group relative flex h-7 w-7 items-center justify-center rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                aria-label="가로 간격 균등"
+              >
+                <AlignHorizontalSpaceAround className="h-4 w-4" />
+                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                  가로 간격 균등
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={onDistributeVertical}
+                className="group relative flex h-7 w-7 items-center justify-center rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                aria-label="세로 간격 균등"
+              >
+                <AlignVerticalSpaceAround className="h-4 w-4" />
+                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                  세로 간격 균등
+                </span>
+              </button>
+            </>
           )}
         </div>
       </div>
