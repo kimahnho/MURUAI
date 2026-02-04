@@ -51,6 +51,7 @@ const RAW_RUNTIME_STATE =
           ["html2canvas", "npm:1.4.1"],\
           ["jspdf", "npm:4.0.0"],\
           ["lucide-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.562.0"],\
+          ["mixpanel-browser", "npm:2.74.0"],\
           ["muruai", "workspace:."],\
           ["react", "npm:19.2.3"],\
           ["react-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:19.2.3"],\
@@ -1032,6 +1033,87 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@mixpanel/rrdom", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrdom-npm-2.0.0-alpha.18.2-7f2f9525e9-10c0.zip/node_modules/@mixpanel/rrdom/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrdom", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-snapshot", "npm:2.0.0-alpha.18.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@mixpanel/rrweb", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrweb-npm-2.0.0-alpha.18.2-571fdd28d6-10c0.zip/node_modules/@mixpanel/rrweb/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrdom", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-snapshot", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-types", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-utils", "npm:2.0.0-alpha.18.2"],\
+          ["@types/css-font-loading-module", "npm:0.0.7"],\
+          ["@xstate/fsm", "npm:1.6.5"],\
+          ["base64-arraybuffer", "npm:1.0.2"],\
+          ["mitt", "npm:3.0.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@mixpanel/rrweb-plugin-console-record", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrweb-plugin-console-record-npm-2.0.0-alpha.18.2-951b4b347a-10c0.zip/node_modules/@mixpanel/rrweb-plugin-console-record/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb-plugin-console-record", "npm:2.0.0-alpha.18.2"]\
+        ],\
+        "linkType": "SOFT"\
+      }],\
+      ["virtual:eb355fea990ad0b28a4eb341e2e860b9ce566fd98532cc0a587b456ed263f1a2cfa355fb48e355da6dc39b53390d232e60903b69ef8b903d4997e2acf730f6bd#npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "./.yarn/__virtual__/@mixpanel-rrweb-plugin-console-record-virtual-0f239a3e67/4/.yarn/berry/cache/@mixpanel-rrweb-plugin-console-record-npm-2.0.0-alpha.18.2-951b4b347a-10c0.zip/node_modules/@mixpanel/rrweb-plugin-console-record/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-plugin-console-record", "virtual:eb355fea990ad0b28a4eb341e2e860b9ce566fd98532cc0a587b456ed263f1a2cfa355fb48e355da6dc39b53390d232e60903b69ef8b903d4997e2acf730f6bd#npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-utils", null],\
+          ["@types/mixpanel__rrweb", null],\
+          ["@types/mixpanel__rrweb-utils", null]\
+        ],\
+        "packagePeers": [\
+          "@mixpanel/rrweb-utils",\
+          "@mixpanel/rrweb",\
+          "@types/mixpanel__rrweb-utils",\
+          "@types/mixpanel__rrweb"\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@mixpanel/rrweb-snapshot", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrweb-snapshot-npm-2.0.0-alpha.18.2-8bd8c6576c-10c0.zip/node_modules/@mixpanel/rrweb-snapshot/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb-snapshot", "npm:2.0.0-alpha.18.2"],\
+          ["postcss", "npm:8.5.6"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@mixpanel/rrweb-types", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrweb-types-npm-2.0.0-alpha.18.2-aebaaa0e79-10c0.zip/node_modules/@mixpanel/rrweb-types/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb-types", "npm:2.0.0-alpha.18.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@mixpanel/rrweb-utils", [\
+      ["npm:2.0.0-alpha.18.2", {\
+        "packageLocation": "../../../.yarn/berry/cache/@mixpanel-rrweb-utils-npm-2.0.0-alpha.18.2-ee74a662ad-10c0.zip/node_modules/@mixpanel/rrweb-utils/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb-utils", "npm:2.0.0-alpha.18.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@napi-rs/wasm-runtime", [\
       ["npm:1.1.0", {\
         "packageLocation": "../../../.yarn/berry/cache/@napi-rs-wasm-runtime-npm-1.1.0-0e9acce7b0-10c0.zip/node_modules/@napi-rs/wasm-runtime/",\
@@ -1990,6 +2072,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@types/css-font-loading-module", [\
+      ["npm:0.0.7", {\
+        "packageLocation": "../../../.yarn/berry/cache/@types-css-font-loading-module-npm-0.0.7-e5453ffa7c-10c0.zip/node_modules/@types/css-font-loading-module/",\
+        "packageDependencies": [\
+          ["@types/css-font-loading-module", "npm:0.0.7"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@types/emscripten", [\
       ["npm:1.41.5", {\
         "packageLocation": "../../../.yarn/berry/cache/@types-emscripten-npm-1.41.5-b2109f80fb-10c0.zip/node_modules/@types/emscripten/",\
@@ -2517,6 +2608,15 @@ const RAW_RUNTIME_STATE =
         "packagePeers": [\
           "@types/vite",\
           "vite"\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@xstate/fsm", [\
+      ["npm:1.6.5", {\
+        "packageLocation": "../../../.yarn/berry/cache/@xstate-fsm-npm-1.6.5-ce4efd1c39-10c0.zip/node_modules/@xstate/fsm/",\
+        "packageDependencies": [\
+          ["@xstate/fsm", "npm:1.6.5"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -4819,6 +4919,26 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["mitt", [\
+      ["npm:3.0.1", {\
+        "packageLocation": "../../../.yarn/berry/cache/mitt-npm-3.0.1-ce290ffa77-10c0.zip/node_modules/mitt/",\
+        "packageDependencies": [\
+          ["mitt", "npm:3.0.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["mixpanel-browser", [\
+      ["npm:2.74.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/mixpanel-browser-npm-2.74.0-eb355fea99-10c0.zip/node_modules/mixpanel-browser/",\
+        "packageDependencies": [\
+          ["@mixpanel/rrweb", "npm:2.0.0-alpha.18.2"],\
+          ["@mixpanel/rrweb-plugin-console-record", "virtual:eb355fea990ad0b28a4eb341e2e860b9ce566fd98532cc0a587b456ed263f1a2cfa355fb48e355da6dc39b53390d232e60903b69ef8b903d4997e2acf730f6bd#npm:2.0.0-alpha.18.2"],\
+          ["mixpanel-browser", "npm:2.74.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["mkdirp", [\
       ["npm:1.0.4", {\
         "packageLocation": "../../../.yarn/berry/cache/mkdirp-npm-1.0.4-37f6ef56b9-10c0.zip/node_modules/mkdirp/",\
@@ -4864,6 +4984,7 @@ const RAW_RUNTIME_STATE =
           ["html2canvas", "npm:1.4.1"],\
           ["jspdf", "npm:4.0.0"],\
           ["lucide-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.562.0"],\
+          ["mixpanel-browser", "npm:2.74.0"],\
           ["muruai", "workspace:."],\
           ["react", "npm:19.2.3"],\
           ["react-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:19.2.3"],\

@@ -5,9 +5,10 @@ import {
   type MutableRefObject,
 } from "react";
 import type { Page } from "../model/pageTypes";
-import type { TemplateId } from "../templates/templateRegistry";
+import { TEMPLATE_REGISTRY, type TemplateId } from "../templates/templateRegistry";
 import type { ReadonlyRef } from "../types/refTypes";
 import { trackTemplateUsageEvent } from "@/shared/lib/trackEvents";
+import { mp } from "@/shared/lib/mixpanel";
 
 type ApplyTemplateToCurrentPage = (args: {
   templateId: TemplateId;
@@ -73,6 +74,7 @@ export const useTemplateApplyActions = ({
       showEmotionInferenceToast();
     }
     void trackTemplateUsageEvent(templateId);
+    mp.track("template_applied", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "current_page" });
 
     setTimeout(() => {
       recordHistory("Apply template to current page");
@@ -108,6 +110,7 @@ export const useTemplateApplyActions = ({
       showEmotionInferenceToast();
     }
     void trackTemplateUsageEvent(templateId);
+    mp.track("template_applied", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "new_page" });
 
     setTimeout(() => {
       recordHistory("Apply template to new page");

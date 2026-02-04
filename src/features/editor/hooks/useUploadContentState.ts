@@ -151,10 +151,10 @@ export const useUploadContentState = () => {
         }
       }
 
-      requestImageFill(url, undefined, { width, height });
+      requestImageFill(url, undefined, { width, height }, { source: "upload" });
     };
     img.onerror = () => {
-      requestImageFill(url);
+      requestImageFill(url, undefined, undefined, { source: "upload" });
     };
     img.src = url;
   };

@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { trackActivityEvent } from "@/shared/lib/trackEvents";
+import { mp } from "@/shared/lib/mixpanel";
 
 const setSentryUser = (user: { id: string; email?: string } | null) => {
   if (user) {
@@ -25,6 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSentryUser(session?.user ?? null);
       setLoading(false);
       if (session?.user?.id) {
+        mp.identify(session.user.id);
+        mp.setUserProfile({ email: session.user.email ?? "" });
         void trackActivityEvent("session_start", session.user.id);
       }
     });
@@ -35,8 +38,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
-      if (_event === "SIGNED_IN") {
-        void trackActivityEvent("login", session?.user?.id);
+      if (_event === "SIGNED_IN" && session?.user) {
+        mp.identify(session.user.id);
+        mp.setUserProfile({ email: session.user.email ?? "" });
+        void trackActivityEvent("login", session.user.id);
+      }
+      if (_event === "SIGNED_OUT") {
+        mp.reset();
       }
     });
 

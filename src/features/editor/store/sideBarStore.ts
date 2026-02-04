@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { mp } from "@/shared/lib/mixpanel";
 
 export type SideBarMenu =
   | "design"
@@ -22,7 +23,9 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
   selectedMenu: null,
   setSelectedMenu: (menu) => { set({ selectedMenu: menu }); },
   toggleMenu: (menu) =>
-    { set((state) => ({
-      selectedMenu: state.selectedMenu === menu ? null : menu,
-    })); },
+    { set((state) => {
+      const next = state.selectedMenu === menu ? null : menu;
+      if (next) mp.track("sidebar_opened", { panel: next });
+      return { selectedMenu: next };
+    }); },
 }));

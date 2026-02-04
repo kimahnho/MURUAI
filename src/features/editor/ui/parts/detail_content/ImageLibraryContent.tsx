@@ -73,7 +73,7 @@ const ImageLibraryContent = () => {
   };
 
   const handleSelectImage = (url: string, name: string) => {
-    requestImageFill(url, name, INSERT_SIZE, { forceInsert: true });
+    requestImageFill(url, name, INSERT_SIZE, { forceInsert: true, source: "library" });
   };
 
   return (

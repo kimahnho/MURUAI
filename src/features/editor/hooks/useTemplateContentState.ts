@@ -1,6 +1,7 @@
 import { useTemplateStore } from "../store/templateStore";
 import { useAacBoardStore } from "../store/aacBoardStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
+import { mp } from "@/shared/lib/mixpanel";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,
@@ -16,6 +17,7 @@ export const useTemplateContentState = () => {
 
   const handleTemplateClick = (templateId: TemplateId) => {
     const templateDefinition = TEMPLATE_REGISTRY[templateId];
+    mp.track("template_clicked", { template_id: templateId, template_name: templateDefinition.label });
     const hasMultiplePages =
       "pages" in templateDefinition &&
       templateDefinition.pages &&
