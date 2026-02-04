@@ -543,39 +543,34 @@ export const useSelectionState = ({
                   ? labelInfoMap.get(nextLabelId)
                   : undefined;
                 const labelHeight = labelInfo?.labelHeight ?? 0;
-                const imagePadding = 4;
                 const labelGap = 8;
                 const labelAreaHeight =
                   position === "none" ? 0 : labelHeight + labelGap;
 
-                // 이미지 박스 크기 계산
-                const availableHeight =
-                  card.h - imagePadding * 2 - labelAreaHeight;
-                const availableWidth = card.w - imagePadding * 2;
-                const imageBoxSize = Math.min(availableWidth, availableHeight);
+                // 기존 imageBox 크기를 보존하고 위치만 재계산
+                const existingBox = card.imageBox;
+                const imageAreaHeight = Math.max(
+                  1,
+                  card.h - labelAreaHeight,
+                );
+                const imageAreaWidth = card.w;
 
-                // 이미지 박스 위치 계산
-                const imageBoxX = (card.w - imageBoxSize) / 2;
-                let imageBoxY: number;
-
-                if (position === "none") {
-                  // 텍스트 없음: 이미지를 중앙에 배치
-                  imageBoxY = (card.h - imageBoxSize) / 2;
-                } else if (position === "top") {
-                  // 텍스트 상단: 이미지를 아래쪽에 배치
-                  imageBoxY = imagePadding + labelAreaHeight;
-                } else {
-                  // 텍스트 하단: 이미지를 위쪽에 배치
-                  imageBoxY = imagePadding;
-                }
+                // 이미지 영역 중앙에 배치 (크기는 그대로 유지)
+                const imageAreaY =
+                  position === "top" ? labelAreaHeight : 0;
+                const imageBoxX =
+                  (imageAreaWidth - existingBox.w) / 2;
+                const imageBoxY =
+                  imageAreaY +
+                  (imageAreaHeight - existingBox.h) / 2;
 
                 return {
                   ...nextCard,
                   imageBox: {
                     x: imageBoxX,
                     y: imageBoxY,
-                    w: imageBoxSize,
-                    h: imageBoxSize,
+                    w: existingBox.w,
+                    h: existingBox.h,
                   },
                 };
               }
