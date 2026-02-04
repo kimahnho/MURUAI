@@ -16,7 +16,7 @@ const STYLE_OPTIONS = [
   { label: "펠트", value: "felt-style" },
 ] as const;
 
-const HASHTAGS = ["캐릭터", "동물", "겨울", "봄", "음식"] as const;
+const HASHTAGS = ["캐릭터", "동물", "겨울", "봄", "여름", "음식"] as const;
 const SEARCH_DEBOUNCE_MS = 400;
 const INSERT_SIZE = { width: 256, height: 256 };
 
