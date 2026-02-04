@@ -12,7 +12,7 @@ export const useStoryBoardStore = create<StoryBoardStore>((set) => ({
   requestId: 0,
   config: null,
   requestBoard: (config) =>
-    { mp.track("story_board_created", { count: config.count, direction: config.direction });
+    { mp.track("이야기순서 보드 생성", { count: config.count, direction: config.direction });
       set((state) => ({
       requestId: state.requestId + 1,
       config,

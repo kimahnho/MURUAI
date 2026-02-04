@@ -37,7 +37,7 @@ export const usePageActions = ({
     };
     setPages([...pages, newPage]);
     setActivePage(newPage.id, newPage.orientation);
-    mp.track("page_added");
+    mp.track("페이지 추가");
   }, [orientation, pages, setActivePage, setPages]);
 
   const handleAddPageAtIndex = useCallback(
@@ -60,7 +60,7 @@ export const usePageActions = ({
 
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
-      mp.track("page_added");
+      mp.track("페이지 추가");
     },
     [orientation, pages, setActivePage, setPages],
   );
@@ -105,7 +105,7 @@ export const usePageActions = ({
 
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
-      mp.track("page_duplicated");
+      mp.track("페이지 복제");
     },
     [pages, setActivePage, setPages],
   );
@@ -152,7 +152,7 @@ export const usePageActions = ({
 
   const handleDeletePage = useCallback(
     (pageId: string) => {
-      mp.track("page_deleted");
+      mp.track("페이지 삭제");
       // 페이지가 1개만 있으면 템플릿을 제거하고 빈 페이지로 만듦
       if (pages.length <= 1) {
         setPages((prevPages) =>
@@ -192,7 +192,7 @@ export const usePageActions = ({
   const handleDeleteElements = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
-      mp.track("element_deleted", { count: ids.length });
+      mp.track("요소 삭제", { count: ids.length });
       setPages((prevPages) =>
         prevPages.map((page) => {
           if (page.id !== selectedPageId) return page;

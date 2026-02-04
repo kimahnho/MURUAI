@@ -25,7 +25,7 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
   toggleMenu: (menu) =>
     { set((state) => {
       const next = state.selectedMenu === menu ? null : menu;
-      if (next) mp.track("sidebar_opened", { panel: next });
+      if (next) mp.track("사이드바 열기", { panel: next });
       return { selectedMenu: next };
     }); },
 }));
