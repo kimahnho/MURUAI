@@ -310,7 +310,7 @@ export const useAiImageGeneration = () => {
         { forceInsert: true, source: "ai" },
       );
 
-      mp.track("ai_image_generated", { style: selectedStyle, prompt_length: userPrompt.length });
+      mp.track("AI 이미지 생성", { style: selectedStyle, prompt_length: userPrompt.length });
       showToast(
         `이미지가 생성되었어요! (${usageStatus.used + 1}/${DAILY_LIMIT})`,
       );

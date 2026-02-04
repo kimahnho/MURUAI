@@ -24,7 +24,7 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   height: undefined,
   forceInsert: false,
   requestImageFill: (imageUrl, label, size, options) =>
-    { mp.track("image_added", { source: options?.source ?? "unknown" });
+    { mp.track("이미지 추가", { source: options?.source ?? "unknown" });
       set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,

@@ -87,7 +87,7 @@ export const useImageUploadToCloudinary = () => {
           return null;
         }
 
-        mp.track("image_uploaded", { file_type: file.type });
+        mp.track("이미지 업로드", { file_type: file.type });
         return getImageUrl(imagePath);
       } catch {
         showToast("업로드에 실패했어요.");

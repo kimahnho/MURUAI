@@ -17,7 +17,7 @@ export const useTemplateContentState = () => {
 
   const handleTemplateClick = (templateId: TemplateId) => {
     const templateDefinition = TEMPLATE_REGISTRY[templateId];
-    mp.track("template_clicked", { template_id: templateId, template_name: templateDefinition.label });
+    mp.track("템플릿 클릭", { template_id: templateId, template_name: templateDefinition.label });
     const hasMultiplePages =
       "pages" in templateDefinition &&
       templateDefinition.pages &&

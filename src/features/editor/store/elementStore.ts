@@ -24,14 +24,14 @@ export const useElementStore = create<ElementStore>((set) => ({
   requestedType: null,
   requestedText: null,
   requestElement: (type) =>
-    { mp.track("element_created", { element_type: type });
+    { mp.track("요소 생성", { element_type: type });
       set((state) => ({
       requestId: state.requestId + 1,
       requestedType: type,
       requestedText: null,
     })); },
   requestText: (preset) =>
-    { mp.track("element_created", { element_type: "text" });
+    { mp.track("요소 생성", { element_type: "text" });
       set((state) => ({
       requestId: state.requestId + 1,
       requestedType: "text",

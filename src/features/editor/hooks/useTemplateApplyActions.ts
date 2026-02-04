@@ -74,7 +74,7 @@ export const useTemplateApplyActions = ({
       showEmotionInferenceToast();
     }
     void trackTemplateUsageEvent(templateId);
-    mp.track("template_applied", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "current_page" });
+    mp.track("템플릿 적용", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "current_page" });
 
     setTimeout(() => {
       recordHistory("Apply template to current page");
@@ -110,7 +110,7 @@ export const useTemplateApplyActions = ({
       showEmotionInferenceToast();
     }
     void trackTemplateUsageEvent(templateId);
-    mp.track("template_applied", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "new_page" });
+    mp.track("템플릿 적용", { template_id: templateId, template_name: TEMPLATE_REGISTRY[templateId].label, target: "new_page" });
 
     setTimeout(() => {
       recordHistory("Apply template to new page");
