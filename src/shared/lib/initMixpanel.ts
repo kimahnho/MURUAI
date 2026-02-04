@@ -14,5 +14,6 @@ export const initMixpanel = () => {
     debug: !isProd,
     track_pageview: true,
     persistence: "localStorage",
+    record_sessions_percent: isProd ? 30 : 0,
   });
 };
