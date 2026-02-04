@@ -102,6 +102,10 @@ export const useSmartGuides = ({
 
       let bestXDelta = 0;
       let bestYDelta = 0;
+      let bestXValue = 0;
+      let bestYValue = 0;
+      let bestXReason: AxisTarget["reason"] = "edge";
+      let bestYReason: AxisTarget["reason"] = "edge";
       let bestXDistance = Number.POSITIVE_INFINITY;
       let bestYDistance = Number.POSITIVE_INFINITY;
       let bestXPriority = Number.POSITIVE_INFINITY;
@@ -113,12 +117,6 @@ export const useSmartGuides = ({
           const delta = target.value - ax;
           const distance = Math.abs(delta);
           if (distance > threshold) return;
-          nextGuides.push({
-            id: `v-${target.value}-${target.reason}`,
-            orientation: "vertical",
-            position: target.value,
-            reason: target.reason,
-          });
           if (
             distance <= snapThreshold &&
             (distance < bestXDistance ||
@@ -128,6 +126,8 @@ export const useSmartGuides = ({
             bestXDistance = distance;
             bestXDelta = delta;
             bestXPriority = target.priority;
+            bestXValue = target.value;
+            bestXReason = target.reason;
           }
         });
       });
@@ -137,12 +137,6 @@ export const useSmartGuides = ({
           const delta = target.value - ay;
           const distance = Math.abs(delta);
           if (distance > threshold) return;
-          nextGuides.push({
-            id: `h-${target.value}-${target.reason}`,
-            orientation: "horizontal",
-            position: target.value,
-            reason: target.reason,
-          });
           if (
             distance <= snapThreshold &&
             (distance < bestYDistance ||
@@ -152,6 +146,8 @@ export const useSmartGuides = ({
             bestYDistance = distance;
             bestYDelta = delta;
             bestYPriority = target.priority;
+            bestYValue = target.value;
+            bestYReason = target.reason;
           }
         });
       });
@@ -161,6 +157,22 @@ export const useSmartGuides = ({
         y: bestYDistance <= snapThreshold ? bestYDelta : 0,
       };
       snapOffsetRef.current = snapOffset;
+      if (bestXDistance <= snapThreshold) {
+        nextGuides.push({
+          id: `v-${bestXValue}-${bestXReason}`,
+          orientation: "vertical",
+          position: bestXValue,
+          reason: bestXReason,
+        });
+      }
+      if (bestYDistance <= snapThreshold) {
+        nextGuides.push({
+          id: `h-${bestYValue}-${bestYReason}`,
+          orientation: "horizontal",
+          position: bestYValue,
+          reason: bestYReason,
+        });
+      }
       const uniqueGuides = dedupeGuides(nextGuides);
       setGuides(uniqueGuides);
 
