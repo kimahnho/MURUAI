@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useToastStore } from "../store/toastStore";
+import { mp } from "@/shared/lib/mixpanel";
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | string
@@ -86,6 +87,7 @@ export const useImageUploadToCloudinary = () => {
           return null;
         }
 
+        mp.track("image_uploaded", { file_type: file.type });
         return getImageUrl(imagePath);
       } catch {
         showToast("업로드에 실패했어요.");

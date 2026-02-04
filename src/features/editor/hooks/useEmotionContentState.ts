@@ -8,7 +8,7 @@ export const useEmotionContentState = () => {
   );
 
   const onSelectEmotion = (url: string, label: string) => {
-    requestImageFill(url, label, EMOTION_CARD_SIZE, { forceInsert: true });
+    requestImageFill(url, label, EMOTION_CARD_SIZE, { forceInsert: true, source: "emotion" });
   };
 
   return { onSelectEmotion };

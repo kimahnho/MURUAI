@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
+import { mp } from "@/shared/lib/mixpanel";
 
 type PageActionsParams = {
   pages: Page[];
@@ -36,6 +37,7 @@ export const usePageActions = ({
     };
     setPages([...pages, newPage]);
     setActivePage(newPage.id, newPage.orientation);
+    mp.track("page_added");
   }, [orientation, pages, setActivePage, setPages]);
 
   const handleAddPageAtIndex = useCallback(
@@ -58,6 +60,7 @@ export const usePageActions = ({
 
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
+      mp.track("page_added");
     },
     [orientation, pages, setActivePage, setPages],
   );
@@ -102,6 +105,7 @@ export const usePageActions = ({
 
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
+      mp.track("page_duplicated");
     },
     [pages, setActivePage, setPages],
   );
@@ -148,6 +152,7 @@ export const usePageActions = ({
 
   const handleDeletePage = useCallback(
     (pageId: string) => {
+      mp.track("page_deleted");
       // 페이지가 1개만 있으면 템플릿을 제거하고 빈 페이지로 만듦
       if (pages.length <= 1) {
         setPages((prevPages) =>
@@ -187,6 +192,7 @@ export const usePageActions = ({
   const handleDeleteElements = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
+      mp.track("element_deleted", { count: ids.length });
       setPages((prevPages) =>
         prevPages.map((page) => {
           if (page.id !== selectedPageId) return page;

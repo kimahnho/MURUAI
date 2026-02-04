@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/supabase/supabase";
 import { useToastStore } from "../store/toastStore";
 import { useImageFillStore } from "../store/imageFillStore";
+import { mp } from "@/shared/lib/mixpanel";
 import {
   type ImageStyle,
   type StyleOption,
@@ -306,9 +307,10 @@ export const useAiImageGeneration = () => {
         imageUrl,
         undefined,
         { width: 300, height: 300 },
-        { forceInsert: true },
+        { forceInsert: true, source: "ai" },
       );
 
+      mp.track("ai_image_generated", { style: selectedStyle, prompt_length: userPrompt.length });
       showToast(
         `이미지가 생성되었어요! (${usageStatus.used + 1}/${DAILY_LIMIT})`,
       );
@@ -327,7 +329,7 @@ export const useAiImageGeneration = () => {
       imageUrl,
       undefined,
       { width: 300, height: 300 },
-      { forceInsert: true },
+      { forceInsert: true, source: "ai" },
     );
   };
 

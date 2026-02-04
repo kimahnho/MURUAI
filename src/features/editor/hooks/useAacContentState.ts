@@ -36,7 +36,7 @@ export const useAacContentState = <Category extends string>({
   );
 
   const handleSelectImage = (url: string, alt: string) => {
-    requestImageFill(url, alt, cardSize, { forceInsert: true });
+    requestImageFill(url, alt, cardSize, { forceInsert: true, source: "aac" });
   };
 
   return {

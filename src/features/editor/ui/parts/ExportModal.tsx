@@ -8,6 +8,7 @@ import {
   saveUserMadeVersion,
 } from "../../utils/userMadeExport";
 import { trackDownloadEvent } from "@/shared/lib/trackEvents";
+import { mp } from "@/shared/lib/mixpanel";
 
 type TargetType = "child" | "group";
 
@@ -150,6 +151,7 @@ const ExportModal = ({
         targetType,
         targetId,
       });
+      mp.track("saved_to_target", { target_type: targetType });
       showToast("저장했습니다.");
       onClose();
     } catch {
@@ -183,6 +185,7 @@ const ExportModal = ({
       const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
       const blob = await generatePdfFromDomPages({ quality: 6, pageIds });
       void trackDownloadEvent(userId, userMadeId);
+      mp.track("pdf_downloaded", { page_mode: pdfPageMode });
       downloadBlob(blob, `${name}.pdf`);
     } catch {
       showToast("PDF를 만들지 못했어요.");

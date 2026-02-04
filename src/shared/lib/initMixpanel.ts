@@ -1,0 +1,18 @@
+import mixpanel from "mixpanel-browser";
+
+export const initMixpanel = () => {
+  const token = import.meta.env.VITE_MIXPANEL_TOKEN;
+
+  if (!token) {
+    console.warn("Mixpanel token is not set. Skipping initialization.");
+    return;
+  }
+
+  const isProd = import.meta.env.MODE === "production";
+
+  mixpanel.init(token, {
+    debug: !isProd,
+    track_pageview: true,
+    persistence: "localStorage",
+  });
+};

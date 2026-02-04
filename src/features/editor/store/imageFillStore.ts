@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { mp } from "@/shared/lib/mixpanel";
 
 interface ImageFillStore {
   requestId: number;
@@ -11,7 +12,7 @@ interface ImageFillStore {
     imageUrl: string,
     label?: string,
     size?: { width: number; height: number },
-    options?: { forceInsert?: boolean }
+    options?: { forceInsert?: boolean; source?: string }
   ) => void;
 }
 
@@ -23,7 +24,8 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   height: undefined,
   forceInsert: false,
   requestImageFill: (imageUrl, label, size, options) =>
-    { set((state) => ({
+    { mp.track("image_added", { source: options?.source ?? "unknown" });
+      set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,
       label,
