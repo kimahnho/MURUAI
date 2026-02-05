@@ -136,7 +136,7 @@ const AiTip = () => {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setVisible(false);
-    }, 3000);
+    }, 1500);
     return () => {
       window.clearTimeout(timer);
     };
