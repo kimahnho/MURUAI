@@ -48,6 +48,7 @@ export interface TextBoxProps {
   textAlign?: TextAlign;
   textAlignY?: TextAlignY;
   isSelected?: boolean;
+  selectionCount?: number;
   isEditing?: boolean;
   locked?: boolean;
   clipOverflow?: boolean;

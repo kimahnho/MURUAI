@@ -8,6 +8,7 @@ interface ImageFillStore {
   width?: number;
   height?: number;
   forceInsert?: boolean;
+  source?: string;
   requestImageFill: (
     imageUrl: string,
     label?: string,
@@ -23,6 +24,7 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   width: undefined,
   height: undefined,
   forceInsert: false,
+  source: undefined,
   requestImageFill: (imageUrl, label, size, options) =>
     { mp.track("이미지 추가", { source: options?.source ?? "unknown" });
       set((state) => ({
@@ -32,5 +34,6 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
       width: size?.width,
       height: size?.height,
       forceInsert: options?.forceInsert ?? false,
+      source: options?.source,
     })); },
 }));

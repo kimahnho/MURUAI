@@ -23,6 +23,7 @@ const TextBox = ({
   textAlign = "center",
   textAlignY = "middle",
   isSelected = false,
+  selectionCount = 0,
   isEditing = false,
   locked = false,
   clipOverflow = false,
@@ -128,6 +129,7 @@ const TextBox = ({
     minHeight,
     widthMode,
     isSelected,
+    selectionCount,
     toolbar,
     onRequestDelete,
     onFinishEditing,
@@ -164,6 +166,7 @@ const TextBox = ({
     locked,
     isEditing,
     isSelected,
+    selectionCount,
     text,
     richText,
     toolbar,
@@ -244,7 +247,7 @@ const TextBox = ({
         ? "items-end"
         : "items-center";
   const showOutline = showChrome && !locked && isSelected;
-  const showHandles = showChrome && !locked && isSelected;
+  const showHandles = showChrome && !locked && isSelected && selectionCount <= 1;
   // 텍스트가 박스 폭을 초과하면 줄바꿈
   const contentWhiteSpace = "pre-wrap";
 

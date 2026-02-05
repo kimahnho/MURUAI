@@ -164,7 +164,7 @@ const PageThumbnail = ({
                 event.stopPropagation();
                 onMovePage?.(page.id, "left");
               }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
+              className="absolute left-0 top-1/2 translate-x-1/3 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
             >
               <ChevronLeft className="w-3 h-3 text-white" />
             </button>
@@ -175,7 +175,7 @@ const PageThumbnail = ({
                 event.stopPropagation();
                 onMovePage?.(page.id, "right");
               }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
+              className="absolute right-0 top-1/2 -translate-x-1/3 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
             >
               <ChevronRight className="w-3 h-3 text-white" />
             </button>

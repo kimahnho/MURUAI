@@ -14,6 +14,7 @@ interface ArrowShapeProps {
     style?: "solid" | "dashed" | "dotted";
   };
   isSelected?: boolean;
+  selectionCount?: number;
   locked?: boolean;
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
@@ -43,6 +44,7 @@ const Arrow = ({
   end,
   stroke,
   isSelected = false,
+  selectionCount = 0,
   locked = false,
   onLineChange,
   onDragStateChange,
@@ -106,6 +108,7 @@ const Arrow = ({
       lineRef,
       locked,
       isSelected,
+      selectionCount,
       onLineChange,
       onDragStateChange,
       onSelectChange,
@@ -208,7 +211,7 @@ const Arrow = ({
           pointerEvents="none"
         />
       </svg>
-      {!locked && isSelected && (
+      {!locked && isSelected && selectionCount <= 1 && (
         <>
           <div
             className="absolute rounded-full border border-primary bg-white-100"

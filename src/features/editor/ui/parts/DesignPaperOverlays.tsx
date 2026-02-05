@@ -1,5 +1,7 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import { getRectFromElement, type Rect, type SelectionRect } from "../../utils/designPaperUtils";
+import type { ResizeHandle } from "../../model/canvasTypes";
 
 type SelectionRectOverlayProps = {
   selectionRect: SelectionRect | null;
@@ -28,6 +30,12 @@ type GroupSelectionOverlayProps = {
   readOnly: boolean;
   selectedIds: string[];
   elements: CanvasElement[];
+  showHandles?: boolean;
+  onResizeHandlePointerDown?: (
+    event: ReactPointerEvent<HTMLDivElement>,
+    handle: ResizeHandle,
+    rect: Rect,
+  ) => void;
 };
 
 // 그룹 선택 시 바운딩 박스를 그린다.
@@ -36,6 +44,8 @@ export const GroupSelectionOverlay = ({
   readOnly,
   selectedIds,
   elements,
+  showHandles = false,
+  onResizeHandlePointerDown,
 }: GroupSelectionOverlayProps) => {
   if (!isGroupedSelection || readOnly) return null;
 
@@ -61,15 +71,77 @@ export const GroupSelectionOverlay = ({
     height: maxY - minY,
   };
 
+  const cornerSize = 16;
+  const sideWidth = 24;
+  const sideHeight = 10;
+  const renderCornerHandle = (
+    handle: ResizeHandle,
+    x: number,
+    y: number,
+    cursor: string,
+  ) => (
+    <div
+      key={handle}
+      className="absolute rounded-full border border-gray-600 bg-white-100 shadow-sm pointer-events-auto"
+      style={{
+        width: cornerSize,
+        height: cornerSize,
+        left: x - cornerSize / 2,
+        top: y - cornerSize / 2,
+        cursor,
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onResizeHandlePointerDown?.(event, handle, groupBoundingBox);
+      }}
+    />
+  );
+  const renderSideHandle = (
+    handle: ResizeHandle,
+    x: number,
+    y: number,
+    cursor: string,
+  ) => (
+    <div
+      key={handle}
+      className="absolute rounded-full border border-gray-600 bg-white-100 shadow-sm pointer-events-auto"
+      style={{
+        width: sideWidth,
+        height: sideHeight,
+        left: x - sideWidth / 2,
+        top: y - sideHeight / 2,
+        cursor,
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onResizeHandlePointerDown?.(event, handle, groupBoundingBox);
+      }}
+    />
+  );
+
   return (
     <div
-      className="absolute z-30 border border-primary/40 pointer-events-none"
+      className="absolute z-30 pointer-events-none"
       style={{
         left: groupBoundingBox.x,
         top: groupBoundingBox.y,
         width: groupBoundingBox.width,
         height: groupBoundingBox.height,
       }}
-    />
+    >
+      <div className="absolute inset-0 border-2 border-dashed border-gray-600" />
+      {showHandles && (
+        <>
+          {renderCornerHandle("nw", 0, 0, "nwse-resize")}
+          {renderCornerHandle("ne", groupBoundingBox.width, 0, "nesw-resize")}
+          {renderCornerHandle("sw", 0, groupBoundingBox.height, "nesw-resize")}
+          {renderCornerHandle("se", groupBoundingBox.width, groupBoundingBox.height, "nwse-resize")}
+          {renderSideHandle("n", groupBoundingBox.width / 2, 0, "ns-resize")}
+          {renderSideHandle("s", groupBoundingBox.width / 2, groupBoundingBox.height, "ns-resize")}
+          {renderSideHandle("w", 0, groupBoundingBox.height / 2, "ew-resize")}
+          {renderSideHandle("e", groupBoundingBox.width, groupBoundingBox.height / 2, "ew-resize")}
+        </>
+      )}
+    </div>
   );
 };

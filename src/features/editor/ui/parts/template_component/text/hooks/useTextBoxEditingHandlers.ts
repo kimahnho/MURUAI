@@ -17,6 +17,7 @@ type UseTextBoxEditingHandlersProps = {
   locked: boolean;
   isEditing: boolean;
   isSelected: boolean;
+  selectionCount: number;
   text: string;
   richText?: string;
   toolbar?: TextBoxProps["toolbar"];
@@ -71,6 +72,7 @@ export const useTextBoxEditingHandlers = ({
   locked,
   isEditing,
   isSelected,
+  selectionCount,
   text,
   richText,
   toolbar,
@@ -135,7 +137,9 @@ export const useTextBoxEditingHandlers = ({
       event.preventDefault();
     }
     event.stopPropagation();
-    if (!isSelected) {
+    const shouldResetSelection =
+      isSelected && !event.shiftKey && selectionCount > 1;
+    if (!isSelected || shouldResetSelection) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
     // Enter editing without selecting all text.

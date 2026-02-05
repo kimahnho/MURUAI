@@ -203,7 +203,7 @@ export const addAacBoardPage = ({
     const newPage: Page = {
       id: newPageId,
       pageNumber: newPageNumber,
-      templateId: null,
+      templateId: "aacBoard",
       orientation: config.orientation,
       elements: elementsWithLogo,
     };
