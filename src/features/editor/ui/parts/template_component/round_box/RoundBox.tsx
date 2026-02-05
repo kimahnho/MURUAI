@@ -230,7 +230,9 @@ const RoundBox = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    if (!isSelected || event.shiftKey) {
+    const shouldResetSelection =
+      isSelected && !event.shiftKey && selectionCount > 1;
+    if (!isSelected || event.shiftKey || shouldResetSelection) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
@@ -671,10 +673,10 @@ const RoundBox = ({
   // 요소 전체 transform 스타일 계산 (최상위 div에 적용)
   const elementTransformStyle = (() => {
     const transforms: string[] = [];
-    if (transform?.flipX) transforms.push("scaleX(-1)");
-    if (transform?.flipY) transforms.push("scaleY(-1)");
     if (transform?.rotation)
       transforms.push(`rotate(${transform.rotation}deg)`);
+    if (transform?.flipX) transforms.push("scaleX(-1)");
+    if (transform?.flipY) transforms.push("scaleY(-1)");
     return transforms.length > 0 ? transforms.join(" ") : undefined;
   })();
   const backgroundStyle: CSSProperties = isImageFill

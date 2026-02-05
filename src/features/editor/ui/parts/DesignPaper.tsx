@@ -2076,11 +2076,8 @@ const DesignPaper = ({
             const currentTransform =
               "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const invertDirection =
-              Boolean(currentTransform.flipX) !==
-              Boolean(currentTransform.flipY);
-            const delta = invertDirection ? -1 : 1;
-            const newRotation = (currentRotation + delta + 360) % 360;
+            const step = 90;
+            const newRotation = (currentRotation + step + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -2094,11 +2091,8 @@ const DesignPaper = ({
             const currentTransform =
               "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const invertDirection =
-              Boolean(currentTransform.flipX) !==
-              Boolean(currentTransform.flipY);
-            const delta = invertDirection ? 1 : -1;
-            const newRotation = (currentRotation + delta + 360) % 360;
+            const step = 90;
+            const newRotation = (currentRotation - step + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -2211,11 +2205,8 @@ const DesignPaper = ({
         : () => {
             const currentTransform = element.transform ?? {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const invertDirection =
-              Boolean(currentTransform.flipX) !==
-              Boolean(currentTransform.flipY);
-            const delta = invertDirection ? -90 : 90;
-            const newRotation = (currentRotation + delta + 360) % 360;
+            const step = 90;
+            const newRotation = (currentRotation + step + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -2227,11 +2218,8 @@ const DesignPaper = ({
         : () => {
             const currentTransform = element.transform ?? {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const invertDirection =
-              Boolean(currentTransform.flipX) !==
-              Boolean(currentTransform.flipY);
-            const delta = invertDirection ? 90 : -90;
-            const newRotation = (currentRotation + delta + 360) % 360;
+            const step = 90;
+            const newRotation = (currentRotation - step + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -2437,12 +2425,9 @@ const DesignPaper = ({
           applyTransformPatch((current) => {
             const step = 90;
             const currentRotation = current.rotation ?? 0;
-            const invertDirection =
-              Boolean(current.flipX) !== Boolean(current.flipY);
-            const delta = invertDirection ? step : -step;
             return {
               ...current,
-              rotation: (currentRotation + delta + 360) % 360,
+              rotation: (currentRotation - step + 360) % 360,
             };
           });
         };
@@ -2451,12 +2436,9 @@ const DesignPaper = ({
           applyTransformPatch((current) => {
             const step = 90;
             const currentRotation = current.rotation ?? 0;
-            const invertDirection =
-              Boolean(current.flipX) !== Boolean(current.flipY);
-            const delta = invertDirection ? -step : step;
             return {
               ...current,
-              rotation: (currentRotation + delta + 360) % 360,
+              rotation: (currentRotation + step + 360) % 360,
             };
           });
         };

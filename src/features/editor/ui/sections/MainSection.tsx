@@ -1,11 +1,5 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
-import { useOutletContext } from "react-router-dom";
+import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useLocation, useOutletContext } from "react-router-dom";
 import BottomBar from "../parts/BottomBar";
 import type { CanvasDocument } from "../../model/pageTypes";
 import MultiSelectionToolbar from "../parts/MultiSelectionToolbar";
@@ -69,6 +63,7 @@ export interface OutletContext {
 }
 
 const MainSection = () => {
+  const location = useLocation();
   const {
     zoom,
     setZoom,
@@ -82,6 +77,7 @@ const MainSection = () => {
     setRetryAutoSave,
     setManualSave,
   } = useOutletContext<OutletContext>();
+
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const setSelectedTemplate = useTemplateStore(
     (state) => state.setSelectedTemplate,
@@ -391,6 +387,7 @@ const MainSection = () => {
         onEditingTextIdChange={setEditingTextId}
         onElementsChange={handleElementsChange}
         onInteractionChange={handleInteractionChange}
+        aiTipKey={location.key}
       />
       <BottomBar
         pages={pages}

@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import type { Page } from "../../model/pageTypes";
 import DesignPaper from "./DesignPaper";
@@ -21,6 +21,7 @@ type CanvasStageProps = {
   onEditingTextIdChange: (nextId: string | null) => void;
   onElementsChange: (nextElements: CanvasElement[]) => void;
   onInteractionChange: (isActive: boolean) => void;
+  aiTipKey?: string;
 };
 
 const CanvasStage = ({
@@ -39,6 +40,7 @@ const CanvasStage = ({
   onEditingTextIdChange,
   onElementsChange,
   onInteractionChange,
+  aiTipKey,
 }: CanvasStageProps) => {
   const stageActionsRef = useRef<DesignPaperStageActions | null>(null);
   const {
@@ -63,7 +65,7 @@ const CanvasStage = ({
   return (
     <div
       ref={containerRef}
-      className="flex-1 w-full min-h-0 overflow-auto"
+      className="relative flex-1 w-full min-h-0 overflow-auto"
       // 텍스트 편집 중 레이아웃 변화로 인한 스크롤 점프를 차단한다.
       style={{ padding: "10px", overflowAnchor: "none" }}
       onPointerDownCapture={handleStagePointerDown}
@@ -71,6 +73,7 @@ const CanvasStage = ({
       onPointerUp={handleStagePointerUp}
       onPointerCancel={handleStagePointerCancel}
     >
+      {aiTipKey && <AiTip key={aiTipKey} />}
       <div
         style={{
           display: "inline-flex",
@@ -126,3 +129,30 @@ const CanvasStage = ({
 };
 
 export default CanvasStage;
+
+const AiTip = () => {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setVisible(false);
+    }, 3000);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="absolute left-4 top-4 z-30 pointer-events-none">
+      <div className="relative rounded-2xl bg-primary px-4 py-3 text-14-medium text-white-100 shadow-lg">
+        Ai로 맞춤형 이미지를 만들어보세요.
+        <span
+          className="absolute right-4 -bottom-2.5 h-0 w-0 border-l-10 border-l-transparent border-t-10 border-t-[#5500ff]"
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
+};
