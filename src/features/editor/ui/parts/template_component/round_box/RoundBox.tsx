@@ -46,6 +46,7 @@ interface RoundBoxProps {
   };
   children?: React.ReactNode;
   isSelected?: boolean;
+  selectionCount?: number;
   isImageEditing?: boolean;
   isTextEditing?: boolean;
   locked?: boolean;
@@ -110,6 +111,7 @@ const RoundBox = ({
   textStyle,
   children,
   isSelected = false,
+  selectionCount = 0,
   isImageEditing: isImageEditingProp,
   isTextEditing: isTextEditingProp,
   locked = false,
@@ -684,9 +686,17 @@ const RoundBox = ({
       : fill
     : "";
   const showResizeHandles =
-    !locked && (isHovered || isActive) && !isImageEditing;
+    !locked &&
+    (isHovered || isActive) &&
+    !isImageEditing &&
+    selectionCount <= 1;
   const showImageHandles =
-    isImageFill && !locked && isActive && isImageEditing && onImageBoxChange;
+    isImageFill &&
+    !locked &&
+    isActive &&
+    isImageEditing &&
+    onImageBoxChange &&
+    selectionCount <= 1;
   const imageCenterThreshold = 2;
   const renderImageBox = imageBox ?? {
     x: 0,

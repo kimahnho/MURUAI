@@ -278,7 +278,7 @@ const SquareToolBar = ({
           }}
           className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
             borderEnabled || isBorderPanelOpen
-              ? "border-primary text-primary"
+              ? "border-primary text-primary bg-primary/10 ring-1 ring-primary/40 shadow-sm"
               : "border-black-30 text-black-70"
           }`}
           aria-label="Border settings"

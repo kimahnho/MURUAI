@@ -242,22 +242,31 @@ export const useImageFillSubscription = ({
           (element) => element.id === selectedId
         );
         if (activePage && selectedElement) {
-          if (isAacCardElement(activePage.elements, selectedElement)) {
-            const nextAacId = getNextAacCardId(
-              activePage.elements,
-              selectedId
-            );
-            if (nextAacId) {
-              setSelectedIds([nextAacId]);
-              setEditingTextId(null);
-            }
-          } else if (isEmotionInferenceCard(selectedElement)) {
+          const activeTemplateId = activePage.templateId ?? null;
+          const isEmotionTemplate =
+            activeTemplateId === "emotionInference" ||
+            activeTemplateId === "emotionWorksheet";
+          const isAacTemplate = activeTemplateId === "aacBoard";
+
+          if (isEmotionTemplate && isEmotionInferenceCard(selectedElement)) {
             const nextEmotionId = getNextEmotionCardId(
               activePage.elements,
               selectedId
             );
             if (nextEmotionId) {
               setSelectedIds([nextEmotionId]);
+              setEditingTextId(null);
+            }
+          } else if (
+            isAacTemplate &&
+            isAacCardElement(activePage.elements, selectedElement)
+          ) {
+            const nextAacId = getNextAacCardId(
+              activePage.elements,
+              selectedId
+            );
+            if (nextAacId) {
+              setSelectedIds([nextAacId]);
               setEditingTextId(null);
             }
           }

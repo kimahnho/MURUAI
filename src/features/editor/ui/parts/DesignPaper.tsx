@@ -8,6 +8,12 @@ import {
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import {
+  FlipHorizontal,
+  FlipVertical,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 import type {
   CanvasElement,
   LineElement,
@@ -49,6 +55,10 @@ import {
   type SelectionRect,
   type Rect,
 } from "../../utils/designPaperUtils";
+import {
+  isAacCardElement,
+  isEmotionInferenceCard,
+} from "../../utils/imageFillUtils";
 import type { DesignPaperStageActions } from "../../types/stageActions";
 import { getSelectionRenderState } from "../../utils/selectionState";
 
@@ -145,6 +155,23 @@ const DesignPaper = ({
     startFontSize?: number;
     handle?: ResizeHandle;
   } | null>(null);
+  const groupResizeRef = useRef<{
+    activeId: string;
+    handle?: ResizeHandle;
+    startGroupRect: Rect;
+    startActiveRect: Rect;
+    items: Map<
+      string,
+      {
+        kind: "rect" | "line";
+        rect?: Rect;
+        line?: { start: Point; end: Point };
+        imageBox?: { x: number; y: number; w: number; h: number };
+        fontSize?: number;
+        type: CanvasElement["type"];
+      }
+    >;
+  } | null>(null);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -237,6 +264,79 @@ const DesignPaper = ({
     return {
       x: (minX + maxX) / 2,
       y: maxY + offset,
+    };
+  };
+
+  const getTopCenterAnchor = (
+    rect: Rect,
+    rotationDeg: number,
+    offset: number,
+  ) => {
+    const corners = getRotatedCorners(rect, rotationDeg);
+    const xs = corners.map((pt) => pt.x);
+    const ys = corners.map((pt) => pt.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    return {
+      x: (minX + maxX) / 2,
+      y: minY - offset,
+    };
+  };
+
+  const computeGroupRectFromDeltas = (
+    start: Rect,
+    handle: ResizeHandle,
+    dx: number,
+    dy: number,
+  ) => {
+    let nextX = start.x;
+    let nextY = start.y;
+    let nextW = start.width;
+    let nextH = start.height;
+
+    if (handle.includes("e")) {
+      nextW = start.width + dx;
+    }
+    if (handle.includes("w")) {
+      nextX = start.x + dx;
+      nextW = start.width - dx;
+    }
+    if (handle.includes("s")) {
+      nextH = start.height + dy;
+    }
+    if (handle.includes("n")) {
+      nextY = start.y + dy;
+      nextH = start.height - dy;
+    }
+
+    const isCorner =
+      (handle.includes("n") || handle.includes("s")) &&
+      (handle.includes("e") || handle.includes("w"));
+    if (isCorner) {
+      const scaleX = start.width ? nextW / start.width : 1;
+      const scaleY = start.height ? nextH / start.height : 1;
+      const scale =
+        Math.abs(scaleX - 1) > Math.abs(scaleY - 1) ? scaleX : scaleY;
+      const clampedScale = Math.max(0.05, scale);
+      nextW = start.width * clampedScale;
+      nextH = start.height * clampedScale;
+      if (handle.includes("w")) {
+        nextX = start.x + (start.width - nextW);
+      }
+      if (handle.includes("n")) {
+        nextY = start.y + (start.height - nextH);
+      }
+    }
+
+    nextW = Math.max(1, nextW);
+    nextH = Math.max(1, nextH);
+
+    return {
+      x: nextX,
+      y: nextY,
+      width: nextW,
+      height: nextH,
     };
   };
 
@@ -526,6 +626,249 @@ const DesignPaper = ({
     };
   };
 
+  const buildGroupResizeState = (
+    activeId: string,
+    startActiveRect: Rect,
+    handle?: ResizeHandle,
+  ) => {
+    const activeSelectedIds = selectedIdsRef.current;
+    if (activeSelectedIds.length <= 1) return null;
+    const selectedSet = new Set(activeSelectedIds);
+    const linkedIds = new Set<string>();
+    elements.forEach((element) => {
+      if (!selectedSet.has(element.id)) return;
+      if (isEmotionSlotShape(element)) {
+        const placeholderId = findEmotionPlaceholderId(element);
+        const labelId = findEmotionLabelId(element);
+        if (placeholderId && !selectedSet.has(placeholderId)) {
+          linkedIds.add(placeholderId);
+        }
+        if (labelId && !selectedSet.has(labelId)) {
+          linkedIds.add(labelId);
+        }
+      }
+      if (
+        (element.type === "rect" ||
+          element.type === "roundRect" ||
+          element.type === "ellipse") &&
+        element.labelId &&
+        !selectedSet.has(element.labelId)
+      ) {
+        linkedIds.add(element.labelId);
+      }
+    });
+    const allIds = new Set([...activeSelectedIds, ...linkedIds]);
+    const items = new Map<
+      string,
+      {
+        kind: "rect" | "line";
+        rect?: Rect;
+        line?: { start: Point; end: Point };
+        imageBox?: { x: number; y: number; w: number; h: number };
+        fontSize?: number;
+        type: CanvasElement["type"];
+      }
+    >();
+    elements.forEach((element) => {
+      if (!allIds.has(element.id) || element.locked) return;
+      if (element.type === "line" || element.type === "arrow") {
+        items.set(element.id, {
+          kind: "line",
+          line: { start: { ...element.start }, end: { ...element.end } },
+          type: element.type,
+        });
+        return;
+      }
+      if (
+        "x" in element &&
+        "y" in element &&
+        "w" in element &&
+        "h" in element
+      ) {
+        items.set(element.id, {
+          kind: "rect",
+          rect: {
+            x: element.x,
+            y: element.y,
+            width: element.w,
+            height: element.h,
+          },
+          imageBox:
+            "imageBox" in element && element.imageBox
+              ? { ...element.imageBox }
+              : undefined,
+          fontSize:
+            element.type === "text" ? element.style.fontSize : undefined,
+          type: element.type,
+        });
+      }
+    });
+    if (items.size === 0) return null;
+    const rects: Rect[] = [];
+    items.forEach((item) => {
+      if (item.kind === "rect" && item.rect) {
+        rects.push(item.rect);
+        return;
+      }
+      if (item.kind === "line" && item.line) {
+        const minX = Math.min(item.line.start.x, item.line.end.x);
+        const minY = Math.min(item.line.start.y, item.line.end.y);
+        const width = Math.max(
+          Math.abs(item.line.end.x - item.line.start.x),
+          1,
+        );
+        const height = Math.max(
+          Math.abs(item.line.end.y - item.line.start.y),
+          1,
+        );
+        rects.push({ x: minX, y: minY, width, height });
+      }
+    });
+    if (rects.length === 0) return null;
+    const minX = Math.min(...rects.map((rect) => rect.x));
+    const minY = Math.min(...rects.map((rect) => rect.y));
+    const maxX = Math.max(...rects.map((rect) => rect.x + rect.width));
+    const maxY = Math.max(...rects.map((rect) => rect.y + rect.height));
+    return {
+      activeId,
+      handle,
+      startGroupRect: {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+      },
+      startActiveRect,
+      items,
+    };
+  };
+
+  const applyGroupResizeSnapshot = (
+    snapshot: NonNullable<typeof groupResizeRef.current>,
+    nextGroupRect: Rect,
+  ) => {
+    if (readOnly || !onElementsChange) return;
+    const { startGroupRect } = snapshot;
+    const scaleX = startGroupRect.width
+      ? nextGroupRect.width / startGroupRect.width
+      : 1;
+    const scaleY = startGroupRect.height
+      ? nextGroupRect.height / startGroupRect.height
+      : 1;
+    const fontScale = (scaleX + scaleY) / 2;
+    const nextElements = elements.map((element) => {
+      const item = snapshot.items.get(element.id);
+      if (!item) return element;
+      if (
+        item.kind === "line" &&
+        item.line &&
+        (element.type === "line" || element.type === "arrow")
+      ) {
+        const nextStart = {
+          x: nextGroupRect.x + (item.line.start.x - startGroupRect.x) * scaleX,
+          y: nextGroupRect.y + (item.line.start.y - startGroupRect.y) * scaleY,
+        };
+        const nextEnd = {
+          x: nextGroupRect.x + (item.line.end.x - startGroupRect.x) * scaleX,
+          y: nextGroupRect.y + (item.line.end.y - startGroupRect.y) * scaleY,
+        };
+        return {
+          ...element,
+          start: nextStart,
+          end: nextEnd,
+        };
+      }
+      if (
+        item.kind === "rect" &&
+        item.rect &&
+        "x" in element &&
+        "y" in element
+      ) {
+        const nextX =
+          nextGroupRect.x + (item.rect.x - startGroupRect.x) * scaleX;
+        const nextY =
+          nextGroupRect.y + (item.rect.y - startGroupRect.y) * scaleY;
+        const nextW = Math.max(1, item.rect.width * scaleX);
+        const nextH = Math.max(1, item.rect.height * scaleY);
+        const nextImageBox = item.imageBox
+          ? {
+              x: item.imageBox.x * scaleX,
+              y: item.imageBox.y * scaleY,
+              w: item.imageBox.w * scaleX,
+              h: item.imageBox.h * scaleY,
+            }
+          : "imageBox" in element
+            ? element.imageBox
+            : undefined;
+        if (element.type === "text") {
+          const baseFontSize = item.fontSize ?? element.style.fontSize;
+          const nextFontSize = Math.max(
+            6,
+            Math.round(baseFontSize * fontScale),
+          );
+          return {
+            ...element,
+            x: nextX,
+            y: nextY,
+            w: nextW,
+            h: nextH,
+            style: { ...element.style, fontSize: nextFontSize },
+          };
+        }
+        return {
+          ...element,
+          x: nextX,
+          y: nextY,
+          w: nextW,
+          h: nextH,
+          imageBox: nextImageBox,
+        } as CanvasElement;
+      }
+      return element;
+    });
+    onElementsChange(nextElements);
+  };
+
+  const handleGroupResizePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    handle: ResizeHandle,
+    rect: Rect,
+  ) => {
+    if (readOnly) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startPointer = getPointerPosition(event);
+    const snapshot = buildGroupResizeState(
+      selectedIdsRef.current[0],
+      rect,
+      handle,
+    );
+    if (!snapshot) return;
+    groupResizeRef.current = snapshot;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const currentPointer = getPointerPosition(moveEvent);
+      const dx = currentPointer.x - startPointer.x;
+      const dy = currentPointer.y - startPointer.y;
+      const nextGroupRect = computeGroupRectFromDeltas(
+        snapshot.startGroupRect,
+        handle,
+        dx,
+        dy,
+      );
+      applyGroupResizeSnapshot(snapshot, nextGroupRect);
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      groupResizeRef.current = null;
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
@@ -589,6 +932,42 @@ const DesignPaper = ({
       }
 
       updateElement(elementId, updates);
+      return;
+    }
+
+    const resizeSnapshot = groupResizeRef.current;
+    if (
+      activeInteraction.type === "resize" &&
+      resizeSnapshot &&
+      resizeSnapshot.activeId === elementId &&
+      onElementsChange
+    ) {
+      const handle = resizeSnapshot.handle ?? activeInteraction.handle;
+      if (!handle) return;
+      const { startGroupRect, startActiveRect } = resizeSnapshot;
+      const deltaX = nextRect.x - startActiveRect.x;
+      const deltaY = nextRect.y - startActiveRect.y;
+      const deltaW = nextRect.width - startActiveRect.width;
+      const deltaH = nextRect.height - startActiveRect.height;
+      const dx = handle.includes("e")
+        ? deltaW
+        : handle.includes("w")
+          ? deltaX
+          : 0;
+      const dy = handle.includes("s")
+        ? deltaH
+        : handle.includes("n")
+          ? deltaY
+          : 0;
+      const nextGroupRect = computeGroupRectFromDeltas(
+        startGroupRect,
+        handle,
+        dx,
+        dy,
+      );
+
+      applyGroupResizeSnapshot(resizeSnapshot, nextGroupRect);
+      setActivePreview(null);
       return;
     }
     const groupDrag = groupDragRef.current;
@@ -811,12 +1190,24 @@ const DesignPaper = ({
       } else {
         groupDragRef.current = null;
       }
+      if (context?.type === "resize" && startRect) {
+        groupResizeRef.current = buildGroupResizeState(
+          elementId,
+          startRect,
+          handle,
+        );
+      } else {
+        groupResizeRef.current = null;
+      }
       onInteractionChange?.(true, context);
       return;
     }
     const hadGroupDrag = groupDragRef.current?.activeId === elementId;
     if (hadGroupDrag) {
       groupDragRef.current = null;
+    }
+    if (groupResizeRef.current?.activeId === elementId) {
+      groupResizeRef.current = null;
     }
     if (finalRect && !hadGroupDrag) {
       const targetElement = elements.find(
@@ -1150,8 +1541,14 @@ const DesignPaper = ({
     ];
     selectedIdsRef.current = nextSelectedIds;
     onSelectedIdsChange?.(nextSelectedIds);
-    if (selectedElement && isEmotionSlotShape(selectedElement)) {
+    if (
+      selectedElement &&
+      (isEmotionSlotShape(selectedElement) ||
+        isEmotionInferenceCard(selectedElement))
+    ) {
       setSideBarMenu("emotion");
+    } else if (selectedElement && isAacCardElement(elements, selectedElement)) {
+      setSideBarMenu("aac");
     }
     if (editingImageId && editingImageId !== elementId) {
       setEditingImageId(null);
@@ -1482,6 +1879,7 @@ const DesignPaper = ({
         textAlign={element.style.alignX}
         textAlignY={element.style.alignY}
         isSelected={shouldShowIndividualBorder(element.id)}
+        selectionCount={selectedIds.length}
         isEditing={isEditing}
         locked={locked}
         showToolbar={showToolbar}
@@ -1678,7 +2076,11 @@ const DesignPaper = ({
             const currentTransform =
               "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation + 1) % 360;
+            const invertDirection =
+              Boolean(currentTransform.flipX) !==
+              Boolean(currentTransform.flipY);
+            const delta = invertDirection ? -1 : 1;
+            const newRotation = (currentRotation + delta + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1692,7 +2094,11 @@ const DesignPaper = ({
             const currentTransform =
               "transform" in latest ? (latest.transform ?? {}) : {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation - 1 + 360) % 360;
+            const invertDirection =
+              Boolean(currentTransform.flipX) !==
+              Boolean(currentTransform.flipY);
+            const delta = invertDirection ? 1 : -1;
+            const newRotation = (currentRotation + delta + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1711,6 +2117,7 @@ const DesignPaper = ({
         text={element.text}
         textStyle={element.textStyle}
         isSelected={shouldShowIndividualBorder(element.id)}
+        selectionCount={selectedIds.length}
         isImageEditing={isImageEditing}
         isTextEditing={isShapeTextEditing}
         locked={readOnly || element.locked}
@@ -1804,7 +2211,11 @@ const DesignPaper = ({
         : () => {
             const currentTransform = element.transform ?? {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation + 90) % 360;
+            const invertDirection =
+              Boolean(currentTransform.flipX) !==
+              Boolean(currentTransform.flipY);
+            const delta = invertDirection ? -90 : 90;
+            const newRotation = (currentRotation + delta + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1816,7 +2227,11 @@ const DesignPaper = ({
         : () => {
             const currentTransform = element.transform ?? {};
             const currentRotation = currentTransform.rotation ?? 0;
-            const newRotation = (currentRotation - 90 + 360) % 360;
+            const invertDirection =
+              Boolean(currentTransform.flipX) !==
+              Boolean(currentTransform.flipY);
+            const delta = invertDirection ? 90 : -90;
+            const newRotation = (currentRotation + delta + 360) % 360;
             updateElement(element.id, {
               transform: { ...currentTransform, rotation: newRotation },
             });
@@ -1828,6 +2243,7 @@ const DesignPaper = ({
       end: element.end,
       stroke,
       isSelected: shouldShowIndividualBorder(element.id),
+      selectionCount: selectedIds.length,
       locked: readOnly || element.locked,
       onLineChange: (nextLine: { start: Point; end: Point }) => {
         handleLineChange(element.id, nextLine);
@@ -1969,6 +2385,10 @@ const DesignPaper = ({
           editingImageId !== element.id &&
           editingShapeTextId !== element.id;
         const showSizeLabel = !isRotating;
+        const showTransformBar =
+          !isRotating &&
+          editingImageId !== element.id &&
+          editingShapeTextId !== element.id;
         const labelOffset = 16;
         const labelHeight = 20;
         const handleRadius = 10;
@@ -1980,14 +2400,133 @@ const DesignPaper = ({
           rotationDeg,
           rotateHandleOffset,
         );
-        const labelPos = getBottomCenterAnchor(
-          rect,
-          rotationDeg,
-          labelOffset,
-        );
+        const labelPos = getBottomCenterAnchor(rect, rotationDeg, labelOffset);
+        const topBarOffset = 12;
+        const topBarPos = getTopCenterAnchor(rect, rotationDeg, topBarOffset);
+
+        const applyTransformPatch = (
+          updater: (
+            current: NonNullable<ShapeElement["transform"]>,
+          ) => NonNullable<ShapeElement["transform"]>,
+        ) => {
+          const currentTransform: NonNullable<ShapeElement["transform"]> = {
+            flipX: element.transform?.flipX ?? false,
+            flipY: element.transform?.flipY ?? false,
+            rotation: element.transform?.rotation ?? 0,
+          };
+          updateElement(element.id, {
+            transform: updater(currentTransform),
+          });
+        };
+
+        const handleFlipX = () => {
+          applyTransformPatch((current) => ({
+            ...current,
+            flipX: !current.flipX,
+          }));
+        };
+
+        const handleFlipY = () => {
+          applyTransformPatch((current) => ({
+            ...current,
+            flipY: !current.flipY,
+          }));
+        };
+
+        const handleRotateCCW = () => {
+          applyTransformPatch((current) => {
+            const step = 90;
+            const currentRotation = current.rotation ?? 0;
+            const invertDirection =
+              Boolean(current.flipX) !== Boolean(current.flipY);
+            const delta = invertDirection ? step : -step;
+            return {
+              ...current,
+              rotation: (currentRotation + delta + 360) % 360,
+            };
+          });
+        };
+
+        const handleRotateCW = () => {
+          applyTransformPatch((current) => {
+            const step = 90;
+            const currentRotation = current.rotation ?? 0;
+            const invertDirection =
+              Boolean(current.flipX) !== Boolean(current.flipY);
+            const delta = invertDirection ? -step : step;
+            return {
+              ...current,
+              rotation: (currentRotation + delta + 360) % 360,
+            };
+          });
+        };
 
         return (
           <>
+            {showTransformBar && (
+              <div
+                className="absolute z-50"
+                style={{
+                  left: topBarPos.x,
+                  top: topBarPos.y,
+                  transform: "translate(-50%, -100%)",
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <div className="flex items-center gap-1 bg-white-100 border border-black-25 rounded-lg shadow-lg px-2 py-1">
+                  <button
+                    type="button"
+                    onClick={handleRotateCCW}
+                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                    aria-label="왼쪽으로 회전"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                      왼쪽으로 회전
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRotateCW}
+                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                    aria-label="오른쪽으로 회전"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                      오른쪽으로 회전
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFlipX}
+                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                    aria-label="좌우 반전"
+                  >
+                    <FlipHorizontal className="w-4 h-4" />
+                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                      좌우 반전
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFlipY}
+                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
+                    aria-label="상하 반전"
+                  >
+                    <FlipVertical className="w-4 h-4" />
+                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+                      상하 반전
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
             {showRotateHandle && (
               <button
                 type="button"
@@ -2036,10 +2575,12 @@ const DesignPaper = ({
         );
       })()}
       <GroupSelectionOverlay
-        isGroupedSelection={isGroupedSelection}
+        isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
         readOnly={readOnly}
         selectedIds={selectedIds}
         elements={elements}
+        showHandles
+        onResizeHandlePointerDown={handleGroupResizePointerDown}
       />
       <DesignPaperContextMenu
         contextMenu={contextMenu}
@@ -2059,42 +2600,46 @@ const DesignPaper = ({
         setContextMenu={setContextMenu}
       />
       <SmartGuideOverlay guides={smartGuides.guides} />
-      {isRotating && rotationBadge && (() => {
-        const element = elements.find((el) => el.id === rotationBadge.elementId);
-        if (
-          !element ||
-          (element.type !== "rect" &&
-            element.type !== "roundRect" &&
-            element.type !== "ellipse")
-        ) {
-          return null;
-        }
-        const rect = getRectFromElement(element);
-        if (!rect) return null;
-        const rotationDeg = element.transform?.rotation ?? 0;
-        const badgeOffset = 42;
-        const badgePos = getRotatedLocalAnchor(
-          rect,
-          rotationDeg,
-          0,
-          rect.height / 2 + badgeOffset,
-        );
-        const angleValue = Math.round(rotationBadge.rotationDeg) % 360;
-        const normalized = angleValue < 0 ? angleValue + 360 : angleValue;
-        return (
-          <div
-            className="absolute rounded bg-black-90 px-2 py-1 text-12-medium text-white-100 shadow-lg z-[9999]"
-            style={{
-              left: badgePos.x,
-              top: badgePos.y,
-              transform: "translate(-50%, -50%)",
-              pointerEvents: "none",
-            }}
-          >
-            {normalized}°
-          </div>
-        );
-      })()}
+      {isRotating &&
+        rotationBadge &&
+        (() => {
+          const element = elements.find(
+            (el) => el.id === rotationBadge.elementId,
+          );
+          if (
+            !element ||
+            (element.type !== "rect" &&
+              element.type !== "roundRect" &&
+              element.type !== "ellipse")
+          ) {
+            return null;
+          }
+          const rect = getRectFromElement(element);
+          if (!rect) return null;
+          const rotationDeg = element.transform?.rotation ?? 0;
+          const badgeOffset = 42;
+          const badgePos = getRotatedLocalAnchor(
+            rect,
+            rotationDeg,
+            0,
+            rect.height / 2 + badgeOffset,
+          );
+          const angleValue = Math.round(rotationBadge.rotationDeg) % 360;
+          const normalized = angleValue < 0 ? angleValue + 360 : angleValue;
+          return (
+            <div
+              className="absolute rounded bg-black-90 px-2 py-1 text-12-medium text-white-100 shadow-lg z-9999"
+              style={{
+                left: badgePos.x,
+                top: badgePos.y,
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+              }}
+            >
+              {normalized}°
+            </div>
+          );
+        })()}
     </div>
   );
 };

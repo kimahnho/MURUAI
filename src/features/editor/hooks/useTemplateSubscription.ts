@@ -130,7 +130,9 @@ export const useTemplateSubscription = ({
   useEffect(() => {
     const pageTemplateId =
       pages.find((page) => page.id === selectedPageId)?.templateId ?? null;
-    if (pageTemplateId === selectedTemplate) return;
-    setSelectedTemplate(pageTemplateId);
+    const nextTemplateId =
+      pageTemplateId === "aacBoard" ? null : pageTemplateId;
+    if (nextTemplateId === selectedTemplate) return;
+    setSelectedTemplate(nextTemplateId);
   }, [pages, selectedPageId, selectedTemplate, setSelectedTemplate]);
 };

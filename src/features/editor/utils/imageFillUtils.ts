@@ -146,17 +146,17 @@ export const getNextEmotionCardId = (
   elements: CanvasElement[],
   currentId: string,
 ) => {
-  const colTolerance = mmToPx(2);
+  const rowTolerance = mmToPx(2);
   const emotionCards = elements.filter((element) =>
     isEmotionInferenceCard(element),
   );
   if (emotionCards.length === 0) return null;
   const orderedCards = [...emotionCards].sort((a, b) => {
-    const xDiff = a.x - b.x;
-    if (Math.abs(xDiff) > colTolerance) {
-      return xDiff;
+    const yDiff = a.y - b.y;
+    if (Math.abs(yDiff) > rowTolerance) {
+      return yDiff;
     }
-    return a.y - b.y;
+    return a.x - b.x;
   });
   const currentIndex = orderedCards.findIndex(
     (element) => element.id === currentId,

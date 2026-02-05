@@ -23,7 +23,7 @@ import { useSideBarStore, type SideBarMenu } from "../../store/sideBarStore";
 type MenuItemId = Exclude<SideBarMenu, null | "font">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
-  design: "디자인",
+  design: "AI 이미지",
   template: "템플릿",
   emotion: "감정",
   element: "요소",

@@ -12,6 +12,7 @@ type UseLineInteractionParams = {
   lineRef: RefObject<LineRef>;
   locked: boolean;
   isSelected: boolean;
+  selectionCount: number;
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
     isDragging: boolean,
@@ -27,13 +28,16 @@ export const useLineInteraction = ({
   lineRef,
   locked,
   isSelected,
+  selectionCount,
   onLineChange,
   onDragStateChange,
   onSelectChange,
   getPointerPosition,
 }: UseLineInteractionParams) => {
   const ensureSelection = (event: ReactPointerEvent) => {
-    if (!isSelected || event.shiftKey) {
+    const shouldResetSelection =
+      isSelected && !event.shiftKey && selectionCount > 1;
+    if (!isSelected || event.shiftKey || shouldResetSelection) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
   };
