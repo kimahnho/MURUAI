@@ -1,5 +1,4 @@
 import { lazy, Suspense, type Dispatch, type SetStateAction } from "react";
-import { FlipHorizontal, FlipVertical, RotateCcw, RotateCw } from "lucide-react";
 import SquareToolBar from "./template_component/round_box/SquareToolBar";
 import ArrowToolBar from "./template_component/arrow/ArrowToolBar";
 import LineToolBar from "./template_component/line/LineToolBar";
@@ -78,115 +77,6 @@ const ElementToolbars = ({
     );
   };
 
-  const isTransformTarget = (element: CanvasElement): element is ShapeElement | LineElement =>
-    element.type === "rect" ||
-    element.type === "roundRect" ||
-    element.type === "ellipse" ||
-    element.type === "line" ||
-    element.type === "arrow";
-
-  const applyTransformPatch = (
-    updater: (element: ShapeElement | LineElement) => Partial<ShapeElement | LineElement>,
-  ) => {
-    setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-        return {
-          ...page,
-          elements: page.elements.map((el) => {
-            if (!selectedIds.includes(el.id) || el.locked || !isTransformTarget(el)) {
-              return el;
-            }
-            return { ...el, ...updater(el) } as CanvasElement;
-          }),
-        };
-      }),
-    );
-  };
-
-  const handleFlipX = () => {
-    applyTransformPatch((element) => {
-      const current = element.transform ?? {};
-      return { transform: { ...current, flipX: !current.flipX } };
-    });
-  };
-
-  const handleRotateCCW = () => {
-    applyTransformPatch((element) => {
-      const current = element.transform ?? {};
-      const step = 90;
-      const currentRotation = current.rotation ?? 0;
-      const nextRotation = (currentRotation - step + 360) % 360;
-      return { transform: { ...current, rotation: nextRotation } };
-    });
-  };
-
-  const handleRotateCW = () => {
-    applyTransformPatch((element) => {
-      const current = element.transform ?? {};
-      const step = 90;
-      const currentRotation = current.rotation ?? 0;
-      const nextRotation = (currentRotation + step) % 360;
-      return { transform: { ...current, rotation: nextRotation } };
-    });
-  };
-
-  const handleFlipY = () => {
-    applyTransformPatch((element) => {
-      const current = element.transform ?? {};
-      return { transform: { ...current, flipY: !current.flipY } };
-    });
-  };
-
-  const renderTransformActions = () => (
-    <div className="flex items-center gap-1 pr-2 mr-2 border-r border-black-20">
-      <button
-        type="button"
-        onClick={handleRotateCCW}
-        className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-        aria-label="왼쪽으로 회전"
-      >
-        <RotateCcw className="w-4 h-4" />
-        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-          왼쪽으로 회전
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={handleRotateCW}
-        className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-        aria-label="오른쪽으로 회전"
-      >
-        <RotateCw className="w-4 h-4" />
-        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-          오른쪽으로 회전
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={handleFlipX}
-        className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-        aria-label="좌우 반전"
-      >
-        <FlipHorizontal className="w-4 h-4" />
-        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-          좌우 반전
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={handleFlipY}
-        className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-        aria-label="상하 반전"
-      >
-        <FlipVertical className="w-4 h-4" />
-        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-          상하 반전
-        </span>
-      </button>
-    </div>
-  );
-
   const updateSelectedLines = (
     updater: (element: LineElement) => Partial<LineElement>,
   ) => {
@@ -250,7 +140,6 @@ const ElementToolbars = ({
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
           <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
             <div className="flex items-center gap-3">
-              {renderTransformActions()}
               <SquareToolBar
                 isVisible
                 showRadius={shapeToolbarData.element.type !== "ellipse"}
@@ -388,7 +277,6 @@ const ElementToolbars = ({
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
           <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
             <div className="flex items-center gap-3">
-              {renderTransformActions()}
               <LineToolBar
                 isVisible
                 color={lineToolbarData.stroke.color}
@@ -435,7 +323,6 @@ const ElementToolbars = ({
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
           <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
             <div className="flex items-center gap-3">
-              {renderTransformActions()}
               <ArrowToolBar
                 isVisible
                 color={lineToolbarData.stroke.color}

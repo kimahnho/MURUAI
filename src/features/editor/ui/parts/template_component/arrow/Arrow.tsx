@@ -122,10 +122,10 @@ const Arrow = ({
   // Transform 스타일 계산
   const transformStyle = (() => {
     const transforms: string[] = [];
-    if (transform?.flipX) transforms.push("scaleX(-1)");
-    if (transform?.flipY) transforms.push("scaleY(-1)");
     if (transform?.rotation)
       transforms.push(`rotate(${transform.rotation}deg)`);
+    if (transform?.flipX) transforms.push("scaleX(-1)");
+    if (transform?.flipY) transforms.push("scaleY(-1)");
     return transforms.length > 0 ? transforms.join(" ") : undefined;
   })();
 
