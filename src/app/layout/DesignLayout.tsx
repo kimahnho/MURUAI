@@ -62,11 +62,11 @@ const DesignLayout = () => {
   const [exportUserId, setExportUserId] = useState<string | null>(null);
   const [students, setStudents] = useState<TargetOption[]>([]);
   const [groups, setGroups] = useState<TargetOption[]>([]);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches
-      : false,
-  );
+  // const [isMobile, setIsMobile] = useState(() =>
+  //   typeof window !== "undefined"
+  //     ? window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches
+  //     : false,
+  // );
   const [isLoadingTargets, setIsLoadingTargets] = useState(false);
   const canvasGetterRef = useRef<() => CanvasDocument>(() => ({ pages: [] }));
   const toastMessage = useToastStore((state) => state.message);
@@ -124,25 +124,25 @@ const DesignLayout = () => {
     };
   }, [toastMessage, clearToast]);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(
-      "(max-width: 1024px), (pointer: coarse)",
-    );
-    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
-    updateIsMobile();
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", updateIsMobile);
-    } else {
-      mediaQuery.addListener(updateIsMobile);
-    }
-    return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", updateIsMobile);
-      } else {
-        mediaQuery.removeListener(updateIsMobile);
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   const mediaQuery = window.matchMedia(
+  //     "(max-width: 1024px), (pointer: coarse)",
+  //   );
+  //   const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+  //   updateIsMobile();
+  //   if (mediaQuery.addEventListener) {
+  //     mediaQuery.addEventListener("change", updateIsMobile);
+  //   } else {
+  //     mediaQuery.addListener(updateIsMobile);
+  //   }
+  //   return () => {
+  //     if (mediaQuery.removeEventListener) {
+  //       mediaQuery.removeEventListener("change", updateIsMobile);
+  //     } else {
+  //       mediaQuery.removeListener(updateIsMobile);
+  //     }
+  //   };
+  // }, []);
 
   useEffect(() => {
     if (window.location.pathname === "/design" && !isCreatingNewDoc) {
@@ -332,29 +332,29 @@ const DesignLayout = () => {
     }
   };
 
-  if (isMobile) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-white-100">
-        <div className="flex flex-col items-center gap-4">
-          <img
-            src={images.mainLogo}
-            alt="Muruai logo"
-            className="h-28 w-auto"
-          />
-          <p className="text-title-20-semibold text-black-80">
-            PC에서 접속해주세요
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="mt-2 rounded-full border border-black-30 bg-white-100 px-6 py-2 text-14-semibold text-black-80 transition hover:border-black-40 hover:bg-black-10"
-          >
-            홈으로 이동하기
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // if (isMobile) {
+  //   return (
+  //     <div className="flex h-screen w-screen items-center justify-center bg-white-100">
+  //       <div className="flex flex-col items-center gap-4">
+  //         <img
+  //           src={images.mainLogo}
+  //           alt="Muruai logo"
+  //           className="h-28 w-auto"
+  //         />
+  //         <p className="text-title-20-semibold text-black-80">
+  //           PC에서 접속해주세요
+  //         </p>
+  //         <button
+  //           type="button"
+  //           onClick={() => navigate("/")}
+  //           className="mt-2 rounded-full border border-black-30 bg-white-100 px-6 py-2 text-14-semibold text-black-80 transition hover:border-black-40 hover:bg-black-10"
+  //         >
+  //           홈으로 이동하기
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
