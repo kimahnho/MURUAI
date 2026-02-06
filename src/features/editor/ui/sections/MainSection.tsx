@@ -242,6 +242,7 @@ const MainSection = () => {
     selectedIds,
     onDeleteElements: handleDeleteElements,
     onDuplicatePage: handleDuplicatePage,
+    onPastePage: handlePastePage,
     onDeletePage: handleDeletePage,
     onClearPage: handleClearPage,
   });

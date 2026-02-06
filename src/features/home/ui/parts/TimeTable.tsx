@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { getWeekDays } from "../utils/dateUtils";
-import { scheduleModel, type Schedule } from "../model/schedule.model";
+import { getWeekDays } from "../../utils/dateUtils";
+import { scheduleModel, type Schedule } from "../../model/schedule.model";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";
-import { useScheduleStore } from "../store/useScheduleStore";
+import { useScheduleStore } from "../../store/useScheduleStore";
 
 interface TimeTableProps {
   weekOffset: number;

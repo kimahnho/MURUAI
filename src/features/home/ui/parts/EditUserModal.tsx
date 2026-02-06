@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { studentModel } from "../model/student.model";
-import { useStudentStore } from "../store/useStudentStore";
+import { studentModel } from "../../model/student.model";
+import { useStudentStore } from "../../store/useStudentStore";
 
 type EditUserModalContentProps = {
   studentId: string;

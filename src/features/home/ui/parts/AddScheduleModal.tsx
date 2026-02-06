@@ -2,18 +2,18 @@ import { Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-import { useScheduleStore } from "../store/useScheduleStore";
+import { useScheduleStore } from "../../store/useScheduleStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { studentModel, type Student } from "../model/student.model";
-import { groupModel, type Group } from "../model/group.model";
-import { scheduleModel } from "../model/schedule.model";
+import { studentModel, type Student } from "../../model/student.model";
+import { groupModel, type Group } from "../../model/group.model";
+import { scheduleModel } from "../../model/schedule.model";
 import {
   type ScheduleFormData,
   initialFormData,
   generateTimeOptions,
   calculateEndTimeOptions,
   validateScheduleForm,
-} from "../model/scheduleForm.model";
+} from "../../model/scheduleForm.model";
 
 const AddScheduleModal = () => {
   const { openModal, closeModal } = useModalStore();

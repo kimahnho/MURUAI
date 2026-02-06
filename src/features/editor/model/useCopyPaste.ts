@@ -7,6 +7,7 @@ interface UseCopyPasteProps {
   selectedIds: string[];
   onDuplicatePage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
+  onPastePage?: (pageId: string) => void;
   onDeleteElements?: (ids: string[]) => void;
   onClearPage?: (pageId: string) => void;
 }
@@ -17,6 +18,7 @@ export const useCopyPaste = ({
   selectedIds,
   onDuplicatePage,
   onDeletePage,
+  onPastePage,
   onDeleteElements,
   onClearPage,
 }: UseCopyPasteProps) => {
@@ -58,7 +60,11 @@ export const useCopyPaste = ({
           const copiedPageId = sessionStorage.getItem("copiedPageId");
           if (copiedPageId) {
             e.preventDefault();
-            onDuplicatePage(copiedPageId);
+            if (onPastePage) {
+              onPastePage(selectedPageId);
+            } else {
+              onDuplicatePage(copiedPageId);
+            }
           }
         }
       }
@@ -105,6 +111,7 @@ export const useCopyPaste = ({
     selectedIds,
     onDuplicatePage,
     onDeletePage,
+    onPastePage,
     onDeleteElements,
     onClearPage,
   ]);

@@ -73,7 +73,6 @@ const CanvasStage = ({
       onPointerUp={handleStagePointerUp}
       onPointerCancel={handleStagePointerCancel}
     >
-      {aiTipKey && <AiTip key={aiTipKey} />}
       <div
         style={{
           display: "inline-flex",
@@ -84,6 +83,7 @@ const CanvasStage = ({
         }}
       >
         <div style={{ position: "relative" }}>
+          {aiTipKey && <AiTip key={aiTipKey} padding={padding} />}
           <canvas
             ref={canvasRef}
             style={{
@@ -130,7 +130,7 @@ const CanvasStage = ({
 
 export default CanvasStage;
 
-const AiTip = () => {
+const AiTip = ({ padding }: { padding: number }) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -144,8 +144,16 @@ const AiTip = () => {
 
   if (!visible) return null;
 
+  const offset = -50;
+
   return (
-    <div className="absolute left-4 top-4 z-30 pointer-events-none">
+    <div
+      className="absolute z-30 pointer-events-none"
+      style={{
+        left: `${padding + offset}px`,
+        top: `${padding + offset}px`,
+      }}
+    >
       <div className="relative rounded-2xl bg-primary px-4 py-3 text-14-medium text-white-100 shadow-lg">
         Ai로 맞춤형 이미지를 만들어보세요.
         <span

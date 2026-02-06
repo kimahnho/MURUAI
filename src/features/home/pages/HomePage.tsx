@@ -1,11 +1,11 @@
-import ChoiceUserSection from "@/features/home/sections/ChoiceUserSection";
-import FirstCommentSection from "@/features/home/sections/FirstCommentSection";
-import AddUserModal from "@/features/home/components/AddUserModal";
-import AddGroupModal from "@/features/home/components/AddGroupModal";
-import EditUserModal from "@/features/home/components/EditUserModal";
-import EditGroupModal from "@/features/home/components/EditGroupModal";
-import AddScheduleModal from "@/features/home/components/AddScheduleModal";
-import CalendarSection from "@/features/home/sections/CalendarSection";
+import ChoiceUserSection from "../ui/sections/ChoiceUserSection";
+import FirstCommentSection from "../ui/sections/FirstCommentSection";
+import CalendarSection from "../ui/sections/CalendarSection";
+import AddUserModal from "../ui/parts/AddUserModal";
+import AddGroupModal from "../ui/parts/AddGroupModal";
+import EditUserModal from "../ui/parts/EditUserModal";
+import EditGroupModal from "../ui/parts/EditGroupModal";
+import AddScheduleModal from "../ui/parts/AddScheduleModal";
 import AuthModal from "@/shared/components/AuthModal";
 
 const HomePage = () => {
