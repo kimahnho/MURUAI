@@ -23,7 +23,7 @@ import { TEMPLATE_REGISTRY } from "@/features/editor/templates/templateRegistry"
 import { useOrientationStore } from "@/features/editor/store/orientationStore";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-import { images } from "@/shared/assets";
+// import { images } from "@/shared/assets";
 import ExportModal from "@/features/editor/ui/parts/ExportModal";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import {
