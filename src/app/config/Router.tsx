@@ -1,12 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
-import HomePage from "@/pages/home/HomePage";
-import DesignPage from "@/features/editor/pages/DesignPage";
 import DesignLayout from "../layout/DesignLayout";
-import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
-import MyDocPage from "@/pages/mydoc/MyDocPage";
-import AdminUserDocsPage from "@/pages/admin/AdminUserDocsPage";
+import HomePage from "@/features/home/pages/HomePage";
+import DesignPage from "@/features/editor/pages/DesignPage";
+import MyDocPage from "@/features/mydoc/pages/MyDocPage";
 import AdminPage from "@/features/admin/pages/AdminPage";
+import AdminUserDocsPage from "@/features/admin/pages/AdminUserDocsPage";
+import AuthCallbackPage from "@/features/auth/pages/AuthCallbackPage";
 
 export const router = createBrowserRouter([
   {

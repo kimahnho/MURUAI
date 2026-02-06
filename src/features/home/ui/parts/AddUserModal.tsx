@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { studentModel } from "../model/student.model";
-import { useStudentStore } from "../store/useStudentStore";
+import { studentModel } from "../../model/student.model";
+import { useStudentStore } from "../../store/useStudentStore";
 
 const AddUserModal = () => {
   const { openModal, closeModal } = useModalStore();

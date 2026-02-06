@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { groupModel } from "../model/group.model";
-import { useStudentStore } from "../store/useStudentStore";
+import { groupModel } from "../../model/group.model";
+import { useStudentStore } from "../../store/useStudentStore";
 
 const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
   const { students: availableMembers, refreshGroups } = useStudentStore();

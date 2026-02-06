@@ -1,9 +1,9 @@
 import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
-import { getWeekRange } from "../utils/dateUtils";
+import { getWeekRange } from "../../utils/dateUtils";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-import TimeTable from "../components/TimeTable";
+import TimeTable from "../parts/TimeTable";
 
 const CalendarSection = () => {
   const [weekOffset, setWeekOffset] = useState(0);

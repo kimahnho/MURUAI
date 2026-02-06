@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { groupModel } from "../model/group.model";
-import { useStudentStore } from "../store/useStudentStore";
+import { groupModel } from "../../model/group.model";
+import { useStudentStore } from "../../store/useStudentStore";
 
 type EditGroupModalContentProps = {
   groupId: string;

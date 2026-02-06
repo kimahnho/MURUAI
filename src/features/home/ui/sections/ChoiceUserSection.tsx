@@ -6,11 +6,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import UserCard from "../components/UserCard";
-import GroupCard from "../components/GroupCard";
+import UserCard from "../parts/UserCard";
+import GroupCard from "../parts/GroupCard";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-import { useStudentStore } from "../store/useStudentStore";
+import { useStudentStore } from "../../store/useStudentStore";
 
 const ChoiceUserSection = () => {
   const [lessonType, setLessonType] = useState<"individual" | "group">(

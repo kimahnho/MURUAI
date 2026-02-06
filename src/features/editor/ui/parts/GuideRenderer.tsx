@@ -1,4 +1,4 @@
-import type { GuideLine } from "../hooks/useSnapGuides";
+import type { GuideLine } from "../../hooks/useSnapGuides";
 
 type GuideRendererProps = {
   guides: GuideLine[];
