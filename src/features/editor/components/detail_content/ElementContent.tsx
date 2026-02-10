@@ -5,7 +5,7 @@ import {
   RectangleHorizontal,
   Square,
 } from "lucide-react";
-import { useElementContentState } from "../../hooks/useElementContentState";
+import { useElementStore } from "../../store/elementStore";
 import type { ElementType } from "../../model/canvasTypes";
 
 type ShapeItem = {
@@ -69,7 +69,7 @@ const ElementContentView = ({
 };
 
 const ElementContent = () => {
-  const { onSelectShape } = useElementContentState();
+  const onSelectShape = useElementStore((s) => s.requestElement);
 
   return (
     <ElementContentView shapes={SHAPES} onSelectShape={onSelectShape} />

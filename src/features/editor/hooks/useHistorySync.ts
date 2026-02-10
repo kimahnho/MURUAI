@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useUnifiedHistoryStore } from "../store/unifiedHistoryStore";
 import type { Page } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type HistoryInit = (
   pages: Page[],

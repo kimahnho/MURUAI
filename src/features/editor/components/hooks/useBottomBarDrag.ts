@@ -1,5 +1,5 @@
 import { useCallback, type DragEvent as ReactDragEvent } from "react";
-import { useDragAndDrop } from "../../model/useDragAndDrop";
+import { useDragAndDrop } from "../../hooks/useDragAndDrop";
 import type { Page } from "../../model/pageTypes";
 
 type UseBottomBarDragParams = {

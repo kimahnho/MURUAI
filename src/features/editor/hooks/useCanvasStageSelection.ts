@@ -6,7 +6,7 @@ import {
   type RefObject,
 } from "react";
 import type { Page } from "../model/pageTypes";
-import type { DesignPaperStageActions } from "../types/stageActions";
+import type { DesignPaperStageActions } from "../model/stageActions";
 import {
   getElementBoundsForSelection,
   normalizeSelectionRect,

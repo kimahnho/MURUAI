@@ -1,7 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type FontSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;

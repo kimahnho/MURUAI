@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Page } from "./pageTypes";
+import type { Page } from "../model/pageTypes";
 
 interface UseCopyPasteProps {
   selectedPageId: string;

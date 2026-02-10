@@ -1,4 +1,4 @@
-import type { Page } from "./pageTypes";
+import type { Page } from "../model/pageTypes";
 
 interface UseDragAndDropProps {
   pages: Page[];

@@ -1,5 +1,5 @@
 import { useEffect, type MutableRefObject } from "react";
-import type { DesignPaperStageActions } from "../../types/stageActions";
+import type { DesignPaperStageActions } from "../../model/stageActions";
 
 type UseDesignPaperStageActionsParams = {
   stageActionsRef?: MutableRefObject<DesignPaperStageActions | null>;

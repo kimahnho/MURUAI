@@ -1,7 +1,7 @@
 import { RotateCw } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import ColorPickerPopover from "../../ColorPickerPopover";
-import { useNumberInput } from "../../../model/useNumberInput";
+import { useNumberInput } from "../../../hooks/useNumberInput";
 import { clamp } from "../../../utils/domUtils";
 
 interface ArrowToolBarProps {

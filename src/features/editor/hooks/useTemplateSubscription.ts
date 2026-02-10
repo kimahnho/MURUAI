@@ -7,7 +7,7 @@ import {
 import { useTemplateStore } from "../store/templateStore";
 import type { Page } from "../model/pageTypes";
 import type { TemplateId } from "../templates/templateRegistry";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type AddTemplatePage = (args: {
   templateId: TemplateId;

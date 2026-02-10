@@ -6,7 +6,7 @@ import {
 } from "react";
 import type { Page } from "../model/pageTypes";
 import { TEMPLATE_REGISTRY, type TemplateId } from "../templates/templateRegistry";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 import { trackTemplateUsageEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
 

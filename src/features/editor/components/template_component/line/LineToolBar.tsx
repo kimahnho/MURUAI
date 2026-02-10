@@ -1,5 +1,5 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useNumberInput } from "../../../model/useNumberInput";
+import { useNumberInput } from "../../../hooks/useNumberInput";
 import { clamp } from "../../../utils/domUtils";
 import ColorPickerPopover from "../../ColorPickerPopover";
 

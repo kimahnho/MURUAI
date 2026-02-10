@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { useNumberInput } from "../model/useNumberInput";
+import { useNumberInput } from "./useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import type {
   CanvasElement,

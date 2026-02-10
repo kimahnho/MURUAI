@@ -1,6 +1,6 @@
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Ban, Loader2, Upload } from "lucide-react";
-import { useNumberInput } from "../../../model/useNumberInput";
+import { useNumberInput } from "../../../hooks/useNumberInput";
 import ColorPickerPopover from "../../ColorPickerPopover";
 import { useImageUploadToCloudinary } from "../../../hooks/useImageUploadToCloudinary";
 import { useUploadListStore } from "../../../store/useUploadListStore";

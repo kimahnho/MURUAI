@@ -59,7 +59,7 @@ import {
   isAacCardElement,
   isEmotionInferenceCard,
 } from "../utils/imageFillUtils";
-import type { DesignPaperStageActions } from "../types/stageActions";
+import type { DesignPaperStageActions } from "../model/stageActions";
 import { getSelectionRenderState } from "../utils/selectionState";
 
 interface DesignPaperProps {
