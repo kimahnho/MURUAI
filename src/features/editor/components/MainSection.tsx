@@ -7,33 +7,22 @@ import ElementToolbars from "./ElementToolbars";
 import CanvasStage from "./CanvasStage";
 import TemplateChoiceDialog from "./TemplateChoiceDialog";
 import PdfPreviewContainer from "./PdfPreviewContainer";
-import { useCopyPaste } from "../hooks/useCopyPaste";
-import { useCanvasZoom } from "../hooks/useCanvasZoom";
 import { useTemplateStore } from "../store/templateStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useFontStore } from "../store/fontStore";
-import { useHistorySync } from "../hooks/useHistorySync";
-import { useImageFillSubscription } from "../hooks/useImageFillSubscription";
-import { useTemplateSubscription } from "../hooks/useTemplateSubscription";
-import { useFontSubscription } from "../hooks/useFontSubscription";
-import { useElementSubscription } from "../hooks/useElementSubscription";
-import { useOrientationSubscription } from "../hooks/useOrientationSubscription";
-import { useBoardSubscriptions } from "../hooks/useBoardSubscriptions";
-import { useSelectionState } from "../hooks/useSelectionState";
-import { useSelectionToolbarActions } from "../hooks/useSelectionToolbarActions";
-import { useTemplateApplyActions } from "../hooks/useTemplateApplyActions";
-import { useActivePageManager } from "../hooks/useActivePageManager";
-import { useCanvasStageHandlers } from "../hooks/useCanvasStageHandlers";
-import { useSelectionClearer } from "../hooks/useSelectionClearer";
-import { useTemplateNotifications } from "../hooks/useTemplateNotifications";
-import { useActivePageState } from "../hooks/useActivePageState";
 import { useInitialPageState } from "../hooks/useInitialPageState";
 import { useSyncedRef } from "../hooks/useSyncedRef";
-import { useTextEditTransaction } from "../hooks/useTextEditTransaction";
-import { usePageActions } from "../hooks/usePageActions";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useCanvasGetter } from "../hooks/useCanvasGetter";
-import { useCanvasWheelZoom } from "../hooks/useCanvasWheelZoom";
+import { useCopyPaste } from "../hooks/useCopyPaste";
+import { useActivePageState } from "../hooks/useActivePageState";
+import { useTemplateApplyActions } from "../hooks/useTemplateApplyActions";
+import { useCanvasStageHandlers } from "../hooks/useCanvasStageHandlers";
+import { useEditorHistory } from "../hooks/useEditorHistory";
+import { usePageManagement } from "../hooks/usePageManagement";
+import { useSelectionManagement } from "../hooks/useSelectionManagement";
+import { useCanvasViewport } from "../hooks/useCanvasViewport";
+import { useEditorSubscriptions } from "../hooks/useEditorSubscriptions";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -95,33 +84,25 @@ const MainSection = () => {
   const isSyncingOrientationRef = useRef(false);
   const isApplyingHistoryRef = useRef(false);
   const isApplyingTemplateRef = useRef(false);
-  const { beginTransaction, commitTransaction, recordHistory } = useHistorySync(
-    {
-      pages,
-      selectedPageId,
-      selectedIds,
-      pagesRef,
-      selectedPageIdRef,
-      selectedIdsRef,
-      setPages,
-      setSelectedPageId,
-      setSelectedIds,
-      isApplyingHistoryRef,
-      isApplyingTemplateRef,
-    },
-  );
-  useImageFillSubscription({
+
+  const { beginTransaction, commitTransaction, recordHistory } = useEditorHistory({
+    pages,
+    selectedPageId,
+    selectedIds,
+    editingTextId,
     pagesRef,
     selectedPageIdRef,
     selectedIdsRef,
     setPages,
+    setSelectedPageId,
     setSelectedIds,
-    setEditingTextId,
+    isApplyingHistoryRef,
+    isApplyingTemplateRef,
   });
+
   const [templateChoiceDialog, setTemplateChoiceDialog] = useState<{
     templateId: TemplateId;
   } | null>(null);
-  const { showEmotionInferenceToast } = useTemplateNotifications();
 
   useSyncedRef(orientationRef, orientation);
   useSyncedRef(pagesRef, pages);
@@ -150,17 +131,8 @@ const MainSection = () => {
   }, [manualSave, setManualSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
 
-  const setActivePage = useActivePageManager({
-    pages,
-    setSelectedPageId,
-    setSelectedIds,
-    setEditingTextId,
-    setOrientation,
-    orientationRef,
-    isSyncingOrientationRef,
-  });
-
   const {
+    setActivePage,
     handleAddPage,
     handleAddPageAtIndex,
     handleSelectPage,
@@ -172,70 +144,46 @@ const MainSection = () => {
     handleDeleteElements,
     handleClearPage,
     handleMovePage,
-  } = usePageActions({
+  } = usePageManagement({
     pages,
     selectedPageId,
     orientation,
     setPages,
+    setSelectedPageId,
     setSelectedIds,
     setEditingTextId,
-    setActivePage,
+    setOrientation,
+    orientationRef,
+    isSyncingOrientationRef,
   });
 
-  useTextEditTransaction({
-    editingTextId,
-    beginTransaction,
-    commitTransaction,
-  });
-
-  useTemplateSubscription({
+  const { showEmotionInferenceToast } = useEditorSubscriptions({
     pages,
     selectedPageId,
     selectedTemplate,
     setSelectedTemplate,
     pagesRef,
     selectedPageIdRef,
-    orientationRef,
-    setTemplateChoiceDialog,
-    setPages,
-    setActivePage,
-    showEmotionInferenceToast,
-    isApplyingTemplateRef,
-    recordHistory,
-    addTemplatePage,
-    addSelectedTemplatePages,
-  });
-  useFontSubscription({
-    selectedPageIdRef,
     selectedIdsRef,
-    setPages,
-  });
-  useElementSubscription({
-    pagesRef,
-    selectedPageIdRef,
+    orientationRef,
+    isSyncingOrientationRef,
+    isApplyingTemplateRef,
     setPages,
     setSelectedIds,
     setEditingTextId,
+    setTemplateChoiceDialog,
+    setActivePage,
+    setSideBarMenu,
+    recordHistory,
     addTextElement,
     addShapeElement,
     addLineElement,
-  });
-  useOrientationSubscription({
-    selectedPageIdRef,
-    isSyncingOrientationRef,
-    setPages,
-  });
-  useBoardSubscriptions({
-    setPages,
-    setActivePage,
-    setSideBarMenu,
-    setSelectedIds,
-    setEditingTextId,
+    addTemplatePage,
+    addSelectedTemplatePages,
     addAacBoardPage,
     addStoryBoardPage,
   });
 
-  // 복사/붙여넣기/삭제 기능 활성화
   useCopyPaste({
     selectedPageId,
     pages,
@@ -254,24 +202,20 @@ const MainSection = () => {
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Canvas 확대/축소 훅 사용
-  const { canvasRef, scale, padding, paperWidth, paperHeight } = useCanvasZoom({
+  const { canvasRef, scale, padding, paperWidth, paperHeight } = useCanvasViewport({
     zoom,
-    pageId: selectedPageId,
+    setZoom,
+    selectedPageId,
+    activeOrientation,
     containerRef,
-    orientation: activeOrientation,
   });
 
-  useCanvasWheelZoom({ containerRef, setZoom });
-
   const {
-    activePage,
     isMultiColorSelection,
     multiColorValue,
     hasMultiFontTargets,
     multiFontFamily,
     multiFontLabel,
-    multiFontWeight,
     multiFontSizeInput,
     hasMultiBorderTargets,
     multiBorderEnabled,
@@ -288,24 +232,19 @@ const MainSection = () => {
     canDistribute,
     distributeHorizontal,
     distributeVertical,
-  } = useSelectionState({
+    handleMultiColorChange,
+    handleOpenFontPanel,
+    handleClearSelection,
+  } = useSelectionManagement({
     pages,
     selectedPageId,
     selectedIds,
     setPages,
+    setSelectedIds,
+    setEditingTextId,
+    setSideBarMenu,
+    setFontPanel,
   });
-
-  const { handleMultiColorChange, handleOpenFontPanel } =
-    useSelectionToolbarActions({
-      activePage,
-      selectedPageId,
-      selectedIds,
-      setPages,
-      setSideBarMenu,
-      setFontPanel,
-      multiFontFamily,
-      multiFontWeight,
-    });
 
   const { handleApplyTemplateToCurrent, handleApplyTemplateToNew } =
     useTemplateApplyActions({
@@ -321,11 +260,6 @@ const MainSection = () => {
       applyTemplateToCurrentPage,
       addTemplatePage,
     });
-
-  const handleClearSelection = useSelectionClearer({
-    setSelectedIds,
-    setEditingTextId,
-  });
 
   const { handleElementsChange, handleInteractionChange } =
     useCanvasStageHandlers({
