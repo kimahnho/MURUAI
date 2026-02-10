@@ -1,4 +1,4 @@
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 
 export interface Student {
   id?: string;

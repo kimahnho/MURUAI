@@ -7,8 +7,8 @@ import {
 import type { Page } from "../model/pageTypes";
 import { TEMPLATE_REGISTRY, type TemplateId } from "../templates/templateRegistry";
 import type { ReadonlyRef } from "../types/refTypes";
-import { trackTemplateUsageEvent } from "@/shared/lib/trackEvents";
-import { mp } from "@/shared/lib/mixpanel";
+import { trackTemplateUsageEvent } from "@/shared/utils/trackEvents";
+import { mp } from "@/shared/utils/mixpanel";
 
 type ApplyTemplateToCurrentPage = (args: {
   templateId: TemplateId;

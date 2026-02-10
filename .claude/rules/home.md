@@ -5,22 +5,22 @@
 ## 핵심 파일 위치
 
 ```
+src/pages/home/
+  HomePage.tsx                  # 메인 페이지 (pages와 features 1:1 대응)
+
 src/features/home/
-  pages/HomePage.tsx           # 메인 페이지
-  ui/
-    sections/                   # 페이지 섹션
-      FirstCommentSection.tsx   # 상단 인사말
-      ChoiceUserSection.tsx     # 학습자 선택
-      CalendarSection.tsx       # 주간 계획표
-    parts/                      # UI 컴포넌트
-      AddUserModal.tsx
-      AddGroupModal.tsx
-      EditUserModal.tsx
-      EditGroupModal.tsx
-      AddScheduleModal.tsx
-      UserCard.tsx
-      GroupCard.tsx
-      TimeTable.tsx
+  components/                   # UI 컴포넌트
+    FirstCommentSection.tsx     # 상단 인사말
+    ChoiceUserSection.tsx       # 학습자 선택
+    CalendarSection.tsx         # 주간 계획표
+    AddUserModal.tsx
+    AddGroupModal.tsx
+    EditUserModal.tsx
+    EditGroupModal.tsx
+    AddScheduleModal.tsx
+    UserCard.tsx
+    GroupCard.tsx
+    TimeTable.tsx
   store/
     useStudentStore.ts
     useScheduleStore.ts

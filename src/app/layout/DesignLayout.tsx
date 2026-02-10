@@ -17,14 +17,14 @@ import {
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { TEMPLATE_REGISTRY } from "@/features/editor/templates/templateRegistry";
 import { useOrientationStore } from "@/features/editor/store/orientationStore";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 // import { images } from "@/shared/assets";
-import ExportModal from "@/features/editor/ui/parts/ExportModal";
+import ExportModal from "@/features/editor/components/ExportModal";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import {
   saveUserMadeVersion,

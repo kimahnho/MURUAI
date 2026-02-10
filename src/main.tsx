@@ -3,8 +3,8 @@ import { AppRouterProvider } from "./app/providers/AppRouterProvider";
 import "@/app/styles/global.css";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
-import { initSentry } from "./shared/lib/initSentry";
-import { initMixpanel } from "./shared/lib/initMixpanel";
+import { initSentry } from "./shared/utils/initSentry";
+import { initMixpanel } from "./shared/utils/initMixpanel";
 
 initSentry();
 initMixpanel();

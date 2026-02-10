@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);

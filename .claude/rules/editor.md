@@ -5,22 +5,22 @@
 ## 핵심 파일 위치
 
 ```
+src/pages/editor/
+  DesignPage.tsx                    # 메인 페이지 (pages와 features 1:1 대응)
+
 src/features/editor/
-  pages/DesignPage.tsx              # 메인 페이지
-  ui/
-    sections/
-      MainSection.tsx               # 캔버스 + 툴바 영역
-      SideBar.tsx                   # 사이드바
-    parts/
-      CanvasStage.tsx               # 캔버스 컨테이너
-      DesignPaper.tsx               # A4 문서 렌더러
-      BottomBar.tsx                 # 페이지 네비게이션
-      ElementToolbars.tsx           # 요소별 툴바
-      MultiSelectionToolbar.tsx     # 다중 선택 툴바
-      ExportModal.tsx               # 내보내기 모달
-      detail_content/               # 사이드바 콘텐츠 패널
-      template_component/           # 요소 컴포넌트 (text, line, arrow 등)
-      hooks/                        # DesignPaper 전용 훅
+  components/                       # UI 컴포넌트
+    MainSection.tsx                 # 캔버스 + 툴바 영역
+    SideBar.tsx                     # 사이드바
+    CanvasStage.tsx                 # 캔버스 컨테이너
+    DesignPaper.tsx                 # A4 문서 렌더러
+    BottomBar.tsx                   # 페이지 네비게이션
+    ElementToolbars.tsx             # 요소별 툴바
+    MultiSelectionToolbar.tsx       # 다중 선택 툴바
+    ExportModal.tsx                 # 내보내기 모달
+    detail_content/                 # 사이드바 콘텐츠 패널
+    template_component/             # 요소 컴포넌트 (text, line, arrow 등)
+    hooks/                          # DesignPaper 전용 훅
   hooks/                            # 에디터 전용 훅
     useSelectionState.ts
     useAutoSave.ts
@@ -74,7 +74,7 @@ type CanvasElement = TextElement | ShapeElement | LineElement | ArrowElement;
 ```
 
 - 각 요소는 `id`, `type`, `position`, `size` 필수
-- 요소별 컴포넌트: `ui/parts/template_component/`
+- 요소별 컴포넌트: `components/template_component/`
 
 ## 주의사항
 

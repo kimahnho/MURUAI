@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { ElementType } from "../model/canvasTypes";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 
 type TextPreset = {
   text: string;

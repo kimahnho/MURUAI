@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { GoogleGenAI } from "@google/genai";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
 import { useImageFillStore } from "../store/imageFillStore";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 import {
   type ImageStyle,
   type StyleOption,

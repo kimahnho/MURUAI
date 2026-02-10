@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import * as Sentry from "@sentry/react";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-import { trackActivityEvent } from "@/shared/lib/trackEvents";
-import { mp } from "@/shared/lib/mixpanel";
+import { trackActivityEvent } from "@/shared/utils/trackEvents";
+import { mp } from "@/shared/utils/mixpanel";
 
 const setSentryUser = (user: { id: string; email?: string } | null) => {
   if (user) {
