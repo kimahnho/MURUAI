@@ -8,12 +8,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import {
-  FlipHorizontal,
-  FlipVertical,
-  RotateCcw,
-  RotateCw,
-} from "lucide-react";
 import type {
   CanvasElement,
   LineElement,
@@ -60,7 +54,10 @@ import {
   isEmotionInferenceCard,
 } from "../utils/imageFillUtils";
 import type { DesignPaperStageActions } from "../model/stageActions";
+import { computeScaledImageBox, isImageFillElement } from "../utils/imageBoxScaling";
 import { getSelectionRenderState } from "../utils/selectionState";
+import ShapeTransformBar from "./ShapeTransformBar";
+import RotationBadge from "./RotationBadge";
 
 interface DesignPaperProps {
   pageId: string;
@@ -885,50 +882,12 @@ const DesignPaper = ({
         updates.y = nextRect.y;
       }
 
-      // 이미지가 있는 요소의 경우 imageBox 비율을 유지하며 업데이트
-      if (
-        targetElement &&
-        (targetElement.type === "rect" ||
-          targetElement.type === "roundRect" ||
-          targetElement.type === "ellipse") &&
-        targetElement.fill &&
-        (targetElement.fill.startsWith("url(") ||
-          targetElement.fill.startsWith("data:"))
-      ) {
-        const oldImageBox = targetElement.imageBox;
-        if (oldImageBox) {
-          // 기존 imageBox의 비율 유지
-          const imageAspectRatio = oldImageBox.w / oldImageBox.h;
-          const newElementAspectRatio = nextRect.width / nextRect.height;
-
-          let newBoxW: number;
-          let newBoxH: number;
-
-          if (imageAspectRatio > newElementAspectRatio) {
-            // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
-            newBoxH = nextRect.height;
-            newBoxW = nextRect.height * imageAspectRatio;
-          } else {
-            // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
-            newBoxW = nextRect.width;
-            newBoxH = nextRect.width / imageAspectRatio;
-          }
-
-          updates.imageBox = {
-            x: (nextRect.width - newBoxW) / 2,
-            y: (nextRect.height - newBoxH) / 2,
-            w: newBoxW,
-            h: newBoxH,
-          };
-        } else {
-          // imageBox가 없으면 요소 크기로 초기화
-          updates.imageBox = {
-            x: 0,
-            y: 0,
-            w: nextRect.width,
-            h: nextRect.height,
-          };
-        }
+      if (targetElement && isImageFillElement(targetElement)) {
+        updates.imageBox = computeScaledImageBox(
+          (targetElement as ShapeElement).imageBox,
+          nextRect.width,
+          nextRect.height,
+        );
       }
 
       updateElement(elementId, updates);
@@ -1078,60 +1037,21 @@ const DesignPaper = ({
       }
     }
 
-    // Shape 요소의 resize 중 이미지가 있으면 실시간으로 imageBox 비율 유지하며 업데이트
     if (
       activeInteraction.type === "resize" &&
       targetElement &&
-      (targetElement.type === "rect" ||
-        targetElement.type === "roundRect" ||
-        targetElement.type === "ellipse") &&
-      targetElement.fill &&
-      (targetElement.fill.startsWith("url(") ||
-        targetElement.fill.startsWith("data:"))
+      isImageFillElement(targetElement)
     ) {
-      const oldImageBox = targetElement.imageBox;
-      let newImageBox: { x: number; y: number; w: number; h: number };
-
-      if (oldImageBox) {
-        // 기존 imageBox의 비율 유지
-        const imageAspectRatio = oldImageBox.w / oldImageBox.h;
-        const newElementAspectRatio = nextRect.width / nextRect.height;
-
-        let newBoxW: number;
-        let newBoxH: number;
-
-        if (imageAspectRatio > newElementAspectRatio) {
-          // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
-          newBoxH = nextRect.height;
-          newBoxW = nextRect.height * imageAspectRatio;
-        } else {
-          // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
-          newBoxW = nextRect.width;
-          newBoxH = nextRect.width / imageAspectRatio;
-        }
-
-        newImageBox = {
-          x: (nextRect.width - newBoxW) / 2,
-          y: (nextRect.height - newBoxH) / 2,
-          w: newBoxW,
-          h: newBoxH,
-        };
-      } else {
-        // imageBox가 없으면 요소 크기로 초기화
-        newImageBox = {
-          x: 0,
-          y: 0,
-          w: nextRect.width,
-          h: nextRect.height,
-        };
-      }
-
       updateElement(elementId, {
         x: nextRect.x,
         y: nextRect.y,
         w: nextRect.width,
         h: nextRect.height,
-        imageBox: newImageBox,
+        imageBox: computeScaledImageBox(
+          (targetElement as ShapeElement).imageBox,
+          nextRect.width,
+          nextRect.height,
+        ),
       });
       setActivePreview({ id: elementId, rect: nextRect });
       return;
@@ -2367,193 +2287,18 @@ const DesignPaper = ({
             ? activePreview.rect
             : getRectFromElement(element);
         if (!rect) return null;
-        const rotationDeg = element.transform?.rotation ?? 0;
-        const showRotateHandle =
-          !isRotating &&
-          editingImageId !== element.id &&
-          editingShapeTextId !== element.id;
-        const showSizeLabel = !isRotating;
-        const showTransformBar =
-          !isRotating &&
-          editingImageId !== element.id &&
-          editingShapeTextId !== element.id;
-        const labelOffset = 16;
-        const labelHeight = 20;
-        const handleRadius = 10;
-        const handleGap = 8;
-        const rotateHandleOffset =
-          labelOffset + labelHeight / 2 + handleRadius + handleGap;
-        const rotatePos = getBottomCenterAnchor(
-          rect,
-          rotationDeg,
-          rotateHandleOffset,
-        );
-        const labelPos = getBottomCenterAnchor(rect, rotationDeg, labelOffset);
-        const topBarOffset = 12;
-        const topBarPos = getTopCenterAnchor(rect, rotationDeg, topBarOffset);
-
-        const applyTransformPatch = (
-          updater: (
-            current: NonNullable<ShapeElement["transform"]>,
-          ) => NonNullable<ShapeElement["transform"]>,
-        ) => {
-          const currentTransform: NonNullable<ShapeElement["transform"]> = {
-            flipX: element.transform?.flipX ?? false,
-            flipY: element.transform?.flipY ?? false,
-            rotation: element.transform?.rotation ?? 0,
-          };
-          updateElement(element.id, {
-            transform: updater(currentTransform),
-          });
-        };
-
-        const handleFlipX = () => {
-          applyTransformPatch((current) => ({
-            ...current,
-            flipX: !current.flipX,
-          }));
-        };
-
-        const handleFlipY = () => {
-          applyTransformPatch((current) => ({
-            ...current,
-            flipY: !current.flipY,
-          }));
-        };
-
-        const handleRotateCCW = () => {
-          applyTransformPatch((current) => {
-            const step = 90;
-            const currentRotation = current.rotation ?? 0;
-            return {
-              ...current,
-              rotation: (currentRotation - step + 360) % 360,
-            };
-          });
-        };
-
-        const handleRotateCW = () => {
-          applyTransformPatch((current) => {
-            const step = 90;
-            const currentRotation = current.rotation ?? 0;
-            return {
-              ...current,
-              rotation: (currentRotation + step + 360) % 360,
-            };
-          });
-        };
-
         return (
-          <>
-            {showTransformBar && (
-              <div
-                className="absolute z-50"
-                style={{
-                  left: topBarPos.x,
-                  top: topBarPos.y,
-                  transform: "translate(-50%, -100%)",
-                }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-              >
-                <div className="flex items-center gap-1 bg-white-100 border border-black-25 rounded-lg shadow-lg px-2 py-1">
-                  <button
-                    type="button"
-                    onClick={handleRotateCCW}
-                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-                    aria-label="왼쪽으로 회전"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-                      왼쪽으로 회전
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRotateCW}
-                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-                    aria-label="오른쪽으로 회전"
-                  >
-                    <RotateCw className="w-4 h-4" />
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-                      오른쪽으로 회전
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleFlipX}
-                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-                    aria-label="좌우 반전"
-                  >
-                    <FlipHorizontal className="w-4 h-4" />
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-                      좌우 반전
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleFlipY}
-                    className="group relative flex items-center justify-center w-7 h-7 rounded hover:bg-black-10 text-black-70 hover:text-black-90"
-                    aria-label="상하 반전"
-                  >
-                    <FlipVertical className="w-4 h-4" />
-                    <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
-                      상하 반전
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-            {showRotateHandle && (
-              <button
-                type="button"
-                className="absolute flex items-center justify-center rounded-full border-2 bg-white-100 cursor-grab active:cursor-grabbing z-50"
-                style={{
-                  left: rotatePos.x,
-                  top: rotatePos.y,
-                  width: 20,
-                  height: 20,
-                  borderColor: "var(--primary)",
-                  transform: "translate(-50%, -50%)",
-                }}
-                onPointerDown={(event) => {
-                  startShapeRotation(event, element, rect);
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--primary)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                </svg>
-              </button>
-            )}
-            {showSizeLabel && (
-              <div
-                className="absolute rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
-                style={{
-                  left: labelPos.x,
-                  top: labelPos.y,
-                  transform: "translate(-50%, -50%)",
-                  pointerEvents: "none",
-                }}
-              >
-                가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}
-              </div>
-            )}
-          </>
+          <ShapeTransformBar
+            element={element}
+            rect={rect}
+            isRotating={isRotating}
+            editingImageId={editingImageId}
+            editingShapeTextId={editingShapeTextId}
+            updateElement={updateElement}
+            startShapeRotation={startShapeRotation}
+            getBottomCenterAnchor={getBottomCenterAnchor}
+            getTopCenterAnchor={getTopCenterAnchor}
+          />
         );
       })()}
       <GroupSelectionOverlay
@@ -2582,46 +2327,13 @@ const DesignPaper = ({
         setContextMenu={setContextMenu}
       />
       <SmartGuideOverlay guides={smartGuides.guides} />
-      {isRotating &&
-        rotationBadge &&
-        (() => {
-          const element = elements.find(
-            (el) => el.id === rotationBadge.elementId,
-          );
-          if (
-            !element ||
-            (element.type !== "rect" &&
-              element.type !== "roundRect" &&
-              element.type !== "ellipse")
-          ) {
-            return null;
-          }
-          const rect = getRectFromElement(element);
-          if (!rect) return null;
-          const rotationDeg = element.transform?.rotation ?? 0;
-          const badgeOffset = 42;
-          const badgePos = getRotatedLocalAnchor(
-            rect,
-            rotationDeg,
-            0,
-            rect.height / 2 + badgeOffset,
-          );
-          const angleValue = Math.round(rotationBadge.rotationDeg) % 360;
-          const normalized = angleValue < 0 ? angleValue + 360 : angleValue;
-          return (
-            <div
-              className="absolute rounded bg-black-90 px-2 py-1 text-12-medium text-white-100 shadow-lg z-9999"
-              style={{
-                left: badgePos.x,
-                top: badgePos.y,
-                transform: "translate(-50%, -50%)",
-                pointerEvents: "none",
-              }}
-            >
-              {normalized}°
-            </div>
-          );
-        })()}
+      {isRotating && rotationBadge && (
+        <RotationBadge
+          elements={elements}
+          rotationBadge={rotationBadge}
+          getRotatedLocalAnchor={getRotatedLocalAnchor}
+        />
+      )}
     </div>
   );
 };

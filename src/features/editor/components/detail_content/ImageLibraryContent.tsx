@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent as ReactDragEvent,
+} from "react";
 import { Search } from "lucide-react";
 import { useImageFillStore } from "../../store/imageFillStore";
 import { useImageLibrary } from "../../hooks/useImageLibrary";
@@ -16,13 +21,22 @@ const STYLE_OPTIONS = [
   { label: "펠트", value: "felt-style" },
 ] as const;
 
-const HASHTAGS = ["캐릭터", "동물", "겨울", "봄", "여름", "음식"] as const;
+const HASHTAGS = [
+  "캐릭터",
+  "동물",
+  "겨울",
+  "봄",
+  "여름",
+  "음식",
+  "말풍선",
+  "화살표",
+] as const;
 const SEARCH_DEBOUNCE_MS = 400;
 const INSERT_SIZE = { width: 256, height: 256 };
 
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
-  imageUrl: string
+  imageUrl: string,
 ) => {
   event.dataTransfer.setData("application/x-muru-image", imageUrl);
   event.dataTransfer.setData("text/plain", imageUrl);
@@ -51,7 +65,7 @@ const ImageLibraryContent = () => {
       hashtags: selectedTags,
       keyword: debouncedSearch,
     }),
-    [selectedStyle, selectedTags, debouncedSearch]
+    [selectedStyle, selectedTags, debouncedSearch],
   );
 
   const {
@@ -68,12 +82,15 @@ const ImageLibraryContent = () => {
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
   const handleSelectImage = (url: string, name: string) => {
-    requestImageFill(url, name, INSERT_SIZE, { forceInsert: true, source: "library" });
+    requestImageFill(url, name, INSERT_SIZE, {
+      forceInsert: true,
+      source: "library",
+    });
   };
 
   return (
@@ -82,7 +99,9 @@ const ImageLibraryContent = () => {
         <label className="text-13-semibold text-black-80">스타일</label>
         <select
           value={selectedStyle}
-          onChange={(event) => { setSelectedStyle(event.target.value); }}
+          onChange={(event) => {
+            setSelectedStyle(event.target.value);
+          }}
           className="w-full rounded-lg border border-black-25 px-3 py-2.5 text-14-regular text-black-90 focus:outline-none focus:border-primary transition-colors"
         >
           {STYLE_OPTIONS.map((option) => (
@@ -102,7 +121,9 @@ const ImageLibraryContent = () => {
               <button
                 key={tag}
                 type="button"
-                onClick={() => { toggleTag(tag); }}
+                onClick={() => {
+                  toggleTag(tag);
+                }}
                 className={`rounded-full border px-3 py-1.5 text-12-semibold transition-colors ${
                   isActive
                     ? "border-primary bg-primary/10 text-primary"
@@ -123,7 +144,9 @@ const ImageLibraryContent = () => {
             type="text"
             placeholder="이름/검색어로 검색 (예: 사과, 남자아이, 꽃)"
             value={searchInput}
-            onChange={(event) => { setSearchInput(event.target.value); }}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+            }}
             className="w-full pl-9 pr-4 py-2.5 border border-black-25 rounded-lg text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
           />
         </div>
@@ -147,8 +170,12 @@ const ImageLibraryContent = () => {
               <button
                 key={item.id}
                 draggable
-                onDragStart={(event) => { setDragImageData(event, item.cloudinary_url); }}
-                onClick={() => { handleSelectImage(item.cloudinary_url, item.name_ko); }}
+                onDragStart={(event) => {
+                  setDragImageData(event, item.cloudinary_url);
+                }}
+                onClick={() => {
+                  handleSelectImage(item.cloudinary_url, item.name_ko);
+                }}
                 className="flex flex-col items-center justify-center rounded-lg border border-black-25 p-3 text-left hover:border-primary hover:bg-primary/5 transition-all"
               >
                 <img
@@ -173,7 +200,9 @@ const ImageLibraryContent = () => {
           <div className="flex items-center justify-center py-4">
             <button
               type="button"
-              onClick={() => { fetchNextPage(); }}
+              onClick={() => {
+                fetchNextPage();
+              }}
               disabled={isFetchingNextPage}
               className="rounded-lg border border-black-25 px-4 py-2 text-13-semibold text-black-70 hover:border-black-40 hover:bg-black-5 transition-colors disabled:opacity-60"
             >

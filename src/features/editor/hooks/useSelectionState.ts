@@ -6,85 +6,15 @@ import type {
   ShapeElement,
   TextElement,
 } from "../model/canvasTypes";
-import { getRectFromElement } from "../utils/designPaperUtils";
 import type { Page } from "../model/pageTypes";
-import type { AacLabelPosition } from "../utils/aacBoardUtils";
-import { findLabelElementId, isAacLabelElement } from "../utils/imageFillUtils";
+import { useAacSelectionState } from "./useAacSelectionState";
+import {
+  buildHorizontalDistribution,
+  buildVerticalDistribution,
+  applyPositionToElement,
+} from "../utils/distributeElements";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
-
-const AAC_CARD_PREFIX = "aac-card-";
-const AAC_LABEL_PREFIX = "aac-label-";
-const AAC_BORDER_COLOR = "#E5E7EB";
-const AAC_BORDER_WIDTH = 2;
-const AAC_IMAGEBOX_TOLERANCE = 2;
-
-const getTempId = (element: CanvasElement) =>
-  (element as { tempId?: string }).tempId;
-
-const isAacBoardLabel = (element: CanvasElement) => {
-  if (element.type !== "text") return false;
-  const tempId = getTempId(element);
-  if (tempId?.startsWith(AAC_LABEL_PREFIX)) return true;
-  return isAacLabelElement(element);
-};
-
-const hasAacBorder = (element: ShapeElement) =>
-  element.border?.enabled === true &&
-  element.border.color === AAC_BORDER_COLOR &&
-  element.border.width === AAC_BORDER_WIDTH;
-
-const hasInsetImageBox = (element: ShapeElement) => {
-  if (!element.imageBox) return false;
-  return (
-    Math.abs(element.imageBox.w - element.w) > AAC_IMAGEBOX_TOLERANCE ||
-    Math.abs(element.imageBox.h - element.h) > AAC_IMAGEBOX_TOLERANCE
-  );
-};
-
-const buildAacIndex = (elements: CanvasElement[]) => {
-  const elementById = new Map<string, CanvasElement>();
-  const aacLabelIds = new Set<string>();
-  elements.forEach((element) => {
-    elementById.set(element.id, element);
-    if (isAacBoardLabel(element)) {
-      aacLabelIds.add(element.id);
-    }
-  });
-
-  const aacCards: ShapeElement[] = [];
-  const aacCardsByLabelId = new Map<string, ShapeElement>();
-  elements.forEach((element) => {
-    if (
-      element.type !== "rect" &&
-      element.type !== "roundRect" &&
-      element.type !== "ellipse"
-    ) {
-      return;
-    }
-    const tempId = getTempId(element);
-    const isExplicitAac = tempId?.startsWith(AAC_CARD_PREFIX);
-    const hasLinkedAacLabel =
-      Boolean(element.labelId) && aacLabelIds.has(element.labelId ?? "");
-    const isFallbackAac =
-      !element.labelId && hasAacBorder(element) && hasInsetImageBox(element);
-    if (!isExplicitAac && !hasLinkedAacLabel && !isFallbackAac) return;
-    aacCards.push(element);
-    if (element.labelId) {
-      aacCardsByLabelId.set(element.labelId, element);
-    }
-  });
-
-  const aacCardIdSet = new Set(aacCards.map((card) => card.id));
-
-  return {
-    elementById,
-    aacLabelIds,
-    aacCards,
-    aacCardIdSet,
-    aacCardsByLabelId,
-  };
-};
 
 type SelectionStateParams = {
   pages: Page[];
@@ -287,7 +217,6 @@ export const useSelectionState = ({
   const lineToolbarData = (() => {
     if (!activePage) return null;
 
-    // 선택된 요소들 중 line/arrow만 필터링
     const selectedLines = selectedIds
       .map((id) => activePage.elements.find((el) => el.id === id))
       .filter(
@@ -299,7 +228,6 @@ export const useSelectionState = ({
 
     if (selectedLines.length === 0) return null;
 
-    // 첫 번째 선택된 선을 기준으로 툴바 데이터 생성
     const element = selectedLines[0];
     const stroke = element.stroke ?? { color: "#000000", width: 2 };
     const dx = element.end.x - element.start.x;
@@ -366,309 +294,28 @@ export const useSelectionState = ({
     };
   })();
 
-  const aacIndex = activePage ? buildAacIndex(activePage.elements) : null;
+  const { aacToolbarData, applyAacLabelPosition } = useAacSelectionState({
+    activePage,
+    selectedPageId,
+    selectedElements,
+    setPages,
+  });
 
-  // AAC 카드 선택 감지 (단일 또는 다중 선택, 라벨 클릭 포함)
-  const aacCardTargets = (() => {
-    if (!activePage || !aacIndex) return [];
-    const elements = activePage.elements;
-    const targets = new Map<string, ShapeElement>();
-    const { aacCards, aacCardIdSet, aacCardsByLabelId } = aacIndex;
-
-    selectedElements.forEach((element) => {
-      if (element.type === "text") {
-        const linkedCard = aacCardsByLabelId.get(element.id);
-        if (linkedCard) {
-          targets.set(linkedCard.id, linkedCard);
-          return;
-        }
-        if (!isAacBoardLabel(element)) return;
-        const matchedCard = aacCards.find(
-          (card) =>
-            findLabelElementId(elements, card, isAacLabelElement) ===
-            element.id,
-        );
-        if (matchedCard) {
-          targets.set(matchedCard.id, matchedCard);
-        }
-        return;
-      }
-      if (
-        (element.type === "rect" ||
-          element.type === "roundRect" ||
-          element.type === "ellipse") &&
-        aacCardIdSet.has(element.id)
-      ) {
-        targets.set(element.id, element);
-      }
-    });
-
-    return Array.from(targets.values());
-  })();
-  const hasAacCardSelection = aacCardTargets.length > 0;
-
-  // AAC 카드의 현재 라벨 위치 판단
-  const aacLabelPosition = ((): AacLabelPosition => {
-    if (!hasAacCardSelection || !activePage || !aacIndex) return "bottom";
-
-    const firstCard = aacCardTargets[0];
-    const labelElement =
-      firstCard.labelId != null
-        ? aacIndex.elementById.get(firstCard.labelId)
-        : null;
-
-    if (!labelElement || labelElement.type !== "text") return "none";
-
-    // 라벨이 숨겨진 경우 "none"
-    if (labelElement.visible === false) return "none";
-
-    // 라벨이 카드 상단에 있는지 하단에 있는지 확인
-    const cardY = firstCard.y;
-    const cardHeight = firstCard.h;
-    const labelY = labelElement.y;
-    const cardCenterY = cardY + cardHeight / 2;
-
-    return labelY < cardCenterY ? "top" : "bottom";
-  })();
-
-  // AAC 카드 라벨 위치 변경 함수
-  const applyAacLabelPosition = (position: AacLabelPosition) => {
-    if (!activePage || aacCardTargets.length === 0) return;
-
-    const targetCardIds = new Set(aacCardTargets.map((card) => card.id));
-    const getDefaultLabelHeight = (cardHeight: number) => {
-      const maxLabelHeight = 12 * 3.7795;
-      const rawHeight = Math.min(
-        maxLabelHeight,
-        Math.max(0, cardHeight * 0.22),
-      );
-      return Math.max(1, Math.round(rawHeight * 2) / 2);
-    };
-
-    setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-
-        const elements = page.elements;
-        const elementById = new Map(
-          elements.map((element) => [element.id, element]),
-        );
-        const targetCards = elements.filter(
-          (element): element is ShapeElement => targetCardIds.has(element.id),
-        );
-        if (targetCards.length === 0) return page;
-
-        const targetCardById = new Map(
-          targetCards.map((card) => [card.id, card]),
-        );
-        const labelInfoMap = new Map<
-          string,
-          { labelHeight: number; cardId: string }
-        >();
-        const labelIdByCardId = new Map<string, string>();
-        const newLabels: TextElement[] = [];
-
-        targetCards.forEach((card) => {
-          let labelId = card.labelId ?? null;
-          const labelElement =
-            labelId != null ? elementById.get(labelId) : undefined;
-
-          if (
-            (!labelElement || labelElement.type !== "text") &&
-            position !== "none"
-          ) {
-            const nextLabelId = labelId ?? crypto.randomUUID();
-            const nextLabel: TextElement = {
-              id: nextLabelId,
-              type: "text",
-              x: card.x,
-              y: card.y,
-              w: card.w,
-              h: getDefaultLabelHeight(card.h),
-              text: "단어",
-              widthMode: "auto",
-              lockHeight: true,
-              style: {
-                fontSize: 18,
-                fontWeight: "normal",
-                color: "#6B7280",
-                underline: false,
-                alignX: "center",
-                alignY: "middle",
-              },
-            };
-            newLabels.push(nextLabel);
-            labelId = nextLabelId;
-          }
-
-          if (labelId) {
-            labelIdByCardId.set(card.id, labelId);
-            labelInfoMap.set(labelId, {
-              labelHeight:
-                labelElement && labelElement.type === "text"
-                  ? labelElement.h
-                  : getDefaultLabelHeight(card.h),
-              cardId: card.id,
-            });
-          }
-        });
-
-        const labelIds = new Set(labelInfoMap.keys());
-
-        return {
-          ...page,
-          elements: [
-            ...elements.map((el) => {
-              // AAC 카드(roundRect) 처리 - 이미지 박스 위치 조정
-              const isTargetCard =
-                targetCardIds.has(el.id) &&
-                (el.type === "rect" ||
-                  el.type === "roundRect" ||
-                  el.type === "ellipse");
-              if (
-                isTargetCard &&
-                (el.type === "rect" ||
-                  el.type === "roundRect" ||
-                  el.type === "ellipse")
-              ) {
-                const card = el;
-                let nextCard: ShapeElement = card;
-                const nextLabelId = labelIdByCardId.get(card.id);
-                if (nextLabelId && card.labelId !== nextLabelId) {
-                  nextCard = { ...nextCard, labelId: nextLabelId };
-                }
-                if (!card.imageBox) return nextCard;
-
-                const labelInfo = nextLabelId
-                  ? labelInfoMap.get(nextLabelId)
-                  : undefined;
-                const labelHeight = labelInfo?.labelHeight ?? 0;
-                const labelGap = 8;
-                const labelAreaHeight =
-                  position === "none" ? 0 : labelHeight + labelGap;
-
-                // 기존 imageBox 크기를 보존하고 위치만 재계산
-                const existingBox = card.imageBox;
-                const imageAreaHeight = Math.max(
-                  1,
-                  card.h - labelAreaHeight,
-                );
-                const imageAreaWidth = card.w;
-
-                // 이미지 영역 중앙에 배치 (크기는 그대로 유지)
-                const imageAreaY =
-                  position === "top" ? labelAreaHeight : 0;
-                const imageBoxX =
-                  (imageAreaWidth - existingBox.w) / 2;
-                const imageBoxY =
-                  imageAreaY +
-                  (imageAreaHeight - existingBox.h) / 2;
-
-                return {
-                  ...nextCard,
-                  imageBox: {
-                    x: imageBoxX,
-                    y: imageBoxY,
-                    w: existingBox.w,
-                    h: existingBox.h,
-                  },
-                };
-              }
-
-              // 라벨 텍스트 처리
-              if (labelIds.has(el.id) && el.type === "text") {
-                if (position === "none") {
-                  // 라벨 숨기기 (visible: false)
-                  return {
-                    ...el,
-                    visible: false,
-                  };
-                }
-
-                // 해당 라벨의 카드 찾기
-                const labelInfo = labelInfoMap.get(el.id);
-                const parentCard = labelInfo
-                  ? targetCardById.get(labelInfo.cardId)
-                  : undefined;
-                if (!parentCard) return el;
-
-                const labelInset = 4;
-                const newY =
-                  position === "top"
-                    ? parentCard.y + labelInset
-                    : parentCard.y + parentCard.h - el.h - labelInset;
-
-                return {
-                  ...el,
-                  y: newY,
-                  visible: true,
-                };
-              }
-
-              return el;
-            }),
-            ...newLabels,
-          ],
-        };
-      }),
-    );
-  };
-
-  const aacToolbarData = hasAacCardSelection
-    ? {
-        labelPosition: aacLabelPosition,
-        cardCount: aacCardTargets.length,
-      }
-    : null;
-
-  // 다중 선택 시 요소 간격 균등 분배
   const canDistribute = selectedElements.length >= 3;
 
   const distributeHorizontal = () => {
     if (!activePage || selectedElements.length < 3) return;
-    const rects = selectedElements
-      .map((el) => ({ id: el.id, rect: getRectFromElement(el) }))
-      .filter(
-        (item): item is { id: string; rect: NonNullable<ReturnType<typeof getRectFromElement>> } =>
-          item.rect !== null,
-      );
-    if (rects.length < 3) return;
-
-    rects.sort((a, b) => a.rect.x - b.rect.x);
-
-    const first = rects[0];
-    const last = rects[rects.length - 1];
-    const totalElementWidth = rects.reduce((sum, r) => sum + r.rect.width, 0);
-    const totalSpan = last.rect.x + last.rect.width - first.rect.x;
-    const gap = (totalSpan - totalElementWidth) / (rects.length - 1);
-
-    const positionMap = new Map<string, number>();
-    let currentX = first.rect.x;
-    for (const item of rects) {
-      positionMap.set(item.id, currentX);
-      currentX += item.rect.width + gap;
-    }
+    const positionMap = buildHorizontalDistribution(selectedElements);
+    if (!positionMap) return;
 
     setPages((prevPages) =>
       prevPages.map((page) => {
         if (page.id !== selectedPageId) return page;
         return {
           ...page,
-          elements: page.elements.map((el) => {
-            const newX = positionMap.get(el.id);
-            if (newX === undefined || el.locked) return el;
-            if (el.type === "line" || el.type === "arrow") {
-              const rect = getRectFromElement(el);
-              if (!rect) return el;
-              const dx = newX - rect.x;
-              return {
-                ...el,
-                start: { x: el.start.x + dx, y: el.start.y },
-                end: { x: el.end.x + dx, y: el.end.y },
-              };
-            }
-            return { ...el, x: newX };
-          }),
+          elements: page.elements.map((el) =>
+            applyPositionToElement(el, "x", positionMap),
+          ),
         };
       }),
     );
@@ -676,49 +323,17 @@ export const useSelectionState = ({
 
   const distributeVertical = () => {
     if (!activePage || selectedElements.length < 3) return;
-    const rects = selectedElements
-      .map((el) => ({ id: el.id, rect: getRectFromElement(el) }))
-      .filter(
-        (item): item is { id: string; rect: NonNullable<ReturnType<typeof getRectFromElement>> } =>
-          item.rect !== null,
-      );
-    if (rects.length < 3) return;
-
-    rects.sort((a, b) => a.rect.y - b.rect.y);
-
-    const first = rects[0];
-    const last = rects[rects.length - 1];
-    const totalElementHeight = rects.reduce((sum, r) => sum + r.rect.height, 0);
-    const totalSpan = last.rect.y + last.rect.height - first.rect.y;
-    const gap = (totalSpan - totalElementHeight) / (rects.length - 1);
-
-    const positionMap = new Map<string, number>();
-    let currentY = first.rect.y;
-    for (const item of rects) {
-      positionMap.set(item.id, currentY);
-      currentY += item.rect.height + gap;
-    }
+    const positionMap = buildVerticalDistribution(selectedElements);
+    if (!positionMap) return;
 
     setPages((prevPages) =>
       prevPages.map((page) => {
         if (page.id !== selectedPageId) return page;
         return {
           ...page,
-          elements: page.elements.map((el) => {
-            const newY = positionMap.get(el.id);
-            if (newY === undefined || el.locked) return el;
-            if (el.type === "line" || el.type === "arrow") {
-              const rect = getRectFromElement(el);
-              if (!rect) return el;
-              const dy = newY - rect.y;
-              return {
-                ...el,
-                start: { x: el.start.x, y: el.start.y + dy },
-                end: { x: el.end.x, y: el.end.y + dy },
-              };
-            }
-            return { ...el, y: newY };
-          }),
+          elements: page.elements.map((el) =>
+            applyPositionToElement(el, "y", positionMap),
+          ),
         };
       }),
     );
