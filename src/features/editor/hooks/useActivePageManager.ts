@@ -5,7 +5,7 @@ import {
   type MutableRefObject,
 } from "react";
 import type { Page } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type ActivePageManagerParams = {
   pages: Page[];

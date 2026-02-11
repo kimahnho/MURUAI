@@ -56,33 +56,46 @@ src/
     config/Router.tsx      # 라우트 정의
     layout/                # MainLayout, DesignLayout
     providers/             # AppRouterProvider
-  features/                # 기능별 모듈 (feature-first)
+  pages/                   # 라우트 단위 화면 (features와 1:1 대응)
+    admin/                 # 관리자 페이지
+    auth/                  # 인증 콜백 페이지
+    editor/                # 에디터 페이지
+    home/                  # 홈 페이지
+    mydoc/                 # 내 보관함 페이지
+  features/                # 기능 모듈 (pages와 1:1 대응)
     admin/                 # 관리자 대시보드
     auth/                  # 인증 (OAuth callback)
     editor/                # 캔버스 에디터 (핵심)
     home/                  # 홈 (학습자/그룹 관리)
     mydoc/                 # 내 보관함
   shared/                  # 공용 모듈 (features 의존 금지)
-    components/            # AuthModal, ErrorFallback
+    api/                   # Supabase, Cloudinary 클라이언트
+    assets/                # 정적 자원 (이미지 등)
     hooks/                 # useAuth
-    lib/                   # initSentry, mixpanel
     providers/             # AuthProvider
     store/                 # useAuthStore, useModalStore
-    supabase/              # Supabase 클라이언트
-    ui/                    # BaseModal, layout/
+    ui/                    # AuthModal, BaseModal, ErrorFallback
+    utils/                 # initSentry, mixpanel, 유틸 함수
 
 features/<feature>/        # 각 feature 내부 구조
-  pages/                   # 라우트 레벨 (조합만, 로직 금지)
-  hooks/                   # 커스텀 훅 (로직 담당)
+  components/              # UI 컴포넌트
+  hooks/                   # 커스텀 훅 (use~ 파일, 로직 담당)
   store/                   # Zustand 스토어
-  ui/                      # 컴포넌트
-    parts/                 # 작은 UI 조각
-    sections/              # 페이지 섹션
   model/                   # 타입, 도메인 모델
   utils/                   # 유틸리티 함수
   api/                     # API 호출 (admin)
   constants/               # 상수 정의
 ```
+
+### Import 경로 규칙
+- **절대경로 `@/` 사용** - 기본적으로 모든 import는 `@/` 절대경로 사용
+- **상대경로 `../` 허용** - 같은 feature 내부에서만 허용
+- 예: `features/editor/hooks/`에서 `features/editor/model/` import 시 `../model/` 허용
+
+### pages ↔ features 1:1 대응 규칙
+- `pages/<feature>/` 디렉토리와 `features/<feature>/` 디렉토리는 반드시 1:1로 대응
+- 페이지 파일은 `pages/`에, 비즈니스 로직과 컴포넌트는 `features/`에 배치
+- 예: `pages/editor/DesignPage.tsx` → `features/editor/components/`, `features/editor/hooks/`
 
 ## 핵심 규칙
 

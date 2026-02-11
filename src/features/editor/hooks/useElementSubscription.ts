@@ -1,7 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type TextPreset = {
   text: string;

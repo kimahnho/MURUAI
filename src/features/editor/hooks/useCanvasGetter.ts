@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import type { CanvasDocument } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type CanvasGetterParams = {
   registerCanvasGetter: (getter: () => CanvasDocument) => void;

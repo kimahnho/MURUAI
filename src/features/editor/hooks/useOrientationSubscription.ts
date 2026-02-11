@@ -6,7 +6,7 @@ import {
 } from "react";
 import { useOrientationStore } from "../store/orientationStore";
 import type { Page } from "../model/pageTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 
 type OrientationSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;

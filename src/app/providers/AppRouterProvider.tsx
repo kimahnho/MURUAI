@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
 import { router } from "../config/Router";
 import { AuthProvider } from "@/shared/providers/AuthProvider";
-import { ErrorFallback } from "@/shared/components/ErrorFallback";
+import { ErrorFallback } from "@/shared/ui/ErrorFallback";
 
 const queryClient = new QueryClient({
   defaultOptions: {

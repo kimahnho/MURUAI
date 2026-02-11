@@ -2,7 +2,7 @@ import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 
 type PageActionsParams = {
   pages: Page[];

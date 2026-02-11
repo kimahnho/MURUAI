@@ -6,15 +6,13 @@
 
 ```
 src/shared/
-  ui/           # 순수 UI 컴포넌트 (BaseModal, Button 등)
-  hooks/        # 범용 훅 (useAuth)
-  lib/          # 유틸리티 (initSentry, initMixpanel)
-  store/        # 전역 스토어 (useAuthStore)
-  supabase/     # Supabase 클라이언트
-  providers/    # 전역 Provider (AuthProvider)
-  components/   # 공용 컴포넌트 (ErrorFallback, AuthModal)
+  api/          # Supabase, Cloudinary 클라이언트
   assets/       # 이미지, 아이콘
-  cloudinary/   # Cloudinary 유틸
+  hooks/        # 범용 훅 (useAuth)
+  providers/    # 전역 Provider (AuthProvider)
+  store/        # 전역 스토어 (useAuthStore)
+  ui/           # 순수 UI 컴포넌트 (BaseModal, AuthModal, ErrorFallback 등)
+  utils/        # 유틸리티 (initSentry, initMixpanel, trackEvents)
 ```
 
 ## 의존성 규칙 (중요)
@@ -25,7 +23,7 @@ import { useEditorStore } from '@/features/editor/store/...';
 import { MyDocPage } from '@/pages/mydoc/...';
 
 // ✅ 허용
-import { supabase } from '@/shared/supabase/supabase';
+import { supabase } from '@/shared/api/supabase';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 ```
 
@@ -41,12 +39,15 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 
 | 파일 | 용도 |
 |------|------|
-| `supabase/supabase.ts` | Supabase 클라이언트 인스턴스 |
+| `api/supabase.ts` | Supabase 클라이언트 인스턴스 |
+| `api/cloudinary.ts` | Cloudinary 유틸리티 |
 | `store/useAuthStore.ts` | 인증 상태 전역 관리 |
 | `hooks/useAuth.ts` | 인증 관련 훅 |
 | `providers/AuthProvider.tsx` | 인증 상태 초기화 |
-| `components/AuthModal.tsx` | 로그인 모달 |
-| `components/ErrorFallback.tsx` | 에러 바운더리 폴백 |
+| `ui/AuthModal.tsx` | 로그인 모달 |
+| `ui/ErrorFallback.tsx` | 에러 바운더리 폴백 |
+| `utils/initSentry.ts` | Sentry 초기화 |
+| `utils/initMixpanel.ts` | Mixpanel 초기화 |
 
 ## 새 공용 코드 추가 기준
 

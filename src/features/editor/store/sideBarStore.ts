@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 
 export type SideBarMenu =
   | "design"

@@ -5,8 +5,8 @@ import { emotionInferencePage2 } from "./emotion_inference/page_2";
 import { emotionInferencePage3 } from "./emotion_inference/page_3";
 import { emotionInferencePage4 } from "./emotion_inference/page_4";
 import { findItemTemplate } from "./findItemTemplate";
-import { normal_1 } from "../normal_templates/normal_1";
-import { normal_2 } from "../normal_templates/normal_2";
+import { normal_1 } from "./normal_1";
+import { normal_2 } from "./normal_2";
 import { wordPairTemplate } from "./wordPairTemplate";
 import { visualScheduleTemplate } from "./visualScheduleTemplate";
 

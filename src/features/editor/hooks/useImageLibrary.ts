@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 
 export type ImageLibraryItem = {
   id: string;

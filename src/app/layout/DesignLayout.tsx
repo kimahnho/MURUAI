@@ -16,97 +16,64 @@ import {
   Loader2,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/shared/supabase/supabase";
-import { useTemplateStore } from "@/features/editor/store/templateStore";
-import { TEMPLATE_REGISTRY } from "@/features/editor/templates/templateRegistry";
-import { useOrientationStore } from "@/features/editor/store/orientationStore";
+import { useEffect, useRef, useState } from "react";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-// import { images } from "@/shared/assets";
-import ExportModal from "@/features/editor/ui/parts/ExportModal";
-import type { CanvasDocument } from "@/features/editor/model/pageTypes";
-import {
-  saveUserMadeVersion,
-  updateUserMadeVersion,
-} from "@/features/editor/utils/userMadeExport";
-
-type TargetOption = {
-  id: string;
-  name: string;
-};
+import ExportModal from "@/features/editor/components/ExportModal";
+import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
+import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
+import { useExportModal } from "@/features/editor/hooks/useExportModal";
+import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
 
 const DesignLayout = () => {
-  const orientation = useOrientationStore((state) => state.orientation);
-  const setOrientation = useOrientationStore((state) => state.setOrientation);
   const navigate = useNavigate();
-  const [zoom, setZoom] = useState<number>(100);
-  const [docName, setDocName] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isCreatingNewDoc, setIsCreatingNewDoc] = useState(false);
-  const [autoSaveState, setAutoSaveState] = useState<
-    "saving" | "saved" | "error" | null
-  >(null);
-  const retryAutoSaveRef = useRef<(() => void) | null>(null);
-  const manualSaveRef = useRef<(() => void) | null>(null);
   const { docId } = useParams<{ docId?: string }>();
-  const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
-    null,
-  );
-  const [loadedDocumentId, setLoadedDocumentId] = useState<string | null>(null);
-  const [lastSavedUserMadeId, setLastSavedUserMadeId] = useState<string | null>(
-    null,
-  );
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportModalKey, setExportModalKey] = useState(0);
-  const [exportUserId, setExportUserId] = useState<string | null>(null);
-  const [students, setStudents] = useState<TargetOption[]>([]);
-  const [groups, setGroups] = useState<TargetOption[]>([]);
-  // const [isMobile, setIsMobile] = useState(() =>
-  //   typeof window !== "undefined"
-  //     ? window.matchMedia("(max-width: 1024px), (pointer: coarse)").matches
-  //     : false,
-  // );
-  const [isLoadingTargets, setIsLoadingTargets] = useState(false);
-  const canvasGetterRef = useRef<() => CanvasDocument>(() => ({ pages: [] }));
+  const [zoom, setZoom] = useState<number>(100);
+
+  const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument } =
+    useDocumentLoader({ docId });
+
+  const {
+    isSaving,
+    autoSaveState,
+    setAutoSaveState,
+    lastSavedUserMadeId,
+    setLastSavedUserMadeId,
+    handleSave,
+    registerCanvasGetter,
+    getCanvasData,
+    getName,
+    setRetryAutoSave,
+    setManualSave,
+    retryAutoSave,
+  } = useDocumentSave({ docId, docName });
+
+  const {
+    isExportModalOpen,
+    exportModalKey,
+    exportUserId,
+    students,
+    groups,
+    isLoadingTargets,
+    handleOpenExportModal,
+    closeExportModal,
+  } = useExportModal();
+
+  const {
+    effectiveOrientation,
+    setOrientation,
+    isHorizontalDisabled,
+    isVerticalDisabled,
+    handleOrientationChange,
+  } = useOrientationControl();
+
   const toastMessage = useToastStore((state) => state.message);
-  const showToast = useToastStore((state) => state.showToast);
   const clearToast = useToastStore((state) => state.clearToast);
   const toastTimeoutRef = useRef<number | null>(null);
   const canUndo = useUnifiedHistoryStore((state) => state.canUndo);
   const canRedo = useUnifiedHistoryStore((state) => state.canRedo);
   const requestUndo = useUnifiedHistoryStore((state) => state.requestUndo);
   const requestRedo = useUnifiedHistoryStore((state) => state.requestRedo);
-  const registerCanvasGetter = useCallback((getter: () => CanvasDocument) => {
-    canvasGetterRef.current = getter;
-  }, []);
-  const clearLoadedDocument = useCallback(() => {
-    setLoadedDocument(null);
-  }, []);
-  const getCanvasData = useCallback(() => canvasGetterRef.current(), []);
-  const getName = useCallback(() => docName.trim() || "제목 없음", [docName]);
-
-  const setRetryAutoSave = useCallback((retryFn: () => void) => {
-    retryAutoSaveRef.current = retryFn;
-  }, []);
-
-  const setManualSave = useCallback((saveFn: () => void) => {
-    manualSaveRef.current = saveFn;
-  }, []);
-
-  const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
-  const activeTemplate = selectedTemplate
-    ? TEMPLATE_REGISTRY[selectedTemplate]
-    : null;
-  const isVerticalLocked = activeTemplate?.orientation === "vertical-only";
-  const isHorizontalLocked = activeTemplate?.orientation === "horizontal-only";
-  const effectiveOrientation = isVerticalLocked
-    ? "vertical"
-    : isHorizontalLocked
-      ? "horizontal"
-      : orientation;
-  const isHorizontalDisabled = isVerticalLocked;
-  const isVerticalDisabled = isHorizontalLocked;
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -124,110 +91,6 @@ const DesignLayout = () => {
     };
   }, [toastMessage, clearToast]);
 
-  // useEffect(() => {
-  //   const mediaQuery = window.matchMedia(
-  //     "(max-width: 1024px), (pointer: coarse)",
-  //   );
-  //   const updateIsMobile = () => setIsMobile(mediaQuery.matches);
-  //   updateIsMobile();
-  //   if (mediaQuery.addEventListener) {
-  //     mediaQuery.addEventListener("change", updateIsMobile);
-  //   } else {
-  //     mediaQuery.addListener(updateIsMobile);
-  //   }
-  //   return () => {
-  //     if (mediaQuery.removeEventListener) {
-  //       mediaQuery.removeEventListener("change", updateIsMobile);
-  //     } else {
-  //       mediaQuery.removeListener(updateIsMobile);
-  //     }
-  //   };
-  // }, []);
-
-  useEffect(() => {
-    if (window.location.pathname === "/design" && !isCreatingNewDoc) {
-      setIsCreatingNewDoc(true);
-      const createNewDocument = async () => {
-        try {
-          const { data } = await supabase.auth.getUser();
-          const user = data.user;
-          if (!user) {
-            showToast("로그인이 필요해요.");
-            setIsCreatingNewDoc(false);
-            return;
-          }
-          const { id } = await saveUserMadeVersion({
-            userId: user.id,
-            name: "제목 없음",
-            canvasData: { pages: [] },
-          });
-          navigate(`/${id}/edit`, { replace: true });
-        } catch {
-          showToast("새 문서를 만들지 못했어요.");
-          setIsCreatingNewDoc(false);
-        }
-      };
-      createNewDocument();
-    }
-  }, [navigate, showToast, isCreatingNewDoc]);
-
-  useEffect(() => {
-    if (!docId) {
-      setLoadedDocument(null);
-      setLoadedDocumentId(null);
-      return;
-    }
-    if (docId === loadedDocumentId) return;
-    let isMounted = true;
-    const loadUserMade = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
-        showToast("로그인이 필요해요.");
-        return;
-      }
-      const { data: row, error } = await supabase
-        .from("user_made_n")
-        .select("id,name,canvas_data")
-        .eq("id", docId)
-        .single();
-      if (!isMounted) return;
-      if (error || !row) {
-        showToast("학습자료를 불러오지 못했어요.");
-        return;
-      }
-      let canvasData: unknown = row.canvas_data;
-      if (typeof canvasData === "string") {
-        try {
-          canvasData = JSON.parse(canvasData);
-        } catch {
-          showToast("학습자료 형식이 올바르지 않아요.");
-          return;
-        }
-      }
-      if (!canvasData || !Array.isArray((canvasData as CanvasDocument).pages)) {
-        showToast("학습자료 형식이 올바르지 않아요.");
-        return;
-      }
-      setDocName(row.name ?? "");
-      setLoadedDocument(canvasData as CanvasDocument);
-      setLoadedDocumentId(row.id);
-      setLastSavedUserMadeId(row.id);
-      const initialOrientation = (canvasData as CanvasDocument).pages[0]
-        ?.orientation;
-      if (
-        initialOrientation === "horizontal" ||
-        initialOrientation === "vertical"
-      ) {
-        setOrientation(initialOrientation);
-      }
-    };
-    loadUserMade();
-    return () => {
-      isMounted = false;
-    };
-  }, [loadedDocumentId, docId, showToast, setOrientation]);
-
   const handleZoomIn = () => {
     if (zoom < 200) {
       setZoom(zoom + 10);
@@ -243,118 +106,6 @@ const DesignLayout = () => {
   const handleResetZoom = () => {
     setZoom(100);
   };
-
-  const handleOrientationChange = (next: "horizontal" | "vertical") => {
-    if (next === "horizontal" && isVerticalLocked) {
-      showToast("해당 템플릿은 세로 버전만 지원합니다.");
-      return;
-    }
-    if (next === "vertical" && isHorizontalLocked) {
-      showToast("해당 템플릿은 가로 버전만 지원합니다.");
-      return;
-    }
-    setOrientation(next);
-  };
-
-  const handleSave = async () => {
-    // manualSave가 설정되어 있으면 사용 (자동 저장 훅 활용)
-    if (manualSaveRef.current) {
-      manualSaveRef.current();
-      return;
-    }
-
-    // 폴백: 기존 저장 로직
-    setIsSaving(true);
-    try {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
-        showToast("로그인이 필요해요.");
-        return;
-      }
-      if (docId) {
-        await updateUserMadeVersion({
-          docId,
-          name: getName(),
-          canvasData: getCanvasData(),
-        });
-        setLastSavedUserMadeId(docId);
-        showToast("저장했습니다.");
-      } else {
-        const { id } = await saveUserMadeVersion({
-          userId: user.id,
-          name: getName(),
-          canvasData: getCanvasData(),
-        });
-        setLastSavedUserMadeId(id);
-        navigate(`/${id}/edit`, { replace: true });
-        showToast("저장했습니다.");
-      }
-    } catch {
-      showToast("저장하지 못했어요.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleOpenExportModal = async () => {
-    const { data } = await supabase.auth.getUser();
-    const user = data.user;
-    if (!user) {
-      showToast("로그인이 필요해요.");
-      return;
-    }
-    setExportUserId(user.id);
-    setIsExportModalOpen(true);
-    setExportModalKey((prev) => prev + 1);
-    setStudents([]);
-    setGroups([]);
-    setIsLoadingTargets(true);
-    try {
-      const [studentsResult, groupsResult] = await Promise.all([
-        supabase.from("students_n").select("id,name").is("deleted_at", null),
-        supabase.from("groups_n").select("id,name").is("deleted_at", null),
-      ]);
-
-      if (studentsResult.error) {
-        showToast("아동 목록을 불러오지 못했어요.");
-      }
-      if (groupsResult.error) {
-        showToast("그룹 목록을 불러오지 못했어요.");
-      }
-
-      setStudents((studentsResult.data as TargetOption[] | null) ?? []);
-      setGroups((groupsResult.data as TargetOption[] | null) ?? []);
-    } catch {
-      showToast("대상을 불러오지 못했어요.");
-    } finally {
-      setIsLoadingTargets(false);
-    }
-  };
-
-  // if (isMobile) {
-  //   return (
-  //     <div className="flex h-screen w-screen items-center justify-center bg-white-100">
-  //       <div className="flex flex-col items-center gap-4">
-  //         <img
-  //           src={images.mainLogo}
-  //           alt="Muruai logo"
-  //           className="h-28 w-auto"
-  //         />
-  //         <p className="text-title-20-semibold text-black-80">
-  //           PC에서 접속해주세요
-  //         </p>
-  //         <button
-  //           type="button"
-  //           onClick={() => navigate("/")}
-  //           className="mt-2 rounded-full border border-black-30 bg-white-100 px-6 py-2 text-14-semibold text-black-80 transition hover:border-black-40 hover:bg-black-10"
-  //         >
-  //           홈으로 이동하기
-  //         </button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
@@ -422,9 +173,7 @@ const DesignLayout = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          retryAutoSaveRef.current?.();
-                        }}
+                        onClick={retryAutoSave}
                         className="flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 text-12-regular text-red-600 transition hover:bg-red-100"
                         aria-label="재시도"
                       >
@@ -634,9 +383,7 @@ const DesignLayout = () => {
       <ExportModal
         key={exportModalKey}
         open={isExportModalOpen}
-        onClose={() => {
-          setIsExportModalOpen(false);
-        }}
+        onClose={closeExportModal}
         userId={exportUserId}
         documentId={docId}
         autoSaveOnDownload

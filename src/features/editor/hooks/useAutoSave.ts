@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import { updateUserMadeVersion } from "../utils/userMadeExport";
 import type { Page } from "../model/pageTypes";
 

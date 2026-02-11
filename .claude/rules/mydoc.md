@@ -5,8 +5,11 @@
 ## 핵심 파일 위치
 
 ```
+src/pages/mydoc/
+  MyDocPage.tsx          # 메인 페이지 (pages와 features 1:1 대응)
+
 src/features/mydoc/
-  pages/MyDocPage.tsx    # 메인 페이지
+  (현재 비어 있음 - 확장 시 아래 구조 사용)
 ```
 
 ## 기능
@@ -48,8 +51,7 @@ src/features/mydoc/
 mydoc feature가 커지면 다음 구조로 분리:
 ```
 src/features/mydoc/
-  pages/MyDocPage.tsx
+  components/DocCard.tsx
   hooks/useMyDocs.ts
-  ui/parts/DocCard.tsx
   api/myDocApi.ts
 ```

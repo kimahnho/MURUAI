@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 
 interface StoryBoardStore {
   requestId: number;

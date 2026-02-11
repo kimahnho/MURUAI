@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 
 type EmotionEmojiRow = {
   id: string;

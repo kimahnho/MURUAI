@@ -1,4 +1,4 @@
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import type { Student } from "./student.model";
 
 export interface GroupMember {

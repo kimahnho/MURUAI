@@ -1,7 +1,7 @@
 import { useTemplateStore } from "../store/templateStore";
 import { useAacBoardStore } from "../store/aacBoardStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
-import { mp } from "@/shared/lib/mixpanel";
+import { mp } from "@/shared/utils/mixpanel";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,

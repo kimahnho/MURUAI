@@ -4,7 +4,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { supabase } from "@/shared/supabase/supabase";
+import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
 import { useImageFillStore } from "../store/imageFillStore";
 import { useUploadListStore } from "../store/useUploadListStore";

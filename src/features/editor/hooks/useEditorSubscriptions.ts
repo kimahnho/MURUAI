@@ -1,0 +1,190 @@
+import type { Dispatch, SetStateAction, MutableRefObject } from "react";
+import type { Page } from "../model/pageTypes";
+import type { ReadonlyRef } from "../model/refTypes";
+import type { TemplateId } from "../templates/templateRegistry";
+import type { SideBarMenu } from "../store/sideBarStore";
+import type { AacBoardConfig } from "../utils/aacBoardUtils";
+import type { StorySequenceConfig } from "../utils/storySequenceUtils";
+import { useImageFillSubscription } from "./useImageFillSubscription";
+import { useFontSubscription } from "./useFontSubscription";
+import { useElementSubscription } from "./useElementSubscription";
+import { useOrientationSubscription } from "./useOrientationSubscription";
+import { useTemplateSubscription } from "./useTemplateSubscription";
+import { useBoardSubscriptions } from "./useBoardSubscriptions";
+import { useTemplateNotifications } from "./useTemplateNotifications";
+
+type TextPreset = {
+  text: string;
+  fontSize: number;
+  fontWeight: "normal" | "bold";
+  alignX?: "left" | "center" | "right";
+  alignY?: "top" | "middle" | "bottom";
+  widthMode?: "auto" | "fixed" | "element";
+};
+
+type AddTextElement = (args: {
+  pageId: string;
+  preset: TextPreset;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => string;
+
+type AddShapeElement = (args: {
+  pageId: string;
+  elementType: "rect" | "roundRect" | "ellipse";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => string;
+
+type AddLineElement = (args: {
+  pageId: string;
+  elementType: "line" | "arrow";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => string;
+
+type AddTemplatePage = (args: {
+  templateId: TemplateId;
+  fallbackOrientation: "horizontal" | "vertical";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => { id: string; orientation: "horizontal" | "vertical" };
+
+type AddSelectedTemplatePages = (args: {
+  templateId: TemplateId;
+  selectedIndices: number[];
+  fallbackOrientation: "horizontal" | "vertical";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => { id: string; orientation: "horizontal" | "vertical" } | null;
+
+type AddAacBoardPage = (args: {
+  config: AacBoardConfig;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => { id: string; orientation: "horizontal" | "vertical"; firstElementId?: string };
+
+type AddStoryBoardPage = (args: {
+  config: StorySequenceConfig;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => { id: string; orientation: "horizontal" | "vertical" };
+
+type EditorSubscriptionsParams = {
+  pages: Page[];
+  selectedPageId: string;
+  selectedTemplate: TemplateId | null;
+  setSelectedTemplate: (templateId: TemplateId | null) => void;
+  pagesRef: ReadonlyRef<Page[]>;
+  selectedPageIdRef: ReadonlyRef<string>;
+  selectedIdsRef: ReadonlyRef<string[]>;
+  orientationRef: ReadonlyRef<"horizontal" | "vertical">;
+  isSyncingOrientationRef: MutableRefObject<boolean>;
+  isApplyingTemplateRef: MutableRefObject<boolean>;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  setSelectedIds: Dispatch<SetStateAction<string[]>>;
+  setEditingTextId: Dispatch<SetStateAction<string | null>>;
+  setTemplateChoiceDialog: Dispatch<
+    SetStateAction<{ templateId: TemplateId } | null>
+  >;
+  setActivePage: (
+    pageId: string,
+    nextOrientation?: "horizontal" | "vertical",
+  ) => void;
+  setSideBarMenu: (menu: SideBarMenu) => void;
+  recordHistory: (label?: string) => void;
+  addTextElement: AddTextElement;
+  addShapeElement: AddShapeElement;
+  addLineElement: AddLineElement;
+  addTemplatePage: AddTemplatePage;
+  addSelectedTemplatePages: AddSelectedTemplatePages;
+  addAacBoardPage: AddAacBoardPage;
+  addStoryBoardPage: AddStoryBoardPage;
+};
+
+export const useEditorSubscriptions = ({
+  pages,
+  selectedPageId,
+  selectedTemplate,
+  setSelectedTemplate,
+  pagesRef,
+  selectedPageIdRef,
+  selectedIdsRef,
+  orientationRef,
+  isSyncingOrientationRef,
+  isApplyingTemplateRef,
+  setPages,
+  setSelectedIds,
+  setEditingTextId,
+  setTemplateChoiceDialog,
+  setActivePage,
+  setSideBarMenu,
+  recordHistory,
+  addTextElement,
+  addShapeElement,
+  addLineElement,
+  addTemplatePage,
+  addSelectedTemplatePages,
+  addAacBoardPage,
+  addStoryBoardPage,
+}: EditorSubscriptionsParams) => {
+  const { showEmotionInferenceToast } = useTemplateNotifications();
+
+  useImageFillSubscription({
+    pagesRef,
+    selectedPageIdRef,
+    selectedIdsRef,
+    setPages,
+    setSelectedIds,
+    setEditingTextId,
+  });
+
+  useTemplateSubscription({
+    pages,
+    selectedPageId,
+    selectedTemplate,
+    setSelectedTemplate,
+    pagesRef,
+    selectedPageIdRef,
+    orientationRef,
+    setTemplateChoiceDialog,
+    setPages,
+    setActivePage,
+    showEmotionInferenceToast,
+    isApplyingTemplateRef,
+    recordHistory,
+    addTemplatePage,
+    addSelectedTemplatePages,
+  });
+
+  useFontSubscription({
+    selectedPageIdRef,
+    selectedIdsRef,
+    setPages,
+  });
+
+  useElementSubscription({
+    pagesRef,
+    selectedPageIdRef,
+    setPages,
+    setSelectedIds,
+    setEditingTextId,
+    addTextElement,
+    addShapeElement,
+    addLineElement,
+  });
+
+  useOrientationSubscription({
+    selectedPageIdRef,
+    isSyncingOrientationRef,
+    setPages,
+  });
+
+  useBoardSubscriptions({
+    setPages,
+    setActivePage,
+    setSideBarMenu,
+    setSelectedIds,
+    setEditingTextId,
+    addAacBoardPage,
+    addStoryBoardPage,
+  });
+
+  return { showEmotionInferenceToast };
+};

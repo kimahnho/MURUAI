@@ -5,21 +5,21 @@
 ## 핵심 파일 위치
 
 ```
+src/pages/admin/
+  AdminPage.tsx             # 관리자 대시보드 메인 (pages와 features 1:1 대응)
+  AdminUserDocsPage.tsx     # 유저별 문서 조회
+
 src/features/admin/
-  pages/
-    AdminPage.tsx           # 관리자 대시보드 메인
-    AdminUserDocsPage.tsx   # 유저별 문서 조회
-  ui/
+  components/               # UI 컴포넌트
     AdminDashboardView.tsx  # 대시보드 렌더링
     AdminLoginView.tsx      # 로그인 화면
     UnauthorizedView.tsx    # 권한 없음 화면
-    parts/
-      DateRangeFilter.tsx
-      KpiCards.tsx
-      TrendChart.tsx
-      DistributionChart.tsx
-      TemplatesTable.tsx
-      WeekdayCalendar.tsx
+    DateRangeFilter.tsx
+    KpiCards.tsx
+    TrendChart.tsx
+    DistributionChart.tsx
+    TemplatesTable.tsx
+    WeekdayCalendar.tsx
   hooks/
     useAdminAuth.ts         # 인증/권한 확인
     useAdminDashboard.ts    # 지표 데이터 로드

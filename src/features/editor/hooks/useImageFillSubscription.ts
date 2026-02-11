@@ -2,7 +2,7 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { useImageFillStore } from "../store/imageFillStore";
 import type { Page } from "../model/pageTypes";
 import type { ShapeElement } from "../model/canvasTypes";
-import type { ReadonlyRef } from "../types/refTypes";
+import type { ReadonlyRef } from "../model/refTypes";
 import {
   findLabelElementId,
   getNextAacCardId,
