@@ -42,8 +42,69 @@
 7. 저장 안전장치
    - 자동/수동 저장 전에 스왑된 페이지 전체 수화 완료 대기.
    - 수화 완료 후 서버 저장 진행.
+8. 라우트/에디터 화면 코드 분할
+   - 라우트 단위 lazy 로딩 적용.
+   - 에디터 내부 주요 섹션(MainSection, SideBar) lazy 로딩 적용.
+   - MainSection 내부 툴바/하단바/다이얼로그 lazy 로딩 적용.
+9. 에디터 전용 폰트 지연 로딩
+   - 전역 스타일에서 에디터 전용 `@font-face` 정의 제거.
+   - 에디터 페이지 로드 시에만 폰트 CSS를 로딩하도록 분리.
 
 **검증**
 1. 페이지 50개 이상 생성 후 BottomBar 스크롤 시 렌더링 범위 확인.
 2. PDF 전체/선택 내보내기 정상 동작 확인.
 3. 50회 이상 편집 후 undo/redo 동작 및 메모리 사용량 확인.
+4. 에디터 진입 전에는 폰트 리소스가 요청되지 않는지 확인.
+
+## 현재 우선순위(조정)
+
+- 사용자 요청에 따라 성능 이슈 `1(초기 JS 번들 과대)`, `2(폰트 리소스 용량 과대)`는 현 단계에서 추가 작업 제외.
+- 이번 단계는 아래 항목만 진행:
+1. 대문서 저장 시 강제 hydrate 비용 완화.
+2. PDF 내보내기 피크 메모리 완화.
+3. 사이드바/캔버스 불필요 재렌더 감소.
+4. IndexedDB 스왑 복원 체감 지연 완화.
+
+## 이번 턴 반영 내용
+
+1. 저장 경로 최적화(완료)
+   - 저장 전 전체 페이지를 강제로 화면 hydrate 하던 흐름을 제거.
+   - 저장 시점에는 `isSwapped` 페이지만 IndexedDB에서 읽어 직렬화 데이터에만 합성.
+   - 효과: 저장 순간 대규모 메모리 스파이크 완화.
+2. PDF 메모리 피크 완화(완료)
+   - `canvas.toDataURL()` 경로를 제거하고 캔버스를 jsPDF에 직접 전달.
+   - 페이지 추가 후 캔버스 `width/height` 초기화로 메모리 즉시 해제 유도.
+3. 스왑/복원 배치 처리(완료)
+   - 스왑 복원/퇴출 시 페이지 단위 `setPages` 반복을 배치 업데이트 1회로 축소.
+   - 효과: 대량 페이지에서 렌더 횟수와 체감 지연 감소.
+4. 선로딩 범위 보강(완료)
+   - 선택 페이지의 인접 페이지(앞/뒤 1장)를 `requiredPageIds`에 포함.
+   - 효과: 페이지 전환 시 스왑 복원 대기 감소.
+5. IndexedDB 배치 I/O(완료)
+   - 페이지별 개별 읽기/쓰기 트랜잭션을 배치 트랜잭션으로 통합.
+   - `loadPageElementsBatch`, `savePageElementsBatch` 도입 및 저장/스왑 경로 적용.
+   - 효과: 대량 페이지 문서에서 저장/복원 지연 및 메인 스레드 부담 완화.
+6. 실측 로그 계측(완료)
+   - `perfLogger` 유틸 도입.
+   - 자동 저장/수동 저장/PDF 생성/페이지 스왑 경로에 소요 시간 로그 추가.
+   - `DEV` 또는 `VITE_EDITOR_PERF_LOG=true` 환경에서만 출력.
+7. BottomBar 휠 이벤트 경고 수정(완료)
+   - React `onWheel` 경로에서 `preventDefault()` 호출 시 passive 경고 발생.
+   - BottomBar 컨테이너에 `passive: false` 네이티브 `wheel` 리스너를 등록하도록 변경.
+8. PDF UX/부하 제어(완료)
+   - 내보내기 진행률(`n/total`) 및 안내 문구 추가.
+   - 내보내기 취소 버튼 추가(AbortController 기반).
+   - PDF 내보내기 중 자동 저장 일시 정지(`pdfExporting` 상태 기반).
+
+## 실측 방법
+
+1. 개발 환경에서 에디터 실행 후 콘솔에서 `[editor-perf]` 로그 확인.
+2. 측정 대상 로그:
+   - `autosave.resolvePagesForPersistence`
+   - `autosave.updateUserMadeVersion`
+   - `manualsave.resolvePagesForPersistence`
+   - `manualsave.updateUserMadeVersion`
+   - `pdf.generate.total`
+   - `pdf.render.page`
+   - `pageswap.loadBatch`
+   - `pageswap.saveBatch`

@@ -6,10 +6,8 @@ import {
   saveUserMadeVersion,
   updateUserMadeVersion,
 } from "../utils/userMadeExport";
-import {
-  usePageSwapStore,
-  waitForForceHydrate,
-} from "../store/pageSwapStore";
+import { resolvePagesForPersistence } from "../utils/persistPages";
+import { measurePerf } from "../utils/perfLogger";
 import type { CanvasDocument } from "../model/pageTypes";
 
 type DocumentSaveParams = {
@@ -66,28 +64,41 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         showToast("로그인이 필요해요.");
         return;
       }
+      const currentPages = getCanvasData().pages;
+      const pagesToPersist = await measurePerf(
+        "manualsave.resolvePagesForPersistence",
+        () => resolvePagesForPersistence(currentPages),
+        {
+          totalPages: currentPages.length,
+          swappedPages: currentPages.filter((page) => page.isSwapped).length,
+          hasDocId: Boolean(docId),
+        },
+      );
+      const canvasData = { pages: pagesToPersist };
       if (docId) {
-        const requestId = usePageSwapStore
-          .getState()
-          .requestForceHydrate();
-        await waitForForceHydrate(requestId);
-        await updateUserMadeVersion({
-          docId,
-          name: getName(),
-          canvasData: getCanvasData(),
-        });
+        await measurePerf(
+          "manualsave.updateUserMadeVersion",
+          () =>
+            updateUserMadeVersion({
+              docId,
+              name: getName(),
+              canvasData,
+            }),
+          { totalPages: pagesToPersist.length },
+        );
         setLastSavedUserMadeId(docId);
         showToast("저장했습니다.");
       } else {
-        const requestId = usePageSwapStore
-          .getState()
-          .requestForceHydrate();
-        await waitForForceHydrate(requestId);
-        const { id } = await saveUserMadeVersion({
-          userId: user.id,
-          name: getName(),
-          canvasData: getCanvasData(),
-        });
+        const { id } = await measurePerf(
+          "manualsave.saveUserMadeVersion",
+          () =>
+            saveUserMadeVersion({
+              userId: user.id,
+              name: getName(),
+              canvasData,
+            }),
+          { totalPages: pagesToPersist.length },
+        );
         setLastSavedUserMadeId(id);
         navigate(`/${id}/edit`, { replace: true });
         showToast("저장했습니다.");

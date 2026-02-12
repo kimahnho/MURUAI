@@ -3,6 +3,7 @@ import { create } from "zustand";
 type PageSwapState = {
   visiblePageIds: string[];
   pdfPreviewActive: boolean;
+  pdfExporting: boolean;
   hydrationRequestId: number;
   hydrationReadyId: number;
   swapInFlight: number;
@@ -11,6 +12,7 @@ type PageSwapState = {
   forceHydrateReadyId: number;
   setVisiblePageIds: (ids: string[]) => void;
   setPdfPreviewActive: (active: boolean) => void;
+  setPdfExporting: (active: boolean) => void;
   requestHydration: () => number;
   setHydrationReady: (requestId: number) => void;
   beginSwap: () => void;
@@ -23,6 +25,7 @@ type PageSwapState = {
 export const usePageSwapStore = create<PageSwapState>((set, get) => ({
   visiblePageIds: [],
   pdfPreviewActive: false,
+  pdfExporting: false,
   hydrationRequestId: 0,
   hydrationReadyId: 0,
   swapInFlight: 0,
@@ -31,6 +34,7 @@ export const usePageSwapStore = create<PageSwapState>((set, get) => ({
   forceHydrateReadyId: 0,
   setVisiblePageIds: (ids) => set({ visiblePageIds: ids }),
   setPdfPreviewActive: (active) => set({ pdfPreviewActive: active }),
+  setPdfExporting: (active) => set({ pdfExporting: active }),
   requestHydration: () => {
     const next = get().hydrationRequestId + 1;
     set({ hydrationRequestId: next });

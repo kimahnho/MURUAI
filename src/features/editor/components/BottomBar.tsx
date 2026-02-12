@@ -440,7 +440,7 @@ const BottomBar = ({
   const isSelectedLastPage =
     pages.length > 0 && pages[pages.length - 1]?.id === selectedPageId;
 
-  const { containerRef, listRef, handleWheel } = useBottomBarScroll({
+  const { containerRef, listRef } = useBottomBarScroll({
     pagesLength: pages.length,
     selectedPageId,
     selectedItemIndex,
@@ -564,7 +564,6 @@ const BottomBar = ({
       onContextMenu={(event) => {
         event.preventDefault();
       }}
-      onWheel={handleWheel}
     >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div

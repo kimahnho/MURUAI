@@ -1,6 +1,5 @@
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { supabase } from "@/shared/api/supabase";
+import { logPerf, measurePerf } from "./perfLogger";
 
 type SaveUserMadeOptions = {
   userId: string;
@@ -120,26 +119,41 @@ export const assignUserMadeToTarget = async ({
 export const generatePdfFromDomPages = async ({
   quality = 2,
   pageIds,
+  onProgress,
+  signal,
 }: {
   quality?: number;
   pageIds?: string[];
+  onProgress?: (progress: { current: number; total: number }) => void;
+  signal?: AbortSignal;
 } = {}): Promise<Blob> => {
-  const pages = Array.from(
-    document.querySelectorAll<HTMLElement>(".pdf-page"),
-  ).filter((page) => {
-    if (!pageIds || pageIds.length === 0) return true;
-    const pageId = page.dataset.pageId;
-    return pageId ? pageIds.includes(pageId) : false;
-  });
-  if (pages.length === 0) {
-    throw new Error("No .pdf-page elements found");
-  }
+  return measurePerf(
+    "pdf.generate.total",
+    async () => {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const pages = Array.from(
+        document.querySelectorAll<HTMLElement>(".pdf-page"),
+      ).filter((page) => {
+        if (!pageIds || pageIds.length === 0) return true;
+        const pageId = page.dataset.pageId;
+        return pageId ? pageIds.includes(pageId) : false;
+      });
+      if (pages.length === 0) {
+        throw new Error("No .pdf-page elements found");
+      }
+      if (signal?.aborted) {
+        throw new DOMException("PDF generation aborted", "AbortError");
+      }
+      onProgress?.({ current: 0, total: pages.length });
 
-  const waitForFonts = async () => {
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
-  };
+      const waitForFonts = async () => {
+        if (document.fonts?.ready) {
+          await document.fonts.ready;
+        }
+      };
 
   const waitForImages = async (root: HTMLElement) => {
     const images = Array.from(root.querySelectorAll("img"));
@@ -279,9 +293,9 @@ export const generatePdfFromDomPages = async ({
     };
   };
 
-  await waitForFonts();
-  await waitForNextFrame();
-  await waitForNextFrame();
+      await waitForFonts();
+      await waitForNextFrame();
+      await waitForNextFrame();
 
   const getPageSize = (orientation: "horizontal" | "vertical") =>
     orientation === "horizontal"
@@ -296,66 +310,93 @@ export const generatePdfFromDomPages = async ({
     return rect.width > rect.height ? "horizontal" : "vertical";
   };
 
-  const firstOrientation = resolveOrientation(pages[0]);
-  const firstSize = getPageSize(firstOrientation);
-  const pdf = new jsPDF({
-    unit: "mm",
-    format: [firstSize.width, firstSize.height],
-    orientation: firstSize.width > firstSize.height ? "landscape" : "portrait",
-  });
-  const imageQuality = 0.7;
-
-  for (let i = 0; i < pages.length; i += 1) {
-    const orientation = resolveOrientation(pages[i]);
-    const { width: pdfW, height: pdfH } = getPageSize(orientation);
-    const rect = pages[i].getBoundingClientRect();
-    const width = Math.ceil(pages[i].offsetWidth || rect.width);
-    const height = Math.ceil(pages[i].offsetHeight || rect.height);
-
-    await waitForImages(pages[i]);
-    await waitForNextFrame();
-
-    const restoreTextLayout = normalizePdfTextLayout(pages[i]);
-    const restoreImageLayout = normalizePdfImageLayout(pages[i]);
-    await waitForNextFrame();
-    let canvas: HTMLCanvasElement;
-    try {
-      canvas = await html2canvas(pages[i], {
-        scale: quality,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        width,
-        height,
-        windowWidth: width,
-        windowHeight: height,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
+      const firstOrientation = resolveOrientation(pages[0]);
+      const firstSize = getPageSize(firstOrientation);
+      const pdf = new jsPDF({
+        unit: "mm",
+        format: [firstSize.width, firstSize.height],
+        orientation:
+          firstSize.width > firstSize.height ? "landscape" : "portrait",
       });
-    } finally {
-      restoreTextLayout();
-      restoreImageLayout();
-    }
-    const imgData = canvas.toDataURL("image/jpeg", imageQuality);
-    const props = pdf.getImageProperties(imgData);
 
-    let w = pdfW;
-    let h = (props.height * w) / props.width;
-    if (h > pdfH) {
-      h = pdfH;
-      w = (props.width * h) / props.height;
-    }
-    const x = (pdfW - w) / 2;
-    const y = 0;
+      for (let i = 0; i < pages.length; i += 1) {
+        if (signal?.aborted) {
+          throw new DOMException("PDF generation aborted", "AbortError");
+        }
+        const page = pages[i];
+        const orientation = resolveOrientation(page);
+        const { width: pdfW, height: pdfH } = getPageSize(orientation);
+        const rect = page.getBoundingClientRect();
+        const width = Math.ceil(page.offsetWidth || rect.width);
+        const height = Math.ceil(page.offsetHeight || rect.height);
 
-    if (i > 0) {
-      pdf.addPage([pdfW, pdfH], pdfW > pdfH ? "landscape" : "portrait");
-    }
-    pdf.addImage(imgData, "JPEG", x, y, w, h);
-  }
+        await waitForImages(page);
+        await waitForNextFrame();
 
-  return pdf.output("blob");
+        const restoreTextLayout = normalizePdfTextLayout(page);
+        const restoreImageLayout = normalizePdfImageLayout(page);
+        await waitForNextFrame();
+        let canvas: HTMLCanvasElement;
+        try {
+          canvas = await measurePerf(
+            "pdf.render.page",
+            () =>
+              html2canvas(page, {
+                scale: quality,
+                useCORS: true,
+                backgroundColor: "#ffffff",
+                width,
+                height,
+                windowWidth: width,
+                windowHeight: height,
+                x: 0,
+                y: 0,
+                scrollX: 0,
+                scrollY: 0,
+              }),
+            { index: i + 1, total: pages.length, width, height, quality },
+          );
+        } finally {
+          restoreTextLayout();
+          restoreImageLayout();
+        }
+        const props = pdf.getImageProperties(canvas);
+
+        let w = pdfW;
+        let h = (props.height * w) / props.width;
+        if (h > pdfH) {
+          h = pdfH;
+          w = (props.width * h) / props.height;
+        }
+        const x = (pdfW - w) / 2;
+        const y = 0;
+
+        if (i > 0) {
+          pdf.addPage([pdfW, pdfH], pdfW > pdfH ? "landscape" : "portrait");
+        }
+        pdf.addImage(canvas, "JPEG", x, y, w, h, undefined, "FAST");
+        canvas.width = 0;
+        canvas.height = 0;
+        if (i % 2 === 1) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 0);
+          });
+        }
+        onProgress?.({ current: i + 1, total: pages.length });
+      }
+
+      logPerf("pdf.generate.summary", {
+        pageCount: pages.length,
+        selectedMode: Boolean(pageIds && pageIds.length > 0),
+        quality,
+      });
+      return pdf.output("blob");
+    },
+    {
+      requestedPageCount: pageIds?.length ?? 0,
+      quality,
+    },
+  );
 };
 
 export const downloadBlob = (blob: Blob, fileName: string): void => {

@@ -16,10 +16,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-import ExportModal from "@/features/editor/components/ExportModal";
 import PdfPreviewContainer from "@/features/editor/components/PdfPreviewContainer";
 import {
   usePageSwapStore,
@@ -29,6 +28,10 @@ import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
 import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
+
+const ExportModal = lazy(
+  () => import("@/features/editor/components/ExportModal"),
+);
 
 const DesignLayout = () => {
   const navigate = useNavigate();
@@ -80,6 +83,7 @@ const DesignLayout = () => {
   const canRedo = useUnifiedHistoryStore((state) => state.canRedo);
   const requestUndo = useUnifiedHistoryStore((state) => state.requestUndo);
   const requestRedo = useUnifiedHistoryStore((state) => state.requestRedo);
+  const setPdfExporting = usePageSwapStore((state) => state.setPdfExporting);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -405,23 +409,28 @@ const DesignLayout = () => {
           }}
         />
       </main>
-      <ExportModal
-        key={exportModalKey}
-        open={isExportModalOpen}
-        onClose={closeExportModal}
-        userId={exportUserId}
-        documentId={docId}
-        autoSaveOnDownload
-        getCanvasData={getCanvasData}
-        getName={getName}
-        lastSavedUserMadeId={lastSavedUserMadeId}
-        onSavedUserMadeId={setLastSavedUserMadeId}
-        students={students}
-        groups={groups}
-        isLoadingTargets={isLoadingTargets}
-        preparePdfPages={preparePdfPages}
-        cleanupPdfPages={cleanupPdfPages}
-      />
+      {isExportModalOpen && (
+        <Suspense fallback={null}>
+          <ExportModal
+            key={exportModalKey}
+            open={isExportModalOpen}
+            onClose={closeExportModal}
+            userId={exportUserId}
+            documentId={docId}
+            autoSaveOnDownload
+            getCanvasData={getCanvasData}
+            getName={getName}
+            lastSavedUserMadeId={lastSavedUserMadeId}
+            onSavedUserMadeId={setLastSavedUserMadeId}
+            students={students}
+            groups={groups}
+            isLoadingTargets={isLoadingTargets}
+            preparePdfPages={preparePdfPages}
+            cleanupPdfPages={cleanupPdfPages}
+            onPdfExportStateChange={setPdfExporting}
+          />
+        </Suspense>
+      )}
       {isPdfPreviewActive && (
         <PdfPreviewContainer
           pages={getCanvasData().pages ?? []}

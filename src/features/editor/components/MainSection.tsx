@@ -1,11 +1,16 @@
-import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useLocation, useOutletContext } from "react-router-dom";
-import BottomBar from "./BottomBar";
 import type { CanvasDocument } from "../model/pageTypes";
-import MultiSelectionToolbar from "./MultiSelectionToolbar";
-import ElementToolbars from "./ElementToolbars";
 import CanvasStage from "./CanvasStage";
-import TemplateChoiceDialog from "./TemplateChoiceDialog";
 import { useTemplateStore } from "../store/templateStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useFontStore } from "../store/fontStore";
@@ -35,6 +40,11 @@ import {
   addLineElement,
 } from "../utils/pageFactory";
 import { type TemplateId } from "../templates/templateRegistry";
+
+const BottomBar = lazy(() => import("./BottomBar"));
+const MultiSelectionToolbar = lazy(() => import("./MultiSelectionToolbar"));
+const ElementToolbars = lazy(() => import("./ElementToolbars"));
+const TemplateChoiceDialog = lazy(() => import("./TemplateChoiceDialog"));
 
 export interface OutletContext {
   zoom: number;
@@ -212,9 +222,26 @@ const MainSection = () => {
   });
   const visiblePageIds = usePageSwapStore((state) => state.visiblePageIds);
   const pdfPreviewActive = usePageSwapStore((state) => state.pdfPreviewActive);
-  const requiredPageIds = pdfPreviewActive
-    ? pages.map((page) => page.id)
-    : Array.from(new Set([selectedPageId, ...visiblePageIds]));
+  const setVisiblePageIds = usePageSwapStore(
+    (state) => state.setVisiblePageIds,
+  );
+  const requiredPageIds = useMemo(() => {
+    if (pdfPreviewActive) {
+      return pages.map((page) => page.id);
+    }
+
+    const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
+    const neighborIds =
+      selectedIndex < 0
+        ? []
+        : [pages[selectedIndex - 1]?.id, pages[selectedIndex + 1]?.id].filter(
+            (id): id is string => Boolean(id),
+          );
+
+    return Array.from(
+      new Set([selectedPageId, ...visiblePageIds, ...neighborIds]),
+    );
+  }, [pdfPreviewActive, pages, selectedPageId, visiblePageIds]);
   usePageSwap({
     pages,
     setPages,
@@ -287,36 +314,38 @@ const MainSection = () => {
         id="text-toolbar-root"
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none"
       />
-      <MultiSelectionToolbar
-        isVisible={isMultiColorSelection}
-        multiColorValue={multiColorValue}
-        onMultiColorChange={handleMultiColorChange}
-        hasMultiFontTargets={hasMultiFontTargets}
-        onOpenFontPanel={handleOpenFontPanel}
-        multiFontFamily={multiFontFamily}
-        multiFontLabel={multiFontLabel}
-        multiFontSizeInput={multiFontSizeInput}
-        hasMultiBorderTargets={hasMultiBorderTargets}
-        multiBorderEnabled={multiBorderEnabled}
-        multiBorderColor={multiBorderColor}
-        multiBorderWidth={multiBorderWidth}
-        activeBorderStyle={activeBorderStyle}
-        borderStyleOptions={borderStyleOptions}
-        clampBorderWidth={clampBorderWidth}
-        applyMultiBorderPatch={applyMultiBorderPatch}
-        canDistribute={canDistribute}
-        onDistributeHorizontal={distributeHorizontal}
-        onDistributeVertical={distributeVertical}
-      />
-      <ElementToolbars
-        shapeToolbarData={shapeToolbarData}
-        lineToolbarData={lineToolbarData}
-        aacToolbarData={aacToolbarData}
-        selectedIds={selectedIds}
-        selectedPageId={selectedPageId}
-        setPages={setPages}
-        onAacLabelPositionChange={applyAacLabelPosition}
-      />
+      <Suspense fallback={null}>
+        <MultiSelectionToolbar
+          isVisible={isMultiColorSelection}
+          multiColorValue={multiColorValue}
+          onMultiColorChange={handleMultiColorChange}
+          hasMultiFontTargets={hasMultiFontTargets}
+          onOpenFontPanel={handleOpenFontPanel}
+          multiFontFamily={multiFontFamily}
+          multiFontLabel={multiFontLabel}
+          multiFontSizeInput={multiFontSizeInput}
+          hasMultiBorderTargets={hasMultiBorderTargets}
+          multiBorderEnabled={multiBorderEnabled}
+          multiBorderColor={multiBorderColor}
+          multiBorderWidth={multiBorderWidth}
+          activeBorderStyle={activeBorderStyle}
+          borderStyleOptions={borderStyleOptions}
+          clampBorderWidth={clampBorderWidth}
+          applyMultiBorderPatch={applyMultiBorderPatch}
+          canDistribute={canDistribute}
+          onDistributeHorizontal={distributeHorizontal}
+          onDistributeVertical={distributeVertical}
+        />
+        <ElementToolbars
+          shapeToolbarData={shapeToolbarData}
+          lineToolbarData={lineToolbarData}
+          aacToolbarData={aacToolbarData}
+          selectedIds={selectedIds}
+          selectedPageId={selectedPageId}
+          setPages={setPages}
+          onAacLabelPositionChange={applyAacLabelPosition}
+        />
+      </Suspense>
 
       <CanvasStage
         containerRef={containerRef}
@@ -336,28 +365,30 @@ const MainSection = () => {
         onInteractionChange={handleInteractionChange}
         aiTipKey={location.key}
       />
-      <BottomBar
-        pages={pages}
-        selectedPageId={selectedPageId}
-        onAddPage={handleAddPage}
-        onSelectPage={handleSelectPage}
-        onCopyPage={handleCopyPage}
-        onPastePage={handlePastePage}
-        onReorderPages={handleReorderPages}
-        onDeletePage={handleDeletePage}
-        onAddPageAtIndex={handleAddPageAtIndex}
-        onMovePage={handleMovePage}
-        onDuplicatePage={handleDuplicatePage}
-        onVisiblePageIdsChange={usePageSwapStore.getState().setVisiblePageIds}
-      />
-      <TemplateChoiceDialog
-        open={!!templateChoiceDialog}
-        onClose={() => {
-          setTemplateChoiceDialog(null);
-        }}
-        onApplyCurrent={handleApplyTemplateToCurrent}
-        onApplyNew={handleApplyTemplateToNew}
-      />
+      <Suspense fallback={null}>
+        <BottomBar
+          pages={pages}
+          selectedPageId={selectedPageId}
+          onAddPage={handleAddPage}
+          onSelectPage={handleSelectPage}
+          onCopyPage={handleCopyPage}
+          onPastePage={handlePastePage}
+          onReorderPages={handleReorderPages}
+          onDeletePage={handleDeletePage}
+          onAddPageAtIndex={handleAddPageAtIndex}
+          onMovePage={handleMovePage}
+          onDuplicatePage={handleDuplicatePage}
+          onVisiblePageIdsChange={setVisiblePageIds}
+        />
+        <TemplateChoiceDialog
+          open={!!templateChoiceDialog}
+          onClose={() => {
+            setTemplateChoiceDialog(null);
+          }}
+          onApplyCurrent={handleApplyTemplateToCurrent}
+          onApplyNew={handleApplyTemplateToNew}
+        />
+      </Suspense>
     </div>
   );
 };

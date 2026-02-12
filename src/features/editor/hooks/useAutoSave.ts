@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { updateUserMadeVersion } from "../utils/userMadeExport";
-import {
-  usePageSwapStore,
-  waitForForceHydrate,
-} from "../store/pageSwapStore";
+import { resolvePagesForPersistence } from "../utils/persistPages";
+import { measurePerf } from "../utils/perfLogger";
+import { usePageSwapStore } from "../store/pageSwapStore";
 import type { Page } from "../model/pageTypes";
 
 export type SaveState = "saving" | "saved" | "error";
@@ -27,6 +26,7 @@ export const useAutoSave = ({
   isDataLoaded = true, // 기본값 true로 하위 호환성 유지
 }: AutoSaveParams) => {
   const [saveState, setSaveState] = useState<SaveState | null>(null);
+  const isPdfExporting = usePageSwapStore((state) => state.pdfExporting);
 
   // ✅ setTimeout 타입 안정화 (Node/DOM 혼재 방지)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,21 +87,6 @@ export const useAutoSave = ({
         return;
       }
 
-      // 데이터 유효성 검증
-      if (!validateData(lastPagesRef.current)) {
-        if (isManual) {
-          emitSaveState("error");
-          if (statusResetTimeoutRef.current) {
-            clearTimeout(statusResetTimeoutRef.current);
-          }
-          statusResetTimeoutRef.current = setTimeout(() => {
-            emitSaveState(null);
-            statusResetTimeoutRef.current = null;
-          }, 2000);
-        }
-        return;
-      }
-
       const myRevision = ++clientRevisionRef.current;
 
       try {
@@ -123,16 +108,43 @@ export const useAutoSave = ({
           return;
         }
 
-        const requestId = usePageSwapStore
-          .getState()
-          .requestForceHydrate();
-        await waitForForceHydrate(requestId);
+        const pagesToPersist = await measurePerf(
+          "autosave.resolvePagesForPersistence",
+          () => resolvePagesForPersistence(lastPagesRef.current),
+          {
+            totalPages: lastPagesRef.current.length,
+            swappedPages: lastPagesRef.current.filter((page) => page.isSwapped)
+              .length,
+            isManual,
+          },
+        );
+        if (!validateData(pagesToPersist)) {
+          if (isManual) {
+            emitSaveState("error");
+            if (statusResetTimeoutRef.current) {
+              clearTimeout(statusResetTimeoutRef.current);
+            }
+            statusResetTimeoutRef.current = setTimeout(() => {
+              emitSaveState(null);
+              statusResetTimeoutRef.current = null;
+            }, 2000);
+          }
+          return;
+        }
 
-        await updateUserMadeVersion({
-          docId,
-          name: docName || "제목 없음",
-          canvasData: { pages: lastPagesRef.current },
-        });
+        await measurePerf(
+          "autosave.updateUserMadeVersion",
+          () =>
+            updateUserMadeVersion({
+              docId,
+              name: docName || "제목 없음",
+              canvasData: { pages: pagesToPersist },
+            }),
+          {
+            totalPages: pagesToPersist.length,
+            isManual,
+          },
+        );
 
         // ✅ 레이스 방지: 최신 저장만 반영
         if (myRevision !== clientRevisionRef.current) return;
@@ -185,6 +197,11 @@ export const useAutoSave = ({
       return () => clearTimeout(t);
     }
 
+    // PDF 내보내기 중에는 자동 저장을 일시 중지한다.
+    if (isPdfExporting) {
+      return;
+    }
+
     // 🔒 데이터 로딩 중에는 자동 저장 방지 (배포 시 빈 상태 저장 방지)
     if (!isDataLoaded) {
       console.log("Auto-save skipped: Data not loaded yet");
@@ -207,7 +224,7 @@ export const useAutoSave = ({
         saveTimeoutRef.current = null;
       }
     };
-  }, [pages, docId, docName, performSave, isDataLoaded]);
+  }, [pages, docId, docName, performSave, isDataLoaded, isPdfExporting]);
 
   useEffect(() => {
     return () => {

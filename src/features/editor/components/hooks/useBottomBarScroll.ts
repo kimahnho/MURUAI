@@ -1,4 +1,4 @@
-import { useEffect, useRef, type WheelEvent as ReactWheelEvent } from "react";
+import { useEffect, useRef } from "react";
 
 type UseBottomBarScrollParams = {
   pagesLength: number;
@@ -64,19 +64,28 @@ export const useBottomBarScroll = ({
     scrollToOffset(centerOffset);
   }, [selectedItemIndex, selectedPageId, itemOffsets, itemWidths, totalWidth]);
 
-  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    if (!containerRef.current?.contains(event.target as Node)) return;
-    const scroller = listRef.current;
-    if (!scroller) return;
-    const delta = event.deltaY || event.deltaX;
-    if (Math.abs(delta) < 4) return;
-    event.preventDefault();
-    scroller.scrollLeft += delta;
-  };
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!container.contains(event.target as Node)) return;
+      const scroller = listRef.current;
+      if (!scroller) return;
+      const delta = event.deltaY || event.deltaX;
+      if (Math.abs(delta) < 4) return;
+      event.preventDefault();
+      scroller.scrollLeft += delta;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
 
   return {
     containerRef,
     listRef,
-    handleWheel,
   };
 };

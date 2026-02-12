@@ -1,8 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../model/pageTypes";
-import { savePageElements, loadPageElements } from "../utils/pageSwapStorage";
+import {
+  savePageElementsBatch,
+  loadPageElementsBatch,
+} from "../utils/pageSwapStorage";
 import { usePageSwapStore } from "../store/pageSwapStore";
+import { measurePerf, logPerf } from "../utils/perfLogger";
 
 type UsePageSwapParams = {
   pages: Page[];
@@ -63,27 +67,44 @@ export const usePageSwap = ({
         return;
       }
 
-      for (const page of targets) {
-        if (pendingRef.current.has(page.id)) continue;
-        pendingRef.current.add(page.id);
+      const batchTargets = targets.filter(
+        (page) => !pendingRef.current.has(page.id),
+      );
+      if (batchTargets.length > 0) {
+        batchTargets.forEach((page) => {
+          pendingRef.current.add(page.id);
+        });
         try {
-          const elements = await loadPageElements(page.id);
-          if (!elements) continue;
-          beginSwap();
-          setPages((prev) =>
-            prev.map((p) =>
-              p.id === page.id
-                ? {
-                    ...p,
-                    elements,
-                    isSwapped: false,
-                  }
-                : p,
-            ),
+          const targetIds = batchTargets.map((page) => page.id);
+          const results = await measurePerf(
+            "pageswap.loadBatch",
+            () => loadPageElementsBatch(targetIds),
+            { targetCount: targetIds.length, forceHydrate },
           );
-          endSwap();
+          const hydratedMap = new Map<string, Page["elements"]>();
+          results.forEach((elements, pageId) => {
+            if (!elements) return;
+            hydratedMap.set(pageId, elements);
+          });
+          if (hydratedMap.size > 0) {
+            beginSwap();
+            setPages((prev) =>
+              prev.map((page) =>
+                hydratedMap.has(page.id)
+                  ? {
+                      ...page,
+                      elements: hydratedMap.get(page.id) ?? page.elements,
+                      isSwapped: false,
+                    }
+                  : page,
+              ),
+            );
+            endSwap();
+          }
         } finally {
-          pendingRef.current.delete(page.id);
+          batchTargets.forEach((page) => {
+            pendingRef.current.delete(page.id);
+          });
         }
       }
 
@@ -104,30 +125,50 @@ export const usePageSwap = ({
       const toEvict = candidates.slice(0, loadedCount - maxActivePages);
       if (toEvict.length === 0) return;
 
-      for (const pageId of toEvict) {
-        const page = pages.find((p) => p.id === pageId);
-        if (!page || page.isSwapped) continue;
-        await savePageElements(page.id, page.elements);
-        beginSwap();
-        setPages((prev) =>
-          prev.map((p) =>
-            p.id === page.id
-              ? {
-                  ...p,
-                  elements: [],
-                  isSwapped: true,
-                }
-              : p,
-          ),
-        );
-        endSwap();
-      }
+      const evictTargets = toEvict
+        .map((pageId) => pages.find((page) => page.id === pageId))
+        .filter((page): page is Page => Boolean(page && !page.isSwapped));
+      if (evictTargets.length === 0) return;
+
+      const batchEntries = evictTargets.map((page) => ({
+        pageId: page.id,
+        elements: page.elements,
+      }));
+      await measurePerf(
+        "pageswap.saveBatch",
+        () => savePageElementsBatch(batchEntries),
+        { evictCount: batchEntries.length },
+      );
+      const evictedIds = new Set(
+        evictTargets.map((page) => page.id),
+      );
+      if (evictedIds.size === 0) return;
+
+      beginSwap();
+      setPages((prev) =>
+        prev.map((page) =>
+          evictedIds.has(page.id)
+            ? {
+                ...page,
+                elements: [],
+                isSwapped: true,
+              }
+            : page,
+        ),
+      );
+      endSwap();
     };
 
     void loadMissing().then(() => {
       if (!forceHydrate) {
         void evictIfNeeded();
       }
+    });
+    logPerf("pageswap.requiredSummary", {
+      totalPages: pages.length,
+      requiredCount: requiredSet.size,
+      loadedCount: loadedPages.length,
+      forceHydrate,
     });
   }, [
     pages,
