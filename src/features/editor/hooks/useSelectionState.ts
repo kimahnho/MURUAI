@@ -13,6 +13,7 @@ import {
   buildVerticalDistribution,
   applyPositionToElement,
 } from "../utils/distributeElements";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -102,7 +103,7 @@ export const useSelectionState = ({
     setPages((prevPages) =>
       prevPages.map((page) =>
         page.id === selectedPageId
-          ? {
+          ? bumpPageRevision({
               ...page,
               elements: page.elements.map((el) => {
                 if (!selectedIds.includes(el.id) || el.locked) {
@@ -132,7 +133,7 @@ export const useSelectionState = ({
                 }
                 return el;
               }),
-            }
+            })
           : page,
       ),
     );
@@ -179,7 +180,7 @@ export const useSelectionState = ({
     setPages((prevPages) =>
       prevPages.map((page) => {
         if (page.id !== selectedPageId) return page;
-        return {
+        return bumpPageRevision({
           ...page,
           elements: page.elements.map((el) => {
             if (!selectedIds.includes(el.id) || el.locked) {
@@ -206,7 +207,7 @@ export const useSelectionState = ({
               },
             };
           }),
-        };
+        });
       }),
     );
   };
@@ -311,12 +312,12 @@ export const useSelectionState = ({
     setPages((prevPages) =>
       prevPages.map((page) => {
         if (page.id !== selectedPageId) return page;
-        return {
+        return bumpPageRevision({
           ...page,
           elements: page.elements.map((el) =>
             applyPositionToElement(el, "x", positionMap),
           ),
-        };
+        });
       }),
     );
   };
@@ -329,12 +330,12 @@ export const useSelectionState = ({
     setPages((prevPages) =>
       prevPages.map((page) => {
         if (page.id !== selectedPageId) return page;
-        return {
+        return bumpPageRevision({
           ...page,
           elements: page.elements.map((el) =>
             applyPositionToElement(el, "y", positionMap),
           ),
-        };
+        });
       }),
     );
   };

@@ -3,6 +3,7 @@ import { useImageFillStore } from "../store/imageFillStore";
 import type { Page } from "../model/pageTypes";
 import type { ShapeElement } from "../model/canvasTypes";
 import type { ReadonlyRef } from "../model/refTypes";
+import { bumpPageRevision } from "../utils/pageRevision";
 import {
   findLabelElementId,
   getNextAacCardId,
@@ -125,10 +126,10 @@ export const useImageFillSubscription = ({
         setPages((prevPages) =>
           prevPages.map((page) => {
             if (page.id !== activePageId) return page;
-            return {
+            return bumpPageRevision({
               ...page,
               elements: [...page.elements, newImageElement],
-            };
+            });
           })
         );
 
@@ -228,7 +229,10 @@ export const useImageFillSubscription = ({
             };
           });
           return hasChanges
-            ? { ...page, elements: nextElementsWithLabels }
+            ? bumpPageRevision({
+                ...page,
+                elements: nextElementsWithLabels,
+              })
             : page;
         })
       );

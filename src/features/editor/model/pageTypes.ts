@@ -9,6 +9,7 @@ export interface Page {
   templateId?: PageTemplateId | null;
   elements: CanvasElement[];
   orientation?: "horizontal" | "vertical";
+  rev?: number;
 }
 
 export type CanvasDocument = {

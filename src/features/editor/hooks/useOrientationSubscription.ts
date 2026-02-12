@@ -7,6 +7,7 @@ import {
 import { useOrientationStore } from "../store/orientationStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type OrientationSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;
@@ -30,7 +31,7 @@ export const useOrientationSubscription = ({
       setPages((prevPages) =>
         prevPages.map((page) =>
           page.id === activePageId
-            ? { ...page, orientation: state.orientation }
+            ? bumpPageRevision({ ...page, orientation: state.orientation })
             : page
         )
       );

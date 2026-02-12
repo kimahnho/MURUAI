@@ -5,6 +5,7 @@ import {
 } from "react";
 import type { CanvasElement } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type CanvasStageHandlersParams = {
   selectedPageId: string;
@@ -24,7 +25,7 @@ export const useCanvasStageHandlers = ({
       setPages((prevPages) =>
         prevPages.map((page) =>
           page.id === selectedPageId
-            ? { ...page, elements: nextElements }
+            ? bumpPageRevision({ ...page, elements: nextElements })
             : page
         )
       );

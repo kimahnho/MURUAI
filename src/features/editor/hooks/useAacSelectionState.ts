@@ -7,6 +7,7 @@ import type {
 import type { Page } from "../model/pageTypes";
 import type { AacLabelPosition } from "../utils/aacBoardUtils";
 import { findLabelElementId, isAacLabelElement } from "../utils/imageFillUtils";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 const AAC_CARD_PREFIX = "aac-card-";
 const AAC_LABEL_PREFIX = "aac-label-";
@@ -237,7 +238,7 @@ export const useAacSelectionState = ({
 
         const labelIds = new Set(labelInfoMap.keys());
 
-        return {
+        return bumpPageRevision({
           ...page,
           elements: [
             ...elements.map((el) => {
@@ -325,7 +326,7 @@ export const useAacSelectionState = ({
             }),
             ...newLabels,
           ],
-        };
+        });
       }),
     );
   };

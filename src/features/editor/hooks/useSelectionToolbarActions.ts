@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../model/pageTypes";
 import type { SideBarMenu } from "../store/sideBarStore";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type SelectionToolbarActionsParams = {
   activePage: Page | null;
@@ -28,7 +29,7 @@ export const useSelectionToolbarActions = ({
     setPages((prevPages) =>
       prevPages.map((page) =>
         page.id === selectedPageId
-          ? {
+          ? bumpPageRevision({
               ...page,
               elements: page.elements.map((el) => {
                 if (!selectedIds.includes(el.id) || el.locked) {
@@ -56,7 +57,7 @@ export const useSelectionToolbarActions = ({
                 }
                 return el;
               }),
-            }
+            })
           : page
       )
     );

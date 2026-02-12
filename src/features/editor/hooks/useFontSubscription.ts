@@ -2,6 +2,7 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type FontSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;
@@ -26,7 +27,7 @@ export const useFontSubscription = ({
       setPages((prevPages) =>
         prevPages.map((page) => {
           if (page.id !== activePageId) return page;
-          return {
+          return bumpPageRevision({
             ...page,
             elements: page.elements.map((element) => {
               if (element.locked || !targetIds.includes(element.id)) {
@@ -70,7 +71,7 @@ export const useFontSubscription = ({
               }
               return element;
             }),
-          };
+          });
         })
       );
     });

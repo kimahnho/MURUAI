@@ -3,6 +3,7 @@ import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
 import { mp } from "@/shared/utils/mixpanel";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 type PageActionsParams = {
   pages: Page[];
@@ -34,6 +35,7 @@ export const usePageActions = ({
       templateId: null,
       elements: withLogoCanvasElements([]),
       orientation,
+      rev: 0,
     };
     setPages([...pages, newPage]);
     setActivePage(newPage.id, newPage.orientation);
@@ -48,6 +50,7 @@ export const usePageActions = ({
         templateId: null,
         elements: withLogoCanvasElements([]),
         orientation,
+        rev: 0,
       };
 
       const newPages = [...pages];
@@ -93,6 +96,7 @@ export const usePageActions = ({
         templateId: pageToDuplicate.templateId,
         orientation: pageToDuplicate.orientation,
         elements: cloneElementsWithNewIds(pageToDuplicate.elements),
+        rev: 0,
       };
 
       const newPages = [...pages];
@@ -137,6 +141,7 @@ export const usePageActions = ({
         templateId: sourcePage.templateId,
         orientation: sourcePage.orientation,
         elements: cloneElementsWithNewIds(sourcePage.elements),
+        rev: 0,
       };
       const newPages = [...pages];
       newPages.splice(targetIndex + 1, 0, newPage);
@@ -158,11 +163,11 @@ export const usePageActions = ({
         setPages((prevPages) =>
           prevPages.map((page) => {
             if (page.id !== pageId) return page;
-            return {
+            return bumpPageRevision({
               ...page,
               templateId: null,
               elements: withLogoCanvasElements([]),
-            };
+            });
           }),
         );
         return;
@@ -214,7 +219,7 @@ export const usePageActions = ({
           const allIdsToDelete = new Set([...ids, ...linkedIds]);
 
           return {
-            ...page,
+            ...bumpPageRevision(page),
             elements: page.elements.filter(
               (element) => !allIdsToDelete.has(element.id),
             ),
@@ -232,10 +237,10 @@ export const usePageActions = ({
       setPages((prevPages) =>
         prevPages.map((page) =>
           page.id === pageId
-            ? {
+            ? bumpPageRevision({
                 ...page,
                 elements: page.elements.filter((element) => element.locked),
-              }
+              })
             : page,
         ),
       );
