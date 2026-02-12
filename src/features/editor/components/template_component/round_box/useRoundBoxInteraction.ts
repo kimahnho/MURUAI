@@ -28,7 +28,6 @@ interface ImageBox {
 interface UseRoundBoxInteractionParams {
   locked: boolean;
   isSelected: boolean;
-  selectionCount: number;
   minWidth: number;
   minHeight: number;
   boxRef: React.RefObject<HTMLDivElement | null>;
@@ -60,7 +59,6 @@ const clampImageScale = (value: number) => Math.min(3, Math.max(0.5, value));
 export const useRoundBoxInteraction = ({
   locked,
   isSelected,
-  selectionCount,
   minWidth,
   minHeight,
   boxRef,
@@ -87,9 +85,7 @@ export const useRoundBoxInteraction = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    const shouldResetSelection =
-      isSelected && !event.shiftKey && selectionCount > 1;
-    if (!isSelected || event.shiftKey || shouldResetSelection) {
+    if (!isSelected || event.shiftKey) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
