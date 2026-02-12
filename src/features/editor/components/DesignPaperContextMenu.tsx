@@ -103,12 +103,16 @@ export const DesignPaperContextMenu = ({
     <div
       className="absolute z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
-      onPointerDown={(event) => { event.stopPropagation(); }}
-      onContextMenu={(event) => { event.preventDefault(); }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+      }}
       onMouseLeave={() =>
-        { setContextMenu((prev) =>
-          prev ? { ...prev, activeSubmenu: undefined } : prev
-        ); }
+        setContextMenu((prev) =>
+          prev ? { ...prev, activeSubmenu: undefined } : prev,
+        )
       }
     >
       <div className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
@@ -126,9 +130,11 @@ export const DesignPaperContextMenu = ({
         )}
         <button
           type="button"
-          onClick={() =>
-            { onPaste(target.type === "canvas" ? target.pastePosition : undefined); }
-          }
+          onClick={() => {
+            onPaste(
+              target.type === "canvas" ? target.pastePosition : undefined,
+            );
+          }}
           disabled={!canPaste}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
             canPaste ? "text-black-90 hover:bg-black-5" : "text-black-40"
@@ -183,12 +189,12 @@ export const DesignPaperContextMenu = ({
         {isElementMenu && (
           <button
             type="button"
-            onMouseEnter={() =>
-              { setContextMenu((prev) =>
-                prev ? { ...prev, activeSubmenu: "layer" } : prev
-              ); }
-            }
-            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            onMouseEnter={() => {
+              setContextMenu((prev) =>
+                prev ? { ...prev, activeSubmenu: "layer" } : prev,
+              );
+            }}
+            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5"
           >
             <span className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
@@ -199,7 +205,7 @@ export const DesignPaperContextMenu = ({
         )}
       </div>
       {isElementMenu && contextMenu.activeSubmenu === "layer" && (
-        <div className="absolute left-full top-0 ml-2 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
+        <div className="absolute left-full top-0 ml-0 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
           {items.map(({ key, label, Icon, enabled, action }) => (
             <button
               key={key}
