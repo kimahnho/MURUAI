@@ -104,7 +104,6 @@ const Line = ({
     lineRef,
     locked,
     isSelected,
-    selectionCount,
     onLineChange,
     onDragStateChange,
     onSelectChange,
