@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import BaseModal from "@/shared/ui/BaseModal";
 import { useToastStore } from "../store/toastStore";
 import {
@@ -30,6 +31,9 @@ type ExportModalProps = {
   students: TargetOption[];
   groups: TargetOption[];
   isLoadingTargets: boolean;
+  preparePdfPages?: () => Promise<void>;
+  cleanupPdfPages?: () => void;
+  onPdfExportStateChange?: (active: boolean) => void;
 };
 
 const parsePageRangeInput = (value: string, maxPageNumber: number) => {
@@ -79,14 +83,30 @@ const ExportModal = ({
   students,
   groups,
   isLoadingTargets,
+  preparePdfPages,
+  cleanupPdfPages,
+  onPdfExportStateChange,
 }: ExportModalProps) => {
   const showToast = useToastStore((state) => state.showToast);
   const [targetType, setTargetType] = useState<TargetType>("child");
   const [targetId, setTargetId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [pdfPageMode, setPdfPageMode] = useState<"all" | "selected">("all");
   const [pdfPageRangeInput, setPdfPageRangeInput] = useState("");
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      onPdfExportStateChange?.(false);
+      cleanupPdfPages?.();
+    };
+  }, [cleanupPdfPages, onPdfExportStateChange]);
 
   const targets = targetType === "child" ? students : groups;
   const name = getName().trim() || "제목 없음";
@@ -167,8 +187,13 @@ const ExportModal = ({
       return;
     }
     setIsDownloading(true);
+    onPdfExportStateChange?.(true);
     try {
+      abortControllerRef.current = new AbortController();
       let userMadeId = lastSavedUserMadeId ?? documentId ?? null;
+      if (preparePdfPages) {
+        await preparePdfPages();
+      }
       if (autoSaveOnDownload && !userMadeId) {
         if (!userId) {
           showToast("로그인이 필요해요.");
@@ -183,15 +208,31 @@ const ExportModal = ({
         onSavedUserMadeId(id);
       }
       const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
-      const blob = await generatePdfFromDomPages({ quality: 6, pageIds });
+      const blob = await generatePdfFromDomPages({
+        quality: 6,
+        pageIds,
+        signal: abortControllerRef.current.signal,
+        onProgress: setPdfProgress,
+      });
       void trackDownloadEvent(userId, userMadeId);
       mp.track("PDF 다운로드", { page_mode: pdfPageMode });
       downloadBlob(blob, `${name}.pdf`);
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        showToast("PDF 생성을 취소했어요.");
+        return;
+      }
       showToast("PDF를 만들지 못했어요.");
     } finally {
+      abortControllerRef.current = null;
+      setPdfProgress(null);
+      onPdfExportStateChange?.(false);
+      cleanupPdfPages?.();
       setIsDownloading(false);
     }
+  };
+  const handleCancelPdf = () => {
+    abortControllerRef.current?.abort();
   };
   const handleSelectAllPdfPages = () => {
     setPdfPageRangeInput(fullRangeLabel);
@@ -336,6 +377,20 @@ const ExportModal = ({
         </div>
 
         <div className="flex flex-col gap-2">
+          {isDownloading && (
+            <div className="rounded-lg border border-black-25 bg-black-5 px-3 py-2">
+              <div className="flex items-center gap-2 text-13-bold text-black-80">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>
+                  PDF 생성 중
+                  {pdfProgress ? ` (${pdfProgress.current}/${pdfProgress.total})` : ""}
+                </span>
+              </div>
+              <p className="mt-1 text-12-regular text-black-60">
+                페이지 수가 많으면 시간이 걸릴 수 있어요.
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSaveToTarget}
@@ -352,6 +407,15 @@ const ExportModal = ({
           >
             {isDownloading ? "PDF 생성 중..." : "PDF 다운로드"}
           </button>
+          {isDownloading && (
+            <button
+              type="button"
+              onClick={handleCancelPdf}
+              className="w-full rounded-lg border border-red-200 py-3 text-14-semibold text-red-600 transition hover:bg-red-50"
+            >
+              PDF 생성 취소
+            </button>
+          )}
         </div>
       </div>
     </BaseModal>

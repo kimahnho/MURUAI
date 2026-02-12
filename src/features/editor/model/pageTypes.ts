@@ -9,8 +9,11 @@ export interface Page {
   templateId?: PageTemplateId | null;
   elements: CanvasElement[];
   orientation?: "horizontal" | "vertical";
+  rev?: number;
+  isSwapped?: boolean;
 }
 
 export type CanvasDocument = {
   pages: Page[];
+  swappedPageIds?: string[];
 };

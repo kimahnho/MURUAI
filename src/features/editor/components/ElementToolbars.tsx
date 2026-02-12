@@ -9,6 +9,7 @@ import type {
 } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
 import type { AacLabelPosition } from "../utils/aacBoardUtils";
+import { bumpPageRevision } from "../utils/pageRevision";
 
 const AacToolBar = lazy(() => import("./AacToolBar"));
 
@@ -66,12 +67,12 @@ const ElementToolbars = ({
     setPages((prevPages) =>
       prevPages.map((page) =>
         page.id === selectedPageId
-          ? {
+          ? bumpPageRevision({
               ...page,
               elements: page.elements.map((el) =>
                 el.id === elementId ? updater(el) : el,
               ),
-            }
+            })
           : page,
       ),
     );
@@ -83,7 +84,7 @@ const ElementToolbars = ({
     setPages((prevPages) =>
       prevPages.map((page) =>
         page.id === selectedPageId
-          ? {
+          ? bumpPageRevision({
               ...page,
               elements: page.elements.map((el) => {
                 if (
@@ -95,7 +96,7 @@ const ElementToolbars = ({
                 }
                 return el;
               }),
-            }
+            })
           : page,
       ),
     );

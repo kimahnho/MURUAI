@@ -55,7 +55,24 @@ import {
 } from "../utils/imageFillUtils";
 import type { DesignPaperStageActions } from "../model/stageActions";
 import { computeScaledImageBox, isImageFillElement } from "../utils/imageBoxScaling";
+import {
+  createFlipXHandler,
+  createFlipYHandler,
+  createRotateCWHandler,
+  createRotateCCWHandler,
+} from "../utils/elementTransforms";
 import { getSelectionRenderState } from "../utils/selectionState";
+import {
+  getBottomCenterAnchor,
+  getTopCenterAnchor,
+  getRotatedLocalAnchor,
+} from "../utils/rotationGeometry";
+import {
+  computeGroupRectFromDeltas,
+  buildGroupResizeSnapshot,
+  applyGroupResizeSnapshot,
+  type GroupResizeSnapshot,
+} from "../utils/groupResize";
 import ShapeTransformBar from "./ShapeTransformBar";
 import RotationBadge from "./RotationBadge";
 
@@ -145,6 +162,14 @@ const DesignPaper = ({
     startRotation: number;
     startPointerAngle: number;
   } | null>(null);
+  const rotationListenersRef = useRef<{
+    move: (event: PointerEvent) => void;
+    up: () => void;
+  } | null>(null);
+  const groupResizeListenersRef = useRef<{
+    move: (event: PointerEvent) => void;
+    up: () => void;
+  } | null>(null);
   const activeInteractionRef = useRef<{
     id: string;
     type: "drag" | "resize";
@@ -152,23 +177,7 @@ const DesignPaper = ({
     startFontSize?: number;
     handle?: ResizeHandle;
   } | null>(null);
-  const groupResizeRef = useRef<{
-    activeId: string;
-    handle?: ResizeHandle;
-    startGroupRect: Rect;
-    startActiveRect: Rect;
-    items: Map<
-      string,
-      {
-        kind: "rect" | "line";
-        rect?: Rect;
-        line?: { start: Point; end: Point };
-        imageBox?: { x: number; y: number; w: number; h: number };
-        fontSize?: number;
-        type: CanvasElement["type"];
-      }
-    >;
-  } | null>(null);
+  const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -198,6 +207,23 @@ const DesignPaper = ({
     };
   }, [editingTextId, readOnly, selectedIds]);
 
+  useEffect(() => {
+    return () => {
+      const rotationListeners = rotationListenersRef.current;
+      if (rotationListeners) {
+        window.removeEventListener("pointermove", rotationListeners.move);
+        window.removeEventListener("pointerup", rotationListeners.up);
+        rotationListenersRef.current = null;
+      }
+      const resizeListeners = groupResizeListenersRef.current;
+      if (resizeListeners) {
+        window.removeEventListener("pointermove", resizeListeners.move);
+        window.removeEventListener("pointerup", resizeListeners.up);
+        groupResizeListenersRef.current = null;
+      }
+    };
+  }, []);
+
   const clearContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -224,133 +250,6 @@ const DesignPaper = ({
     return {
       x: (event.clientX - rect.left) / scale,
       y: (event.clientY - rect.top) / scale,
-    };
-  };
-
-  const getRotatedCorners = (rect: Rect, rotationDeg: number) => {
-    const cx = rect.x + rect.width / 2;
-    const cy = rect.y + rect.height / 2;
-    const rad = (rotationDeg * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const halfW = rect.width / 2;
-    const halfH = rect.height / 2;
-    const corners = [
-      { x: -halfW, y: -halfH },
-      { x: halfW, y: -halfH },
-      { x: halfW, y: halfH },
-      { x: -halfW, y: halfH },
-    ];
-    return corners.map((pt) => ({
-      x: cx + pt.x * cos - pt.y * sin,
-      y: cy + pt.x * sin + pt.y * cos,
-    }));
-  };
-
-  const getBottomCenterAnchor = (
-    rect: Rect,
-    rotationDeg: number,
-    offset: number,
-  ) => {
-    const corners = getRotatedCorners(rect, rotationDeg);
-    const xs = corners.map((pt) => pt.x);
-    const ys = corners.map((pt) => pt.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
-    return {
-      x: (minX + maxX) / 2,
-      y: maxY + offset,
-    };
-  };
-
-  const getTopCenterAnchor = (
-    rect: Rect,
-    rotationDeg: number,
-    offset: number,
-  ) => {
-    const corners = getRotatedCorners(rect, rotationDeg);
-    const xs = corners.map((pt) => pt.x);
-    const ys = corners.map((pt) => pt.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    return {
-      x: (minX + maxX) / 2,
-      y: minY - offset,
-    };
-  };
-
-  const computeGroupRectFromDeltas = (
-    start: Rect,
-    handle: ResizeHandle,
-    dx: number,
-    dy: number,
-  ) => {
-    let nextX = start.x;
-    let nextY = start.y;
-    let nextW = start.width;
-    let nextH = start.height;
-
-    if (handle.includes("e")) {
-      nextW = start.width + dx;
-    }
-    if (handle.includes("w")) {
-      nextX = start.x + dx;
-      nextW = start.width - dx;
-    }
-    if (handle.includes("s")) {
-      nextH = start.height + dy;
-    }
-    if (handle.includes("n")) {
-      nextY = start.y + dy;
-      nextH = start.height - dy;
-    }
-
-    const isCorner =
-      (handle.includes("n") || handle.includes("s")) &&
-      (handle.includes("e") || handle.includes("w"));
-    if (isCorner) {
-      const scaleX = start.width ? nextW / start.width : 1;
-      const scaleY = start.height ? nextH / start.height : 1;
-      const scale =
-        Math.abs(scaleX - 1) > Math.abs(scaleY - 1) ? scaleX : scaleY;
-      const clampedScale = Math.max(0.05, scale);
-      nextW = start.width * clampedScale;
-      nextH = start.height * clampedScale;
-      if (handle.includes("w")) {
-        nextX = start.x + (start.width - nextW);
-      }
-      if (handle.includes("n")) {
-        nextY = start.y + (start.height - nextH);
-      }
-    }
-
-    nextW = Math.max(1, nextW);
-    nextH = Math.max(1, nextH);
-
-    return {
-      x: nextX,
-      y: nextY,
-      width: nextW,
-      height: nextH,
-    };
-  };
-
-  const getRotatedLocalAnchor = (
-    rect: Rect,
-    rotationDeg: number,
-    ax: number,
-    ay: number,
-  ) => {
-    const cx = rect.x + rect.width / 2;
-    const cy = rect.y + rect.height / 2;
-    const rad = (rotationDeg * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    return {
-      x: cx + ax * cos - ay * sin,
-      y: cy + ax * sin + ay * cos,
     };
   };
 
@@ -410,12 +309,17 @@ const DesignPaper = ({
     const handlePointerUp = () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+      rotationListenersRef.current = null;
       rotationStateRef.current = null;
       setIsRotating(false);
       setRotationBadge(null);
       onInteractionChange?.(false, { type: "drag" });
     };
 
+    rotationListenersRef.current = {
+      move: handlePointerMove,
+      up: handlePointerUp,
+    };
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
   };
@@ -623,209 +527,6 @@ const DesignPaper = ({
     };
   };
 
-  const buildGroupResizeState = (
-    activeId: string,
-    startActiveRect: Rect,
-    handle?: ResizeHandle,
-  ) => {
-    const activeSelectedIds = selectedIdsRef.current;
-    if (activeSelectedIds.length <= 1) return null;
-    const selectedSet = new Set(activeSelectedIds);
-    const linkedIds = new Set<string>();
-    elements.forEach((element) => {
-      if (!selectedSet.has(element.id)) return;
-      if (isEmotionSlotShape(element)) {
-        const placeholderId = findEmotionPlaceholderId(element);
-        const labelId = findEmotionLabelId(element);
-        if (placeholderId && !selectedSet.has(placeholderId)) {
-          linkedIds.add(placeholderId);
-        }
-        if (labelId && !selectedSet.has(labelId)) {
-          linkedIds.add(labelId);
-        }
-      }
-      if (
-        (element.type === "rect" ||
-          element.type === "roundRect" ||
-          element.type === "ellipse") &&
-        element.labelId &&
-        !selectedSet.has(element.labelId)
-      ) {
-        linkedIds.add(element.labelId);
-      }
-    });
-    const allIds = new Set([...activeSelectedIds, ...linkedIds]);
-    const items = new Map<
-      string,
-      {
-        kind: "rect" | "line";
-        rect?: Rect;
-        line?: { start: Point; end: Point };
-        imageBox?: { x: number; y: number; w: number; h: number };
-        fontSize?: number;
-        type: CanvasElement["type"];
-      }
-    >();
-    elements.forEach((element) => {
-      if (!allIds.has(element.id) || element.locked) return;
-      if (element.type === "line" || element.type === "arrow") {
-        items.set(element.id, {
-          kind: "line",
-          line: { start: { ...element.start }, end: { ...element.end } },
-          type: element.type,
-        });
-        return;
-      }
-      if (
-        "x" in element &&
-        "y" in element &&
-        "w" in element &&
-        "h" in element
-      ) {
-        items.set(element.id, {
-          kind: "rect",
-          rect: {
-            x: element.x,
-            y: element.y,
-            width: element.w,
-            height: element.h,
-          },
-          imageBox:
-            "imageBox" in element && element.imageBox
-              ? { ...element.imageBox }
-              : undefined,
-          fontSize:
-            element.type === "text" ? element.style.fontSize : undefined,
-          type: element.type,
-        });
-      }
-    });
-    if (items.size === 0) return null;
-    const rects: Rect[] = [];
-    items.forEach((item) => {
-      if (item.kind === "rect" && item.rect) {
-        rects.push(item.rect);
-        return;
-      }
-      if (item.kind === "line" && item.line) {
-        const minX = Math.min(item.line.start.x, item.line.end.x);
-        const minY = Math.min(item.line.start.y, item.line.end.y);
-        const width = Math.max(
-          Math.abs(item.line.end.x - item.line.start.x),
-          1,
-        );
-        const height = Math.max(
-          Math.abs(item.line.end.y - item.line.start.y),
-          1,
-        );
-        rects.push({ x: minX, y: minY, width, height });
-      }
-    });
-    if (rects.length === 0) return null;
-    const minX = Math.min(...rects.map((rect) => rect.x));
-    const minY = Math.min(...rects.map((rect) => rect.y));
-    const maxX = Math.max(...rects.map((rect) => rect.x + rect.width));
-    const maxY = Math.max(...rects.map((rect) => rect.y + rect.height));
-    return {
-      activeId,
-      handle,
-      startGroupRect: {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-      },
-      startActiveRect,
-      items,
-    };
-  };
-
-  const applyGroupResizeSnapshot = (
-    snapshot: NonNullable<typeof groupResizeRef.current>,
-    nextGroupRect: Rect,
-  ) => {
-    if (readOnly || !onElementsChange) return;
-    const { startGroupRect } = snapshot;
-    const scaleX = startGroupRect.width
-      ? nextGroupRect.width / startGroupRect.width
-      : 1;
-    const scaleY = startGroupRect.height
-      ? nextGroupRect.height / startGroupRect.height
-      : 1;
-    const fontScale = (scaleX + scaleY) / 2;
-    const nextElements = elements.map((element) => {
-      const item = snapshot.items.get(element.id);
-      if (!item) return element;
-      if (
-        item.kind === "line" &&
-        item.line &&
-        (element.type === "line" || element.type === "arrow")
-      ) {
-        const nextStart = {
-          x: nextGroupRect.x + (item.line.start.x - startGroupRect.x) * scaleX,
-          y: nextGroupRect.y + (item.line.start.y - startGroupRect.y) * scaleY,
-        };
-        const nextEnd = {
-          x: nextGroupRect.x + (item.line.end.x - startGroupRect.x) * scaleX,
-          y: nextGroupRect.y + (item.line.end.y - startGroupRect.y) * scaleY,
-        };
-        return {
-          ...element,
-          start: nextStart,
-          end: nextEnd,
-        };
-      }
-      if (
-        item.kind === "rect" &&
-        item.rect &&
-        "x" in element &&
-        "y" in element
-      ) {
-        const nextX =
-          nextGroupRect.x + (item.rect.x - startGroupRect.x) * scaleX;
-        const nextY =
-          nextGroupRect.y + (item.rect.y - startGroupRect.y) * scaleY;
-        const nextW = Math.max(1, item.rect.width * scaleX);
-        const nextH = Math.max(1, item.rect.height * scaleY);
-        const nextImageBox = item.imageBox
-          ? {
-              x: item.imageBox.x * scaleX,
-              y: item.imageBox.y * scaleY,
-              w: item.imageBox.w * scaleX,
-              h: item.imageBox.h * scaleY,
-            }
-          : "imageBox" in element
-            ? element.imageBox
-            : undefined;
-        if (element.type === "text") {
-          const baseFontSize = item.fontSize ?? element.style.fontSize;
-          const nextFontSize = Math.max(
-            6,
-            Math.round(baseFontSize * fontScale),
-          );
-          return {
-            ...element,
-            x: nextX,
-            y: nextY,
-            w: nextW,
-            h: nextH,
-            style: { ...element.style, fontSize: nextFontSize },
-          };
-        }
-        return {
-          ...element,
-          x: nextX,
-          y: nextY,
-          w: nextW,
-          h: nextH,
-          imageBox: nextImageBox,
-        } as CanvasElement;
-      }
-      return element;
-    });
-    onElementsChange(nextElements);
-  };
-
   const handleGroupResizePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
     handle: ResizeHandle,
@@ -835,9 +536,13 @@ const DesignPaper = ({
     event.preventDefault();
     event.stopPropagation();
     const startPointer = getPointerPosition(event);
-    const snapshot = buildGroupResizeState(
+    const snapshot = buildGroupResizeSnapshot(
       selectedIdsRef.current[0],
       rect,
+      elements,
+      selectedIdsRef.current,
+      findEmotionPlaceholderId,
+      findEmotionLabelId,
       handle,
     );
     if (!snapshot) return;
@@ -853,15 +558,22 @@ const DesignPaper = ({
         dx,
         dy,
       );
-      applyGroupResizeSnapshot(snapshot, nextGroupRect);
+      if (onElementsChange) {
+        onElementsChange(applyGroupResizeSnapshot(snapshot, nextGroupRect, elements));
+      }
     };
 
     const onPointerUp = () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      groupResizeListenersRef.current = null;
       groupResizeRef.current = null;
     };
 
+    groupResizeListenersRef.current = {
+      move: onPointerMove,
+      up: onPointerUp,
+    };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
   };
@@ -925,7 +637,9 @@ const DesignPaper = ({
         dy,
       );
 
-      applyGroupResizeSnapshot(resizeSnapshot, nextGroupRect);
+      if (onElementsChange) {
+        onElementsChange(applyGroupResizeSnapshot(resizeSnapshot, nextGroupRect, elements));
+      }
       setActivePreview(null);
       return;
     }
@@ -1111,9 +825,13 @@ const DesignPaper = ({
         groupDragRef.current = null;
       }
       if (context?.type === "resize" && startRect) {
-        groupResizeRef.current = buildGroupResizeState(
+        groupResizeRef.current = buildGroupResizeSnapshot(
           elementId,
           startRect,
+          elements,
+          selectedIdsRef.current,
+          findEmotionPlaceholderId,
+          findEmotionLabelId,
           handle,
         );
       } else {
@@ -1186,51 +904,16 @@ const DesignPaper = ({
           h: finalRect.height,
         };
 
-        // 이미지가 있는 요소의 경우 imageBox 비율을 유지하며 업데이트
         if (
           targetElement &&
-          (targetElement.type === "rect" ||
-            targetElement.type === "roundRect" ||
-            targetElement.type === "ellipse") &&
-          targetElement.fill &&
-          (targetElement.fill.startsWith("url(") ||
-            targetElement.fill.startsWith("data:")) &&
+          isImageFillElement(targetElement) &&
           isResize
         ) {
-          const oldImageBox = targetElement.imageBox;
-          if (oldImageBox) {
-            // 기존 imageBox의 비율 유지
-            const imageAspectRatio = oldImageBox.w / oldImageBox.h;
-            const newElementAspectRatio = finalRect.width / finalRect.height;
-
-            let newBoxW: number;
-            let newBoxH: number;
-
-            if (imageAspectRatio > newElementAspectRatio) {
-              // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
-              newBoxH = finalRect.height;
-              newBoxW = finalRect.height * imageAspectRatio;
-            } else {
-              // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
-              newBoxW = finalRect.width;
-              newBoxH = finalRect.width / imageAspectRatio;
-            }
-
-            updates.imageBox = {
-              x: (finalRect.width - newBoxW) / 2,
-              y: (finalRect.height - newBoxH) / 2,
-              w: newBoxW,
-              h: newBoxH,
-            };
-          } else {
-            // imageBox가 없으면 요소 크기로 초기화
-            updates.imageBox = {
-              x: 0,
-              y: 0,
-              w: finalRect.width,
-              h: finalRect.height,
-            };
-          }
+          updates.imageBox = computeScaledImageBox(
+            (targetElement as ShapeElement).imageBox,
+            finalRect.width,
+            finalRect.height,
+          );
         }
         const labelId =
           targetElement &&
@@ -1748,6 +1431,107 @@ const DesignPaper = ({
     };
   };
 
+  const buildTextToolbarConfig = (
+    element: TextElement,
+    fontWeight: number,
+    lineHeight: number,
+    letterSpacing: number,
+    clampFontSize: (v: number) => number,
+  ) => ({
+    offset: mmToPx(4),
+    minFontSize: 12,
+    maxFontSize: 120,
+    fontSize: element.style.fontSize,
+    lineHeight,
+    letterSpacing,
+    color: element.style.color,
+    isBold:
+      element.style.fontWeight === "bold" ||
+      (typeof element.style.fontWeight === "number" &&
+        element.style.fontWeight >= 700),
+    isUnderline: Boolean(element.style.underline),
+    isItalic: Boolean(element.style.italic),
+    isStrikethrough: Boolean(element.style.strikethrough),
+    align: element.style.alignX,
+    alignY: element.style.alignY,
+    fontFamily: element.style.fontFamily ?? "Pretendard",
+    fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
+    onFontFamilyClick: () => {
+      setSideBarMenu("font");
+      setFontPanel({
+        fontFamily: element.style.fontFamily ?? "Pretendard",
+        fontWeight: fontWeight,
+      });
+    },
+    onFontSizeChange: (value: number) => {
+      updateElement(element.id, {
+        style: { fontSize: clampFontSize(value) },
+      });
+    },
+    onFontSizeStep: (delta: number) => {
+      updateElement(element.id, {
+        style: {
+          fontSize: clampFontSize(element.style.fontSize + delta),
+        },
+      });
+    },
+    onLineHeightChange: (value: number) => {
+      updateElement(element.id, { style: { lineHeight: value } });
+    },
+    onLetterSpacingChange: (value: number) => {
+      updateElement(element.id, { style: { letterSpacing: value } });
+    },
+    onColorChange: (color: string) => {
+      updateElement(element.id, {
+        style: { color },
+        richText: element.richText
+          ? stripStyleTags(element.richText, "color")
+          : undefined,
+      });
+    },
+    onToggleBold: () => {
+      updateElement(element.id, {
+        style: {
+          fontWeight:
+            element.style.fontWeight === "bold" ? "normal" : "bold",
+        },
+        richText: element.richText
+          ? stripStyleTags(element.richText, "bold")
+          : undefined,
+      });
+    },
+    onToggleUnderline: () => {
+      updateElement(element.id, {
+        style: { underline: !element.style.underline },
+        richText: element.richText
+          ? stripStyleTags(element.richText, "underline")
+          : undefined,
+      });
+    },
+    onToggleItalic: () => {
+      updateElement(element.id, {
+        style: { italic: !element.style.italic },
+        richText: element.richText
+          ? stripStyleTags(element.richText, "italic")
+          : undefined,
+      });
+    },
+    onToggleStrikethrough: () => {
+      updateElement(element.id, {
+        style: { strikethrough: !element.style.strikethrough },
+        richText: element.richText
+          ? stripStyleTags(element.richText, "strikethrough")
+          : undefined,
+      });
+    },
+    onAlignChange: (align: "left" | "center" | "right") => {
+      updateElement(element.id, { style: { alignX: align } });
+    },
+    onAlignYChange: (alignY: "top" | "middle" | "bottom") => {
+      updateElement(element.id, { style: { alignY } });
+    },
+  });
+
   const renderTextElement = (element: TextElement) => {
     const showToolbar =
       selectedIds[0] === element.id && selectedIds.length === 1;
@@ -1804,102 +1588,7 @@ const DesignPaper = ({
         locked={locked}
         showToolbar={showToolbar}
         widthMode={element.widthMode ?? "auto"}
-        toolbar={{
-          offset: mmToPx(4),
-          minFontSize,
-          maxFontSize,
-          fontSize: element.style.fontSize,
-          lineHeight,
-          letterSpacing,
-          color: element.style.color,
-          isBold:
-            element.style.fontWeight === "bold" ||
-            (typeof element.style.fontWeight === "number" &&
-              element.style.fontWeight >= 700),
-          isUnderline: Boolean(element.style.underline),
-          isItalic: Boolean(element.style.italic),
-          isStrikethrough: Boolean(element.style.strikethrough),
-          align: element.style.alignX,
-          alignY: element.style.alignY,
-          fontFamily: element.style.fontFamily ?? "Pretendard",
-          fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
-          onFontFamilyClick: () => {
-            setSideBarMenu("font");
-            setFontPanel({
-              fontFamily: element.style.fontFamily ?? "Pretendard",
-              fontWeight: fontWeight,
-            });
-          },
-          onFontSizeChange: (value) => {
-            updateElement(element.id, {
-              style: { fontSize: clampFontSize(value) },
-            });
-          },
-          onFontSizeStep: (delta) => {
-            updateElement(element.id, {
-              style: {
-                fontSize: clampFontSize(element.style.fontSize + delta),
-              },
-            });
-          },
-          onLineHeightChange: (value) => {
-            updateElement(element.id, { style: { lineHeight: value } });
-          },
-          onLetterSpacingChange: (value) => {
-            updateElement(element.id, {
-              style: { letterSpacing: value },
-            });
-          },
-          onColorChange: (color) => {
-            updateElement(element.id, {
-              style: { color },
-              richText: element.richText
-                ? stripStyleTags(element.richText, "color")
-                : undefined,
-            });
-          },
-          onToggleBold: () => {
-            updateElement(element.id, {
-              style: {
-                fontWeight:
-                  element.style.fontWeight === "bold" ? "normal" : "bold",
-              },
-              richText: element.richText
-                ? stripStyleTags(element.richText, "bold")
-                : undefined,
-            });
-          },
-          onToggleUnderline: () => {
-            updateElement(element.id, {
-              style: { underline: !element.style.underline },
-              richText: element.richText
-                ? stripStyleTags(element.richText, "underline")
-                : undefined,
-            });
-          },
-          onToggleItalic: () => {
-            updateElement(element.id, {
-              style: { italic: !element.style.italic },
-              richText: element.richText
-                ? stripStyleTags(element.richText, "italic")
-                : undefined,
-            });
-          },
-          onToggleStrikethrough: () => {
-            updateElement(element.id, {
-              style: { strikethrough: !element.style.strikethrough },
-              richText: element.richText
-                ? stripStyleTags(element.richText, "strikethrough")
-                : undefined,
-            });
-          },
-          onAlignChange: (align) => {
-            updateElement(element.id, { style: { alignX: align } });
-          },
-          onAlignYChange: (alignY) => {
-            updateElement(element.id, { style: { alignY } });
-          },
-        }}
+        toolbar={buildTextToolbarConfig(element, fontWeight, lineHeight, letterSpacing, clampFontSize)}
         onTextChange={(nextText, nextRichText) => {
           updateElement(element.id, { text: nextText, richText: nextRichText });
         }}
@@ -1958,65 +1647,21 @@ const DesignPaper = ({
 
     const isShapeTextEditing = editingShapeTextId === element.id;
 
-    // Transform 핸들러
-    const handleFlipX =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            updateElement(element.id, {
-              transform: {
-                ...currentTransform,
-                flipX: !currentTransform.flipX,
-              },
-            });
-          };
-
-    const handleFlipY =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            updateElement(element.id, {
-              transform: {
-                ...currentTransform,
-                flipY: !currentTransform.flipY,
-              },
-            });
-          };
-
-    const getLatestElement = () =>
-      elements.find((el) => el.id === element.id) ?? element;
-
-    const handleRotateCW =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const latest = getLatestElement();
-            const currentTransform =
-              "transform" in latest ? (latest.transform ?? {}) : {};
-            const currentRotation = currentTransform.rotation ?? 0;
-            const step = 90;
-            const newRotation = (currentRotation + step + 360) % 360;
-            updateElement(element.id, {
-              transform: { ...currentTransform, rotation: newRotation },
-            });
-          };
-
-    const handleRotateCCW =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const latest = getLatestElement();
-            const currentTransform =
-              "transform" in latest ? (latest.transform ?? {}) : {};
-            const currentRotation = currentTransform.rotation ?? 0;
-            const step = 90;
-            const newRotation = (currentRotation - step + 360) % 360;
-            updateElement(element.id, {
-              transform: { ...currentTransform, rotation: newRotation },
-            });
-          };
+    const getLatestTransform = () => {
+      const latest = elements.find((el) => el.id === element.id) ?? element;
+      return "transform" in latest ? (latest.transform ?? {}) : {};
+    };
+    const transformCtx = {
+      elementId: element.id,
+      readOnly: !!readOnly,
+      locked: !!element.locked,
+      getTransform: getLatestTransform,
+      updateElement,
+    };
+    const handleFlipX = createFlipXHandler(transformCtx);
+    const handleFlipY = createFlipYHandler(transformCtx);
+    const handleRotateCW = createRotateCWHandler(transformCtx);
+    const handleRotateCCW = createRotateCCWHandler(transformCtx);
 
     return (
       <ShapeComponent
@@ -2092,58 +1737,17 @@ const DesignPaper = ({
   const renderLineElement = (element: LineElement) => {
     const stroke = element.stroke ?? DEFAULT_STROKE;
 
-    // Transform 핸들러
-    const handleFlipX =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            updateElement(element.id, {
-              transform: {
-                ...currentTransform,
-                flipX: !currentTransform.flipX,
-              },
-            });
-          };
-
-    const handleFlipY =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            updateElement(element.id, {
-              transform: {
-                ...currentTransform,
-                flipY: !currentTransform.flipY,
-              },
-            });
-          };
-
-    const handleRotateCW =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            const currentRotation = currentTransform.rotation ?? 0;
-            const step = 90;
-            const newRotation = (currentRotation + step + 360) % 360;
-            updateElement(element.id, {
-              transform: { ...currentTransform, rotation: newRotation },
-            });
-          };
-
-    const handleRotateCCW =
-      readOnly || element.locked
-        ? undefined
-        : () => {
-            const currentTransform = element.transform ?? {};
-            const currentRotation = currentTransform.rotation ?? 0;
-            const step = 90;
-            const newRotation = (currentRotation - step + 360) % 360;
-            updateElement(element.id, {
-              transform: { ...currentTransform, rotation: newRotation },
-            });
-          };
+    const lineTransformCtx = {
+      elementId: element.id,
+      readOnly: !!readOnly,
+      locked: !!element.locked,
+      getTransform: () => element.transform ?? {},
+      updateElement,
+    };
+    const handleFlipX = createFlipXHandler(lineTransformCtx);
+    const handleFlipY = createFlipYHandler(lineTransformCtx);
+    const handleRotateCW = createRotateCWHandler(lineTransformCtx);
+    const handleRotateCCW = createRotateCCWHandler(lineTransformCtx);
 
     const sharedProps = {
       id: element.id,

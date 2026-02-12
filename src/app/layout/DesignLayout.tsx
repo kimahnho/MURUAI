@@ -16,19 +16,28 @@ import {
   Loader2,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-import ExportModal from "@/features/editor/components/ExportModal";
+import PdfPreviewContainer from "@/features/editor/components/PdfPreviewContainer";
+import {
+  usePageSwapStore,
+  waitForHydration,
+} from "@/features/editor/store/pageSwapStore";
 import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
 import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
 
+const ExportModal = lazy(
+  () => import("@/features/editor/components/ExportModal"),
+);
+
 const DesignLayout = () => {
   const navigate = useNavigate();
   const { docId } = useParams<{ docId?: string }>();
   const [zoom, setZoom] = useState<number>(100);
+  const [isPdfPreviewActive, setIsPdfPreviewActive] = useState(false);
 
   const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument } =
     useDocumentLoader({ docId });
@@ -74,6 +83,7 @@ const DesignLayout = () => {
   const canRedo = useUnifiedHistoryStore((state) => state.canRedo);
   const requestUndo = useUnifiedHistoryStore((state) => state.requestUndo);
   const requestRedo = useUnifiedHistoryStore((state) => state.requestRedo);
+  const setPdfExporting = usePageSwapStore((state) => state.setPdfExporting);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -105,6 +115,25 @@ const DesignLayout = () => {
 
   const handleResetZoom = () => {
     setZoom(100);
+  };
+
+  const preparePdfPages = async () => {
+    const requestId = usePageSwapStore.getState().requestHydration();
+    setIsPdfPreviewActive(true);
+    usePageSwapStore.getState().setPdfPreviewActive(true);
+    await waitForHydration(requestId);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  };
+
+  const cleanupPdfPages = () => {
+    setIsPdfPreviewActive(false);
+    usePageSwapStore.getState().setPdfPreviewActive(false);
   };
 
   return (
@@ -380,21 +409,34 @@ const DesignLayout = () => {
           }}
         />
       </main>
-      <ExportModal
-        key={exportModalKey}
-        open={isExportModalOpen}
-        onClose={closeExportModal}
-        userId={exportUserId}
-        documentId={docId}
-        autoSaveOnDownload
-        getCanvasData={getCanvasData}
-        getName={getName}
-        lastSavedUserMadeId={lastSavedUserMadeId}
-        onSavedUserMadeId={setLastSavedUserMadeId}
-        students={students}
-        groups={groups}
-        isLoadingTargets={isLoadingTargets}
-      />
+      {isExportModalOpen && (
+        <Suspense fallback={null}>
+          <ExportModal
+            key={exportModalKey}
+            open={isExportModalOpen}
+            onClose={closeExportModal}
+            userId={exportUserId}
+            documentId={docId}
+            autoSaveOnDownload
+            getCanvasData={getCanvasData}
+            getName={getName}
+            lastSavedUserMadeId={lastSavedUserMadeId}
+            onSavedUserMadeId={setLastSavedUserMadeId}
+            students={students}
+            groups={groups}
+            isLoadingTargets={isLoadingTargets}
+            preparePdfPages={preparePdfPages}
+            cleanupPdfPages={cleanupPdfPages}
+            onPdfExportStateChange={setPdfExporting}
+          />
+        </Suspense>
+      )}
+      {isPdfPreviewActive && (
+        <PdfPreviewContainer
+          pages={getCanvasData().pages ?? []}
+          fallbackOrientation={effectiveOrientation}
+        />
+      )}
     </div>
   );
 };

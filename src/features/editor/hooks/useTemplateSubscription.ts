@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
   type MutableRefObject,
@@ -62,6 +63,8 @@ export const useTemplateSubscription = ({
   addTemplatePage,
   addSelectedTemplatePages,
 }: TemplateSubscriptionParams) => {
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const unsubscribe = useTemplateStore.subscribe((state, prevState) => {
       if (state.templateRequestId === prevState.templateRequestId) return;
@@ -107,12 +110,22 @@ export const useTemplateSubscription = ({
         }
       }
 
-      setTimeout(() => {
+      if (recordTimeoutRef.current) {
+        clearTimeout(recordTimeoutRef.current);
+      }
+      recordTimeoutRef.current = setTimeout(() => {
         recordHistory("Apply template");
         isApplyingTemplateRef.current = false;
+        recordTimeoutRef.current = null;
       }, 100);
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (recordTimeoutRef.current) {
+        clearTimeout(recordTimeoutRef.current);
+        recordTimeoutRef.current = null;
+      }
+    };
   }, [
     addTemplatePage,
     addSelectedTemplatePages,

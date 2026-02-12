@@ -21,6 +21,7 @@ import {
 } from "./storySequenceUtils";
 import { measureTextBoxSize } from "./textMeasure";
 import { normalizeOrientationValue } from "./orientationUtils";
+import { bumpPageRevision, ensurePageRevision } from "./pageRevision";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -38,11 +39,12 @@ export const buildInitialPages = (
         templateId: null,
         elements: withLogoCanvasElements([]),
         orientation: fallbackOrientation,
+        rev: 0,
       },
     ];
   }
   return nextPages.map((page, index) => ({
-    ...page,
+    ...ensurePageRevision(page),
     pageNumber: page.pageNumber ?? index + 1,
     orientation: normalizeOrientationValue(
       page.orientation,
@@ -84,7 +86,7 @@ export const applyTemplateToCurrentPage = ({
     const nextPages = [...prevPages];
     const basePage = nextPages[currentIndex];
     nextPages[currentIndex] = {
-      ...basePage,
+      ...bumpPageRevision(basePage),
       templateId,
       orientation: nextOrientation,
       elements: withLogoCanvasElements(
@@ -101,6 +103,7 @@ export const applyTemplateToCurrentPage = ({
         elements: withLogoCanvasElements(
           instantiateTemplate(template)
         ),
+        rev: 0,
       }));
       nextPages.splice(currentIndex + 1, 0, ...insertedPages);
     }
@@ -146,6 +149,7 @@ export const addTemplatePage = ({
         elements: withLogoCanvasElements(
           instantiateTemplate(template)
         ),
+        rev: 0,
       });
     });
     return nextPages;
@@ -206,6 +210,7 @@ export const addAacBoardPage = ({
       templateId: "aacBoard",
       orientation: config.orientation,
       elements: elementsWithLogo,
+      rev: 0,
     };
     return [...prevPages, newPage];
   });
@@ -238,6 +243,7 @@ export const addStoryBoardPage = ({
       templateId: null,
       orientation: config.orientation,
       elements: elementsWithLogo,
+      rev: 0,
     };
     return [...prevPages, newPage];
   });
@@ -280,7 +286,10 @@ export const addShapeElement = ({
   setPages((prevPages) =>
     prevPages.map((page) =>
       page.id === pageId
-        ? { ...page, elements: [...page.elements, nextElement] }
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
         : page
     )
   );
@@ -340,7 +349,10 @@ export const addTextElement = ({
   setPages((prevPages) =>
     prevPages.map((page) =>
       page.id === pageId
-        ? { ...page, elements: [...page.elements, nextElement] }
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
         : page
     )
   );
@@ -377,7 +389,10 @@ export const addLineElement = ({
   setPages((prevPages) =>
     prevPages.map((page) =>
       page.id === pageId
-        ? { ...page, elements: [...page.elements, nextElement] }
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
         : page
     )
   );
@@ -428,6 +443,7 @@ export const addSelectedTemplatePages = ({
         templateId,
         orientation: nextOrientation,
         elements: withLogoCanvasElements(instantiateTemplate(template)),
+        rev: 0,
       });
     });
     return nextPages;

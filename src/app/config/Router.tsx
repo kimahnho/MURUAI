@@ -1,12 +1,18 @@
+import { Suspense, lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
-import DesignLayout from "../layout/DesignLayout";
-import HomePage from "@/pages/home/HomePage";
-import DesignPage from "@/pages/editor/DesignPage";
-import MyDocPage from "@/pages/mydoc/MyDocPage";
-import AdminPage from "@/pages/admin/AdminPage";
-import AdminUserDocsPage from "@/pages/admin/AdminUserDocsPage";
-import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
+
+const DesignLayout = lazy(() => import("../layout/DesignLayout"));
+const HomePage = lazy(() => import("@/pages/home/HomePage"));
+const DesignPage = lazy(() => import("@/pages/editor/DesignPage"));
+const MyDocPage = lazy(() => import("@/pages/mydoc/MyDocPage"));
+const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
+const AdminUserDocsPage = lazy(() => import("@/pages/admin/AdminUserDocsPage"));
+const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
+
+const withSuspense = (element: React.ReactElement) => (
+  <Suspense fallback={null}>{element}</Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -15,38 +21,38 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: withSuspense(<HomePage />),
       },
       {
         path: "mydoc",
-        element: <MyDocPage />,
+        element: withSuspense(<MyDocPage />),
       },
       {
         path: "admin/user-docs",
-        element: <AdminUserDocsPage />,
+        element: withSuspense(<AdminUserDocsPage />),
       },
       {
         path: "admin",
-        element: <AdminPage />,
+        element: withSuspense(<AdminPage />),
       },
     ],
   },
   {
     path: "/",
-    element: <DesignLayout />,
+    element: withSuspense(<DesignLayout />),
     children: [
       {
         path: "design",
-        element: <DesignPage />,
+        element: withSuspense(<DesignPage />),
       },
       {
         path: ":docId/edit",
-        element: <DesignPage />,
+        element: withSuspense(<DesignPage />),
       },
     ],
   },
   {
     path: "/auth/callback",
-    element: <AuthCallbackPage />,
+    element: withSuspense(<AuthCallbackPage />),
   },
 ]);

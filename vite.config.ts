@@ -13,6 +13,16 @@ export default defineConfig(({ mode }) => ({
     esbuild: {
       drop: mode === "production" ? ["console", "debugger"] : [],
     },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pdf: ["html2canvas", "jspdf"],
+          vendor: ["react", "react-dom", "react-router-dom"],
+          supabase: ["@supabase/supabase-js"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700,
   },
   plugins: [
     react({

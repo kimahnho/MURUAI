@@ -1,13 +1,23 @@
-import MainSection, { type OutletContext } from "@/features/editor/components/MainSection";
-import SideBar from "@/features/editor/components/SideBar";
+import { lazy, Suspense } from "react";
+import type { OutletContext } from "@/features/editor/components/MainSection";
 import { useOutletContext } from "react-router-dom";
+import "@/features/editor/styles/editor-fonts.css";
+
+const MainSection = lazy(
+  () => import("@/features/editor/components/MainSection"),
+);
+const SideBar = lazy(() => import("@/features/editor/components/SideBar"));
 
 const DesignPage = () => {
   const { loadedDocumentId } = useOutletContext<OutletContext>();
   return (
     <div className="flex h-full w-full overflow-hidden">
-      <SideBar />
-      <MainSection key={loadedDocumentId ?? "new"} />
+      <Suspense fallback={<div className="w-20 shrink-0" />}>
+        <SideBar />
+      </Suspense>
+      <Suspense fallback={<div className="flex-1" />}>
+        <MainSection key={loadedDocumentId ?? "new"} />
+      </Suspense>
     </div>
   );
 };

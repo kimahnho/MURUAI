@@ -1,5 +1,7 @@
 import {
   useCallback,
+  useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
   type MutableRefObject,
@@ -55,6 +57,8 @@ export const useTemplateApplyActions = ({
   applyTemplateToCurrentPage,
   addTemplatePage,
 }: TemplateApplyActionsParams) => {
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleApplyTemplateToCurrent = useCallback(() => {
     if (!templateChoiceDialog) return;
 
@@ -80,9 +84,13 @@ export const useTemplateApplyActions = ({
       target: "current_page",
     });
 
-    setTimeout(() => {
+    if (recordTimeoutRef.current) {
+      clearTimeout(recordTimeoutRef.current);
+    }
+    recordTimeoutRef.current = setTimeout(() => {
       recordHistory("Apply template to current page");
       isApplyingTemplateRef.current = false;
+      recordTimeoutRef.current = null;
     }, 100);
   }, [
     templateChoiceDialog,
@@ -120,9 +128,13 @@ export const useTemplateApplyActions = ({
       target: "new_page",
     });
 
-    setTimeout(() => {
+    if (recordTimeoutRef.current) {
+      clearTimeout(recordTimeoutRef.current);
+    }
+    recordTimeoutRef.current = setTimeout(() => {
       recordHistory("Apply template to new page");
       isApplyingTemplateRef.current = false;
+      recordTimeoutRef.current = null;
     }, 100);
   }, [
     templateChoiceDialog,
@@ -135,6 +147,15 @@ export const useTemplateApplyActions = ({
     recordHistory,
     isApplyingTemplateRef,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (recordTimeoutRef.current) {
+        clearTimeout(recordTimeoutRef.current);
+        recordTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return { handleApplyTemplateToCurrent, handleApplyTemplateToNew };
 };

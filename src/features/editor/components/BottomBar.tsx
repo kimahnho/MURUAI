@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import {
   Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
   useState,
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
@@ -24,6 +27,10 @@ const PREVIEW_BOX = {
   vertical: { width: 64, height: 90 },
   horizontal: { width: 90, height: 64 },
 };
+const ITEM_GAP_PX = 8;
+const DIVIDER_WIDTH_PX = 4;
+const ADD_BUTTON_WIDTH_PX = 64;
+const ADD_BUTTON_MARGIN_PX = 8;
 const CONTEXT_MENU_SIZE = { width: 160, height: 3 * 36 + 8 };
 
 const getPreviewMetrics = (orientation: Page["orientation"]) => {
@@ -77,7 +84,6 @@ type PageThumbnailProps = {
     onDragOver: (event: ReactDragEvent<HTMLDivElement>) => void;
     onDrop: (event: ReactDragEvent<HTMLDivElement>) => void;
   };
-  itemRef: (node: HTMLDivElement | null) => void;
 };
 
 const PageThumbnail = ({
@@ -91,20 +97,19 @@ const PageThumbnail = ({
   onMovePage,
   onContextMenu,
   dragHandlers,
-  itemRef,
 }: PageThumbnailProps) => {
   const { isHorizontal, pageSize, previewScale, scaledWidth, scaledHeight } =
     getPreviewMetrics(page.orientation);
 
   return (
     <div
-      ref={itemRef}
       draggable
       onDragStart={dragHandlers.onDragStart}
       onDragOver={dragHandlers.onDragOver}
       onDrop={dragHandlers.onDrop}
       onContextMenu={onContextMenu}
       className="group flex shrink-0 flex-col items-center gap-1 cursor-move"
+      style={{ width: `${isHorizontal ? PREVIEW_BOX.horizontal.width : PREVIEW_BOX.vertical.width}px` }}
     >
       <div className="relative">
         <button
@@ -235,13 +240,14 @@ const PageInsertDivider = ({ isVisible, onAdd }: PageInsertDividerProps) => {
 
 type AddPageButtonProps = {
   onAdd: () => void;
-  buttonRef: React.RefObject<HTMLButtonElement | null>;
 };
 
-const AddPageButton = ({ onAdd, buttonRef }: AddPageButtonProps) => (
-  <div className="flex shrink-0 flex-col items-center gap-2 ml-2">
+const AddPageButton = ({ onAdd }: AddPageButtonProps) => (
+  <div
+    className="flex shrink-0 flex-col items-center gap-2 ml-2"
+    style={{ width: `${ADD_BUTTON_WIDTH_PX}px` }}
+  >
     <button
-      ref={buttonRef}
       onClick={onAdd}
       className="flex flex-col items-center justify-center w-16 h-22.5 rounded-lg border-2 border-dashed border-black-30 hover:border-primary hover:bg-primary/5 transition cursor-pointer"
     >
@@ -336,7 +342,28 @@ interface BottomBarProps {
   onAddPageAtIndex?: (index: number) => void;
   onMovePage?: (pageId: string, direction: "left" | "right") => void;
   onDuplicatePage?: (pageId: string) => void;
+  onVisiblePageIdsChange?: (pageIds: string[]) => void;
 }
+
+type BottomBarItem =
+  | {
+      type: "page";
+      key: string;
+      page: Page;
+      width: number;
+      pageIndex: number;
+    }
+  | {
+      type: "divider";
+      key: string;
+      width: number;
+      insertIndex: number;
+    }
+  | {
+      type: "add";
+      key: string;
+      width: number;
+    };
 
 const BottomBar = ({
   pages,
@@ -350,9 +377,79 @@ const BottomBar = ({
   onAddPageAtIndex,
   onMovePage,
   onDuplicatePage,
+  onVisiblePageIdsChange,
 }: BottomBarProps) => {
-  const { containerRef, listRef, addButtonRef, registerPageRef, handleWheel } =
-    useBottomBarScroll({ pages, selectedPageId });
+  const items = useMemo<BottomBarItem[]>(() => {
+    const nextItems: BottomBarItem[] = [];
+    pages.forEach((page, index) => {
+      const width =
+        page.orientation === "horizontal"
+          ? PREVIEW_BOX.horizontal.width
+          : PREVIEW_BOX.vertical.width;
+      nextItems.push({
+        type: "page",
+        key: `page-${page.id}`,
+        page,
+        width,
+        pageIndex: index,
+      });
+      if (pages.length >= 2 && index < pages.length - 1) {
+        nextItems.push({
+          type: "divider",
+          key: `divider-${page.id}`,
+          width: DIVIDER_WIDTH_PX,
+          insertIndex: index + 1,
+        });
+      }
+    });
+    nextItems.push({
+      type: "add",
+      key: "add-page",
+      width: ADD_BUTTON_WIDTH_PX + ADD_BUTTON_MARGIN_PX,
+    });
+    return nextItems;
+  }, [pages]);
+
+  const itemWidths = useMemo(() => items.map((item) => item.width), [items]);
+  const { itemOffsets, totalWidth } = useMemo(() => {
+    const offsets: number[] = [];
+    let offset = 0;
+    for (let i = 0; i < itemWidths.length; i += 1) {
+      offsets.push(offset);
+      offset += itemWidths[i] + ITEM_GAP_PX;
+    }
+    return {
+      itemOffsets: offsets,
+      totalWidth:
+        itemWidths.length > 0 ? offset - ITEM_GAP_PX : 0,
+    };
+  }, [itemWidths]);
+
+  const selectedItemIndex = useMemo(() => {
+    const index = items.findIndex(
+      (item) => item.type === "page" && item.page.id === selectedPageId,
+    );
+    return index >= 0 ? index : null;
+  }, [items, selectedPageId]);
+
+  const addButtonIndex = useMemo(() => {
+    const index = items.findIndex((item) => item.type === "add");
+    return index >= 0 ? index : null;
+  }, [items]);
+
+  const isSelectedLastPage =
+    pages.length > 0 && pages[pages.length - 1]?.id === selectedPageId;
+
+  const { containerRef, listRef } = useBottomBarScroll({
+    pagesLength: pages.length,
+    selectedPageId,
+    selectedItemIndex,
+    addButtonIndex,
+    itemOffsets,
+    itemWidths,
+    totalWidth,
+    isSelectedLastPage,
+  });
   const { createDragHandlers } = useBottomBarDrag({
     pages,
     onReorderPages,
@@ -388,6 +485,74 @@ const BottomBar = ({
       setContextMenu({ pageId, ...position });
     };
 
+  const [visibleRange, setVisibleRange] = useState({
+    start: 0,
+    end: Math.max(0, items.length - 1),
+  });
+
+  const updateVisibleRange = useCallback(() => {
+    const scroller = listRef.current;
+    if (!scroller || items.length === 0) {
+      setVisibleRange({ start: 0, end: -1 });
+      return;
+    }
+    const scrollLeft = scroller.scrollLeft;
+    const viewportRight = scrollLeft + scroller.clientWidth;
+    let start = 0;
+    while (
+      start < items.length &&
+      itemOffsets[start] + itemWidths[start] < scrollLeft
+    ) {
+      start += 1;
+    }
+    let end = start;
+    while (end < items.length && itemOffsets[end] < viewportRight) {
+      end += 1;
+    }
+    end = Math.max(start, end - 1);
+    const buffer = 3;
+    const nextStart = Math.max(0, start - buffer);
+    const nextEnd = Math.min(items.length - 1, end + buffer);
+    setVisibleRange((prev) =>
+      prev.start === nextStart && prev.end === nextEnd
+        ? prev
+        : { start: nextStart, end: nextEnd },
+    );
+  }, [items.length, itemOffsets, itemWidths, listRef]);
+
+  useEffect(() => {
+    updateVisibleRange();
+  }, [items, updateVisibleRange]);
+
+  useEffect(() => {
+    const handleResize = () => updateVisibleRange();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [updateVisibleRange]);
+
+  const leftPadding =
+    items.length > 0 ? itemOffsets[visibleRange.start] ?? 0 : 0;
+  const endOffset =
+    items.length > 0 && visibleRange.end >= 0
+      ? (itemOffsets[visibleRange.end] ?? 0) +
+        (itemWidths[visibleRange.end] ?? 0)
+      : 0;
+  const rightPadding = Math.max(0, totalWidth - endOffset);
+  const visibleItems =
+    visibleRange.end >= visibleRange.start
+      ? items.slice(visibleRange.start, visibleRange.end + 1)
+      : [];
+
+  useEffect(() => {
+    if (!onVisiblePageIdsChange) return;
+    const ids = visibleItems
+      .filter((item) => item.type === "page")
+      .map((item) => item.page.id);
+    onVisiblePageIdsChange(ids);
+  }, [onVisiblePageIdsChange, visibleItems]);
+
   return (
     <div
       ref={containerRef}
@@ -399,40 +564,47 @@ const BottomBar = ({
       onContextMenu={(event) => {
         event.preventDefault();
       }}
-      onWheel={handleWheel}
     >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div
         ref={listRef}
         className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden"
+        style={{ paddingLeft: `${leftPadding}px`, paddingRight: `${rightPadding}px` }}
+        onScroll={updateVisibleRange}
       >
-        {pages.map((page, index) => {
-          return (
-            <Fragment key={page.id}>
-              <PageThumbnail
-                page={page}
-                isSelected={selectedPageId === page.id}
-                canMoveLeft={index > 0}
-                canMoveRight={index < pages.length - 1}
-                onSelect={onSelectPage}
-                onDuplicate={onDuplicatePage}
-                onDelete={onDeletePage}
-                onMovePage={onMovePage}
-                onContextMenu={handlePageContextMenu(page.id)}
-                dragHandlers={createDragHandlers(page.id)}
-                itemRef={registerPageRef(page.id)}
-              />
+        {visibleItems.map((item) => {
+          if (item.type === "page") {
+            const index = item.pageIndex;
+            return (
+              <Fragment key={item.key}>
+                <PageThumbnail
+                  page={item.page}
+                  isSelected={selectedPageId === item.page.id}
+                  canMoveLeft={index > 0}
+                  canMoveRight={index < pages.length - 1}
+                  onSelect={onSelectPage}
+                  onDuplicate={onDuplicatePage}
+                  onDelete={onDeletePage}
+                  onMovePage={onMovePage}
+                  onContextMenu={handlePageContextMenu(item.page.id)}
+                  dragHandlers={createDragHandlers(item.page.id)}
+                />
+              </Fragment>
+            );
+          }
+          if (item.type === "divider") {
+            return (
               <PageInsertDivider
-                isVisible={pages.length >= 2 && index < pages.length - 1}
+                key={item.key}
+                isVisible
                 onAdd={() => {
-                  handleAddPageBetween(index + 1);
+                  handleAddPageBetween(item.insertIndex);
                 }}
               />
-            </Fragment>
-          );
+            );
+          }
+          return <AddPageButton key={item.key} onAdd={onAddPage} />;
         })}
-
-        <AddPageButton onAdd={onAddPage} buttonRef={addButtonRef} />
       </div>
       <PageContextMenu
         contextMenu={contextMenu}
