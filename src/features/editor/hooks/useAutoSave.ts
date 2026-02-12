@@ -25,6 +25,7 @@ export const useAutoSave = ({
   onSaveStateChange,
   isDataLoaded = true, // 기본값 true로 하위 호환성 유지
 }: AutoSaveParams) => {
+  const isDev = import.meta.env.DEV;
   const [saveState, setSaveState] = useState<SaveState | null>(null);
   const isPdfExporting = usePageSwapStore((state) => state.pdfExporting);
 
@@ -204,14 +205,18 @@ export const useAutoSave = ({
 
     // 🔒 데이터 로딩 중에는 자동 저장 방지 (배포 시 빈 상태 저장 방지)
     if (!isDataLoaded) {
-      console.log("Auto-save skipped: Data not loaded yet");
+      if (isDev) {
+        console.log("Auto-save skipped: Data not loaded yet");
+      }
       return;
     }
 
     // 🔒 초기 마운트 시 즉시 저장 방지 (첫 렌더링은 건너뛰기)
     if (!hasInitialSaveRef.current) {
       hasInitialSaveRef.current = true;
-      console.log("Auto-save skipped: Initial mount");
+      if (isDev) {
+        console.log("Auto-save skipped: Initial mount");
+      }
       return;
     }
 
@@ -224,7 +229,7 @@ export const useAutoSave = ({
         saveTimeoutRef.current = null;
       }
     };
-  }, [pages, docId, docName, performSave, isDataLoaded, isPdfExporting]);
+  }, [pages, docId, docName, performSave, isDataLoaded, isPdfExporting, isDev]);
 
   useEffect(() => {
     return () => {
