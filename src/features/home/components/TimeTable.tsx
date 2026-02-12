@@ -10,6 +10,7 @@ interface TimeTableProps {
 }
 
 const TimeTable = ({ weekOffset }: TimeTableProps) => {
+  const isDev = import.meta.env.DEV;
   const days = getWeekDays(weekOffset);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const { isAuthenticated } = useAuthStore();
@@ -55,7 +56,9 @@ const TimeTable = ({ weekOffset }: TimeTableProps) => {
       }
 
       const { startDate, endDate } = getWeekDateRange(weekOffset);
-      console.log("📅 주간 범위:", { startDate, endDate });
+      if (isDev) {
+        console.log("📅 주간 범위:", { startDate, endDate });
+      }
 
       const { data, error } = await scheduleModel.getByDateRange(startDate, endDate);
 
@@ -64,16 +67,20 @@ const TimeTable = ({ weekOffset }: TimeTableProps) => {
       }
 
       if (data) {
-        console.log("✅ 불러온 일정:", data);
+        if (isDev) {
+          console.log("✅ 불러온 일정:", data);
+        }
         setSchedules(data);
       } else {
-        console.log("⚠️ 일정 없음");
+        if (isDev) {
+          console.log("⚠️ 일정 없음");
+        }
         setSchedules([]);
       }
     };
 
     fetchSchedules();
-  }, [isAuthenticated, weekOffset, openModal]); // openModal이 변경될 때마다 다시 불러오기
+  }, [isAuthenticated, weekOffset, openModal, isDev]); // openModal이 변경될 때마다 다시 불러오기
 
   // 시간 라벨 (08:00 ~ 20:00)
   const timeLabels = Array.from({ length: 13 }, (_, i) => {
@@ -236,7 +243,9 @@ const TimeTable = ({ weekOffset }: TimeTableProps) => {
               );
 
               if (daySchedules.length > 0) {
-                console.log(`📌 ${dateStr} (${day.day})의 일정:`, daySchedules);
+                if (isDev) {
+                  console.log(`📌 ${dateStr} (${day.day})의 일정:`, daySchedules);
+                }
               }
 
               return (
@@ -250,7 +259,9 @@ const TimeTable = ({ weekOffset }: TimeTableProps) => {
 
                       return group.map((schedule, columnIndex) => {
                         const style = getScheduleStyle(schedule, columnIndex, totalColumns);
-                        console.log(`🎨 일정 스타일 (${schedule.title}):`, style);
+                        if (isDev) {
+                          console.log(`🎨 일정 스타일 (${schedule.title}):`, style);
+                        }
 
                         // 학생 또는 그룹 이름 가져오기
                         const targetName = schedule.target_type === "individual"

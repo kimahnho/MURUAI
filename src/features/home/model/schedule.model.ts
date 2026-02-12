@@ -145,7 +145,9 @@ export const scheduleModel = {
         .gte("end_date", startDate)
         .order("start_date", { ascending: true });
 
-      console.log("📊 Supabase 쿼리 결과:", { data, error, startDate, endDate });
+      if (import.meta.env.DEV) {
+        console.log("📊 Supabase 쿼리 결과:", { data, error, startDate, endDate });
+      }
 
       if (error) throw error;
 
