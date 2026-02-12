@@ -6,7 +6,6 @@ import MultiSelectionToolbar from "./MultiSelectionToolbar";
 import ElementToolbars from "./ElementToolbars";
 import CanvasStage from "./CanvasStage";
 import TemplateChoiceDialog from "./TemplateChoiceDialog";
-import PdfPreviewContainer from "./PdfPreviewContainer";
 import { useTemplateStore } from "../store/templateStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useFontStore } from "../store/fontStore";
@@ -337,8 +336,6 @@ const MainSection = () => {
         onMovePage={handleMovePage}
         onDuplicatePage={handleDuplicatePage}
       />
-      <PdfPreviewContainer pages={pages} fallbackOrientation={orientation} />
-
       <TemplateChoiceDialog
         open={!!templateChoiceDialog}
         onClose={() => {

@@ -65,6 +65,7 @@ src/features/editor/
   templates/                        # 템플릿 정의
   utils/                            # 유틸리티
     distributeElements.ts           # 요소 균등 분배 순수 함수
+    elementTransforms.ts            # flip/rotate 핸들러 팩토리
     imageBoxScaling.ts              # 이미지 박스 비율 보정 유틸
 ```
 

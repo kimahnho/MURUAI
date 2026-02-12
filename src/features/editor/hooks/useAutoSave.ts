@@ -26,6 +26,9 @@ export const useAutoSave = ({
 
   // ✅ setTimeout 타입 안정화 (Node/DOM 혼재 방지)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const lastPagesRef = useRef(pages);
   const clientRevisionRef = useRef(0);
@@ -84,7 +87,13 @@ export const useAutoSave = ({
       if (!validateData(lastPagesRef.current)) {
         if (isManual) {
           emitSaveState("error");
-          setTimeout(() => emitSaveState(null), 2000);
+          if (statusResetTimeoutRef.current) {
+            clearTimeout(statusResetTimeoutRef.current);
+          }
+          statusResetTimeoutRef.current = setTimeout(() => {
+            emitSaveState(null);
+            statusResetTimeoutRef.current = null;
+          }, 2000);
         }
         return;
       }
@@ -124,11 +133,15 @@ export const useAutoSave = ({
           setSaveState("saved");
           emitSaveState("saved");
           // 2초 후 상태 초기화
-          setTimeout(() => {
+          if (statusResetTimeoutRef.current) {
+            clearTimeout(statusResetTimeoutRef.current);
+          }
+          statusResetTimeoutRef.current = setTimeout(() => {
             if (clientRevisionRef.current === myRevision) {
               setSaveState(null);
               emitSaveState(null);
             }
+            statusResetTimeoutRef.current = null;
           }, 2000);
         }
       } catch (error) {
@@ -186,6 +199,19 @@ export const useAutoSave = ({
       }
     };
   }, [pages, docId, docName, performSave, isDataLoaded]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (statusResetTimeoutRef.current) {
+        clearTimeout(statusResetTimeoutRef.current);
+        statusResetTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const manualSave = useCallback(() => {
     if (!docId) return;

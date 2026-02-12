@@ -43,6 +43,7 @@ const clonePages = (pages: Page[]): Page[] => {
 };
 
 const HISTORY_MERGE_WINDOW_MS = 500;
+const MAX_HISTORY_ENTRIES = 50;
 
 // Helper to check if two page arrays are equal
 const arePagesEqual = (a: Page[], b: Page[]): boolean => {
@@ -107,11 +108,15 @@ export const useUnifiedHistoryStore = create<UnifiedHistoryState>((set, get) => 
       return;
     }
 
+    const nextPast = state.present
+      ? [...state.past, state.present].slice(-MAX_HISTORY_ENTRIES)
+      : state.past;
+
     set({
-      past: state.present ? [...state.past, state.present] : state.past,
+      past: nextPast,
       present: newEntry,
       future: [],
-      canUndo: true,
+      canUndo: nextPast.length > 0,
       canRedo: false,
     });
   },
@@ -152,13 +157,17 @@ export const useUnifiedHistoryStore = create<UnifiedHistoryState>((set, get) => 
       label,
     };
 
+    const nextPast = state.present
+      ? [...state.past, state.present].slice(-MAX_HISTORY_ENTRIES)
+      : state.past;
+
     set({
-      past: state.present ? [...state.past, state.present] : state.past,
+      past: nextPast,
       present: newEntry,
       future: [],
       transactionActive: false,
       transactionStartState: null,
-      canUndo: true,
+      canUndo: nextPast.length > 0,
       canRedo: false,
     });
   },

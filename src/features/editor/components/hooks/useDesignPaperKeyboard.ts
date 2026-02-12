@@ -1,4 +1,4 @@
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import {
   getRectFromElement,
@@ -47,6 +47,10 @@ export const useDesignPaperKeyboard = ({
   getClipboard,
   smartGuides,
 }: UseDesignPaperKeyboardProps) => {
+  const clearGuidesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   useEffect(() => {
     if (readOnly || !onElementsChange) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -232,8 +236,12 @@ export const useDesignPaperKeyboard = ({
 
         onElementsChange(newElements);
 
-        setTimeout(() => {
+        if (clearGuidesTimeoutRef.current) {
+          clearTimeout(clearGuidesTimeoutRef.current);
+        }
+        clearGuidesTimeoutRef.current = setTimeout(() => {
           smartGuides.clear();
+          clearGuidesTimeoutRef.current = null;
         }, 100);
         return;
       }
@@ -301,6 +309,10 @@ export const useDesignPaperKeyboard = ({
     window.addEventListener("keydown", handleKeyDown, true);
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
+      if (clearGuidesTimeoutRef.current) {
+        clearTimeout(clearGuidesTimeoutRef.current);
+        clearGuidesTimeoutRef.current = null;
+      }
     };
   }, [
     readOnly,

@@ -1,53 +1,63 @@
 import { useEffect, useRef, type WheelEvent as ReactWheelEvent } from "react";
-import type { Page } from "../../model/pageTypes";
 
 type UseBottomBarScrollParams = {
-  pages: Page[];
-  selectedPageId: string;
+  pagesLength: number;
+  selectedItemIndex: number | null;
+  addButtonIndex: number | null;
+  itemOffsets: number[];
+  itemWidths: number[];
+  totalWidth: number;
+  isSelectedLastPage: boolean;
 };
 
 export const useBottomBarScroll = ({
-  pages,
-  selectedPageId,
+  pagesLength,
+  selectedItemIndex,
+  addButtonIndex,
+  itemOffsets,
+  itemWidths,
+  totalWidth,
+  isSelectedLastPage,
 }: UseBottomBarScrollParams) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const addButtonRef = useRef<HTMLButtonElement>(null);
-  const pageItemRefs = useRef(new Map<string, HTMLDivElement | null>());
-  const prevPageCountRef = useRef(pages.length);
+  const prevPageCountRef = useRef(pagesLength);
 
-  const registerPageRef = (pageId: string) => (node: HTMLDivElement | null) => {
-    if (node) {
-      pageItemRefs.current.set(pageId, node);
-    } else {
-      pageItemRefs.current.delete(pageId);
-    }
+  const scrollToOffset = (offset: number, behavior: ScrollBehavior = "smooth") => {
+    const scroller = listRef.current;
+    if (!scroller) return;
+    const maxScroll = Math.max(0, totalWidth - scroller.clientWidth);
+    scroller.scrollTo({
+      left: Math.min(Math.max(offset, 0), maxScroll),
+      behavior,
+    });
   };
 
   useEffect(() => {
     const prevCount = prevPageCountRef.current;
-    if (pages.length > prevCount) {
-      const lastPageId = pages[pages.length - 1]?.id;
-      if (lastPageId && lastPageId === selectedPageId) {
-        addButtonRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "end",
-        });
-      }
+    if (pagesLength > prevCount && isSelectedLastPage) {
+      const addOffset =
+        addButtonIndex != null ? itemOffsets[addButtonIndex] ?? 0 : 0;
+      scrollToOffset(addOffset);
     }
-    prevPageCountRef.current = pages.length;
-  }, [pages, selectedPageId]);
+    prevPageCountRef.current = pagesLength;
+  }, [
+    pagesLength,
+    isSelectedLastPage,
+    addButtonIndex,
+    itemOffsets,
+    totalWidth,
+  ]);
 
   useEffect(() => {
-    const target = pageItemRefs.current.get(selectedPageId);
-    if (!target) return;
-    target.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-  }, [selectedPageId]);
+    if (selectedItemIndex == null) return;
+    const scroller = listRef.current;
+    if (!scroller) return;
+    const offset = itemOffsets[selectedItemIndex] ?? 0;
+    const width = itemWidths[selectedItemIndex] ?? 0;
+    const centerOffset = offset + width / 2 - scroller.clientWidth / 2;
+    scrollToOffset(centerOffset);
+  }, [selectedItemIndex, itemOffsets, itemWidths, totalWidth]);
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (!containerRef.current?.contains(event.target as Node)) return;
@@ -62,8 +72,6 @@ export const useBottomBarScroll = ({
   return {
     containerRef,
     listRef,
-    addButtonRef,
-    registerPageRef,
     handleWheel,
   };
 };

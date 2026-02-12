@@ -30,6 +30,8 @@ type ExportModalProps = {
   students: TargetOption[];
   groups: TargetOption[];
   isLoadingTargets: boolean;
+  preparePdfPages?: () => Promise<void>;
+  cleanupPdfPages?: () => void;
 };
 
 const parsePageRangeInput = (value: string, maxPageNumber: number) => {
@@ -79,6 +81,8 @@ const ExportModal = ({
   students,
   groups,
   isLoadingTargets,
+  preparePdfPages,
+  cleanupPdfPages,
 }: ExportModalProps) => {
   const showToast = useToastStore((state) => state.showToast);
   const [targetType, setTargetType] = useState<TargetType>("child");
@@ -169,6 +173,9 @@ const ExportModal = ({
     setIsDownloading(true);
     try {
       let userMadeId = lastSavedUserMadeId ?? documentId ?? null;
+      if (preparePdfPages) {
+        await preparePdfPages();
+      }
       if (autoSaveOnDownload && !userMadeId) {
         if (!userId) {
           showToast("로그인이 필요해요.");
@@ -190,6 +197,7 @@ const ExportModal = ({
     } catch {
       showToast("PDF를 만들지 못했어요.");
     } finally {
+      cleanupPdfPages?.();
       setIsDownloading(false);
     }
   };

@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import ExportModal from "@/features/editor/components/ExportModal";
+import PdfPreviewContainer from "@/features/editor/components/PdfPreviewContainer";
 import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
@@ -29,6 +30,7 @@ const DesignLayout = () => {
   const navigate = useNavigate();
   const { docId } = useParams<{ docId?: string }>();
   const [zoom, setZoom] = useState<number>(100);
+  const [isPdfPreviewActive, setIsPdfPreviewActive] = useState(false);
 
   const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument } =
     useDocumentLoader({ docId });
@@ -105,6 +107,21 @@ const DesignLayout = () => {
 
   const handleResetZoom = () => {
     setZoom(100);
+  };
+
+  const preparePdfPages = async () => {
+    setIsPdfPreviewActive(true);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  };
+
+  const cleanupPdfPages = () => {
+    setIsPdfPreviewActive(false);
   };
 
   return (
@@ -394,7 +411,15 @@ const DesignLayout = () => {
         students={students}
         groups={groups}
         isLoadingTargets={isLoadingTargets}
+        preparePdfPages={preparePdfPages}
+        cleanupPdfPages={cleanupPdfPages}
       />
+      {isPdfPreviewActive && (
+        <PdfPreviewContainer
+          pages={getCanvasData().pages ?? []}
+          fallbackOrientation={effectiveOrientation}
+        />
+      )}
     </div>
   );
 };
