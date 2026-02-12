@@ -7,6 +7,7 @@ import {
   type MutableRefObject,
 } from "react";
 import { useUnifiedHistoryStore } from "../store/unifiedHistoryStore";
+import { usePageSwapStore } from "../store/pageSwapStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 
@@ -70,6 +71,7 @@ type HistoryRecordParams = {
   redoRequestId: number;
   isApplyingHistoryRef: MutableRefObject<boolean>;
   isApplyingTemplateRef: MutableRefObject<boolean>;
+  isSwapping: boolean;
   isInitializedRef: MutableRefObject<boolean>;
 };
 
@@ -83,6 +85,7 @@ const useHistoryRecordEffect = ({
   redoRequestId,
   isApplyingHistoryRef,
   isApplyingTemplateRef,
+  isSwapping,
   isInitializedRef,
 }: HistoryRecordParams) => {
   const lastUndoRequestIdRef = useRef(0);
@@ -93,6 +96,7 @@ const useHistoryRecordEffect = ({
     if (!isInitializedRef.current) return;
     if (isApplyingHistoryRef.current) return;
     if (isApplyingTemplateRef.current) return;
+    if (isSwapping) return;
 
     if (
       undoRequestId !== lastUndoRequestIdRef.current ||
@@ -118,6 +122,7 @@ const useHistoryRecordEffect = ({
     redoRequestId,
     isApplyingHistoryRef,
     isApplyingTemplateRef,
+    isSwapping,
     isInitializedRef,
   ]);
 };
@@ -246,6 +251,7 @@ export const useHistorySync = ({
   );
   const undoRequestId = useUnifiedHistoryStore((state) => state.undoRequestId);
   const redoRequestId = useUnifiedHistoryStore((state) => state.redoRequestId);
+  const swapInFlight = usePageSwapStore((state) => state.swapInFlight);
 
   const isInitializedRef = useRef(false);
   const isTransactionActiveRef = useRef(false);
@@ -268,6 +274,7 @@ export const useHistorySync = ({
     redoRequestId,
     isApplyingHistoryRef,
     isApplyingTemplateRef,
+    isSwapping: swapInFlight > 0,
     isInitializedRef,
   });
 

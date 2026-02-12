@@ -21,6 +21,10 @@ import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistorySt
 import { useToastStore } from "@/features/editor/store/toastStore";
 import ExportModal from "@/features/editor/components/ExportModal";
 import PdfPreviewContainer from "@/features/editor/components/PdfPreviewContainer";
+import {
+  usePageSwapStore,
+  waitForHydration,
+} from "@/features/editor/store/pageSwapStore";
 import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
@@ -110,7 +114,10 @@ const DesignLayout = () => {
   };
 
   const preparePdfPages = async () => {
+    const requestId = usePageSwapStore.getState().requestHydration();
     setIsPdfPreviewActive(true);
+    usePageSwapStore.getState().setPdfPreviewActive(true);
+    await waitForHydration(requestId);
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -122,6 +129,7 @@ const DesignLayout = () => {
 
   const cleanupPdfPages = () => {
     setIsPdfPreviewActive(false);
+    usePageSwapStore.getState().setPdfPreviewActive(false);
   };
 
   return (

@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { updateUserMadeVersion } from "../utils/userMadeExport";
+import {
+  usePageSwapStore,
+  waitForForceHydrate,
+} from "../store/pageSwapStore";
 import type { Page } from "../model/pageTypes";
 
 export type SaveState = "saving" | "saved" | "error";
@@ -118,6 +122,11 @@ export const useAutoSave = ({
           }
           return;
         }
+
+        const requestId = usePageSwapStore
+          .getState()
+          .requestForceHydrate();
+        await waitForForceHydrate(requestId);
 
         await updateUserMadeVersion({
           docId,

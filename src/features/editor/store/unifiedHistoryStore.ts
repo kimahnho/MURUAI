@@ -77,7 +77,7 @@ const pageHashCache = new WeakMap<Page, string>();
 
 const getPageSignature = (page: Page): string => {
   if (page.rev != null) {
-    return `${page.id}:${page.rev}`;
+    return `${page.id}:${page.rev}:${page.isSwapped ? 1 : 0}`;
   }
   const cached = pageHashCache.get(page);
   if (cached) return cached;

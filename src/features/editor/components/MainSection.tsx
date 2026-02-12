@@ -22,6 +22,8 @@ import { usePageManagement } from "../hooks/usePageManagement";
 import { useSelectionManagement } from "../hooks/useSelectionManagement";
 import { useCanvasViewport } from "../hooks/useCanvasViewport";
 import { useEditorSubscriptions } from "../hooks/useEditorSubscriptions";
+import { usePageSwap } from "../hooks/usePageSwap";
+import { usePageSwapStore } from "../store/pageSwapStore";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -208,6 +210,17 @@ const MainSection = () => {
     activeOrientation,
     containerRef,
   });
+  const visiblePageIds = usePageSwapStore((state) => state.visiblePageIds);
+  const pdfPreviewActive = usePageSwapStore((state) => state.pdfPreviewActive);
+  const requiredPageIds = pdfPreviewActive
+    ? pages.map((page) => page.id)
+    : Array.from(new Set([selectedPageId, ...visiblePageIds]));
+  usePageSwap({
+    pages,
+    setPages,
+    requiredPageIds,
+    maxActivePages: 8,
+  });
 
   const {
     isMultiColorSelection,
@@ -335,6 +348,7 @@ const MainSection = () => {
         onAddPageAtIndex={handleAddPageAtIndex}
         onMovePage={handleMovePage}
         onDuplicatePage={handleDuplicatePage}
+        onVisiblePageIdsChange={usePageSwapStore.getState().setVisiblePageIds}
       />
       <TemplateChoiceDialog
         open={!!templateChoiceDialog}

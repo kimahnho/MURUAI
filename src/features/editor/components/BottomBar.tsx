@@ -342,6 +342,7 @@ interface BottomBarProps {
   onAddPageAtIndex?: (index: number) => void;
   onMovePage?: (pageId: string, direction: "left" | "right") => void;
   onDuplicatePage?: (pageId: string) => void;
+  onVisiblePageIdsChange?: (pageIds: string[]) => void;
 }
 
 type BottomBarItem =
@@ -376,6 +377,7 @@ const BottomBar = ({
   onAddPageAtIndex,
   onMovePage,
   onDuplicatePage,
+  onVisiblePageIdsChange,
 }: BottomBarProps) => {
   const items = useMemo<BottomBarItem[]>(() => {
     const nextItems: BottomBarItem[] = [];
@@ -440,6 +442,7 @@ const BottomBar = ({
 
   const { containerRef, listRef, handleWheel } = useBottomBarScroll({
     pagesLength: pages.length,
+    selectedPageId,
     selectedItemIndex,
     addButtonIndex,
     itemOffsets,
@@ -541,6 +544,14 @@ const BottomBar = ({
     visibleRange.end >= visibleRange.start
       ? items.slice(visibleRange.start, visibleRange.end + 1)
       : [];
+
+  useEffect(() => {
+    if (!onVisiblePageIdsChange) return;
+    const ids = visibleItems
+      .filter((item) => item.type === "page")
+      .map((item) => item.page.id);
+    onVisiblePageIdsChange(ids);
+  }, [onVisiblePageIdsChange, visibleItems]);
 
   return (
     <div

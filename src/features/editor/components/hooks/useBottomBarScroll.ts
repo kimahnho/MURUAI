@@ -2,6 +2,7 @@ import { useEffect, useRef, type WheelEvent as ReactWheelEvent } from "react";
 
 type UseBottomBarScrollParams = {
   pagesLength: number;
+  selectedPageId: string;
   selectedItemIndex: number | null;
   addButtonIndex: number | null;
   itemOffsets: number[];
@@ -12,6 +13,7 @@ type UseBottomBarScrollParams = {
 
 export const useBottomBarScroll = ({
   pagesLength,
+  selectedPageId,
   selectedItemIndex,
   addButtonIndex,
   itemOffsets,
@@ -22,6 +24,7 @@ export const useBottomBarScroll = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const prevPageCountRef = useRef(pagesLength);
+  const lastSelectedPageIdRef = useRef<string | null>(null);
 
   const scrollToOffset = (offset: number, behavior: ScrollBehavior = "smooth") => {
     const scroller = listRef.current;
@@ -51,13 +54,15 @@ export const useBottomBarScroll = ({
 
   useEffect(() => {
     if (selectedItemIndex == null) return;
+    if (lastSelectedPageIdRef.current === selectedPageId) return;
+    lastSelectedPageIdRef.current = selectedPageId;
     const scroller = listRef.current;
     if (!scroller) return;
     const offset = itemOffsets[selectedItemIndex] ?? 0;
     const width = itemWidths[selectedItemIndex] ?? 0;
     const centerOffset = offset + width / 2 - scroller.clientWidth / 2;
     scrollToOffset(centerOffset);
-  }, [selectedItemIndex, itemOffsets, itemWidths, totalWidth]);
+  }, [selectedItemIndex, selectedPageId, itemOffsets, itemWidths, totalWidth]);
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (!containerRef.current?.contains(event.target as Node)) return;

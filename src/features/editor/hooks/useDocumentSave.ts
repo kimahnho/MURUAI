@@ -6,6 +6,10 @@ import {
   saveUserMadeVersion,
   updateUserMadeVersion,
 } from "../utils/userMadeExport";
+import {
+  usePageSwapStore,
+  waitForForceHydrate,
+} from "../store/pageSwapStore";
 import type { CanvasDocument } from "../model/pageTypes";
 
 type DocumentSaveParams = {
@@ -63,6 +67,10 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         return;
       }
       if (docId) {
+        const requestId = usePageSwapStore
+          .getState()
+          .requestForceHydrate();
+        await waitForForceHydrate(requestId);
         await updateUserMadeVersion({
           docId,
           name: getName(),
@@ -71,6 +79,10 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         setLastSavedUserMadeId(docId);
         showToast("저장했습니다.");
       } else {
+        const requestId = usePageSwapStore
+          .getState()
+          .requestForceHydrate();
+        await waitForForceHydrate(requestId);
         const { id } = await saveUserMadeVersion({
           userId: user.id,
           name: getName(),
