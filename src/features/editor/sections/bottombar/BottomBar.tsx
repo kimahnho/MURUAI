@@ -565,7 +565,6 @@ const BottomBar = ({
         event.preventDefault();
       }}
     >
-      {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div
         ref={listRef}
         className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden"

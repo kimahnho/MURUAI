@@ -75,7 +75,6 @@ const UploadContentView = ({
         <span className="flex text-title-14-semibold">내가 업로드한 파일</span>
       </div>
 
-      {/* 업로드된 파일 목록 영역 */}
       <div className="flex flex-col w-full flex-1 p-4">
         {isFetching ? (
           <div className="flex items-center justify-center h-full">

@@ -35,7 +35,6 @@ const TextProperties = ({
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
-      {/* 텍스트 크기 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 크기</div>
         <div className="flex items-center gap-2">
@@ -87,7 +86,6 @@ const TextProperties = ({
         </div>
       </div>
 
-      {/* 텍스트 색상 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 색상</div>
         <div className="flex items-center gap-2">
@@ -108,7 +106,6 @@ const TextProperties = ({
         </div>
       </div>
 
-      {/* 텍스트 스타일 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 스타일</div>
         <div className="flex items-center gap-2">
@@ -148,7 +145,6 @@ const TextProperties = ({
         </div>
       </div>
 
-      {/* 가로 정렬 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">가로 정렬</div>
         <div className="flex items-center gap-2">
@@ -179,7 +175,6 @@ const TextProperties = ({
         </div>
       </div>
 
-      {/* 세로 정렬 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">세로 정렬</div>
         <div className="flex items-center gap-2">

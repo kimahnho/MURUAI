@@ -108,7 +108,6 @@ const MultiPageTemplateDialog = ({
         </div>
 
         <div className="flex flex-col gap-5">
-          {/* 메인 미리보기 */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-14-semibold text-black-90">
@@ -174,7 +173,6 @@ const MultiPageTemplateDialog = ({
             </div>
           </div>
 
-          {/* 페이지 썸네일 선택 */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-14-semibold text-black-90">페이지 선택</span>
@@ -253,7 +251,6 @@ const MultiPageTemplateDialog = ({
                         />
                       </div>
 
-                      {/* 선택 체크박스 오버레이 */}
                       <div
                         className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition ${
                           isSelected
@@ -277,7 +274,6 @@ const MultiPageTemplateDialog = ({
             </div>
           </div>
 
-          {/* 적용 버튼 */}
           <div className="flex gap-3 mt-2">
             <button
               type="button"

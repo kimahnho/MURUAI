@@ -148,7 +148,6 @@ const ShapeProperties = ({
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
-      {/* 크기 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">크기</div>
         <div className="flex items-center gap-2">
@@ -219,7 +218,6 @@ const ShapeProperties = ({
         </div>
       </div>
 
-      {/* 모서리 (rect만) */}
       {element.type === "rect" && (
         <div className="flex flex-col gap-2">
           <div className="text-14-semibold text-black-90">모서리</div>
@@ -275,7 +273,6 @@ const ShapeProperties = ({
         </div>
       )}
 
-      {/* 색상 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">박스 색상</div>
         <div className="flex items-center gap-2">
@@ -294,7 +291,6 @@ const ShapeProperties = ({
         </div>
       </div>
 
-      {/* 이미지 업로드 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">이미지</div>
         <label
@@ -317,7 +313,6 @@ const ShapeProperties = ({
         </label>
       </div>
 
-      {/* 테두리 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">테두리</div>
         <div className="flex flex-col gap-3 p-3 rounded-lg border border-black-25 bg-black-5">

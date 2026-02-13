@@ -86,7 +86,6 @@ const AACContent = () => {
         </span>
       </div>
 
-      {/* 카테고리 버튼 */}
       <div className="grid grid-cols-4 gap-2">
         {CATEGORIES.map((category) => (
           <button
@@ -103,7 +102,6 @@ const AACContent = () => {
         ))}
       </div>
 
-      {/* 검색 영역 */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-s text-black-50" />
         <input
@@ -115,7 +113,6 @@ const AACContent = () => {
         />
       </div>
 
-      {/* 이미지 그리드 영역 (스크롤 가능) */}
       <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">

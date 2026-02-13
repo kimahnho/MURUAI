@@ -68,7 +68,6 @@ const SideBar = () => {
 
   return (
     <div className="flex h-full">
-      {/* 아이콘 바 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
         {MENU_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -98,7 +97,6 @@ const SideBar = () => {
           );
         })}
       </div>
-      {/* 상세 옵션 바 */}
       {selectedMenu && (
         <div className="flex flex-col w-82 h-full px-4 py-4 border-r border-black-25 gap-2">
           <div className="text-title-20-semibold text-black-100">

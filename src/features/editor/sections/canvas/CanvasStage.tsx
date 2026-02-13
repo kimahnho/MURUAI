@@ -91,7 +91,6 @@ const CanvasStage = ({
               imageRendering: "crisp-edges",
             }}
           />
-          {/* DesignPaper를 Canvas 위에 오버레이로 배치 */}
           <div
             style={{
               position: "absolute",
