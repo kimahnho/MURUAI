@@ -1,3 +1,6 @@
+/**
+ * 줌 인/아웃/초기화 동작과 현재 줌 상태를 관리하는 훅.
+ */
 import { useEffect, useRef } from "react";
 
 const A4_WIDTH = 210 * 3.7795;

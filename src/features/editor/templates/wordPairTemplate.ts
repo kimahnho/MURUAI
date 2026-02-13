@@ -1,3 +1,6 @@
+/**
+ * 단어 짝맞추기 템플릿 페이지 구조를 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../model/canvasTypes";
 
@@ -100,6 +103,7 @@ export const wordPairTemplate: Template = {
       const cardTempId = `word-card-${index}`;
 
       return [
+        // 라벨 텍스트와 카드(labelId)를 tempId로 연결해 AAC 스타일 후처리와 동일한 연결 규칙을 사용한다.
         {
           type: "text" as const,
           tempId: labelTempId,

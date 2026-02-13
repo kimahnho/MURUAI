@@ -1,3 +1,6 @@
+/**
+ * 색상 선택 UI와 확정 액션을 제공하는 팝오버 컴포넌트.
+ */
 import { useEffect, useRef, useState } from "react";
 import { HelpCircle } from "lucide-react";
 
@@ -31,6 +34,7 @@ const normalizeHex = (input: string) => {
   const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
   const shortHexMatch = /^#([0-9a-fA-F]{3})$/.exec(withHash);
   if (shortHexMatch) {
+    // 3자리 hex 입력도 6자리로 정규화해 저장/비교 경로를 단일화한다.
     const [r, g, b] = shortHexMatch[1].split("");
     return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
   }

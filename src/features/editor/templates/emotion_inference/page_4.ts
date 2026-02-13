@@ -1,3 +1,6 @@
+/**
+ * 감정 추론 템플릿 4페이지 구성을 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../../model/canvasTypes";
 
@@ -7,6 +10,7 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 const pageWidthMm = 210;
 const horizontalPaddingMm = 20;
 
+// 상단 헤더(로고/날짜/제목) 배치
 const logoXmm = 9;
 const logoYmm = 2;
 const logoWidthMm = 24;
@@ -32,6 +36,7 @@ const questionHeightMm = 10;
 const questionXmm = (pageWidthMm - questionWidthMm) / 2;
 const questionYmm = heroYmm + heroHeightMm + 12;
 
+// 감정 선택 카드 + 하단 선택 pill 배치
 const cardWidthMm = 40;
 const cardHeightMm = 56;
 const cardGapMm = 10;

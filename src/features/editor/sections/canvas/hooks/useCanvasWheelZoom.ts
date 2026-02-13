@@ -1,3 +1,6 @@
+/**
+ * 휠 입력 기반 줌 동작과 줌 중심 보정을 처리하는 훅.
+ */
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from "react";
 
 type CanvasWheelZoomParams = {

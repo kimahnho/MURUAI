@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 타입에 맞는 상단 고정 툴바/액션 UI를 렌더링하는 컴포넌트.
+ */
 import { lazy, Suspense, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowUpFromLine,
@@ -208,6 +211,7 @@ const ElementToolbars = ({
     angleRad: number,
     start: { x: number; y: number },
   ) => {
+    // 길이/각도 수정은 시작점 고정 방식으로 통일해 드래그 편집 결과와 일치시킨다.
     const newEnd = {
       x: start.x + newLength * Math.cos(angleRad),
       y: start.y + newLength * Math.sin(angleRad),

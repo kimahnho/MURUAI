@@ -1,3 +1,6 @@
+/**
+ * 이미지 채우기 대상 판별과 AAC 연동 보조 유틸을 제공하는 모듈.
+ */
 import type { CanvasElement } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;

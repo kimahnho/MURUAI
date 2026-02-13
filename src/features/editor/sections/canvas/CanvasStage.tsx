@@ -1,3 +1,6 @@
+/**
+ * 에디터 캔버스 스테이지의 입력 이벤트와 렌더링 컨테이너를 연결하는 컴포넌트.
+ */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import type { Page } from "../../model/pageTypes";
@@ -42,6 +45,7 @@ const CanvasStage = ({
   onInteractionChange,
   aiTipKey,
 }: CanvasStageProps) => {
+  // Stage 액션 ref를 통해 DesignPaper 내부 동작(선택 계산/좌표 조회)을 스테이지 선택 훅과 연결한다.
   const stageActionsRef = useRef<DesignPaperStageActions | null>(null);
   const {
     selectionRect,
@@ -87,6 +91,7 @@ const CanvasStage = ({
           <canvas
             ref={canvasRef}
             style={{
+              // 배경 격자 캔버스는 벡터 오버레이와 분리해 확대 시 픽셀 렌더링 품질을 유지한다.
               display: "block",
               imageRendering: "crisp-edges",
             }}
@@ -103,7 +108,7 @@ const CanvasStage = ({
               pointerEvents: "all",
             }}
           >
-            {/* 실제 편집 상호작용은 DesignPaper 오버레이에서 처리한다. */}
+            {/* 스테이지는 좌표계/스케일만 담당하고, 실제 요소 상호작용은 DesignPaper에 위임한다. */}
             {selectedPage && (
               <DesignPaper
                 key={selectedPage.id}
@@ -134,6 +139,7 @@ const AiTip = ({ padding }: { padding: number }) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    // 진입 가이드 문구는 초기 주의 환기 용도라 짧게 노출 후 자동 종료한다.
     const timer = window.setTimeout(() => {
       setVisible(false);
     }, 1500);

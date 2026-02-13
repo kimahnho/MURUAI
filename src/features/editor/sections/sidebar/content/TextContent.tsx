@@ -1,3 +1,6 @@
+/**
+ * 텍스트 추가와 텍스트 스타일 진입 액션을 제공하는 패널 컴포넌트.
+ */
 import { useElementStore } from "@/features/editor/store/elementStore";
 
 type TextPreset = {
@@ -72,6 +75,7 @@ const TextContentView = ({ presets, onSelectPreset }: TextContentViewProps) => {
             <button
               key={preset.id}
               className="flex w-full rounded-xl border border-black-30 items-center justify-start px-3 py-4 cursor-pointer"
+              // 프리셋 클릭은 텍스트 삽입 요청만 발생시키고, 실제 위치 계산은 캔버스 측 삽입 정책을 따른다.
               onClick={() => { onSelectPreset(preset.preset); }}
             >
               <span className={`flex ${preset.className}`}>
@@ -86,6 +90,7 @@ const TextContentView = ({ presets, onSelectPreset }: TextContentViewProps) => {
 };
 
 const TextContent = () => {
+  // requestText는 현재 선택/편집 상태를 고려해 적절한 페이지에 텍스트 요소를 생성한다.
   const onSelectPreset = useElementStore((s) => s.requestText);
 
   return (

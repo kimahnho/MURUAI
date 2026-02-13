@@ -1,3 +1,6 @@
+/**
+ * 페이지/요소 갱신 패턴을 공통화해 setPages 보일러플레이트를 줄이는 모듈.
+ */
 import type { CanvasElement } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
 import { bumpPageRevision } from "./pageRevision";

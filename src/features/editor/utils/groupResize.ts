@@ -1,3 +1,6 @@
+/**
+ * 다중 선택 그룹 리사이즈 시 개별 요소 변환 계산 유틸을 제공하는 모듈.
+ */
 import type {
   CanvasElement,
   ShapeElement,
@@ -55,6 +58,7 @@ export const computeGroupRectFromDeltas = (
     (handle.includes("n") || handle.includes("s")) &&
     (handle.includes("e") || handle.includes("w"));
   if (isCorner) {
+    // 코너 리사이즈는 비율을 유지해 다중 선택 리사이즈 결과가 단일 리사이즈와 어긋나지 않게 한다.
     const scaleX = start.width ? nextW / start.width : 1;
     const scaleY = start.height ? nextH / start.height : 1;
     const scale =
@@ -117,6 +121,7 @@ export const buildGroupResizeSnapshot = (
   });
   const allIds = new Set([...selectedIds, ...linkedIds]);
   const items = new Map<string, GroupResizeItem>();
+  // 시작 스냅샷을 고정해 pointermove 누적에 따른 오차 없이 비율 변환을 적용한다.
   elements.forEach((element) => {
     if (!allIds.has(element.id) || element.locked) return;
     if (element.type === "line" || element.type === "arrow") {
@@ -250,6 +255,7 @@ export const applyGroupResizeSnapshot = (
           : undefined;
       if (element.type === "text") {
         const baseFontSize = item.fontSize ?? element.style.fontSize;
+        // 텍스트는 가로/세로 스케일 평균을 사용해 왜곡 대신 시각적 크기 감각을 유지한다.
         const nextFontSize = Math.max(
           6,
           Math.round(baseFontSize * fontScale),

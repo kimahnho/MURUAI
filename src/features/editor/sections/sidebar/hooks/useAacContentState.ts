@@ -1,3 +1,6 @@
+/**
+ * AAC 패널의 카테고리/검색/선택 상태를 관리하는 훅.
+ */
 import { useState } from "react";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { useAacCards } from "./useAacCards";

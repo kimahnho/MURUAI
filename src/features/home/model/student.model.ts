@@ -1,3 +1,6 @@
+/**
+ * 학생 도메인 데이터 구조와 입력 계약을 정의하는 모델 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 
 export interface Student {

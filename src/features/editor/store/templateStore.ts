@@ -1,3 +1,6 @@
+/**
+ * 템플릿 선택/적용 요청과 대상 정보를 관리하는 스토어 모듈.
+ */
 import { create } from "zustand";
 import type { TemplateId } from "../templates/templateRegistry";
 

@@ -1,3 +1,6 @@
+/**
+ * DesignPaper의 선택/드래그/리사이즈/컨텍스트 메뉴 입력 흐름을 통합 처리하는 핵심 훅.
+ */
 import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type {
   CanvasElement,

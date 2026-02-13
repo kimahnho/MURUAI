@@ -1,3 +1,6 @@
+/**
+ * 요소 생성/수정 요청 스토어를 구독해 현재 페이지 요소 패치를 반영하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";

@@ -1,3 +1,6 @@
+/**
+ * DesignPaper 내부 액션을 묶어 요소 패치/선택 변경 실행 함수를 제공하는 훅.
+ */
 import type {
   Dispatch,
   KeyboardEvent as ReactKeyboardEvent,
@@ -61,6 +64,7 @@ export const useDesignPaperActions = ({
       const [target] = nextElements.splice(index, 1);
       nextElements.unshift(target);
     }
+    // 레이어 변경 후 우클릭 메뉴를 닫아 현재 레이어 순서를 기준으로 UI 상태를 재동기화한다.
     onElementsChange(nextElements);
     setContextMenu(null);
   };
@@ -97,6 +101,7 @@ export const useDesignPaperActions = ({
 
   const getLinkedIdsToDelete = (idsToDelete: string[]) => {
     const linkedIds = new Set<string>();
+    // 카드 삭제 시 labelId에 연결된 텍스트를 함께 지워 고아 요소를 방지한다.
     elements.forEach((element) => {
       if (idsToDelete.includes(element.id)) {
         if (

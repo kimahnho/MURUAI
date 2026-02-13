@@ -1,3 +1,6 @@
+/**
+ * 텍스트 툴바 옵션과 표시 규칙 설정을 정의하는 모듈.
+ */
 import type { TextElement } from "../../../model/canvasTypes";
 import { getFontLabel } from "../../../utils/fontOptions";
 import type { SideBarMenu } from "../../../store/sideBarStore";
@@ -51,6 +54,7 @@ export const buildTextToolbarConfig = ({
   fontFamily: element.style.fontFamily ?? "Pretendard",
   fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
   onFontFamilyClick: () => {
+    // 글꼴 선택은 사이드바 font 패널을 여는 UI 전환과 현재 요소 폰트 상태 동기화를 함께 수행한다.
     setSideBarMenu("font");
     setFontPanel({
       fontFamily: element.style.fontFamily ?? "Pretendard",
@@ -78,6 +82,7 @@ export const buildTextToolbarConfig = ({
   onColorChange: (color: string) => {
     updateElement(element.id, {
       style: { color },
+      // 단일 스타일 변경 시 richText 내 동일 속성 태그를 제거해 이중 우선순위를 방지한다.
       richText: element.richText
         ? stripStyleTags(element.richText, "color")
         : undefined,
@@ -118,6 +123,7 @@ export const buildTextToolbarConfig = ({
     });
   },
   onAlignChange: (align: "left" | "center" | "right") => {
+    // 정렬 변경은 richText 마크업이 아닌 요소 style 레벨에서 처리해 전역 정렬 기준을 유지한다.
     updateElement(element.id, { style: { alignX: align } });
   },
   onAlignYChange: (alignY: "top" | "middle" | "bottom") => {

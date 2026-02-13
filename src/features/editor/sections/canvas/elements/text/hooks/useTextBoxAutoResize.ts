@@ -1,3 +1,6 @@
+/**
+ * 텍스트 내용 변화에 맞춰 박스 크기를 자동 보정하는 훅.
+ */
 import {
   useEffect,
   useRef,

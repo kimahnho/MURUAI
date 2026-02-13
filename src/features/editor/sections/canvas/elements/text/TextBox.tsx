@@ -1,3 +1,6 @@
+/**
+ * 텍스트 요소 본문 렌더링과 편집 진입/선택 상태를 처리하는 컴포넌트.
+ */
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { ResizeHandle } from "../../../../model/canvasTypes";

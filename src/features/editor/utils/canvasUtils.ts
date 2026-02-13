@@ -1,3 +1,6 @@
+/**
+ * 캔버스 좌표 변환과 요소 경계 계산 공통 유틸을 제공하는 모듈.
+ */
 export type Guide = {
   type: "vertical" | "horizontal";
   position: number;

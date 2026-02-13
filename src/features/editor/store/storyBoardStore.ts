@@ -1,3 +1,6 @@
+/**
+ * 스토리보드 생성 요청과 옵션 상태를 관리하는 스토어 모듈.
+ */
 import { create } from "zustand";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
 import { mp } from "@/shared/utils/mixpanel";

@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 집합에 적용할 patch 생성 유틸을 제공하는 모듈.
+ */
 import type { CanvasElement, ShapeElement } from "../../../model/canvasTypes";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";

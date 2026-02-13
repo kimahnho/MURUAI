@@ -1,3 +1,6 @@
+/**
+ * 그룹 정보 수정 입력과 저장 액션을 처리하는 모달 컴포넌트.
+ */
 import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { useModalStore } from "@/shared/store/useModalStore";
@@ -55,6 +58,7 @@ const EditGroupModalContent = ({
     setSelectedMembers((prev) =>
       prev.includes(memberId)
         ? prev.filter((id) => id !== memberId)
+        // 멤버 수 제한은 선택 토글 단계에서 즉시 차단해 제출 오류를 줄인다.
         : prev.length < 5
         ? [...prev, memberId]
         : prev
@@ -64,6 +68,7 @@ const EditGroupModalContent = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!isEditing) {
+      // 읽기 모드에서의 submit 이벤트는 무시해 실수 저장을 막는다.
       return;
     }
     if (!group?.id) {
@@ -87,6 +92,7 @@ const EditGroupModalContent = ({
       return;
     }
 
+    // 저장 성공 후 최신 그룹/멤버 스냅샷을 다시 가져와 리스트 화면과 상태를 동기화한다.
     await refreshGroups();
     handleReset();
     onClose();

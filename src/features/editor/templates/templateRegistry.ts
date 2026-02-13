@@ -1,3 +1,6 @@
+/**
+ * 사용 가능한 템플릿 메타데이터와 조회 함수를 제공하는 레지스트리 모듈.
+ */
 import type { Template } from "../model/canvasTypes";
 import { emotionWorksheetTemplate } from "./emotionWorksheetTemplate";
 import { emotionInferencePage1 } from "./emotion_inference/page_1";
@@ -65,6 +68,7 @@ export const TEMPLATE_REGISTRY = {
 
 export type TemplateId = keyof typeof TEMPLATE_REGISTRY;
 
+// 다중 페이지 템플릿은 pages 필드를 사용하고, 단일 페이지 템플릿은 template만 사용한다.
 export type TemplateDefinition = {
   id: TemplateId;
   label: string;

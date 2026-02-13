@@ -1,3 +1,6 @@
+/**
+ * 페이지 변경을 히스토리 스토어와 동기화해 안정적인 undo/redo 스냅샷을 유지하는 훅.
+ */
 import {
   useCallback,
   useEffect,
@@ -102,6 +105,7 @@ const useHistoryRecordEffect = ({
       undoRequestId !== lastUndoRequestIdRef.current ||
       redoRequestId !== lastRedoRequestIdRef.current
     ) {
+      // undo/redo 직후 즉시 record가 다시 쌓이는 현상을 막기 위해 짧은 차단 구간을 둔다.
       lastUndoRequestIdRef.current = undoRequestId;
       lastRedoRequestIdRef.current = redoRequestId;
       blockRecordUntilRef.current = Date.now() + 100;
@@ -161,6 +165,7 @@ const useHistorySubscriptionEffect = ({
           clearTimeout(applyHistoryTimeoutRef.current);
         }
         applyHistoryTimeoutRef.current = setTimeout(() => {
+          // 히스토리 적용 완료 플래그를 지연 해제해 연쇄 effect의 중복 record를 방지한다.
           isApplyingHistoryRef.current = false;
         }, 150);
       }
@@ -290,6 +295,7 @@ export const useHistorySync = ({
   const beginTransaction = useCallback(() => {
     if (isTransactionActiveRef.current) return;
     isTransactionActiveRef.current = true;
+    // 텍스트 편집처럼 다수 변경이 연속 발생하는 구간은 트랜잭션으로 묶어 히스토리 노이즈를 줄인다.
     historyBeginTransaction(
       pagesRef.current,
       selectedPageIdRef.current,

@@ -1,3 +1,6 @@
+/**
+ * 페이지 썸네일 목록과 페이지 추가/정렬 액션을 제공하는 하단 바 컴포넌트.
+ */
 import {
   ChevronLeft,
   ChevronRight,
@@ -381,6 +384,7 @@ const BottomBar = ({
 }: BottomBarProps) => {
   const items = useMemo<BottomBarItem[]>(() => {
     const nextItems: BottomBarItem[] = [];
+    // 페이지/삽입선/추가 버튼을 하나의 리스트 모델로 만들어 가상 스크롤 계산을 단순화한다.
     pages.forEach((page, index) => {
       const width =
         page.orientation === "horizontal"
@@ -511,6 +515,7 @@ const BottomBar = ({
     }
     end = Math.max(start, end - 1);
     const buffer = 3;
+    // 스크롤 경계 근처 항목을 미리 렌더링해 빠른 스크롤 시 빈 구간이 보이는 현상을 줄인다.
     const nextStart = Math.max(0, start - buffer);
     const nextEnd = Math.min(items.length - 1, end + buffer);
     setVisibleRange((prev) =>
@@ -547,6 +552,7 @@ const BottomBar = ({
 
   useEffect(() => {
     if (!onVisiblePageIdsChange) return;
+    // 현재 뷰포트에 보이는 페이지 ID를 상위로 전달해 페이지 스왑 최적화에 사용한다.
     const ids = visibleItems
       .filter((item) => item.type === "page")
       .map((item) => item.page.id);

@@ -1,3 +1,6 @@
+/**
+ * 내보내기 모달의 열림 상태와 대상 선택 동작을 관리하는 훅.
+ */
 import { useCallback, useState } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
@@ -26,11 +29,13 @@ export const useExportModal = () => {
     }
     setExportUserId(user.id);
     setIsExportModalOpen(true);
+    // key를 증가시켜 모달 내부 로컬 상태(선택 대상/필터 등)를 열 때마다 초기화한다.
     setExportModalKey((prev) => prev + 1);
     setStudents([]);
     setGroups([]);
     setIsLoadingTargets(true);
     try {
+      // 학생/그룹 목록은 독립 실패가 가능하므로 병렬 조회 후 개별 토스트로 오류를 안내한다.
       const [studentsResult, groupsResult] = await Promise.all([
         supabase.from("students_n").select("id,name").is("deleted_at", null),
         supabase.from("groups_n").select("id,name").is("deleted_at", null),

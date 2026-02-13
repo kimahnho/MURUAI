@@ -1,3 +1,6 @@
+/**
+ * AAC 카드/라벨 레이아웃 생성과 위치 계산 유틸을 제공하는 모듈.
+ */
 import type { TemplateElement } from "../model/canvasTypes";
 
 export type AacLabelPosition = "top" | "bottom" | "none";

@@ -1,3 +1,6 @@
+/**
+ * 문서 저장 payload 구성과 신규/기존 저장 API 호출을 공통화한 모듈.
+ */
 import type { Page, CanvasDocument } from "../model/pageTypes";
 import { resolvePagesForPersistence } from "./persistPages";
 import { saveUserMadeVersion, updateUserMadeVersion } from "./userMadeExport";

@@ -1,3 +1,6 @@
+/**
+ * 학생 카드 요약 정보를 표시하고 상세/편집 액션을 제공하는 컴포넌트.
+ */
 import type { Student } from "../model/student.model";
 
 interface UserCardProps {

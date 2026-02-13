@@ -1,3 +1,6 @@
+/**
+ * 텍스트 DOM 선택 범위를 읽고 복원하기 위한 selection 보조 함수를 제공하는 모듈.
+ */
 type Point = { x: number; y: number };
 
 type CaretDocument = Document & {
@@ -11,6 +14,7 @@ type CaretDocument = Document & {
 const getCaretRangeFromPoint = (point: Point) => {
   if (typeof document === "undefined") return null;
   const doc = document as CaretDocument;
+  // 브라우저별 caret API 차이를 흡수해 좌표 기반 커서 이동 경로를 단일화한다.
   if (doc.caretPositionFromPoint) {
     const position = doc.caretPositionFromPoint(point.x, point.y);
     if (!position) return null;
@@ -82,6 +86,7 @@ export const selectWordAtPoint = (editable: HTMLElement | null, point: Point) =>
     if (isWordEndBoundary && offset < textContent.length) {
       const isWhitespace = /\s/.test(textContent[offset]);
       if (isWhitespace) {
+        // 단어 경계 직후 공백을 누른 경우 공백 구간 자체를 선택해 삭제/치환 UX를 맞춘다.
         let spaceEnd = offset;
         while (spaceEnd < textContent.length && /\s/.test(textContent[spaceEnd])) {
           spaceEnd++;

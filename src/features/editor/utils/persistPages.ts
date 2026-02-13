@@ -1,3 +1,6 @@
+/**
+ * 스왑된 페이지를 포함한 저장용 페이지 스냅샷을 해석하는 모듈.
+ */
 import type { Page } from "../model/pageTypes";
 import { loadPageElementsBatch } from "./pageSwapStorage";
 

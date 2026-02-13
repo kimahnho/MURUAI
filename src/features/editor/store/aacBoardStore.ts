@@ -1,3 +1,6 @@
+/**
+ * AAC 보드 생성 요청과 관련 설정 상태를 관리하는 스토어 모듈.
+ */
 import { create } from "zustand";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import { mp } from "@/shared/utils/mixpanel";

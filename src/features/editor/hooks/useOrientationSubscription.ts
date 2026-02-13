@@ -1,3 +1,6 @@
+/**
+ * 방향 변경 이벤트를 구독해 활성 페이지의 orientation 패치를 반영하는 훅.
+ */
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useOrientationStore } from "../store/orientationStore";
 import type { Page } from "../model/pageTypes";

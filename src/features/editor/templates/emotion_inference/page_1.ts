@@ -1,3 +1,6 @@
+/**
+ * 감정 추론 템플릿 1페이지 구성을 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../../model/canvasTypes";
 
@@ -7,6 +10,7 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 const pageWidthMm = 210;
 const pageHeightMm = 297;
 
+// 외곽 프레임/헤더 요소 배치
 const frameInsetMm = 5;
 const frameWidthMm = pageWidthMm - frameInsetMm * 2;
 const frameHeightMm = pageHeightMm - frameInsetMm * 2;
@@ -33,6 +37,7 @@ const mouthWidthMm = 6;
 const mouthHeightMm = 6;
 const mouthGapMm = 8;
 
+// 선택 카드 그리드 배치
 const cardWidthMm = 70;
 const cardHeightMm = 40;
 const cardGapMm = 8;

@@ -1,3 +1,6 @@
+/**
+ * 문서/페이지 저장 구조와 편집 상태 타입을 정의하는 모듈.
+ */
 import type { CanvasElement } from "./canvasTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 

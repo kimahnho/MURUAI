@@ -1,3 +1,6 @@
+/**
+ * 사물 찾기 활동 템플릿 구조를 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../model/canvasTypes";
 
@@ -51,6 +54,7 @@ export const findItemTemplate: Template = {
         alignY: "middle",
       },
     },
+    // 2x2 카드 그리드를 반복 생성해 빈칸 활동지 기본 레이아웃을 구성한다.
     ...Array.from({ length: 4 }).map((_, index) => {
       const row = Math.floor(index / 2);
       const col = index % 2;

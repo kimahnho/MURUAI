@@ -1,3 +1,6 @@
+/**
+ * 감정 사진 데이터 조회와 선택 상태를 관리하는 훅.
+ */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
 

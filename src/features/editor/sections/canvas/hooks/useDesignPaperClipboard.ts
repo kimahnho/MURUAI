@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 복사/붙여넣기 단축 동작을 캔버스 상태와 연결하는 훅.
+ */
 import { useCallback, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";

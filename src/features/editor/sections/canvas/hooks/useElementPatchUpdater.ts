@@ -1,3 +1,6 @@
+/**
+ * 요소 patch 적용 로직을 공통화해 단일/다중 요소 업데이트를 처리하는 훅.
+ */
 import type {
   CanvasElement,
   LineElement,
@@ -38,6 +41,7 @@ export const useElementPatchUpdater = ({
 }: UseElementPatchUpdaterParams) => {
   const updateElement = (id: string, patch: ElementPatch) => {
     if (readOnly || !onElementsChange) return;
+    // 요소 타입별 중첩 필드(style/border/stroke)는 얕은 병합으로 유실되기 쉬워 명시적 분기 병합을 수행한다.
     const nextElements = elements.map((element): CanvasElement => {
       if (element.id !== id) return element;
 
@@ -59,6 +63,7 @@ export const useElementPatchUpdater = ({
           element.type === "ellipse") &&
         "border" in patch
       ) {
+        // 도형 border는 기본값이 누락될 수 있어 base를 먼저 보정한 뒤 patch를 덮어쓴다.
         const baseBorder = element.border ?? {
           enabled: false,
           color: "#000000",
@@ -83,6 +88,7 @@ export const useElementPatchUpdater = ({
         (element.type === "line" || element.type === "arrow") &&
         "stroke" in patch
       ) {
+        // 선 계열 stroke도 기본값을 유지한 채 부분 업데이트해 스타일 토글 시 필드 손실을 막는다.
         const baseStroke = element.stroke ?? DEFAULT_STROKE;
         const patchStroke = (patch as LineElementPatch).stroke;
         const nextStroke = patchStroke

@@ -1,3 +1,6 @@
+/**
+ * AI 이미지 생성, 업로드, 사용량 제한, 생성 이력 상태를 통합 관리하는 훅.
+ */
 import { useState, useEffect, useCallback } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
@@ -334,7 +337,6 @@ export const useAiImageGeneration = () => {
   };
 
   return {
-    // 상태
     selectedStyle,
     prompt,
     isGenerating,
@@ -342,7 +344,6 @@ export const useAiImageGeneration = () => {
     generatedImages,
     canGenerate,
     usageStatus,
-    // 액션
     setSelectedStyle,
     setPrompt,
     generate,

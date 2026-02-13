@@ -1,3 +1,6 @@
+/**
+ * 텍스트 편집 선택 상태와 DOM selection 동기화를 처리하는 훅.
+ */
 import { useEffect, type MutableRefObject, type RefObject } from "react";
 import {
   placeCaretAtEnd,

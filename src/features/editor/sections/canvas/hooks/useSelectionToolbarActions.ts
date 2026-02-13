@@ -1,3 +1,6 @@
+/**
+ * 선택 툴바 액션(정렬/레이어/삭제 등)을 페이지 패치와 연결하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../../../model/pageTypes";
 import type { SideBarMenu } from "../../../store/sideBarStore";

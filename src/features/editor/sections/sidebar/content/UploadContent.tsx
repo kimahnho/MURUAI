@@ -1,3 +1,6 @@
+/**
+ * 사용자 이미지 업로드와 결과 삽입 액션을 제공하는 패널 컴포넌트.
+ */
 import {
   type DragEvent as ReactDragEvent,
   type RefObject,
@@ -9,6 +12,7 @@ const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
   imageUrl: string
 ) => {
+  // 캔버스 드롭 처리기와 동일한 MIME 키를 사용해 라이브러리/업로드 경로를 통일한다.
   event.dataTransfer.setData("application/x-muru-image", imageUrl);
   event.dataTransfer.setData("text/plain", imageUrl);
   event.dataTransfer.effectAllowed = "copy";
@@ -102,7 +106,9 @@ const UploadContentView = ({
                   alt="Uploaded"
                   className="w-full h-auto object-contain"
                   draggable
+                  // 드래그 시 캔버스 drop 핸들러가 이미지 URL을 바로 해석할 수 있도록 공통 payload를 넣는다.
                   onDragStart={(event) => { setDragImageData(event, file.url); }}
+                  // 클릭 경로는 현재 활성 페이지 중앙 삽입 정책을 따르는 훅 액션으로 위임한다.
                   onClick={() => { onSelectImage(file.url); }}
                 />
               </div>
@@ -152,6 +158,7 @@ const UploadContent = () => {
   } = useUploadContentState();
 
   return (
+    // View 컴포넌트는 렌더링만 담당하고, 업로드/삭제/삽입 부수효과는 상태 훅에서 수행한다.
     <UploadContentView
       inputRef={inputRef}
       isLoading={isLoading}

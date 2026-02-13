@@ -1,3 +1,6 @@
+/**
+ * 숫자 입력의 파싱/범위 보정/커밋 시점 처리를 공통화하는 훅.
+ */
 import { useState } from "react";
 
 interface UseNumberInputOptions {

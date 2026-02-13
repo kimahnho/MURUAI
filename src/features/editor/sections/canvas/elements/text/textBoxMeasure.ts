@@ -1,3 +1,6 @@
+/**
+ * 텍스트 내용과 폰트 설정 기준으로 박스 크기/줄바꿈 측정 값을 계산하는 유틸 모듈.
+ */
 import type { Rect } from "../../../../model/canvasTypes";
 
 type MeasureInput = {

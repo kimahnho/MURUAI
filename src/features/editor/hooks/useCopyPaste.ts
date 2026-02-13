@@ -1,3 +1,6 @@
+/**
+ * 요소/페이지 복사 붙여넣기 단축키를 처리해 편집 흐름을 유지하는 훅.
+ */
 import { useEffect } from "react";
 import type { Page } from "../model/pageTypes";
 

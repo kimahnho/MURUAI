@@ -1,3 +1,6 @@
+/**
+ * 페이지 드래그 앤 드롭 정렬 동작을 공통 처리하는 훅.
+ */
 import type { Page } from "../../model/pageTypes";
 
 interface UseDragAndDropProps {

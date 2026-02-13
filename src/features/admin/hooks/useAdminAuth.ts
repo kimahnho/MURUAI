@@ -1,3 +1,6 @@
+/**
+ * 관리자 접근 권한 확인과 인증 상태를 관리하는 훅.
+ */
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";

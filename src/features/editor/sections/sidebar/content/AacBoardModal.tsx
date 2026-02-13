@@ -1,3 +1,6 @@
+/**
+ * AAC 보드 생성 옵션 입력과 생성 실행을 담당하는 모달 컴포넌트.
+ */
 import { X } from "lucide-react";
 import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import type { AacLabelPosition } from "@/features/editor/utils/aacBoardUtils";
@@ -67,6 +70,7 @@ const AacBoardModal = ({
                 type="number"
                 value={rows}
                 onChange={(event) => {
+                  // 행/열 입력의 숫자 보정은 상위 상태 훅에서 담당하고, 모달은 원시 입력값만 전달한다.
                   onChangeRows(event.target.value);
                 }}
                 className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
@@ -92,6 +96,7 @@ const AacBoardModal = ({
 
           <div className="flex flex-col gap-2">
             <span className="text-14-semibold text-black-90">용지 방향</span>
+            {/* 방향 전환은 미리보기 크기와 최종 생성 orientation을 동시에 맞춘다. */}
             <div className="flex gap-2">
               {(["vertical", "horizontal"] as const).map((value) => (
                 <button
@@ -116,6 +121,7 @@ const AacBoardModal = ({
             <span className="text-14-semibold text-black-90">
               텍스트 위치
             </span>
+            {/* 라벨 위치는 카드 imageBox 재배치 규칙과 연결되어 미리보기/실제 결과가 동일하게 적용된다. */}
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
@@ -144,6 +150,7 @@ const AacBoardModal = ({
 
           <div className="flex flex-col gap-3">
             <span className="text-14-semibold text-black-90">미리보기</span>
+            {/* 입력 옵션이 바뀔 때마다 동일한 생성 로직으로 미리보기 요소를 즉시 재렌더링한다. */}
             <PreviewCanvas
               pageId="aac-preview"
               orientation={orientation}
@@ -155,6 +162,7 @@ const AacBoardModal = ({
           <button
             type="button"
             onClick={onApply}
+            // 미리보기와 동일한 생성 설정으로 보드 요소를 캔버스에 추가한다.
             className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary/90"
           >
             캔버스에 추가

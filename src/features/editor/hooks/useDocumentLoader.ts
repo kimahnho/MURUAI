@@ -1,3 +1,6 @@
+/**
+ * 문서 초기 로드와 로딩/오류 상태를 관리해 에디터 진입 데이터를 준비하는 훅.
+ */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { useOrientationStore } from "../store/orientationStore";
@@ -18,6 +21,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
   );
   const [loadedDocumentId, setLoadedDocumentId] = useState<string | null>(null);
 
+  // 문서 저장 직후에는 동일 id 재요청을 막고, 필요 시 수동 clear 후 재로드를 허용한다.
   const clearLoadedDocument = useCallback(() => {
     setLoadedDocument(null);
   }, []);
@@ -57,6 +61,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
           return;
         }
       }
+      // canvas_data는 DB에 문자열/JSON 혼재 가능성이 있어 런타임 검증 후에만 상태로 반영한다.
       if (!canvasData || !Array.isArray((canvasData as CanvasDocument).pages)) {
         showToast("학습자료 형식이 올바르지 않아요.");
         return;

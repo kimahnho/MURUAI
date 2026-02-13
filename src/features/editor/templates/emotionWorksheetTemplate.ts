@@ -1,3 +1,6 @@
+/**
+ * 감정 워크시트 템플릿 페이지 구성을 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../model/canvasTypes";
 
@@ -9,6 +12,7 @@ const pageHeightMm = 297;
 const horizontalPaddingMm = 20;
 const contentWidthMm = pageWidthMm - horizontalPaddingMm * 2;
 
+// 상단 영역(로고/날짜/제목) 배치 기준값
 const logoWidthMm = 40;
 const logoHeightMm = 40;
 const logoXmm = 0;
@@ -24,6 +28,7 @@ const titleHeightMm = 12;
 const titleXmm = (pageWidthMm - titleWidthMm) / 2;
 const titleYmm = 28;
 
+// 본문 영역(이미지/문항/서술 박스) 배치 기준값
 const heroWidthMm = 160;
 const heroHeightMm = 60;
 const heroXmm = (pageWidthMm - heroWidthMm) / 2;

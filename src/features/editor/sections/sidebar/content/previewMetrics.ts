@@ -1,3 +1,6 @@
+/**
+ * 사이드바 미리보기 캔버스의 크기/배율 계산 규칙을 제공하는 모듈.
+ */
 const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
 const PREVIEW_BOX_WIDTH = 240;

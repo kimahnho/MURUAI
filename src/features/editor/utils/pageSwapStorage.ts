@@ -1,3 +1,6 @@
+/**
+ * 스왑 페이지 요소를 저장소에 저장/복원하는 I/O 모듈.
+ */
 import type { CanvasElement } from "../model/canvasTypes";
 
 const DB_NAME = "muruai_editor";
@@ -25,6 +28,7 @@ const openDb = () =>
 
 const getDb = () => {
   if (!dbPromise) {
+    // 연결 객체를 재사용해 스왑 빈도가 높은 구간에서 IndexedDB open 비용을 줄인다.
     dbPromise = openDb();
   }
   return dbPromise;
@@ -80,6 +84,7 @@ export const loadPageElementsBatch = async (pageIds: string[]) => {
     });
 
     tx.oncomplete = () => {
+      // 트랜잭션 단위 완료 시점에 결과를 반환해 배치 로드의 일관성을 보장한다.
       resolve(result);
     };
     tx.onerror = () => {

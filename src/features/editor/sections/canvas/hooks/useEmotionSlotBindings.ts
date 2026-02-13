@@ -1,3 +1,6 @@
+/**
+ * 감정 슬롯 요소와 사이드패널 선택 상태를 연결하는 바인딩 훅.
+ */
 import { useCallback, useEffect, useMemo } from "react";
 import type { CanvasElement, ShapeElement, TextElement } from "../../../model/canvasTypes";
 import {
@@ -81,6 +84,7 @@ export const useEmotionSlotBindings = ({
           centerX - targetCenterX,
           centerY - targetCenterY
         );
+        // 동일 범위 후보가 여러 개인 경우 중심점이 가장 가까운 placeholder를 우선 매칭한다.
         if (distance < bestDistance) {
           bestDistance = distance;
           bestId = element.id;
@@ -155,6 +159,7 @@ export const useEmotionSlotBindings = ({
         label && label.type === "text"
           ? label.y - (shapeRect.y + shapeRect.height)
           : 0;
+      // 슬롯 리사이즈/이동 시 placeholder와 라벨도 같은 기준으로 동기 이동시켜 연결감을 유지한다.
       const nextElements = elements.map((element) => {
         if (element.id === shapeId && "x" in element) {
           return {
@@ -205,6 +210,7 @@ export const useEmotionSlotBindings = ({
       const isImageFill =
         target.fill.startsWith("url(") || target.fill.startsWith("data:");
       if (!isImageFill) return;
+      // 감정 이미지 초기화 시 안내 문구를 즉시 복원해 빈 슬롯 상태를 명확히 보여준다.
       const placeholderId = findEmotionPlaceholderId(target);
       const nextElements = elements.map((element) => {
         if (element.id === target.id) {

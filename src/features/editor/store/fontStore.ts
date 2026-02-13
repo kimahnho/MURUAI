@@ -1,3 +1,6 @@
+/**
+ * 현재 폰트 패널 선택값과 텍스트 스타일 변경 요청 상태를 관리하는 스토어 모듈.
+ */
 import { create } from "zustand";
 
 type FontPayload = {

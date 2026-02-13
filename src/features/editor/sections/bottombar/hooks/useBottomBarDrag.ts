@@ -1,3 +1,6 @@
+/**
+ * 하단 페이지 썸네일 드래그 정렬 상호작용을 처리하는 훅.
+ */
 import { useCallback, type DragEvent as ReactDragEvent } from "react";
 import { useDragAndDrop } from "../../../shared/hooks/useDragAndDrop";
 import type { Page } from "../../../model/pageTypes";

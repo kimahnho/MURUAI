@@ -1,3 +1,6 @@
+/**
+ * 선택 텍스트 요소의 상세 속성을 편집하는 프로퍼티 패널 컴포넌트.
+ */
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -61,6 +64,7 @@ const TextProperties = ({
             onChange={(event) => {
               const digits = event.target.value.replace(/[^0-9]/g, "");
               if (!digits) return;
+              // 숫자 직접 입력도 동일 clamp 규칙을 사용해 버튼 증감 동작과 결과를 맞춘다.
               onUpdateElement(element.id, {
                 style: {
                   ...element.style,
@@ -95,6 +99,7 @@ const TextProperties = ({
             type="color"
             value={color}
             onChange={(event) => {
+              // 속성 패널에서 선택한 색상은 단일 텍스트 요소 style 필드에 즉시 반영한다.
               onUpdateElement(element.id, {
                 style: { ...element.style, color: event.target.value },
               });
@@ -114,6 +119,7 @@ const TextProperties = ({
           <button
             type="button"
             onClick={() => {
+              // 굵게/밑줄은 토글형 속성이라 기존 style을 유지한 채 해당 키만 반전한다.
               onUpdateElement(element.id, {
                 style: {
                   ...element.style,
@@ -161,6 +167,7 @@ const TextProperties = ({
               key={key}
               type="button"
               onClick={() => {
+                // 정렬 버튼은 개별 속성만 덮어써서 다른 텍스트 스타일과 충돌하지 않게 한다.
                 onUpdateElement(element.id, {
                   style: { ...element.style, alignX: key },
                 });

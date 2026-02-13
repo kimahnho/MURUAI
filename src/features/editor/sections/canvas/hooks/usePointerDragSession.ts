@@ -1,3 +1,6 @@
+/**
+ * 포인터 다운/무브/업 세션을 공통 처리해 클릭-드래그 구분과 cleanup을 표준화하는 훅.
+ */
 import { useCallback, useEffect, useRef } from "react";
 
 type PointerListeners = {
@@ -41,11 +44,13 @@ export const usePointerDragSession = () => {
       startContext,
       createMoveContext,
     }: StartPointerDragSessionParams<TStart, TMove>) => {
+      // 새 세션 시작 전 이전 리스너를 정리해 다중 pointer 세션 중첩을 방지한다.
       cleanup();
       let hasMoved = false;
 
       const moveListener = (event: PointerEvent) => {
         const { distance, context } = createMoveContext(event);
+        // threshold 전 구간은 클릭 후보로 간주해 드래그 onStart/onMove를 호출하지 않는다.
         if (!hasMoved && distance < thresholdPx) return;
         if (!hasMoved) {
           hasMoved = true;

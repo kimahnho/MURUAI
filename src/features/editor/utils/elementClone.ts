@@ -1,3 +1,6 @@
+/**
+ * 선택 요소를 새 ID로 복제하고 좌표를 보정하는 유틸을 제공하는 모듈.
+ */
 import type { CanvasElement } from "../model/canvasTypes";
 
 export const cloneElementsWithNewIds = (elements: CanvasElement[]) => {

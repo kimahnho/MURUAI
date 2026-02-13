@@ -1,3 +1,6 @@
+/**
+ * 스냅 정렬 기준선과 거리 가이드를 캔버스 위에 시각화하는 컴포넌트.
+ */
 import type { GuideLine } from "./hooks/useSnapGuides";
 
 type GuideRendererProps = {

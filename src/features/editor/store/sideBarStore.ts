@@ -1,3 +1,6 @@
+/**
+ * 사이드바 현재 메뉴/패널 열림 상태를 관리하는 스토어 모듈.
+ */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
 

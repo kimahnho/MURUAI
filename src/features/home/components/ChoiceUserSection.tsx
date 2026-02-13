@@ -1,3 +1,6 @@
+/**
+ * 학생 선택 목록과 선택 상태 전환 UI를 제공하는 컴포넌트.
+ */
 import {
   PlusCircleIcon,
   User,

@@ -1,3 +1,6 @@
+/**
+ * 이미지 라이브러리 목록 조회와 캔버스 삽입을 제공하는 패널 컴포넌트.
+ */
 import {
   useEffect,
   useMemo,
@@ -51,6 +54,7 @@ const ImageLibraryContent = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
+    // 검색 입력은 디바운스로 묶어 연속 입력 시 쿼리 폭주를 방지한다.
     const timer = window.setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
     }, SEARCH_DEBOUNCE_MS);
@@ -87,6 +91,7 @@ const ImageLibraryContent = () => {
   };
 
   const handleSelectImage = (url: string, name: string) => {
+    // 라이브러리 이미지는 선택 즉시 새 요소로 삽입해 탐색-적용 흐름을 단축한다.
     requestImageFill(url, name, INSERT_SIZE, {
       forceInsert: true,
       source: "library",
@@ -171,6 +176,7 @@ const ImageLibraryContent = () => {
                 key={item.id}
                 draggable
                 onDragStart={(event) => {
+                  // 캔버스 드롭 경로와 동일 포맷으로 MIME 데이터를 세팅한다.
                   setDragImageData(event, item.cloudinary_url);
                 }}
                 onClick={() => {

@@ -1,3 +1,6 @@
+/**
+ * 붙여넣기 이벤트를 해석해 요소 복제와 좌표 보정을 수행하는 훅.
+ */
 import {
   useEffect,
   type MutableRefObject,
@@ -46,6 +49,7 @@ export const useDesignPaperPaste = ({
         sessionStorage.getItem("copiedElements")
       );
       const hasCopiedPage = Boolean(sessionStorage.getItem("copiedPageId"));
+      // 요소/페이지 전용 붙여넣기 경로와 충돌하지 않도록 텍스트 paste는 별도 조건에서만 처리한다.
       if (hasCopiedElements || hasCopiedPage) return;
 
       const rawText = event.clipboardData?.getData("text/plain") ?? "";
@@ -63,6 +67,7 @@ export const useDesignPaperPaste = ({
       const centerX = basePoint?.x ?? container.offsetWidth / 2;
       const centerY = basePoint?.y ?? container.offsetHeight / 2;
 
+      // 포인터 위치가 있으면 해당 지점, 없으면 캔버스 중앙에 텍스트를 생성한다.
       const { height } = measureTextBoxSize(
         rawText,
         DEFAULT_TEXT_FONT_SIZE,

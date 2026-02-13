@@ -1,3 +1,6 @@
+/**
+ * 텍스트 편집 시 HTML/텍스트 정규화와 포맷 보조 처리를 담당하는 유틸 모듈.
+ */
 const stripHtml = (value: string) => {
   if (!value) return "";
   if (typeof window === "undefined" || typeof DOMParser === "undefined") {

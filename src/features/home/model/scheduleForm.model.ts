@@ -1,3 +1,6 @@
+/**
+ * 일정 생성/수정 폼에서 사용하는 값 타입을 정의하는 모델 모듈.
+ */
 export interface ScheduleFormData {
   title: string;
   startDate: string;

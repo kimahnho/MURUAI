@@ -1,3 +1,6 @@
+/**
+ * 선 요소의 스타일 편집(굵기/색상 등)을 제공하는 툴바 컴포넌트.
+ */
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useNumberInput } from "../../../../shared/hooks/useNumberInput";
 import { clamp } from "../../../../utils/domUtils";
@@ -36,6 +39,7 @@ const LineToolBar = ({
   onAngleChange,
   onPointerDown,
 }: LineToolBarProps) => {
+  // 선 툴바는 숫자 입력 경로가 여러 개여도 동일 clamp 정책을 따르도록 공통 입력 훅을 사용한다.
   const widthInput = useNumberInput({
     value: width,
     min: minWidth,
@@ -175,6 +179,7 @@ const LineToolBar = ({
 
       {length !== undefined && onLengthChange && (
         <div className="flex items-center gap-2">
+          {/* 길이 값은 선의 시작점 기준으로 적용되어 사용자가 방향을 유지한 채 길이만 조정할 수 있다. */}
           <span className="text-14-regular text-black-60">길이</span>
           <input
             type="text"
@@ -208,6 +213,7 @@ const LineToolBar = ({
             step={1}
             value={angleInput.displayValue}
             onChange={(event) => {
+              // 각도 변경은 입력 즉시 반영해 선 회전 핸들과 수치 편집 경험을 맞춘다.
               angleInput.handleChange(event.target.value);
             }}
             onBlur={angleInput.handleBlur}

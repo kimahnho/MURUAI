@@ -1,3 +1,6 @@
+/**
+ * 텍스트 박스의 선택/드래그/리사이즈 입력을 처리하는 요소 인터랙션 훅.
+ */
 import type {
   MutableRefObject,
   PointerEvent as ReactPointerEvent,

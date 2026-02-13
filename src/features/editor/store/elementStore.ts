@@ -1,3 +1,6 @@
+/**
+ * 도형/텍스트/선 추가 요청 이벤트를 발행하는 요소 생성 스토어 모듈.
+ */
 import { create } from "zustand";
 import type { ElementType } from "../model/canvasTypes";
 import { mp } from "@/shared/utils/mixpanel";

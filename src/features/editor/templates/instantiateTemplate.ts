@@ -1,3 +1,6 @@
+/**
+ * 템플릿 정의를 실제 캔버스 요소로 인스턴스화하는 변환 모듈.
+ */
 import type { CanvasElement, Template, TemplateElement } from "../model/canvasTypes";
 import { fitTemplateTextElement } from "../utils/templateTextFit";
 

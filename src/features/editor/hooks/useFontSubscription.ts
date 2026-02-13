@@ -1,3 +1,6 @@
+/**
+ * 폰트 패널 변경 이벤트를 구독해 선택 요소의 텍스트 스타일을 갱신하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";

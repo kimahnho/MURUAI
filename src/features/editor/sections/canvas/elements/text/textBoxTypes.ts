@@ -1,9 +1,13 @@
+/**
+ * 텍스트 요소 편집 훅에서 공유하는 상태/핸들러 타입 계약을 정의하는 모듈.
+ */
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 
 type TextAlign = "left" | "center" | "right";
 type TextAlignY = "top" | "middle" | "bottom";
 
+/** 텍스트 선택 시 상단 툴바에 표시되는 공통 편집 액션 계약 */
 type TextBoxToolbar = {
   offset?: number;
   minFontSize: number;
@@ -34,6 +38,7 @@ type TextBoxToolbar = {
   onAlignYChange: (value: TextAlignY) => void;
 };
 
+/** 캔버스 텍스트 박스 렌더러가 지원해야 하는 입력/상태/콜백 계약 */
 export interface TextBoxProps {
   text: string;
   richText?: string;
@@ -74,6 +79,7 @@ export interface TextBoxProps {
   ) => Rect;
 }
 
+/** pointer 세션 종료 시 해제해야 하는 임시 전역 리스너 묶음 */
 export interface ActiveListeners {
   moveListener: (event: PointerEvent) => void;
   upListener: () => void;

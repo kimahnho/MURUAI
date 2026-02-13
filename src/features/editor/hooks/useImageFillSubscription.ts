@@ -1,3 +1,6 @@
+/**
+ * 이미지 채우기 요청을 구독해 대상 요소의 배경/이미지 상태를 갱신하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useImageFillStore } from "../store/imageFillStore";
 import type { Page } from "../model/pageTypes";

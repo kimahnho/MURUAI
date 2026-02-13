@@ -1,3 +1,6 @@
+/**
+ * 화살표 요소를 렌더링하고 이동/선택 상호작용을 처리하는 컴포넌트.
+ */
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { normalizePoint } from "../../../../utils/domUtils";
@@ -96,6 +99,7 @@ const Arrow = ({
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     const bounds = getBounds(lineRef.current);
+    // wrapper 내부 좌표를 전역 좌표계로 환산해 라인 인터랙션 훅과 동일 기준을 맞춘다.
     return {
       x: (event.clientX - rect.left) / scale + bounds.boxX,
       y: (event.clientY - rect.top) / scale + bounds.boxY,

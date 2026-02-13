@@ -1,3 +1,6 @@
+/**
+ * 페이지 추가/삭제/복제/이동 등 페이지 단위 편집 액션을 제공하는 훅.
+ */
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
@@ -60,6 +63,7 @@ export const usePageActions = ({
         ...page,
         pageNumber: idx + 1,
       }));
+      // 중간 삽입 이후에는 전체 번호를 다시 부여해 썸네일/내보내기 번호를 일치시킨다.
 
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
@@ -149,6 +153,7 @@ export const usePageActions = ({
         ...page,
         pageNumber: index + 1,
       }));
+      // 붙여넣은 페이지를 즉시 활성화해 사용자가 후속 편집 대상을 명확히 인지하게 한다.
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
     },
@@ -203,6 +208,7 @@ export const usePageActions = ({
           if (page.id !== selectedPageId) return page;
 
           const linkedIds = new Set<string>();
+          // 카드 삭제 시 labelId 연결 텍스트도 함께 제거해 고아 텍스트를 방지한다.
           page.elements.forEach((element) => {
             if (ids.includes(element.id)) {
               if (

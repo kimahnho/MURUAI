@@ -1,3 +1,6 @@
+/**
+ * 요소 고정 툴바의 버튼 그룹을 배치하고 액션 실행을 연결하는 컴포넌트.
+ */
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import type { CSSProperties } from "react";
 

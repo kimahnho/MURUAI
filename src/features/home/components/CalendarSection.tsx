@@ -1,3 +1,6 @@
+/**
+ * 달력 기반 일정 조회와 날짜 선택 상호작용을 제공하는 컴포넌트.
+ */
 import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { getWeekRange } from "../utils/dateUtils";

@@ -1,3 +1,6 @@
+/**
+ * 선택 페이지 변경 시 편집 상태를 정리하고 페이지 전환을 일관되게 처리하는 훅.
+ */
 import {
   useCallback,
   type Dispatch,

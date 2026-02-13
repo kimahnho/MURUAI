@@ -1,3 +1,6 @@
+/**
+ * 선택 박스/가이드 등 캔버스 오버레이 레이어를 렌더링하는 컴포넌트.
+ */
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import { getRectFromElement, type Rect, type SelectionRect } from "../../utils/designPaperUtils";
@@ -64,6 +67,7 @@ export const GroupSelectionOverlay = ({
 
   if (groupRects.length === 0) return null;
 
+  // 선택 요소 전체 경계로 가상 그룹 박스를 만들어 그룹 이동/리사이즈의 기준 좌표로 사용한다.
   const minX = Math.min(...groupRects.map((r) => r.x));
   const minY = Math.min(...groupRects.map((r) => r.y));
   const maxX = Math.max(...groupRects.map((r) => r.x + r.width));

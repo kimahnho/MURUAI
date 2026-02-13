@@ -1,3 +1,6 @@
+/**
+ * 시각적 일정표 템플릿 구조를 정의하는 모듈.
+ */
 import type { Template } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;

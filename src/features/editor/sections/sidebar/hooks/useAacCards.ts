@@ -1,3 +1,6 @@
+/**
+ * AAC 카드 목록 조회와 선택/필터 상태를 관리하는 훅.
+ */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
 

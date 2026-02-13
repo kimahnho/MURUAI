@@ -1,3 +1,6 @@
+/**
+ * 에디터 핵심 경로 성능 측정과 로그 기록 유틸을 제공하는 모듈.
+ */
 const isPerfLogEnabled =
   import.meta.env.DEV || import.meta.env.VITE_EDITOR_PERF_LOG === "true";
 

@@ -1,3 +1,7 @@
+/**
+ * 다중 페이지 템플릿 미리보기/적용 다이얼로그.
+ * 템플릿 페이지를 탐색하고 적용 대상을 선택해 편집 문서에 반영한다.
+ */
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 import type { Template, CanvasElement, TemplateElement } from "@/features/editor/model/canvasTypes";
@@ -34,9 +38,11 @@ const MultiPageTemplateDialog = ({
   onApplyAll,
   onApplySelected,
 }: MultiPageTemplateDialogProps) => {
+  // 기본값을 "전체 선택"으로 시작해 다중 페이지 템플릿 적용 시 누락 페이지가 생기지 않게 한다.
   const [selectedPages, setSelectedPages] = useState<Set<number>>(
     () => new Set(pages.map((_, i) => i))
   );
+  // 상단 큰 미리보기와 하단 썸네일 포커스를 같은 인덱스로 유지한다.
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
 
   if (!open) return null;
@@ -62,6 +68,7 @@ const MultiPageTemplateDialog = ({
   };
 
   const handleApplySelected = () => {
+    // 적용 순서는 페이지 인덱스 오름차순으로 고정해 문서 삽입 순서가 사용자 선택 순서에 흔들리지 않게 한다.
     const sortedIndices = Array.from(selectedPages).sort((a, b) => a - b);
     if (sortedIndices.length === 0) return;
     onApplySelected(sortedIndices);
@@ -219,6 +226,7 @@ const MultiPageTemplateDialog = ({
                     <button
                       type="button"
                       onClick={() => {
+                        // 썸네일 클릭 한 번으로 "적용 대상 토글"과 "상단 미리보기 전환"을 동시에 수행한다.
                         togglePage(index);
                         setCurrentPreviewIndex(index);
                       }}

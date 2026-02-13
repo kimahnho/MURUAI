@@ -1,3 +1,6 @@
+/**
+ * 라운드 박스 요소를 렌더링하고 선택/드래그/변형 상호작용을 연결하는 컴포넌트.
+ */
 import {
   useEffect,
   useRef,
@@ -278,6 +281,7 @@ const RoundBox = ({
         );
         const deltaRad = currentAngleRad - startAngleRad;
         const deltaDeg = (deltaRad * 180) / Math.PI;
+        // 누적 회전값은 0~359 범위로 정규화해 툴바/배지 표시를 일관되게 유지한다.
         const newRotation = Math.round((currentRotation + deltaDeg + 360) % 360);
         onRotationChange(newRotation);
       },
@@ -356,6 +360,7 @@ const RoundBox = ({
           if (target.closest('[data-image-handle="true"]')) {
             return;
           }
+          // 이미지 편집 중 빈 영역 클릭은 편집 모드 종료로 해석해 일반 드래그와 충돌을 막는다.
           setIsImageEditing(false);
           return;
         }
@@ -458,6 +463,7 @@ const RoundBox = ({
               />
             </div>
             {showImageOverflow && (
+              // 편집 중에는 원본 이미지 영역을 반투명으로 보여 crop 기준을 직관적으로 확인시킨다.
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div
                   className="absolute"

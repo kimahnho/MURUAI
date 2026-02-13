@@ -1,3 +1,6 @@
+/**
+ * 문서/템플릿 기반 페이지 생성과 삽입 규칙을 제공하는 모듈.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasDocument, Page } from "../model/pageTypes";
 import type { CanvasElement } from "../model/canvasTypes";
@@ -32,6 +35,7 @@ export const buildInitialPages = (
 ) => {
   const nextPages = Array.isArray(document?.pages) ? document.pages : [];
   if (nextPages.length === 0) {
+    // 초기 문서가 비어 있어도 편집 진입점이 항상 존재하도록 기본 1페이지를 보장한다.
     return [
       {
         id: "1",
@@ -95,6 +99,7 @@ export const applyTemplateToCurrentPage = ({
     };
 
     if (templates.length > 1) {
+      // 다중 페이지 템플릿은 현재 페이지 다음 인덱스부터 연속 삽입한다.
       const insertedPages = templates.slice(1).map((template) => ({
         id: crypto.randomUUID(),
         pageNumber: 0,
@@ -168,6 +173,7 @@ export const addAacBoardPage = ({
   const aacElements = buildAacBoardElements(config);
 
   const idMap = new Map<string, string>();
+  // tempId 기반 연결(labelId)을 유지하기 위해 먼저 새 ID 매핑을 일괄 생성한다.
   aacElements.forEach((element) => {
     if (element.tempId) {
       idMap.set(element.tempId, crypto.randomUUID());
@@ -324,6 +330,7 @@ export const addTextElement = ({
       lineHeight: 1.2,
       maxWidth: maxAllowedWidth,
     });
+  // 추가되는 텍스트는 측정된 크기로 중앙 배치해 첫 편집 진입 시 화면 밖 생성을 방지한다.
   const textWidth = Math.max(measuredWidth, 1);
   const textHeight = Math.max(measuredHeight, 1);
   const x = (pageWidth - textWidth) / 2;

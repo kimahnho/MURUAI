@@ -1,3 +1,6 @@
+/**
+ * 페이퍼/캔버스 DOM rect를 계산해 좌표 변환에 필요한 기준값을 제공하는 훅.
+ */
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { getRectFromElement, type Rect } from "../../../utils/designPaperUtils";
 

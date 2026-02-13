@@ -1,3 +1,6 @@
+/**
+ * 라운드 박스 요소의 포인터 입력을 해석해 이동/리사이즈/선택 패치를 생성하는 인터랙션 훅.
+ */
 import { type PointerEvent as ReactPointerEvent } from "react";
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";

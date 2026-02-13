@@ -1,3 +1,6 @@
+/**
+ * 스토리 시퀀스 카드 생성과 문장 분할 보조 유틸을 제공하는 모듈.
+ */
 import type { TemplateElement } from "../model/canvasTypes";
 
 export type StoryDirection = "left-to-right" | "top-to-bottom";
@@ -13,6 +16,10 @@ export type StorySequenceConfig = {
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
+/**
+ * 스토리 시퀀스 카드 템플릿 요소를 생성한다.
+ * 카드 배치 방향/비율/용지 방향을 동일 계산식으로 맞춰 미리보기와 실제 삽입 결과를 일치시킨다.
+ */
 export const buildStorySequenceElements = ({
   count,
   direction,
@@ -82,6 +89,7 @@ export const buildStorySequenceElements = ({
       direction === "left-to-right"
         ? index % columns
         : Math.floor(index / rows);
+    // 방향 설정에 따라 row/col 계산 기준을 바꿔 동일 데이터로 가로/세로 흐름을 지원한다.
     const cellX = startXmm + col * (cellWidthMm + gapMm);
     const cellY = startYmm + row * (cellHeightMm + gapMm);
     const cardX = mmToPx(cellX + (cellWidthMm - cardWidthMm) / 2);
@@ -91,6 +99,7 @@ export const buildStorySequenceElements = ({
     const radius = Math.min(mmToPx(8), Math.min(cardWidth, cardHeight) / 2);
     const textSize = Math.max(14, Math.min(24, cardHeight * 0.2));
 
+    // 카드 배경과 번호 텍스트를 분리해 이후 이미지/텍스트 교체 템플릿으로도 재사용 가능하게 한다.
     elements.push({
       type: "roundRect",
       x: cardX,

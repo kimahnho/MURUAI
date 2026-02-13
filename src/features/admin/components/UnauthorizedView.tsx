@@ -1,3 +1,6 @@
+/**
+ * 관리자 권한이 없을 때 안내 메시지를 표시하는 뷰 컴포넌트.
+ */
 import { ShieldAlert } from "lucide-react";
 
 const UnauthorizedView = ({

@@ -1,3 +1,6 @@
+/**
+ * AAC/스토리보드 생성 이벤트를 구독해 페이지 추가와 후속 선택 상태를 동기화하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useAacBoardStore } from "../store/aacBoardStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";

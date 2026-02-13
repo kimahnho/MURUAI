@@ -1,3 +1,6 @@
+/**
+ * 디자인 요소(도형/선/아이콘 등) 선택 진입점을 제공하는 패널 컴포넌트.
+ */
 import { Camera, Image, PenLine, Sparkles, Loader2 } from "lucide-react";
 import {
   useAiImageGeneration,

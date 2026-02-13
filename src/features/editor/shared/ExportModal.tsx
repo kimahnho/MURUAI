@@ -1,3 +1,6 @@
+/**
+ * 문서 내보내기 옵션 선택과 실행 상태를 처리하는 모달 컴포넌트.
+ */
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import BaseModal from "@/shared/ui/BaseModal";
@@ -135,6 +138,7 @@ const ExportModal = ({
   );
   const parsedPageIds = (() => {
     if (parsedPageNumbers.length === 0) return [];
+    // 페이지 번호 입력을 실제 pageId로 변환해 PDF 렌더 경로와 동일한 식별자를 사용한다.
     const map = new Map(
       pageOptions.map((page) => [page.pageNumber, page.id])
     );
@@ -158,6 +162,7 @@ const ExportModal = ({
     try {
       let userMadeId = lastSavedUserMadeId;
       if (!userMadeId) {
+        // 아직 저장된 문서 ID가 없으면 대상 연결 전에 먼저 문서 버전을 생성한다.
         const { id } = await saveUserMadeVersion({
           userId,
           name,
@@ -192,6 +197,7 @@ const ExportModal = ({
       abortControllerRef.current = new AbortController();
       let userMadeId = lastSavedUserMadeId ?? documentId ?? null;
       if (preparePdfPages) {
+        // 스왑된 페이지를 포함한 PDF 대상 DOM을 먼저 준비해 누락 없는 출력 스냅샷을 만든다.
         await preparePdfPages();
       }
       if (autoSaveOnDownload && !userMadeId) {

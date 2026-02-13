@@ -1,3 +1,6 @@
+/**
+ * 대시보드 조회 기간 필터 선택 UI를 제공하는 컴포넌트.
+ */
 import type { DateRangePreset, DateRangeState } from "../hooks/useAdminDashboard";
 
 const presets: { id: DateRangePreset; label: string }[] = [

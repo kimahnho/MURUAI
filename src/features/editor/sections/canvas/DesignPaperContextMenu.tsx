@@ -1,3 +1,6 @@
+/**
+ * 요소 우클릭 시 노출되는 컨텍스트 메뉴 액션을 제공하는 컴포넌트.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import {
   ArrowUpFromLine,
@@ -110,6 +113,7 @@ export const DesignPaperContextMenu = ({
         event.preventDefault();
       }}
       onMouseLeave={() =>
+        // 레이어 서브메뉴는 마우스 이탈 시만 닫아 메뉴 이동 중 깜빡임을 줄인다.
         setContextMenu((prev) =>
           prev ? { ...prev, activeSubmenu: undefined } : prev,
         )

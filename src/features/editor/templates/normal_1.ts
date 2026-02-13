@@ -1,3 +1,6 @@
+/**
+ * 기본 템플릿 1번 페이지 구성을 정의하는 모듈.
+ */
 import type { Template } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
@@ -58,6 +61,7 @@ export const normal_1: Template = {
         alignY: "middle",
       },
     },
+    // 1번 활동(자유 서술/그림)용 큰 입력 영역
     {
       type: "roundRect",
       x: mmToPx(horizontalPaddingMm),
@@ -89,6 +93,7 @@ export const normal_1: Template = {
         alignY: "middle",
       },
     },
+    // 2번 활동(감정 서술)용 보조 입력 영역
     {
       type: "roundRect",
       x: mmToPx(horizontalPaddingMm),

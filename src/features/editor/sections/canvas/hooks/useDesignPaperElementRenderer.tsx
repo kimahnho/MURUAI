@@ -1,3 +1,6 @@
+/**
+ * 캔버스 요소 타입별 렌더링 분기를 모아 DesignPaper의 요소 표시 흐름을 제공하는 훅.
+ */
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type {
   CanvasElement,

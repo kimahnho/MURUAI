@@ -1,3 +1,6 @@
+/**
+ * 변형 중 스냅 규칙을 적용해 보정된 사각형 결과를 계산하는 훅.
+ */
 import type { MutableRefObject } from "react";
 import type { ResizeHandle } from "../../../model/canvasTypes";
 import type { Rect } from "../../../utils/designPaperUtils";
@@ -37,6 +40,7 @@ const getGroupDragBoundingBox = (
     y: nextRect.y - groupDrag.activeRect.y,
   };
   const rects: Rect[] = [];
+  // 그룹 이동 중에는 개별 요소가 아닌 그룹 전체 경계로 스냅 대상을 계산한다.
   groupDrag.items.forEach((item) => {
     if (item.kind === "rect") {
       rects.push({
@@ -96,6 +100,7 @@ export const useSnapTransformRect = ({
 
     if (context.type === "resize") {
       const handle = context.handle ?? "";
+      // 리사이즈는 현재 핸들 축만 스냅 대상으로 삼아 반대편 모서리 흔들림을 방지한다.
       const activeX = handle.includes("e")
         ? [nextRect.x + nextRect.width]
         : handle.includes("w")

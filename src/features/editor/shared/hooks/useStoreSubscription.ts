@@ -1,3 +1,6 @@
+/**
+ * 스토어 subscribe/cleanup 패턴을 공통화해 구독 생명주기를 안정적으로 관리하는 훅.
+ */
 import { useEffect } from "react";
 
 export type StoreSubscribeFn<S> = (

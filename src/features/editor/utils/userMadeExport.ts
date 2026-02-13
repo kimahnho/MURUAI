@@ -1,3 +1,6 @@
+/**
+ * 사용자 문서를 이미지/PDF로 내보내는 렌더링 유틸리티 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 import { logPerf, measurePerf } from "./perfLogger";
 

@@ -1,3 +1,6 @@
+/**
+ * 수동 저장 시 사용자 문서 payload를 구성하고 저장 결과 UI 상태를 관리하는 훅.
+ */
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";

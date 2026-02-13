@@ -1,3 +1,6 @@
+/**
+ * 페이지 변경 스냅샷을 기록하고 undo/redo를 수행하는 통합 히스토리 스토어.
+ */
 import { create } from "zustand";
 import type { Page } from "../model/pageTypes";
 

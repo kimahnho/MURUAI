@@ -1,3 +1,6 @@
+/**
+ * 에디터 전역 스토어 구독 훅들을 조합해 구독 생명주기를 통합 관리하는 훅.
+ */
 import type { Dispatch, SetStateAction, MutableRefObject } from "react";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";

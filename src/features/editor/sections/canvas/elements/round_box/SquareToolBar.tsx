@@ -1,3 +1,6 @@
+/**
+ * 사각/라운드 박스 요소의 채우기/테두리/레이어 액션을 제공하는 툴바 컴포넌트.
+ */
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Ban, Loader2, Upload } from "lucide-react";
 import { useNumberInput } from "../../../../shared/hooks/useNumberInput";
@@ -105,6 +108,7 @@ const SquareToolBar = ({
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    // 동일 파일 재업로드를 허용하기 위해 change 이벤트 직후 값을 비운다.
     event.target.value = "";
 
     const imageUrl = await uploadImage(file);
@@ -134,6 +138,7 @@ const SquareToolBar = ({
       return;
     }
     if (!borderEnabled) {
+      // 스타일을 먼저 고르면 테두리도 함께 켜서 사용자가 별도 토글을 누르지 않게 한다.
       onBorderEnabledChange?.(true);
     }
     onBorderStyleChange?.(style);

@@ -1,3 +1,6 @@
+/**
+ * 라운드 박스 요소 전용 리사이즈 핸들을 렌더링하는 컴포넌트.
+ */
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { ResizeHandle } from "../../../../model/canvasTypes";
 
@@ -78,6 +81,7 @@ const getImageHandlePosition = (
   handle: ImageHandle,
   box: { x: number; y: number; w: number; h: number },
 ) => {
+  // 이미지 박스 핸들은 요소 외곽이 아니라 imageBox 좌표계를 기준으로 배치한다.
   if (handle === "nw")
     return { left: box.x - HALF_HANDLE, top: box.y - HALF_HANDLE };
   if (handle === "ne")
@@ -120,6 +124,7 @@ const ImageHandleItem = ({
   <div
     key={`img-${handle}`}
     onPointerDown={(event) => {
+      // 이미지 박스 핸들 드래그는 박스 이동 드래그와 분리하기 위해 이벤트 전파를 끊는다.
       event.stopPropagation();
       onPointerDown(event, "imageBoxResize", handle);
     }}

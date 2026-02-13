@@ -1,3 +1,6 @@
+/**
+ * 요일별 활동량 데이터를 캘린더 형태로 보여주는 컴포넌트.
+ */
 import type { DateRangeState } from "../hooks/useAdminDashboard";
 import type { DailyVisitPoint } from "../api/adminMetrics";
 
@@ -88,6 +91,7 @@ const WeekdayCalendar = ({
         const key = toDateKey(day);
         const count = counts.get(key) ?? 0;
         const inRange = day >= highlightRange.start && day <= highlightRange.end;
+        // 범위 밖 날짜는 그리드 균형 유지를 위해 렌더링하되 집계값은 숨긴다.
         const isActive = count > 0 && inRange;
         const baseClass = "rounded-xl border p-2 text-center";
         const styleClass = !inRange

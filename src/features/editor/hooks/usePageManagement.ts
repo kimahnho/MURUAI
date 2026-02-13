@@ -1,3 +1,6 @@
+/**
+ * 페이지 선택 관리자와 페이지 액션을 묶어 상위 컴포넌트에 제공하는 훅.
+ */
 import type { Dispatch, SetStateAction, MutableRefObject } from "react";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";

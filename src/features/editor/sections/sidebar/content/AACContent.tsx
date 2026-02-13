@@ -1,3 +1,6 @@
+/**
+ * AAC 카드 검색/선택/삽입 동작을 제공하는 패널 컴포넌트.
+ */
 import { type DragEvent as ReactDragEvent } from "react";
 import { Search } from "lucide-react";
 import { useAacContentState } from "../hooks/useAacContentState";
@@ -43,6 +46,7 @@ const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
   imageUrl: string
 ) => {
+  // AAC 이미지도 캔버스 드롭 처리기가 기대하는 MIME 키로 전달한다.
   event.dataTransfer.setData("application/x-muru-image", imageUrl);
   event.dataTransfer.setData("text/plain", imageUrl);
   event.dataTransfer.effectAllowed = "copy";
@@ -71,6 +75,7 @@ const AACContent = () => {
     img.style.display = "none";
     const parent = img.parentElement;
     if (!parent) return;
+    // 이미지 로드 실패 시 이모지 fallback을 넣어 카드 의미를 잃지 않게 한다.
     const fallback = document.createElement("span");
     fallback.textContent = emoji || "🖼️";
     fallback.className = "text-24-regular";

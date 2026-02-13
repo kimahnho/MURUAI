@@ -1,3 +1,6 @@
+/**
+ * 이미지 박스 비율 유지 스케일 계산과 배치 보정 유틸을 제공하는 모듈.
+ */
 type ImageBox = { x: number; y: number; w: number; h: number };
 
 export const computeScaledImageBox = (

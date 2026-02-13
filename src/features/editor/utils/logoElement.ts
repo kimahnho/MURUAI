@@ -1,3 +1,6 @@
+/**
+ * 페이지 초기 로고 요소 생성과 삽입 규칙 유틸을 제공하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { CanvasElement, TemplateElement } from "../model/canvasTypes";
 import { fitTemplateTextElements } from "./templateTextFit";

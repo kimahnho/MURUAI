@@ -1,3 +1,6 @@
+/**
+ * 도형 변형 상태에서 위치/크기/회전 편집 보조 UI를 제공하는 컴포넌트.
+ */
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   FlipHorizontal,
@@ -60,6 +63,7 @@ const ShapeTransformBar = ({
   const handleGap = 8;
   const rotateHandleOffset =
     labelOffset + labelHeight / 2 + handleRadius + handleGap;
+  // 회전/라벨/툴바 앵커를 현재 회전각 기준으로 계산해 항상 요소 축에 맞춰 배치한다.
   const rotatePos = getBottomCenterAnchor(rect, rotationDeg, rotateHandleOffset);
   const labelPos = getBottomCenterAnchor(rect, rotationDeg, labelOffset);
   const topBarOffset = 12;
@@ -119,6 +123,7 @@ const ShapeTransformBar = ({
   return (
     <>
       {showTransformBar && (
+        // 회전/반전 버튼은 요소 상단 앵커에 고정해 드래그 핸들과 시선 충돌을 줄인다.
         <div
           className="absolute z-50"
           style={{

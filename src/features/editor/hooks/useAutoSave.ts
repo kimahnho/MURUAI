@@ -1,3 +1,6 @@
+/**
+ * 에디터 변경사항을 디바운스 기반으로 자동 저장하고 수동 저장 상태를 함께 관리하는 훅.
+ */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { measurePerf } from "../utils/perfLogger";
@@ -14,9 +17,7 @@ type AutoSaveParams = {
   pages: Page[];
   docId?: string | null;
   docName: string;
-  // 저장 상태는 내부 초기화 과정에서 null이 전달될 수 있다.
   onSaveStateChange?: (state: SaveState | null) => void;
-  // 초기 페이지 로딩 중에는 자동 저장을 막기 위한 플래그.
   isDataLoaded?: boolean;
 };
 
@@ -52,13 +53,11 @@ export const useAutoSave = ({
     onSaveStateChangeRef.current?.(state);
   };
 
-  // 데이터 유효성 검증
   const validateData = useCallback((pagesToSave: typeof pages) => {
     if (!pagesToSave || pagesToSave.length === 0) {
       console.warn("Save blocked: No pages to save");
       return false;
     }
-    // 모든 페이지에 요소가 없는 경우 차단
     const hasAnyElements = pagesToSave.some(
       (page) => page.elements && page.elements.length > 0,
     );
@@ -67,7 +66,6 @@ export const useAutoSave = ({
       return false;
     }
 
-    // 추가 안전장치: 총 요소 수가 너무 적으면 경고 (배포 시 데이터 손실 방지)
     const totalElements = pagesToSave.reduce(
       (sum, page) => sum + (page.elements?.length || 0),
       0,
@@ -93,7 +91,6 @@ export const useAutoSave = ({
       const myRevision = ++clientRevisionRef.current;
 
       try {
-        // 수동 저장 시에만 상태 표시
         if (isManual) {
           setSaveState("saving");
           emitSaveState("saving");
@@ -149,7 +146,6 @@ export const useAutoSave = ({
           },
         );
 
-        // 동시 저장 경쟁이 있을 때 마지막 요청만 UI 상태를 바꾼다.
         if (myRevision !== clientRevisionRef.current) return;
 
         // 자동 저장은 조용히 처리하고, 수동 저장만 사용자 피드백을 노출한다.

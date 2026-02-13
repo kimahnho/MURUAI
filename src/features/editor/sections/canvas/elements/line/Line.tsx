@@ -1,3 +1,6 @@
+/**
+ * 선 요소를 렌더링하고 끝점 드래그/이동 상호작용을 연결하는 컴포넌트.
+ */
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { normalizePoint } from "../../../../utils/domUtils";
@@ -93,6 +96,7 @@ const Line = ({
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     const bounds = getBounds(lineRef.current);
+    // 드래그/리사이즈 계산은 항상 원본 캔버스 좌표계로 환산해 스케일 영향 오차를 제거한다.
     return {
       x: (event.clientX - rect.left) / scale + bounds.boxX,
       y: (event.clientY - rect.top) / scale + bounds.boxY,

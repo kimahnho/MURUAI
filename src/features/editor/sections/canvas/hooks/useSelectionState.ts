@@ -1,3 +1,6 @@
+/**
+ * 현재 페이지 기준 선택 요소/선택 박스/다중 선택 파생 상태를 계산하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useNumberInput } from "../../../shared/hooks/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";

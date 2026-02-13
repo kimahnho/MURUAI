@@ -1,3 +1,6 @@
+/**
+ * 텍스트 문자열의 렌더링 크기 측정과 폰트 메트릭 계산 유틸을 제공하는 모듈.
+ */
 type MeasureOptions = {
   lineHeight?: number;
   letterSpacing?: number;

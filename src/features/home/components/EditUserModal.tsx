@@ -1,3 +1,6 @@
+/**
+ * 학생 정보 수정 입력과 업데이트 액션을 처리하는 모달 컴포넌트.
+ */
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { useModalStore } from "@/shared/store/useModalStore";
@@ -41,6 +44,7 @@ const EditUserModalContent = ({
 
   const handleBirthYearChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    // 연도는 4자리 숫자만 허용해 모델 저장 형식을 입력 단계에서 보장한다.
     if (/^\d{0,4}$/.test(value)) {
       setBirthYear(value);
     }
@@ -56,6 +60,7 @@ const EditUserModalContent = ({
       setError("아동 정보를 찾지 못했어요.");
       return;
     }
+    // 읽기 모드에서의 submit 이벤트는 무시해 실수 저장을 막는다.
     setLoading(true);
     setError(null);
 
@@ -83,6 +88,7 @@ const EditUserModalContent = ({
       return;
     }
 
+    // 저장 후 학생 목록을 재조회해 카드/목록 화면이 최신 값을 즉시 반영하게 한다.
     console.log("업데이트 성공");
     await refreshStudents();
     handleReset();

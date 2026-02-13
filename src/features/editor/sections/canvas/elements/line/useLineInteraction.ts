@@ -1,3 +1,6 @@
+/**
+ * 선 요소의 끝점/전체 이동 입력을 해석해 좌표 패치를 적용하는 인터랙션 훅.
+ */
 import { type RefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";

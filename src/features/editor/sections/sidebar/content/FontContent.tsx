@@ -1,3 +1,6 @@
+/**
+ * 폰트 패널에서 폰트/크기/정렬 옵션을 선택하고 선택 요소에 반영하는 컴포넌트.
+ */
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
 import { useFontContentState } from "../hooks/useFontContentState";
@@ -43,6 +46,7 @@ const FontContentView = ({
                 <button
                   type="button"
                   onClick={() => { onToggleExpand(font.id); }}
+                  // 확장 토글은 같은 폰트 패밀리의 굵기 프리셋 목록만 열고 닫는다.
                   className="mt-1 flex h-5 w-5 items-center justify-center text-black-60"
                   aria-label={`${font.label} 굵기 펼치기`}
                 >
@@ -51,6 +55,7 @@ const FontContentView = ({
                 <button
                   type="button"
                   onClick={() => { onSelectFont(font.family); }}
+                  // 패밀리 선택은 현재 weight를 유지한 채 family만 바꾸는 경로로 연결된다.
                   className="flex flex-1 flex-col items-start gap-1 text-left"
                 >
                   <span
@@ -85,6 +90,7 @@ const FontContentView = ({
                               : "text-black-70 hover:bg-black-10"
                           }`}
                         >
+                          {/* 동일 폰트 내 굵기 차이를 샘플 텍스트로 보여줘 선택 결과를 즉시 예측하게 한다. */}
                           <span className="grid flex-1 min-w-0 grid-cols-2 items-center text-left">
                             <span className="text-left">{weight.label}</span>
                             <span
@@ -135,6 +141,7 @@ const FontContent = () => {
   } = useFontContentState();
 
   return (
+    // 실제 상태/액션은 훅에서 관리하고, 뷰 컴포넌트는 렌더링 책임만 유지한다.
     <FontContentView
       selectedFontId={selectedFontId}
       panelFontFamily={panelFontFamily}
