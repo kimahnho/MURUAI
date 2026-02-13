@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Page } from "../model/pageTypes";
 
-// History entry that stores complete page state (present only)
+// 현재 시점 복원을 위해 전체 페이지 스냅샷을 저장한다.
 type HistoryEntry = {
   pages: Page[];
   selectedPageId: string;
@@ -37,22 +37,22 @@ type HistoryPatch = {
 };
 
 interface UnifiedHistoryState {
-  // History stacks
+  // 히스토리 스택
   past: HistoryPatch[];
   present: HistoryEntry | null;
   future: HistoryPatch[];
 
-  // Transaction state
+  // 트랜잭션 상태
   transactionActive: boolean;
   transactionStartState: HistoryEntry | null;
 
-  // UI state
+  // UI 상태
   canUndo: boolean;
   canRedo: boolean;
   undoRequestId: number;
   redoRequestId: number;
 
-  // Actions
+  // 액션
   init: (pages: Page[], selectedPageId: string, selectedIds: string[]) => void;
   record: (pages: Page[], selectedPageId: string, selectedIds: string[], label?: string) => void;
   beginTransaction: (pages: Page[], selectedPageId: string, selectedIds: string[]) => void;
@@ -63,7 +63,6 @@ interface UnifiedHistoryState {
   clear: () => void;
 }
 
-// Helper to deep clone pages
 const clonePages = (pages: Page[]): Page[] => {
   return JSON.parse(JSON.stringify(pages));
 };

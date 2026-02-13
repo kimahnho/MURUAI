@@ -27,7 +27,7 @@ export const computeTextBoxSize = ({
     measure.textContent = text ?? "";
   }
 
-  // Tight wrap: measure without padding.
+  // 실제 글자 영역만 측정하기 위해 padding/border를 제거한다.
   measure.style.padding = "0";
   measure.style.border = "none";
 
@@ -35,36 +35,33 @@ export const computeTextBoxSize = ({
   const isAutoWidth = widthMode !== "fixed";
   let targetWidth = Math.max(rectWidth, minWidth);
 
-  // Canvas side padding total.
+  // 텍스트 박스가 캔버스 경계를 넘지 않도록 여유값을 둔다.
   const canvasPadding = 20;
   const maxAllowedWidth = maxWidth - canvasPadding;
 
   if (isAutoWidth) {
-    // Auto mode: expand width up to the max allowed width.
-    // Measure single-line width first.
+    // auto 모드는 단일 라인 폭을 먼저 측정해 가능한 한 줄바꿈을 늦춘다.
     measure.style.width = "auto";
     measure.style.whiteSpace = "pre";
-    // Buffer accounts for measurement variance.
+    // 브라우저 측정 오차 보정
     const widthBuffer = 4;
     const intrinsicWidth = Math.ceil(measure.scrollWidth) + widthBuffer;
 
     if (intrinsicWidth <= maxAllowedWidth) {
-      // Keep a single line if under max width.
       targetWidth = Math.max(intrinsicWidth, minWidth);
     } else {
-      // Clamp width and allow wrapping.
       targetWidth = maxAllowedWidth;
       measure.style.width = `${targetWidth}px`;
       measure.style.whiteSpace = "pre-wrap";
     }
   } else {
-    // Fixed mode: width locked, height grows with wrapping.
+    // fixed 모드는 너비를 고정하고 높이만 늘어난다.
     measure.style.width = `${rectWidth}px`;
     measure.style.whiteSpace = "pre-wrap";
     targetWidth = rectWidth;
   }
 
-  // Buffer accounts for height variance.
+  // 높이 측정 오차 보정
   const heightBuffer = 2;
   const targetHeight = Math.max(
     Math.ceil(measure.scrollHeight) + heightBuffer,

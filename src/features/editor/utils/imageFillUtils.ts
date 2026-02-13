@@ -36,7 +36,7 @@ export const findLabelElementId = (
   const shapeBottom = shape.y + shape.h;
   let bestId: string | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
-  const tolerance = mmToPx(5); // tolerance 확대 (2mm -> 5mm)
+  const tolerance = mmToPx(5); // 레이블 탐지 허용 범위를 넓혀 카드 매칭 누락을 줄인다.
 
   elements.forEach((element) => {
     if (element.type !== "text") return;
@@ -79,14 +79,14 @@ export const isAacCardElement = (
   ) {
     return false;
   }
-  // labelId가 명시적으로 설정되어 있으면 AAC 카드로 인식
+  // labelId가 있으면 명시적으로 연결된 AAC 카드로 본다.
   if (element.labelId !== undefined) return true;
 
-  // labelId가 없으면 findLabelElementId로 label을 찾아봄
+  // labelId가 없으면 위치/스타일 기반으로 레이블을 역탐색한다.
   const labelId = findLabelElementId(elements, element, isAacLabelElement);
   if (labelId) return true;
 
-  // label이 없으면 imageBox와 border 스타일로 판단
+  // 레이블이 없을 때는 imageBox inset과 border 규칙으로 보조 판별한다.
   if (!element.imageBox) return false;
   const sizeTolerance = 2;
   const hasInsetImageBox =

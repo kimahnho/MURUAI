@@ -62,7 +62,8 @@ const SquareToolBar = ({
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
 
-  // Width input management
+  // 도형 크기 입력은 공통 number input 훅으로 관리해
+  // blur/enter 커밋 동작을 가로/세로에서 동일하게 유지한다.
   const widthInputHook = useNumberInput({
     value: width ?? 0,
     min: 1,
@@ -73,7 +74,6 @@ const SquareToolBar = ({
     },
   });
 
-  // Height input management
   const heightInputHook = useNumberInput({
     value: height ?? 0,
     min: 1,
@@ -84,7 +84,6 @@ const SquareToolBar = ({
     },
   });
 
-  // Border radius input management
   const radiusInputHook = useNumberInput({
     value: borderRadius,
     min: minBorderRadius,

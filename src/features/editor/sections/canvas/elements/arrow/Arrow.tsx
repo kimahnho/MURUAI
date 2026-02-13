@@ -119,7 +119,8 @@ const Arrow = ({
   const showTransformToolbar =
     isSelected && !locked && onFlipX && onFlipY && onRotateCW && onRotateCCW;
 
-  // Transform 스타일 계산
+  // 회전/반전 변환은 화살표 경로와 헤드 마커를 함께 뒤집어
+  // 시각적 방향이 분리되지 않도록 한다.
   const transformStyle = (() => {
     const transforms: string[] = [];
     if (transform?.rotation)

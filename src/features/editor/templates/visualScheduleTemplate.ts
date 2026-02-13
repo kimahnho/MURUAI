@@ -9,11 +9,11 @@ const frameXmm = marginMm;
 const frameYmm = marginMm;
 const frameWidthMm = pageWidthMm - marginMm * 2;
 
-// 내부 콘텐츠 여백 (좌우/상하)
+// 내부 콘텐츠 여백(좌우/상하)
 const innerPaddingXmm = 4;
 const innerPaddingYmm = 10;
 
-// Inner content layout
+// 내부 콘텐츠 시작 위치 및 폭
 const contentStartX = frameXmm + innerPaddingXmm;
 const contentWidth = frameWidthMm - innerPaddingXmm * 2;
 
@@ -24,7 +24,7 @@ const headerGapMm = 8;
 
 const colGapMm = 4;
 const leftColWidthMm = 20;
-// Remaining width for task columns
+// 할 일 컬럼 2개에 분배되는 총 너비
 const taskColsTotalWidthMm = contentWidth - leftColWidthMm - colGapMm * 2;
 const taskColWidthMm = taskColsTotalWidthMm / 2;
 
@@ -80,7 +80,7 @@ export const visualScheduleTemplate: Template = {
         alignY: "middle" as const,
       },
     },
-    // Column headers
+    // 헤더 행
     {
       type: "roundRect",
       x: mmToPx(contentStartX),

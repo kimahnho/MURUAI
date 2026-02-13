@@ -259,7 +259,7 @@ const TextBox = ({
           pendingCaretRef.current = { x: event.clientX, y: event.clientY };
         }
         if (editable && !isEditing && !isSelected) {
-          // [Step 1: Selected] 첫 클릭은 선택만
+          // 1단계: 첫 클릭은 선택만 수행하고 편집 진입은 보류한다.
           onSelectChange?.(true, { additive: event.shiftKey });
         }
         startAction(event, "drag");
@@ -270,17 +270,16 @@ const TextBox = ({
         if (event.button !== 0) return;
         if (didMoveRef.current) return;
         if (!editable || locked) return;
-        // [Step 2: Editing] 선택된 상태에서 클릭 시 편집 모드 진입
+        // 2단계: 이동이 없는 클릭이면 선택 상태에서 편집 모드로 진입한다.
         pendingCaretRef.current = { x: event.clientX, y: event.clientY };
         onStartEditing?.();
       }}
       onDoubleClick={(event) => {
-        // [이벤트 격리] Canvas 선택 해제 방지
+        // 캔버스 상위 핸들러로 이벤트가 전파되어 선택이 풀리지 않게 차단한다.
         event.stopPropagation();
 
         if (isEditing) {
-          // [인터랙션 플로우] 편집 중 더블클릭은 브라우저 Native Text Selection에 맡김
-          // preventDefault 제거하여 단어 선택 등 기본 동작 유지
+          // 편집 중 더블클릭은 브라우저 기본 단어 선택 동작을 사용한다.
           requestAnimationFrame(() => {
             selectWordAtPoint(editableRef.current, {
               x: event.clientX,
@@ -289,8 +288,7 @@ const TextBox = ({
           });
           return;
         }
-        // [Step 3: Word Selection] 더블클릭으로 편집 진입 시 단어 선택 허용
-        // 더블클릭 위치를 저장해 편집 진입 직후 단어 선택을 복원한다.
+        // 3단계: 더블클릭 좌표를 저장해 편집 진입 직후 단어 선택을 복원한다.
         pendingWordSelectRef.current = { x: event.clientX, y: event.clientY };
         pendingCaretRef.current = { x: event.clientX, y: event.clientY };
         beginEditing(event, { allowDefault: true });
@@ -325,7 +323,7 @@ const TextBox = ({
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
           onBlur={handleEditingBlur}
-          // [이벤트 격리] Canvas 선택 해제 방지
+          // 편집 중 포인터 이벤트가 상위로 전파되어 선택이 초기화되지 않게 차단한다.
           onPointerDown={(event) => {
             event.stopPropagation();
           }}
@@ -392,7 +390,7 @@ const TextBox = ({
               data-textbox-toolbar="true"
               className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
               onMouseDown={(event) => {
-                // INPUT 요소가 아닌 경우에만 preventDefault
+                // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
                 const target = event.target as HTMLElement;
                 if (target.tagName !== "INPUT") {
                   event.preventDefault();
@@ -441,7 +439,7 @@ const TextBox = ({
             data-textbox-toolbar="true"
             className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
             onMouseDown={(event) => {
-              // INPUT 요소가 아닌 경우에만 preventDefault
+              // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
               const target = event.target as HTMLElement;
               if (target.tagName !== "INPUT") {
                 event.preventDefault();

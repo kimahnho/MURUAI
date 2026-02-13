@@ -42,7 +42,7 @@ export const useTextBoxAutoResize = ({
   boxRef,
   isResizingRef,
 }: UseTextBoxAutoResizeProps) => {
-  // element 모드에서 캔버스 경계 도달 여부를 추적
+  // element 모드에서 캔버스 경계 도달 여부를 추적한다.
   const hasReachedBoundaryRef = useRef(false);
   const wasMultiLineRef = useRef(false);
 
@@ -170,7 +170,7 @@ export const useTextBoxAutoResize = ({
       return;
     }
 
-    // auto/fixed 모드: 기존 로직
+    // auto/fixed 모드는 폭 변경과 높이 재계산을 함께 처리한다.
     const isAutoWidth = widthMode === "auto";
 
     if (isAutoWidth) {

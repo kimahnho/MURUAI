@@ -99,7 +99,7 @@ export const useTextBoxInteraction = ({
     const startX = event.clientX;
     const startY = event.clientY;
 
-    // Detect corner handles (nw, ne, sw, se).
+    // 코너 핸들은 가로/세로를 함께 조절해 비율 리사이즈 경로를 탄다.
     const isCornerHandle =
       handle &&
       (handle === "nw" ||
@@ -110,8 +110,8 @@ export const useTextBoxInteraction = ({
     const startWidth = startRect.width;
     const aspectRatio = startWidth / startHeight;
 
-    // Switching to fixed width when resizing from corners or side handles.
-    // element 모드에서는 사이드 핸들 드래그 시 fixed로 전환
+    // 코너/사이드 리사이즈는 폭 기준이 고정되어야 일관된 결과가 나오므로
+    // auto/element 모드를 fixed로 전환한다.
     const isSideHandle = handle && (handle === "e" || handle === "w");
     if (isCornerHandle && widthMode === "auto") {
       onWidthModeChange?.("fixed");

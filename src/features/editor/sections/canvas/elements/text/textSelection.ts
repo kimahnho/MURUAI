@@ -132,7 +132,7 @@ export const selectWordAtPoint = (editable: HTMLElement | null, point: Point) =>
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
-    // Use Selection.modify when caret lands on element nodes (spans, breaks).
+    // caret이 텍스트 노드가 아닌 span/br 위에 떨어지면 modify로 단어 선택을 복원한다.
     selectionWithModify.modify("move", "backward", "word");
     selectionWithModify.modify("extend", "forward", "word");
     return true;

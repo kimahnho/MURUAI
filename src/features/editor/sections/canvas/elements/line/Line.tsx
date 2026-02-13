@@ -115,7 +115,8 @@ const Line = ({
   const showTransformToolbar =
     isSelected && !locked && onFlipX && onFlipY && onRotateCW && onRotateCCW;
 
-  // Transform 스타일 계산
+  // 회전/반전 변환은 SVG 루트에 모아 적용해
+  // 선 본체와 핸들 좌표계를 분리한다.
   const transformStyle = (() => {
     const transforms: string[] = [];
     if (transform?.rotation)
