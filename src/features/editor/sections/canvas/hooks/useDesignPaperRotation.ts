@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { ShapeElement } from "../../../model/canvasTypes";
 import type { Rect } from "../../../utils/designPaperUtils";
+import { usePointerDragSession } from "./usePointerDragSession";
 
 type ElementPatch = Partial<ShapeElement> & {
   transform?: Record<string, unknown>;
@@ -35,21 +36,7 @@ export const useDesignPaperRotation = ({
     startRotation: number;
     startPointerAngle: number;
   } | null>(null);
-  const rotationListenersRef = useRef<{
-    move: (event: PointerEvent) => void;
-    up: () => void;
-  } | null>(null);
-
-  useEffect(() => {
-    return () => {
-      const rotationListeners = rotationListenersRef.current;
-      if (rotationListeners) {
-        window.removeEventListener("pointermove", rotationListeners.move);
-        window.removeEventListener("pointerup", rotationListeners.up);
-        rotationListenersRef.current = null;
-      }
-    };
-  }, []);
+  const { startPointerDragSession } = usePointerDragSession();
 
   const startShapeRotation = (
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -80,45 +67,42 @@ export const useDesignPaperRotation = ({
     });
     onInteractionChange?.(true, { type: "drag" });
 
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      if (!rotationStateRef.current) return;
-      const currentPointer = getPointerPosition(moveEvent);
-      const currentAngle = Math.atan2(
-        currentPointer.y - center.y,
-        currentPointer.x - center.x,
-      );
-      const deltaRad = currentAngle - rotationStateRef.current.startPointerAngle;
-      const deltaDeg = (deltaRad * 180) / Math.PI;
-      const nextRotation =
-        (rotationStateRef.current.startRotation + deltaDeg + 360) % 360;
-      updateElement(element.id, {
-        transform: {
-          ...(element.transform ?? {}),
-          rotation: Math.round(nextRotation),
-        },
-      });
-      setRotationBadge({
-        elementId: element.id,
-        rotationDeg: nextRotation,
-      });
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      rotationListenersRef.current = null;
-      rotationStateRef.current = null;
-      setIsRotating(false);
-      setRotationBadge(null);
-      onInteractionChange?.(false, { type: "drag" });
-    };
-
-    rotationListenersRef.current = {
-      move: handlePointerMove,
-      up: handlePointerUp,
-    };
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: undefined,
+      createMoveContext: (moveEvent) => ({
+        distance: 0,
+        context: moveEvent,
+      }),
+      onMove: (moveEvent) => {
+        if (!rotationStateRef.current) return;
+        const currentPointer = getPointerPosition(moveEvent);
+        const currentAngle = Math.atan2(
+          currentPointer.y - center.y,
+          currentPointer.x - center.x,
+        );
+        const deltaRad = currentAngle - rotationStateRef.current.startPointerAngle;
+        const deltaDeg = (deltaRad * 180) / Math.PI;
+        const nextRotation =
+          (rotationStateRef.current.startRotation + deltaDeg + 360) % 360;
+        updateElement(element.id, {
+          transform: {
+            ...(element.transform ?? {}),
+            rotation: Math.round(nextRotation),
+          },
+        });
+        setRotationBadge({
+          elementId: element.id,
+          rotationDeg: nextRotation,
+        });
+      },
+      onEnd: () => {
+        rotationStateRef.current = null;
+        setIsRotating(false);
+        setRotationBadge(null);
+        onInteractionChange?.(false, { type: "drag" });
+      },
+    });
   };
 
   return {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type {
   CanvasElement,
   ShapeElement,
@@ -16,6 +16,7 @@ import {
   type GroupResizeSnapshot,
 } from "../../../utils/groupResize";
 import { buildTextResizePatch } from "../utils/textResizePatch";
+import { usePointerDragSession } from "./usePointerDragSession";
 
 type Point = LineElement["start"];
 
@@ -96,21 +97,7 @@ export const useDesignPaperInteraction = ({
     handle?: ResizeHandle;
   } | null>(null);
   const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
-  const groupResizeListenersRef = useRef<{
-    move: (event: PointerEvent) => void;
-    up: () => void;
-  } | null>(null);
-
-  useEffect(() => {
-    return () => {
-      const listeners = groupResizeListenersRef.current;
-      if (listeners) {
-        window.removeEventListener("pointermove", listeners.move);
-        window.removeEventListener("pointerup", listeners.up);
-        groupResizeListenersRef.current = null;
-      }
-    };
-  }, []);
+  const { startPointerDragSession } = usePointerDragSession();
 
   const handleGroupResizePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -133,34 +120,34 @@ export const useDesignPaperInteraction = ({
     if (!snapshot) return;
     groupResizeRef.current = snapshot;
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentPointer = getPointerPosition(moveEvent);
-      const dx = currentPointer.x - startPointer.x;
-      const dy = currentPointer.y - startPointer.y;
-      const nextGroupRect = computeGroupRectFromDeltas(
-        snapshot.startGroupRect,
-        handle,
-        dx,
-        dy,
-      );
-      if (onElementsChange) {
-        onElementsChange(applyGroupResizeSnapshot(snapshot, nextGroupRect, elements));
-      }
-    };
-
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      groupResizeListenersRef.current = null;
-      groupResizeRef.current = null;
-    };
-
-    groupResizeListenersRef.current = {
-      move: onPointerMove,
-      up: onPointerUp,
-    };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: undefined,
+      createMoveContext: (moveEvent) => {
+        const currentPointer = getPointerPosition(moveEvent);
+        return {
+          distance: 0,
+          context: {
+            dx: currentPointer.x - startPointer.x,
+            dy: currentPointer.y - startPointer.y,
+          },
+        };
+      },
+      onMove: ({ dx, dy }) => {
+        const nextGroupRect = computeGroupRectFromDeltas(
+          snapshot.startGroupRect,
+          handle,
+          dx,
+          dy,
+        );
+        if (onElementsChange) {
+          onElementsChange(applyGroupResizeSnapshot(snapshot, nextGroupRect, elements));
+        }
+      },
+      onEnd: () => {
+        groupResizeRef.current = null;
+      },
+    });
   };
 
   const handleRectChange = (elementId: string, nextRect: Rect) => {
