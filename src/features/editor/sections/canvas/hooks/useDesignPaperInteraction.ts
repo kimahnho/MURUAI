@@ -16,6 +16,13 @@ import {
   type GroupResizeSnapshot,
 } from "../../../utils/groupResize";
 import { buildTextResizePatch } from "../utils/textResizePatch";
+import {
+  applyDragSnapOffsetToLine,
+  applyResizeSnapOffsetToLine,
+  getLineCenter,
+  getLineRect,
+  isMovingLineStart,
+} from "../utils/lineSnap";
 import { usePointerDragSession } from "./usePointerDragSession";
 
 type Point = LineElement["start"];
@@ -527,28 +534,19 @@ export const useDesignPaperInteraction = ({
       return;
     }
 
-    const minX = Math.min(nextLine.start.x, nextLine.end.x);
-    const minY = Math.min(nextLine.start.y, nextLine.end.y);
-    const maxX = Math.max(nextLine.start.x, nextLine.end.x);
-    const maxY = Math.max(nextLine.start.y, nextLine.end.y);
-    const centerX = (nextLine.start.x + nextLine.end.x) / 2;
-    const centerY = (nextLine.start.y + nextLine.end.y) / 2;
-    const lineRect = {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
+    const lineRect = getLineRect(nextLine);
 
     const context = activeInteractionRef.current;
     if (context?.type === "resize") {
       const currentElement = elements.find((e) => e.id === elementId);
-      const isMovingStart =
-        currentElement &&
-        (currentElement.type === "line" || currentElement.type === "arrow")
-          ? nextLine.start.x !== currentElement.start.x ||
-            nextLine.start.y !== currentElement.start.y
-          : false;
+      const currentLine =
+        currentElement && (currentElement.type === "line" || currentElement.type === "arrow")
+          ? {
+              start: currentElement.start,
+              end: currentElement.end,
+            }
+          : null;
+      const isMovingStart = isMovingLineStart(nextLine, currentLine);
       const activeX = isMovingStart ? [nextLine.start.x] : [nextLine.end.x];
       const activeY = isMovingStart ? [nextLine.start.y] : [nextLine.end.y];
 
@@ -562,27 +560,19 @@ export const useDesignPaperInteraction = ({
         activeY,
       });
 
-      const adjustedLine = {
-        start: isMovingStart
-          ? {
-              x: nextLine.start.x + snapOffset.x,
-              y: nextLine.start.y + snapOffset.y,
-            }
-          : nextLine.start,
-        end: isMovingStart
-          ? nextLine.end
-          : {
-              x: nextLine.end.x + snapOffset.x,
-              y: nextLine.end.y + snapOffset.y,
-            },
-      };
+      const adjustedLine = applyResizeSnapOffsetToLine(
+        nextLine,
+        isMovingStart,
+        snapOffset,
+      );
       updateElement(elementId, {
         start: adjustedLine.start,
         end: adjustedLine.end,
       });
     } else {
-      const activeX = [centerX];
-      const activeY = [centerY];
+      const center = getLineCenter(nextLine);
+      const activeX = [center.x];
+      const activeY = [center.y];
 
       const { snapOffset } = smartGuides.compute({
         activeRect: lineRect,
@@ -594,16 +584,7 @@ export const useDesignPaperInteraction = ({
         activeY,
       });
 
-      const adjustedLine = {
-        start: {
-          x: nextLine.start.x + snapOffset.x,
-          y: nextLine.start.y + snapOffset.y,
-        },
-        end: {
-          x: nextLine.end.x + snapOffset.x,
-          y: nextLine.end.y + snapOffset.y,
-        },
-      };
+      const adjustedLine = applyDragSnapOffsetToLine(nextLine, snapOffset);
       updateElement(elementId, {
         start: adjustedLine.start,
         end: adjustedLine.end,

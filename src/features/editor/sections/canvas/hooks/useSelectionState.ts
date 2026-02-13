@@ -13,9 +13,12 @@ import {
   buildVerticalDistribution,
   applyPositionToElement,
 } from "../../../utils/distributeElements";
-import { bumpPageRevision } from "../../../utils/pageRevision";
 import { updateElementsByPageId } from "../../../utils/pageMutation";
 import { getUnlockedOrFirst } from "../utils/selectionHelpers";
+import {
+  applySelectedBorderPatch,
+  applySelectedFontSize,
+} from "../utils/selectionPatches";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -98,34 +101,7 @@ export const useSelectionState = ({
     );
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
-        elements.map((el) => {
-          if (!selectedIds.includes(el.id) || el.locked) {
-            return el;
-          }
-          if (el.type === "text") {
-            return {
-              ...el,
-              style: {
-                ...el.style,
-                fontSize: nextSize,
-              },
-            };
-          }
-          if (
-            el.type === "rect" ||
-            el.type === "roundRect" ||
-            el.type === "ellipse"
-          ) {
-            return {
-              ...el,
-              textStyle: {
-                ...el.textStyle,
-                fontSize: nextSize,
-              },
-            };
-          }
-          return el;
-        }),
+        elements.map((el) => applySelectedFontSize(el, selectedIds, nextSize)),
       ),
     );
   };
@@ -168,31 +144,14 @@ export const useSelectionState = ({
     if (!activePage) return;
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
-        elements.map((el) => {
-          if (!selectedIds.includes(el.id) || el.locked) {
-            return el;
-          }
-          if (
-            el.type !== "rect" &&
-            el.type !== "roundRect" &&
-            el.type !== "ellipse"
-          ) {
-            return el;
-          }
-          const baseBorder = el.border ?? {
+        elements.map((el) =>
+          applySelectedBorderPatch(el, selectedIds, patch, {
             enabled: multiBorderEnabled,
             color: multiBorderColor,
             width: multiBorderWidth,
             style: multiBorderStyle,
-          };
-          return {
-            ...el,
-            border: {
-              ...baseBorder,
-              ...patch,
-            },
-          };
-        }),
+          }),
+        ),
       ),
     );
   };
@@ -295,15 +254,9 @@ export const useSelectionState = ({
     if (!positionMap) return;
 
     setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-        return bumpPageRevision({
-          ...page,
-          elements: page.elements.map((el) =>
-            applyPositionToElement(el, "x", positionMap),
-          ),
-        });
-      }),
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => applyPositionToElement(el, "x", positionMap)),
+      ),
     );
   };
 
@@ -313,15 +266,9 @@ export const useSelectionState = ({
     if (!positionMap) return;
 
     setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-        return bumpPageRevision({
-          ...page,
-          elements: page.elements.map((el) =>
-            applyPositionToElement(el, "y", positionMap),
-          ),
-        });
-      }),
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => applyPositionToElement(el, "y", positionMap)),
+      ),
     );
   };
 
