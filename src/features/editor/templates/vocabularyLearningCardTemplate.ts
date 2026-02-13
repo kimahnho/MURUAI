@@ -109,7 +109,7 @@ export const vocabularyLearningCardTemplate: Template = {
             width: 1.4,
             style: "solid" as const,
           },
-          selectable: false,
+          selectable: true,
           locked: false,
         },
         {
@@ -121,7 +121,7 @@ export const vocabularyLearningCardTemplate: Template = {
           h: mmToPx(labelAreaHeightMm),
           text: "목표 어휘",
           style: {
-            fontSize: 14,
+            fontSize: 25,
             fontWeight: "normal" as const,
             color: "#111827",
             underline: false as const,
