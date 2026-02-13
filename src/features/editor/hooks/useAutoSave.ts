@@ -14,7 +14,7 @@ type AutoSaveParams = {
   pages: Page[];
   docId?: string | null;
   docName: string;
-  // 저장 상태는 내부 reset 시 null이 전달될 수 있다.
+  // 저장 상태는 내부 초기화 과정에서 null이 전달될 수 있다.
   onSaveStateChange?: (state: SaveState | null) => void;
   // 초기 페이지 로딩 중에는 자동 저장을 막기 위한 플래그.
   isDataLoaded?: boolean;
@@ -31,7 +31,7 @@ export const useAutoSave = ({
   const [saveState, setSaveState] = useState<SaveState | null>(null);
   const isPdfExporting = usePageSwapStore((state) => state.pdfExporting);
 
-  // Node/DOM 타이머 타입 혼재를 피하기 위해 ReturnType으로 통일한다.
+  // 런타임별 타이머 타입 차이를 피하기 위해 ReturnType으로 통일한다.
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -42,7 +42,7 @@ export const useAutoSave = ({
   // 첫 렌더 직후 빈 상태가 덮어쓰는 것을 막기 위해 초기 저장을 건너뛴다.
   const hasInitialSaveRef = useRef(false);
 
-  // 외부 콜백 변경 시 effect를 재구독하지 않도록 ref로 최신 콜백만 보관한다.
+  // 외부 콜백 변경으로 효과 훅이 재실행되지 않게 최신 콜백만 ref로 유지한다.
   const onSaveStateChangeRef = useRef(onSaveStateChange);
   useEffect(() => {
     onSaveStateChangeRef.current = onSaveStateChange;
@@ -103,7 +103,7 @@ export const useAutoSave = ({
         const user = data.user;
 
         if (!user) {
-          // 이전 요청이 뒤늦게 끝난 경우 상태가 역전되지 않도록 최신 revision만 반영한다.
+          // 이전 요청이 늦게 끝나도 상태가 뒤집히지 않도록 최신 버전만 반영한다.
           if (myRevision === clientRevisionRef.current && isManual) {
             setSaveState(null);
             emitSaveState(null);
@@ -188,7 +188,7 @@ export const useAutoSave = ({
       saveTimeoutRef.current = null;
     }
 
-    // effect 내부 동기 setState 경고를 피하기 위해 비동기로 상태를 초기화한다.
+    // 효과 훅 내부 동기 setState 경고를 피하기 위해 비동기로 상태를 초기화한다.
     if (!docId) {
       const t = setTimeout(() => {
         setSaveState(null);

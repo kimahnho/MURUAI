@@ -139,7 +139,7 @@ export const useAiImageGeneration = () => {
     canGenerate: true,
   });
 
-  // selector 단위 구독으로 불필요한 리렌더를 줄인다.
+  // 선택자 단위 구독으로 불필요한 리렌더를 줄인다.
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
@@ -258,7 +258,7 @@ export const useAiImageGeneration = () => {
       const imagePath = await uploadToCloudinary(base64Image, user.id);
       const imageUrl = getCloudinaryUrl(imagePath);
 
-      // 이미지 저장 RPC가 카운트 증가까지 함께 처리한다.
+      // 이미지 저장 원격 호출이 카운트 증가까지 함께 처리한다.
       const { data: savedId, error: saveError } = await supabase.rpc(
         "save_ai_generated_image",
         {
@@ -273,7 +273,7 @@ export const useAiImageGeneration = () => {
         console.error("Failed to save image to DB:", saveError);
       }
 
-      // 카운트 초과 시 RPC가 null을 반환하므로 사용자에게 즉시 안내한다.
+      // 카운트 초과 시 원격 호출이 null을 반환하므로 사용자에게 즉시 안내한다.
       if (savedId === null) {
         showToast(
           `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,

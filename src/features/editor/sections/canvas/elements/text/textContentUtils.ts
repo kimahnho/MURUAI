@@ -95,12 +95,12 @@ export const stripStyleTags = (
           // 하위 노드도 동일 규칙으로 재귀 처리한다.
           processNode(el);
 
-          // 비어 있는 style 속성은 정리한다.
+          // 비어 있는 스타일 속성은 정리한다.
           if (el.getAttribute("style") === "") {
             el.removeAttribute("style");
           }
 
-          // 속성이 없는 span은 불필요한 래퍼이므로 벗겨낸다.
+          // 속성이 없는 인라인 래퍼는 불필요하므로 벗겨낸다.
           if (tagName === "span" && el.attributes.length === 0) {
             const parent = el.parentNode;
             if (parent) {
