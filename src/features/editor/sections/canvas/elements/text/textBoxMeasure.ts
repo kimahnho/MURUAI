@@ -40,7 +40,7 @@ export const computeTextBoxSize = ({
   const maxAllowedWidth = maxWidth - canvasPadding;
 
   if (isAutoWidth) {
-    // auto 모드는 단일 라인 폭을 먼저 측정해 가능한 한 줄바꿈을 늦춘다.
+    // 자동 폭 모드는 단일 라인 폭을 먼저 측정해 가능한 한 줄바꿈을 늦춘다.
     measure.style.width = "auto";
     measure.style.whiteSpace = "pre";
     // 브라우저 측정 오차 보정
@@ -55,7 +55,7 @@ export const computeTextBoxSize = ({
       measure.style.whiteSpace = "pre-wrap";
     }
   } else {
-    // fixed 모드는 너비를 고정하고 높이만 늘어난다.
+    // 고정 폭 모드는 너비를 고정하고 높이만 늘어난다.
     measure.style.width = `${rectWidth}px`;
     measure.style.whiteSpace = "pre-wrap";
     targetWidth = rectWidth;

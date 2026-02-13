@@ -143,7 +143,7 @@ export const useAiImageGeneration = () => {
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
-  // ai_generated_images 테이블 기준 일일 사용량을 조회한다.
+  // 생성 이력 테이블 기준 일일 사용량을 조회한다.
   const fetchUsageStatus = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc("get_ai_image_usage_status", {

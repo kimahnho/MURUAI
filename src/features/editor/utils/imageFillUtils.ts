@@ -79,10 +79,10 @@ export const isAacCardElement = (
   ) {
     return false;
   }
-  // labelId가 있으면 명시적으로 연결된 AAC 카드로 본다.
+  // 레이블 ID가 있으면 명시적으로 연결된 AAC 카드로 본다.
   if (element.labelId !== undefined) return true;
 
-  // labelId가 없으면 위치/스타일 기반으로 레이블을 역탐색한다.
+  // 레이블 ID가 없으면 위치/스타일 기반으로 레이블을 역탐색한다.
   const labelId = findLabelElementId(elements, element, isAacLabelElement);
   if (labelId) return true;
 

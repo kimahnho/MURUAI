@@ -111,7 +111,7 @@ export const useTextBoxInteraction = ({
     const aspectRatio = startWidth / startHeight;
 
     // 코너/사이드 리사이즈는 폭 기준이 고정되어야 일관된 결과가 나오므로
-    // auto/element 모드를 fixed로 전환한다.
+    // 자동/요소 모드를 고정 폭 모드로 전환한다.
     const isSideHandle = handle && (handle === "e" || handle === "w");
     if (isCornerHandle && widthMode === "auto") {
       onWidthModeChange?.("fixed");
