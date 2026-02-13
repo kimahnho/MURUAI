@@ -191,7 +191,7 @@ export const useImageFillSubscription = ({
             }
             if (element.locked) return element;
             hasChanges = true;
-            // imageBox가 없는 레거시 요소도 동일한 채우기 규칙을 적용해
+            // 이미지 박스가 없는 레거시 요소도 동일한 채우기 규칙을 적용해
             // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
             const baseImageBox = element.imageBox ??
               calculateCoverImageBox(element.w, element.h, state.width, state.height);

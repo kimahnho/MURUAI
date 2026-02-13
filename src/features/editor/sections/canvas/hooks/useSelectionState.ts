@@ -144,7 +144,7 @@ export const useSelectionState = ({
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
   const applyMultiBorderPatch = (patch: Partial<ShapeElement["border"]>) => {
     if (!activePage) return;
-    // border 기본값을 함께 넘겨 border가 없는 도형도 동일 규칙으로 생성/갱신한다.
+    // 테두리 기본값을 함께 넘겨 테두리가 없는 도형도 동일 규칙으로 생성/갱신한다.
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
         elements.map((el) =>

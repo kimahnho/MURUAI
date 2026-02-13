@@ -252,7 +252,7 @@ export const useDesignPaperInteraction = ({
       targetElement &&
       targetElement.type === "text"
     ) {
-      // 텍스트 리사이즈는 시작 시점 rect를 기준으로 폰트 크기를 보정해
+      // 텍스트 리사이즈는 시작 시점 사각형을 기준으로 폰트 크기를 보정해
       // 박스 크기 변화와 글자 스케일이 어긋나지 않도록 한다.
       const startRect =
         activeInteraction.startRect ??

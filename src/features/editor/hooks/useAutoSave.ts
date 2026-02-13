@@ -31,7 +31,7 @@ export const useAutoSave = ({
   const [saveState, setSaveState] = useState<SaveState | null>(null);
   const isPdfExporting = usePageSwapStore((state) => state.pdfExporting);
 
-  // 런타임별 타이머 타입 차이를 피하기 위해 ReturnType으로 통일한다.
+  // 런타임별 타이머 타입 차이를 피하기 위해 반환 타입 기반으로 통일한다.
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,

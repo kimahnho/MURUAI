@@ -62,8 +62,8 @@ const SquareToolBar = ({
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
 
-  // 도형 크기 입력은 공통 number input 훅으로 관리해
-  // blur/enter 커밋 동작을 가로/세로에서 동일하게 유지한다.
+  // 도형 크기 입력은 공통 숫자 입력 훅으로 관리해
+  // 포커스 해제/엔터 커밋 동작을 가로/세로에서 동일하게 유지한다.
   const widthInputHook = useNumberInput({
     value: width ?? 0,
     min: 1,

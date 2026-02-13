@@ -27,7 +27,7 @@ export const useTextBoxSelectionEffect = ({
       if (!editable) return;
       editable.focus();
 
-      // IME 초기화를 위한 추가 프레임 대기 (한글 자모 분리 방지)
+      // 입력기(IME) 초기화를 위해 한 프레임 더 대기해 한글 자모 분리를 방지한다.
       requestAnimationFrame(() => {
         // 더블클릭 진입이면 클릭 지점 단어 선택을 먼저 복원한다.
         const pendingWordSelect = pendingWordSelectRef.current;

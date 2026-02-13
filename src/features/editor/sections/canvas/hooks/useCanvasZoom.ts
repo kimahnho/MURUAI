@@ -78,7 +78,7 @@ export const useCanvasZoom = ({ zoom, pageId, containerRef, orientation = "verti
     const canvasWidth = paperWidth * scale + PADDING * 2;
     const canvasHeight = paperHeight * scale + PADDING * 2;
 
-    // CSS 픽셀과 실제 픽셀을 분리해 고해상도 화면에서도 선명도를 유지한다.
+    // 스타일 픽셀과 실제 픽셀을 분리해 고해상도 화면에서도 선명도를 유지한다.
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvasWidth * dpr;
     canvas.height = canvasHeight * dpr;

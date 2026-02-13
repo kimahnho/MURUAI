@@ -157,7 +157,7 @@ export const useEditorSubscriptions = ({
   });
 
   // 폰트/요소/방향/보드 구독은 서로 독립 요청을 소비하므로
-  // 내부 가드(requestId/조건)로만 실행 순서를 제어한다.
+  // 내부 가드(요청 ID/조건)로만 실행 순서를 제어한다.
   useFontSubscription({
     selectedPageIdRef,
     selectedIdsRef,
