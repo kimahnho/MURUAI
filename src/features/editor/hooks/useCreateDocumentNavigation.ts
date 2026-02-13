@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";
-import { saveUserMadeVersion } from "../utils/userMadeExport";
+import { saveNewDocument } from "../utils/documentPersistence";
 
 type CreateDocumentOptions = {
   replace?: boolean;
@@ -27,10 +27,10 @@ export const useCreateDocumentNavigation = () => {
         onUnauthorized?.();
         return null;
       }
-      const { id } = await saveUserMadeVersion({
+      const { id } = await saveNewDocument({
         userId: user.id,
         name: "제목 없음",
-        canvasData: { pages: [] },
+        pages: [],
       });
       navigate(`/${id}/edit`, { replace });
       return id;

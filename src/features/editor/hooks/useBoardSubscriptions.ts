@@ -1,14 +1,11 @@
-import {
-  useEffect,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useAacBoardStore } from "../store/aacBoardStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
 import type { SideBarMenu } from "../store/sideBarStore";
 import type { Page } from "../model/pageTypes";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 
 type AddAacBoardPage = (args: {
   config: AacBoardConfig;
@@ -42,9 +39,11 @@ export const useBoardSubscriptions = ({
   addAacBoardPage,
   addStoryBoardPage,
 }: BoardSubscriptionsParams) => {
-  useEffect(() => {
-    const unsubscribe = useAacBoardStore.subscribe((state, prevState) => {
-      if (state.requestId === prevState.requestId) return;
+  useStoreSubscription({
+    subscribe: useAacBoardStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.config),
+    onChange: (state) => {
       if (!state.config) return;
       const newPage = addAacBoardPage({
         config: state.config,
@@ -56,27 +55,29 @@ export const useBoardSubscriptions = ({
         setSelectedIds([newPage.firstElementId]);
         setEditingTextId(null);
       }
-    });
-    return unsubscribe;
-  }, [
-    addAacBoardPage,
-    setActivePage,
-    setEditingTextId,
-    setPages,
-    setSelectedIds,
-    setSideBarMenu,
-  ]);
+    },
+    deps: [
+      addAacBoardPage,
+      setActivePage,
+      setEditingTextId,
+      setPages,
+      setSelectedIds,
+      setSideBarMenu,
+    ],
+  });
 
-  useEffect(() => {
-    const unsubscribe = useStoryBoardStore.subscribe((state, prevState) => {
-      if (state.requestId === prevState.requestId) return;
+  useStoreSubscription({
+    subscribe: useStoryBoardStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.config),
+    onChange: (state) => {
       if (!state.config) return;
       const newPage = addStoryBoardPage({
         config: state.config,
         setPages,
       });
       setActivePage(newPage.id, newPage.orientation);
-    });
-    return unsubscribe;
-  }, [addStoryBoardPage, setActivePage, setPages]);
+    },
+    deps: [addStoryBoardPage, setActivePage, setPages],
+  });
 };

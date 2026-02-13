@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/shared/api/supabase";
-import { updateUserMadeVersion } from "../utils/userMadeExport";
-import { resolvePagesForPersistence } from "../utils/persistPages";
 import { measurePerf } from "../utils/perfLogger";
 import { usePageSwapStore } from "../store/pageSwapStore";
 import type { Page } from "../model/pageTypes";
+import {
+  buildPersistPayload,
+  saveExistingDocument,
+} from "../utils/documentPersistence";
 
 export type SaveState = "saving" | "saved" | "error";
 
@@ -111,7 +113,7 @@ export const useAutoSave = ({
 
         const pagesToPersist = await measurePerf(
           "autosave.resolvePagesForPersistence",
-          () => resolvePagesForPersistence(lastPagesRef.current),
+          async () => (await buildPersistPayload(lastPagesRef.current)).pages,
           {
             totalPages: lastPagesRef.current.length,
             swappedPages: lastPagesRef.current.filter((page) => page.isSwapped)
@@ -136,10 +138,10 @@ export const useAutoSave = ({
         await measurePerf(
           "autosave.updateUserMadeVersion",
           () =>
-            updateUserMadeVersion({
+            saveExistingDocument({
               docId,
               name: docName || "제목 없음",
-              canvasData: { pages: pagesToPersist },
+              pages: pagesToPersist,
             }),
           {
             totalPages: pagesToPersist.length,

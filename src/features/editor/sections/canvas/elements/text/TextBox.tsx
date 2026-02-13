@@ -4,7 +4,7 @@ import type { ResizeHandle } from "../../../../model/canvasTypes";
 import TextToolBar from "./TextToolBar";
 import { isTextEmpty } from "./textContentUtils";
 import { selectWordAtPoint } from "./textSelection";
-import type { ActiveListeners, TextBoxProps } from "./textBoxTypes";
+import type { TextBoxProps } from "./textBoxTypes";
 import { useTextBoxAutoResize } from "./hooks/useTextBoxAutoResize";
 import { useTextBoxEditingHandlers } from "./hooks/useTextBoxEditingHandlers";
 import { useTextBoxInteraction } from "./hooks/useTextBoxInteraction";
@@ -46,7 +46,6 @@ const TextBox = ({
   const pendingWordSelectRef = useRef<{ x: number; y: number } | null>(null);
   const pendingEditRef = useRef(false);
   const didMoveRef = useRef(false);
-  const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -69,16 +68,6 @@ const TextBox = ({
   useEffect(() => {
     rectRef.current = rect;
   }, [rect]);
-
-  useEffect(() => {
-    return () => {
-      const action = actionRef.current;
-      if (!action) return;
-      window.removeEventListener("pointermove", action.moveListener);
-      window.removeEventListener("pointerup", action.upListener);
-      actionRef.current = null;
-    };
-  }, []);
 
   useEffect(() => {
     const wasEditing = wasEditingRef.current;
@@ -119,7 +108,7 @@ const TextBox = ({
     isResizingRef,
   });
 
-  const { startAction } = useTextBoxInteraction({
+  const { startAction, cleanup } = useTextBoxInteraction({
     locked,
     editable,
     isEditing,
@@ -144,8 +133,9 @@ const TextBox = ({
     editableRef,
     isResizingRef,
     didMoveRef,
-    actionRef,
   });
+
+  useEffect(() => cleanup, [cleanup]);
 
   const {
     beginEditing,

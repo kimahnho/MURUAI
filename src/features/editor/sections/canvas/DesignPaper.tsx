@@ -30,10 +30,9 @@ import CircleBox from "./elements/circle/CircleBox";
 import Line from "./elements/line/Line";
 import RoundBox from "./elements/round_box/RoundBox";
 import TextBox from "./elements/text/TextBox";
-import { stripStyleTags } from "./elements/text/textContentUtils";
 import { useSideBarStore } from "../../store/sideBarStore";
 import { useFontStore } from "../../store/fontStore";
-import { getFontLabel, normalizeFontWeight } from "../../utils/fontOptions";
+import { normalizeFontWeight } from "../../utils/fontOptions";
 import { useDesignPaperActions } from "./hooks/useDesignPaperActions";
 import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
 import { useDesignPaperInteraction } from "./hooks/useDesignPaperInteraction";
@@ -44,6 +43,7 @@ import { useDesignPaperStageActions } from "./hooks/useDesignPaperStageActions";
 import { useEmotionSlotBindings } from "./hooks/useEmotionSlotBindings";
 import { useDesignPaperRotation } from "./hooks/useDesignPaperRotation";
 import { useDesignPaperSelectionContextMenu } from "./hooks/useDesignPaperSelectionContextMenu";
+import { useGroupOverlayDrag } from "./hooks/useGroupOverlayDrag";
 import {
   DEFAULT_STROKE,
   getRectFromElement,
@@ -64,8 +64,9 @@ import {
   getTopCenterAnchor,
   getRotatedLocalAnchor,
 } from "../../utils/rotationGeometry";
-import ShapeTransformBar from "./ShapeTransformBar";
 import RotationBadge from "./RotationBadge";
+import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
+import { buildTextToolbarConfig } from "./utils/textToolbarConfig";
 
 interface DesignPaperProps {
   pageId: string;
@@ -146,10 +147,6 @@ const DesignPaper = ({
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const groupOverlayDragListenersRef = useRef<{
-    move: (event: PointerEvent) => void;
-    up: () => void;
-  } | null>(null);
   const isHorizontal = orientation === "horizontal";
   const pageWidth = isHorizontal ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const pageHeight = isHorizontal ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
@@ -176,16 +173,6 @@ const DesignPaper = ({
     };
   }, [editingTextId, readOnly, selectedIds]);
 
-  useEffect(() => {
-    return () => {
-      const listeners = groupOverlayDragListenersRef.current;
-      if (!listeners) return;
-      window.removeEventListener("pointermove", listeners.move);
-      window.removeEventListener("pointerup", listeners.up);
-      groupOverlayDragListenersRef.current = null;
-    };
-  }, []);
-
   const getContainerScale = () => {
     const node = containerRef.current;
     if (!node) return 1;
@@ -207,7 +194,6 @@ const DesignPaper = ({
 
   const {
     clearContextMenu,
-    handleSelect,
     handleSelectChange,
     openContextMenu,
     openCanvasContextMenu,
@@ -466,6 +452,20 @@ const DesignPaper = ({
     setActivePreview,
   });
 
+  const { handleGroupOverlayDragPointerDown } = useGroupOverlayDrag({
+    readOnly,
+    elements,
+    selectedIdsRef,
+    getPointerPosition,
+    buildGroupDragState,
+    groupDragRef,
+    applyGroupDelta,
+    onInteractionChange,
+    handleSelectChange,
+    smartGuides,
+    getTargetRects,
+  });
+
   const { isRotating, rotationBadge, startShapeRotation } =
     useDesignPaperRotation({
       readOnly,
@@ -570,207 +570,6 @@ const DesignPaper = ({
     };
   };
 
-  const handleGroupOverlayDragPointerDown = (
-    event: ReactPointerEvent<HTMLDivElement>,
-    groupRect: Rect,
-  ) => {
-    if (readOnly) return;
-    if (event.button !== 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const pointer = getPointerPosition(event);
-    const hitSelectedElement = [...elements]
-      .reverse()
-      .find((element) => {
-        if (!selectedIdsRef.current.includes(element.id)) return false;
-        if (element.visible === false || element.selectable === false || element.locked) {
-          return false;
-        }
-        const rect = getRectFromElement(element);
-        if (!rect) return false;
-        return (
-          pointer.x >= rect.x &&
-          pointer.x <= rect.x + rect.width &&
-          pointer.y >= rect.y &&
-          pointer.y <= rect.y + rect.height
-        );
-      });
-    const shouldSelectSingleOnClick = Boolean(hitSelectedElement && !event.shiftKey);
-    const activeId = selectedIdsRef.current[0];
-    if (!activeId) return;
-    const snapshot = buildGroupDragState(activeId);
-    if (!snapshot || snapshot.items.size <= 1) {
-      if (shouldSelectSingleOnClick && hitSelectedElement) {
-        handleSelect(hitSelectedElement.id);
-      }
-      return;
-    }
-    const startPointer = getPointerPosition(event);
-    const selectedItemIds = new Set(snapshot.items.keys() as Iterable<string>);
-    const DRAG_THRESHOLD_PX = 3;
-    let hasMoved = false;
-    let dragStarted = false;
-
-    const startDrag = () => {
-      if (dragStarted) return;
-      dragStarted = true;
-      groupDragRef.current = snapshot;
-      onInteractionChange?.(true, { type: "drag" });
-    };
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentPointer = getPointerPosition(moveEvent);
-      const delta = {
-        x: currentPointer.x - startPointer.x,
-        y: currentPointer.y - startPointer.y,
-      };
-      if (!hasMoved && Math.hypot(delta.x, delta.y) < DRAG_THRESHOLD_PX) {
-        return;
-      }
-      if (!hasMoved) {
-        hasMoved = true;
-      }
-      startDrag();
-      const movingRect = {
-        x: groupRect.x + delta.x,
-        y: groupRect.y + delta.y,
-        width: groupRect.width,
-        height: groupRect.height,
-      };
-      const { snapOffset } = smartGuides.compute({
-        activeRect: movingRect,
-        otherRects: getTargetRects(activeId, selectedItemIds),
-      });
-      applyGroupDelta({
-        x: delta.x + snapOffset.x,
-        y: delta.y + snapOffset.y,
-      });
-    };
-
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      groupOverlayDragListenersRef.current = null;
-      if (!hasMoved && shouldSelectSingleOnClick && hitSelectedElement) {
-        handleSelect(hitSelectedElement.id);
-        return;
-      }
-      if (dragStarted) {
-        groupDragRef.current = null;
-        onInteractionChange?.(false, { type: "drag" });
-        smartGuides.clear();
-      }
-    };
-
-    groupOverlayDragListenersRef.current = {
-      move: onPointerMove,
-      up: onPointerUp,
-    };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-  };
-
-  const buildTextToolbarConfig = (
-    element: TextElement,
-    fontWeight: number,
-    lineHeight: number,
-    letterSpacing: number,
-    clampFontSize: (v: number) => number,
-  ) => ({
-    offset: mmToPx(4),
-    minFontSize: 12,
-    maxFontSize: 120,
-    fontSize: element.style.fontSize,
-    lineHeight,
-    letterSpacing,
-    color: element.style.color,
-    isBold:
-      element.style.fontWeight === "bold" ||
-      (typeof element.style.fontWeight === "number" &&
-        element.style.fontWeight >= 700),
-    isUnderline: Boolean(element.style.underline),
-    isItalic: Boolean(element.style.italic),
-    isStrikethrough: Boolean(element.style.strikethrough),
-    align: element.style.alignX,
-    alignY: element.style.alignY,
-    fontFamily: element.style.fontFamily ?? "Pretendard",
-    fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
-    onFontFamilyClick: () => {
-      setSideBarMenu("font");
-      setFontPanel({
-        fontFamily: element.style.fontFamily ?? "Pretendard",
-        fontWeight: fontWeight,
-      });
-    },
-    onFontSizeChange: (value: number) => {
-      updateElement(element.id, {
-        style: { fontSize: clampFontSize(value) },
-      });
-    },
-    onFontSizeStep: (delta: number) => {
-      updateElement(element.id, {
-        style: {
-          fontSize: clampFontSize(element.style.fontSize + delta),
-        },
-      });
-    },
-    onLineHeightChange: (value: number) => {
-      updateElement(element.id, { style: { lineHeight: value } });
-    },
-    onLetterSpacingChange: (value: number) => {
-      updateElement(element.id, { style: { letterSpacing: value } });
-    },
-    onColorChange: (color: string) => {
-      updateElement(element.id, {
-        style: { color },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "color")
-          : undefined,
-      });
-    },
-    onToggleBold: () => {
-      updateElement(element.id, {
-        style: {
-          fontWeight:
-            element.style.fontWeight === "bold" ? "normal" : "bold",
-        },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "bold")
-          : undefined,
-      });
-    },
-    onToggleUnderline: () => {
-      updateElement(element.id, {
-        style: { underline: !element.style.underline },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "underline")
-          : undefined,
-      });
-    },
-    onToggleItalic: () => {
-      updateElement(element.id, {
-        style: { italic: !element.style.italic },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "italic")
-          : undefined,
-      });
-    },
-    onToggleStrikethrough: () => {
-      updateElement(element.id, {
-        style: { strikethrough: !element.style.strikethrough },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "strikethrough")
-          : undefined,
-      });
-    },
-    onAlignChange: (align: "left" | "center" | "right") => {
-      updateElement(element.id, { style: { alignX: align } });
-    },
-    onAlignYChange: (alignY: "top" | "middle" | "bottom") => {
-      updateElement(element.id, { style: { alignY } });
-    },
-  });
-
   const renderTextElement = (element: TextElement) => {
     const showToolbar =
       selectedIds[0] === element.id && selectedIds.length === 1;
@@ -827,7 +626,17 @@ const DesignPaper = ({
         locked={locked}
         showToolbar={showToolbar}
         widthMode={element.widthMode ?? "auto"}
-        toolbar={buildTextToolbarConfig(element, fontWeight, lineHeight, letterSpacing, clampFontSize)}
+        toolbar={buildTextToolbarConfig({
+          element,
+          fontWeight,
+          lineHeight,
+          letterSpacing,
+          clampFontSize,
+          offset: mmToPx(4),
+          setSideBarMenu,
+          setFontPanel,
+          updateElement,
+        })}
         onTextChange={(nextText, nextRichText) => {
           updateElement(element.id, { text: nextText, richText: nextRichText });
         }}
@@ -1086,37 +895,18 @@ const DesignPaper = ({
     >
       {elements.map((element) => renderElement(element))}
       <SelectionRectOverlay selectionRect={selectionRect} />
-      {(() => {
-        if (selectedIds.length !== 1) return null;
-        const element = elements.find((el) => el.id === selectedIds[0]);
-        if (
-          !element ||
-          element.locked ||
-          (element.type !== "rect" &&
-            element.type !== "roundRect" &&
-            element.type !== "ellipse")
-        ) {
-          return null;
-        }
-        const rect =
-          activePreview?.id === element.id
-            ? activePreview.rect
-            : getRectFromElement(element);
-        if (!rect) return null;
-        return (
-          <ShapeTransformBar
-            element={element}
-            rect={rect}
-            isRotating={isRotating}
-            editingImageId={editingImageId}
-            editingShapeTextId={editingShapeTextId}
-            updateElement={updateElement}
-            startShapeRotation={startShapeRotation}
-            getBottomCenterAnchor={getBottomCenterAnchor}
-            getTopCenterAnchor={getTopCenterAnchor}
-          />
-        );
-      })()}
+      <SingleShapeTransformOverlay
+        selectedIds={selectedIds}
+        elements={elements}
+        activePreview={activePreview}
+        isRotating={isRotating}
+        editingImageId={editingImageId}
+        editingShapeTextId={editingShapeTextId}
+        updateElement={updateElement}
+        startShapeRotation={startShapeRotation}
+        getBottomCenterAnchor={getBottomCenterAnchor}
+        getTopCenterAnchor={getTopCenterAnchor}
+      />
       <GroupSelectionOverlay
         isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
         readOnly={readOnly}

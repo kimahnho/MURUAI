@@ -118,11 +118,49 @@ export const useDesignPaperSelectionContextMenu = ({
       isSelected: boolean,
       options?: { keepContextMenu?: boolean; additive?: boolean },
     ) => {
+      if (readOnly) return;
       if (isSelected) {
+        if (options?.additive) {
+          const currentSelectedIds = selectedIdsRef.current;
+          if (currentSelectedIds.includes(elementId)) {
+            const nextSelectedIds = currentSelectedIds.filter(
+              (id) => id !== elementId,
+            );
+            selectedIdsRef.current = nextSelectedIds;
+            onSelectedIdsChange?.(nextSelectedIds);
+            if (editingImageId === elementId) {
+              setEditingImageId(null);
+            }
+            if (editingShapeTextId === elementId) {
+              setEditingShapeTextId(null);
+            }
+            if (editingTextId === elementId) {
+              onEditingTextIdChange?.(null);
+            }
+            if (!options.keepContextMenu) {
+              setContextMenu(null);
+            }
+            containerRef.current?.focus();
+            return;
+          }
+        }
         handleSelect(elementId, options);
       }
     },
-    [handleSelect],
+    [
+      containerRef,
+      editingImageId,
+      editingShapeTextId,
+      editingTextId,
+      handleSelect,
+      onEditingTextIdChange,
+      onSelectedIdsChange,
+      readOnly,
+      selectedIdsRef,
+      setContextMenu,
+      setEditingImageId,
+      setEditingShapeTextId,
+    ],
   );
 
   const openContextMenu = useCallback(

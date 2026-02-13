@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type {
   CanvasElement,
   ShapeElement,
@@ -15,6 +15,15 @@ import {
   applyGroupResizeSnapshot,
   type GroupResizeSnapshot,
 } from "../../../utils/groupResize";
+import { buildTextResizePatch } from "../utils/textResizePatch";
+import {
+  applyDragSnapOffsetToLine,
+  applyResizeSnapOffsetToLine,
+  getLineCenter,
+  getLineRect,
+  isMovingLineStart,
+} from "../utils/lineSnap";
+import { usePointerDragSession } from "./usePointerDragSession";
 
 type Point = LineElement["start"];
 
@@ -95,21 +104,7 @@ export const useDesignPaperInteraction = ({
     handle?: ResizeHandle;
   } | null>(null);
   const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
-  const groupResizeListenersRef = useRef<{
-    move: (event: PointerEvent) => void;
-    up: () => void;
-  } | null>(null);
-
-  useEffect(() => {
-    return () => {
-      const listeners = groupResizeListenersRef.current;
-      if (listeners) {
-        window.removeEventListener("pointermove", listeners.move);
-        window.removeEventListener("pointerup", listeners.up);
-        groupResizeListenersRef.current = null;
-      }
-    };
-  }, []);
+  const { startPointerDragSession } = usePointerDragSession();
 
   const handleGroupResizePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -132,34 +127,34 @@ export const useDesignPaperInteraction = ({
     if (!snapshot) return;
     groupResizeRef.current = snapshot;
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentPointer = getPointerPosition(moveEvent);
-      const dx = currentPointer.x - startPointer.x;
-      const dy = currentPointer.y - startPointer.y;
-      const nextGroupRect = computeGroupRectFromDeltas(
-        snapshot.startGroupRect,
-        handle,
-        dx,
-        dy,
-      );
-      if (onElementsChange) {
-        onElementsChange(applyGroupResizeSnapshot(snapshot, nextGroupRect, elements));
-      }
-    };
-
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      groupResizeListenersRef.current = null;
-      groupResizeRef.current = null;
-    };
-
-    groupResizeListenersRef.current = {
-      move: onPointerMove,
-      up: onPointerUp,
-    };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: undefined,
+      createMoveContext: (moveEvent) => {
+        const currentPointer = getPointerPosition(moveEvent);
+        return {
+          distance: 0,
+          context: {
+            dx: currentPointer.x - startPointer.x,
+            dy: currentPointer.y - startPointer.y,
+          },
+        };
+      },
+      onMove: ({ dx, dy }) => {
+        const nextGroupRect = computeGroupRectFromDeltas(
+          snapshot.startGroupRect,
+          handle,
+          dx,
+          dy,
+        );
+        if (onElementsChange) {
+          onElementsChange(applyGroupResizeSnapshot(snapshot, nextGroupRect, elements));
+        }
+      },
+      onEnd: () => {
+        groupResizeRef.current = null;
+      },
+    });
   };
 
   const handleRectChange = (elementId: string, nextRect: Rect) => {
@@ -267,31 +262,13 @@ export const useDesignPaperInteraction = ({
               height: targetElement.h,
             }
           : nextRect);
-      const handle = activeInteraction.handle;
-      const hasWidthHandle =
-        handle != null && (handle.includes("e") || handle.includes("w"));
-      const shouldScaleFont =
-        handle != null && ["nw", "ne", "sw", "se"].includes(handle);
-      const baseFontSize =
-        activeInteraction.startFontSize ?? targetElement.style.fontSize;
-      const heightRatio = startRect.height
-        ? nextRect.height / startRect.height
-        : 1;
-      const nextFontSize = shouldScaleFont
-        ? Math.max(6, Math.round(baseFontSize * heightRatio))
-        : baseFontSize;
-      const patch: TextElementPatch = {
-        x: nextRect.x,
-        y: nextRect.y,
-        w: nextRect.width,
-        h: nextRect.height,
-      };
-      if (hasWidthHandle) {
-        patch.widthMode = "fixed";
-      }
-      if (shouldScaleFont) {
-        patch.style = { fontSize: nextFontSize };
-      }
+      const patch = buildTextResizePatch({
+        handle: activeInteraction.handle,
+        startHeight: startRect.height,
+        nextRect,
+        baseFontSize:
+          activeInteraction.startFontSize ?? targetElement.style.fontSize,
+      });
       updateElement(elementId, patch);
       setActivePreview({ id: elementId, rect: nextRect });
       return;
@@ -453,30 +430,13 @@ export const useDesignPaperInteraction = ({
         activeInteraction?.startRect
       ) {
         const handle = activeInteraction.handle;
-        const hasWidthHandle =
-          handle != null && (handle.includes("e") || handle.includes("w"));
-        const shouldScaleFont =
-          handle != null && ["nw", "ne", "sw", "se"].includes(handle);
-        const heightRatio = activeInteraction.startRect.height
-          ? finalRect.height / activeInteraction.startRect.height
-          : 1;
-        const baseFontSize =
-          activeInteraction.startFontSize ?? targetElement.style.fontSize;
-        const nextFontSize = shouldScaleFont
-          ? Math.max(6, Math.round(baseFontSize * heightRatio))
-          : baseFontSize;
-        const patch: TextElementPatch = {
-          x: finalRect.x,
-          y: finalRect.y,
-          w: finalRect.width,
-          h: finalRect.height,
-        };
-        if (hasWidthHandle) {
-          patch.widthMode = "fixed";
-        }
-        if (shouldScaleFont) {
-          patch.style = { fontSize: nextFontSize };
-        }
+        const patch = buildTextResizePatch({
+          handle,
+          startHeight: activeInteraction.startRect.height,
+          nextRect: finalRect,
+          baseFontSize:
+            activeInteraction.startFontSize ?? targetElement.style.fontSize,
+        });
         updateElement(elementId, patch);
       } else {
         const isResize = context?.type === "resize";
@@ -574,28 +534,19 @@ export const useDesignPaperInteraction = ({
       return;
     }
 
-    const minX = Math.min(nextLine.start.x, nextLine.end.x);
-    const minY = Math.min(nextLine.start.y, nextLine.end.y);
-    const maxX = Math.max(nextLine.start.x, nextLine.end.x);
-    const maxY = Math.max(nextLine.start.y, nextLine.end.y);
-    const centerX = (nextLine.start.x + nextLine.end.x) / 2;
-    const centerY = (nextLine.start.y + nextLine.end.y) / 2;
-    const lineRect = {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
+    const lineRect = getLineRect(nextLine);
 
     const context = activeInteractionRef.current;
     if (context?.type === "resize") {
       const currentElement = elements.find((e) => e.id === elementId);
-      const isMovingStart =
-        currentElement &&
-        (currentElement.type === "line" || currentElement.type === "arrow")
-          ? nextLine.start.x !== currentElement.start.x ||
-            nextLine.start.y !== currentElement.start.y
-          : false;
+      const currentLine =
+        currentElement && (currentElement.type === "line" || currentElement.type === "arrow")
+          ? {
+              start: currentElement.start,
+              end: currentElement.end,
+            }
+          : null;
+      const isMovingStart = isMovingLineStart(nextLine, currentLine);
       const activeX = isMovingStart ? [nextLine.start.x] : [nextLine.end.x];
       const activeY = isMovingStart ? [nextLine.start.y] : [nextLine.end.y];
 
@@ -609,27 +560,19 @@ export const useDesignPaperInteraction = ({
         activeY,
       });
 
-      const adjustedLine = {
-        start: isMovingStart
-          ? {
-              x: nextLine.start.x + snapOffset.x,
-              y: nextLine.start.y + snapOffset.y,
-            }
-          : nextLine.start,
-        end: isMovingStart
-          ? nextLine.end
-          : {
-              x: nextLine.end.x + snapOffset.x,
-              y: nextLine.end.y + snapOffset.y,
-            },
-      };
+      const adjustedLine = applyResizeSnapOffsetToLine(
+        nextLine,
+        isMovingStart,
+        snapOffset,
+      );
       updateElement(elementId, {
         start: adjustedLine.start,
         end: adjustedLine.end,
       });
     } else {
-      const activeX = [centerX];
-      const activeY = [centerY];
+      const center = getLineCenter(nextLine);
+      const activeX = [center.x];
+      const activeY = [center.y];
 
       const { snapOffset } = smartGuides.compute({
         activeRect: lineRect,
@@ -641,16 +584,7 @@ export const useDesignPaperInteraction = ({
         activeY,
       });
 
-      const adjustedLine = {
-        start: {
-          x: nextLine.start.x + snapOffset.x,
-          y: nextLine.start.y + snapOffset.y,
-        },
-        end: {
-          x: nextLine.end.x + snapOffset.x,
-          y: nextLine.end.y + snapOffset.y,
-        },
-      };
+      const adjustedLine = applyDragSnapOffsetToLine(nextLine, snapOffset);
       updateElement(elementId, {
         start: adjustedLine.start,
         end: adjustedLine.end,

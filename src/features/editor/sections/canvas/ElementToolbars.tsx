@@ -1,4 +1,10 @@
-import { lazy, Suspense, type Dispatch, type SetStateAction } from "react";
+import { lazy, Suspense, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  ArrowUpFromLine,
+  ArrowUpToLine,
+  ChevronsDown,
+  ChevronsUp,
+} from "lucide-react";
 import SquareToolBar from "./elements/round_box/SquareToolBar";
 import ArrowToolBar from "./elements/arrow/ArrowToolBar";
 import LineToolBar from "./elements/line/LineToolBar";
@@ -9,7 +15,7 @@ import type {
 } from "../../model/canvasTypes";
 import type { Page } from "../../model/pageTypes";
 import type { AacLabelPosition } from "../../utils/aacBoardUtils";
-import { bumpPageRevision } from "../../utils/pageRevision";
+import { updateElementsByPageId } from "../../utils/pageMutation";
 
 const AacToolBar = lazy(() => import("./AacToolBar"));
 
@@ -41,6 +47,8 @@ type AacToolbarData = {
   cardCount: number;
 };
 
+type LayerDirection = "forward" | "front" | "backward" | "back";
+
 type ElementToolbarsProps = {
   shapeToolbarData: ShapeToolbarData | null;
   lineToolbarData: LineToolbarData | null;
@@ -60,20 +68,117 @@ const ElementToolbars = ({
   setPages,
   onAacLabelPositionChange,
 }: ElementToolbarsProps) => {
+  const moveLayer = (elementId: string, direction: LayerDirection) => {
+    setPages((prevPages) =>
+      updateElementsByPageId(prevPages, selectedPageId, (elements) => {
+        const index = elements.findIndex((el) => el.id === elementId);
+        if (index === -1) return elements;
+        const nextElements = [...elements];
+        if (direction === "forward") {
+          if (index >= nextElements.length - 1) return elements;
+          [nextElements[index], nextElements[index + 1]] = [
+            nextElements[index + 1],
+            nextElements[index],
+          ];
+          return nextElements;
+        }
+        if (direction === "backward") {
+          if (index <= 0) return elements;
+          [nextElements[index - 1], nextElements[index]] = [
+            nextElements[index],
+            nextElements[index - 1],
+          ];
+          return nextElements;
+        }
+        if (direction === "front") {
+          if (index >= nextElements.length - 1) return elements;
+          const [target] = nextElements.splice(index, 1);
+          nextElements.push(target);
+          return nextElements;
+        }
+        if (index <= 0) return elements;
+        const [target] = nextElements.splice(index, 1);
+        nextElements.unshift(target);
+        return nextElements;
+      }),
+    );
+    setLayerPanelElementId(null);
+  };
+
+  const [layerPanelElementId, setLayerPanelElementId] = useState<string | null>(
+    null,
+  );
+
+  const renderLayerPanelButton = (elementId: string) => {
+    const isOpen = layerPanelElementId === elementId;
+    return (
+      <div className="relative pl-2 border-l border-black-15">
+        <button
+          type="button"
+          onClick={() => {
+            setLayerPanelElementId((prev) => (prev === elementId ? null : elementId));
+          }}
+          className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
+            isOpen
+              ? "border-primary text-primary bg-primary/10 ring-1 ring-primary/40 shadow-sm"
+              : "border-black-30 text-black-70"
+          }`}
+          aria-label="레이어 설정"
+        >
+          레이어
+        </button>
+        {isOpen && (
+          <div
+            className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-black-25 bg-white-100 p-1 shadow-lg z-50"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => moveLayer(elementId, "forward")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <ArrowUpFromLine className="h-4 w-4" />
+              앞으로 가져오기
+            </button>
+            <button
+              type="button"
+              onClick={() => moveLayer(elementId, "front")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <ChevronsUp className="h-4 w-4" />
+              맨 앞으로 가져오기
+            </button>
+            <button
+              type="button"
+              onClick={() => moveLayer(elementId, "backward")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <ArrowUpToLine className="h-4 w-4" />
+              뒤로 보내기
+            </button>
+            <button
+              type="button"
+              onClick={() => moveLayer(elementId, "back")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <ChevronsDown className="h-4 w-4" />
+              맨 뒤로 보내기
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const updateSelectedPageElement = (
     elementId: string,
     updater: (element: CanvasElement) => CanvasElement,
   ) => {
     setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === selectedPageId
-          ? bumpPageRevision({
-              ...page,
-              elements: page.elements.map((el) =>
-                el.id === elementId ? updater(el) : el,
-              ),
-            })
-          : page,
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => (el.id === elementId ? updater(el) : el)),
       ),
     );
   };
@@ -82,22 +187,17 @@ const ElementToolbars = ({
     updater: (element: LineElement) => Partial<LineElement>,
   ) => {
     setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === selectedPageId
-          ? bumpPageRevision({
-              ...page,
-              elements: page.elements.map((el) => {
-                if (
-                  selectedIds.includes(el.id) &&
-                  (el.type === "line" || el.type === "arrow") &&
-                  !el.locked
-                ) {
-                  return { ...el, ...updater(el) };
-                }
-                return el;
-              }),
-            })
-          : page,
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => {
+          if (
+            selectedIds.includes(el.id) &&
+            (el.type === "line" || el.type === "arrow") &&
+            !el.locked
+          ) {
+            return { ...el, ...updater(el) };
+          }
+          return el;
+        }),
       ),
     );
   };
@@ -269,6 +369,7 @@ const ElementToolbars = ({
                   event.stopPropagation();
                 }}
               />
+              {renderLayerPanelButton(shapeToolbarData.element.id)}
             </div>
           </div>
         </div>
@@ -315,6 +416,7 @@ const ElementToolbars = ({
                   event.stopPropagation();
                 }}
               />
+              {renderLayerPanelButton(lineToolbarData.element.id)}
             </div>
           </div>
         </div>
@@ -361,6 +463,7 @@ const ElementToolbars = ({
                   event.stopPropagation();
                 }}
               />
+              {renderLayerPanelButton(lineToolbarData.element.id)}
             </div>
           </div>
         </div>

@@ -20,6 +20,8 @@ type GroupDragState = {
   items: Map<string, GroupDragItem>;
 };
 
+export type { GroupDragState };
+
 type UseDesignPaperGroupDragProps = {
   elements: CanvasElement[];
   selectedIds: string[];
