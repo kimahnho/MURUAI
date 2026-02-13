@@ -39,7 +39,6 @@ export const useNumberInput = ({
   const [inputValue, setInputValue] = useState(() => String(Math.round(value)));
   const [isEditing, setIsEditing] = useState(false);
 
-  // 값 제한
   const clamp = (num: number): number => {
     let result = num;
     if (typeof min === "number") result = Math.max(min, result);
@@ -47,7 +46,6 @@ export const useNumberInput = ({
     return result;
   };
 
-  // 입력값 커밋
   const commit = () => {
     const digits = inputValue.replace(/[^0-9]/g, "");
     if (!digits) {
@@ -61,7 +59,6 @@ export const useNumberInput = ({
     }
   };
 
-  // 입력값 변경
   const handleChange = (newValue: string) => {
     const digits = newValue.replace(/[^0-9]/g, "");
     setInputValue(digits);
@@ -71,21 +68,18 @@ export const useNumberInput = ({
     }
   };
 
-  // 포커스
   const handleFocus = (event?: React.FocusEvent<HTMLInputElement>) => {
     setInputValue(String(Math.round(value)));
     setIsEditing(true);
     event?.target.select();
   };
 
-  // 블러
   const handleBlur = () => {
     if (!isEditing) return;
     setIsEditing(false);
     commit();
   };
 
-  // 증감 (+/- 버튼용)
   const step = (delta: number) => {
     const nextValue = clamp(value + delta);
     onChange(nextValue);

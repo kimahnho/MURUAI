@@ -51,9 +51,9 @@ export const buildAacBoardElements = ({
     paddingHorizontalMm + (contentWidthMm - totalGridWidthMm) / 2;
   const startYMm = paddingTopMm + (contentHeightMm - totalGridHeightMm) / 2;
   const maxLabelHeightMm = 12;
-  const labelInset = snapPx(mmToPx(0)); // 라벨을 더 아래로 (2 -> 0.5)
-  const labelGap = snapPx(mmToPx(2)); // 이미지와 라벨 간격 줄임 (4 -> 2)
-  const imagePadding = snapPx(mmToPx(0)); // 이미지 패딩 줄여서 이미지 크기 증가 (3 -> 1.5)
+  const labelInset = snapPx(mmToPx(0)); // 라벨 위치 미세 보정
+  const labelGap = snapPx(mmToPx(2)); // 이미지와 라벨 사이 간격
+  const imagePadding = snapPx(mmToPx(0)); // 이미지 영역 내부 여백
   const labelFontSize = 18;
   const elements: AacBoardElement[] = [];
   let cellIndex = 0;
@@ -94,11 +94,11 @@ export const buildAacBoardElements = ({
       const imageBoxSize = clampPx(
         Math.min(imageAreaWidth, imageAreaHeight) * 1.5,
       );
-      // 이미지를 박스 내 이미지 영역 중앙에 배치 (상대 좌표)
+      // 이미지를 박스 내부 이미지 영역 중앙에 상대 좌표로 배치한다.
       const imageRelX = snapPx(
         imageAreaX - boxX + (imageAreaWidth - imageBoxSize) / 2,
       );
-      const imageOffsetY = snapPx(mmToPx(2)); // 이미지를 아래로 2mm 내림
+      const imageOffsetY = snapPx(mmToPx(2)); // 시각 중심 보정을 위해 Y축으로 소폭 이동
       const imageRelY = snapPx(
         imageAreaY - boxY + (imageAreaHeight - imageBoxSize) / 2 + imageOffsetY,
       );
