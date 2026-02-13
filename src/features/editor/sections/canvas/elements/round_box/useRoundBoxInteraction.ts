@@ -28,6 +28,7 @@ interface ImageBox {
 interface UseRoundBoxInteractionParams {
   locked: boolean;
   isSelected: boolean;
+  selectionCount: number;
   minWidth: number;
   minHeight: number;
   boxRef: React.RefObject<HTMLDivElement | null>;
@@ -59,6 +60,7 @@ const clampImageScale = (value: number) => Math.min(3, Math.max(0.5, value));
 export const useRoundBoxInteraction = ({
   locked,
   isSelected,
+  selectionCount,
   minWidth,
   minHeight,
   boxRef,
@@ -85,7 +87,9 @@ export const useRoundBoxInteraction = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    if (!isSelected || event.shiftKey) {
+    const shouldSelectOnClickOnly =
+      type === "drag" && isSelected && selectionCount > 1 && !event.shiftKey;
+    if (!shouldSelectOnClickOnly && (!isSelected || event.shiftKey)) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
@@ -328,6 +332,9 @@ export const useRoundBoxInteraction = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       actionRef.current = null;
+      if (!hasMoved && shouldSelectOnClickOnly) {
+        onSelectChange?.(true);
+      }
       if (hasMoved) {
         if (type === "drag" || type === "resize") {
           onDragStateChange?.(false, rectRef.current, { type });

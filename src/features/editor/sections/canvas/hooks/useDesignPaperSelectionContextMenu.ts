@@ -66,24 +66,10 @@ export const useDesignPaperSelectionContextMenu = ({
       ) {
         return;
       }
-      const groupedIds =
-        selectedElement.groupId != null
-          ? elements
-              .filter(
-                (element) =>
-                  element.groupId === selectedElement.groupId &&
-                  element.selectable !== false,
-              )
-              .map((element) => element.id)
-          : [elementId];
-      const orderedGroupedIds =
-        selectedElement.groupId != null
-          ? [elementId, ...groupedIds.filter((id) => id !== elementId)]
-          : [elementId];
       const baseIds = options?.additive ? currentSelectedIds : [];
       const nextSelectedIds = [
-        ...orderedGroupedIds,
-        ...baseIds.filter((id) => !orderedGroupedIds.includes(id)),
+        elementId,
+        ...baseIds.filter((id) => id !== elementId),
       ];
       selectedIdsRef.current = nextSelectedIds;
       onSelectedIdsChange?.(nextSelectedIds);

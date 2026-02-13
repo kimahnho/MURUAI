@@ -19,6 +19,7 @@ type UseTextBoxInteractionProps = {
   minHeight: number;
   widthMode: "auto" | "fixed" | "element";
   isSelected: boolean;
+  selectionCount: number;
   toolbar?: TextBoxProps["toolbar"];
   onRequestDelete?: TextBoxProps["onRequestDelete"];
   onFinishEditing?: TextBoxProps["onFinishEditing"];
@@ -46,6 +47,7 @@ export const useTextBoxInteraction = ({
   minHeight,
   widthMode,
   isSelected,
+  selectionCount,
   toolbar,
   onRequestDelete,
   onFinishEditing,
@@ -85,7 +87,9 @@ export const useTextBoxInteraction = ({
     if (type === "resize") {
       isResizingRef.current = true;
     }
-    if (!isSelected || event.shiftKey) {
+    const shouldSelectOnClickOnly =
+      type === "drag" && isSelected && selectionCount > 1 && !event.shiftKey;
+    if (!shouldSelectOnClickOnly && (!isSelected || event.shiftKey)) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
@@ -272,6 +276,9 @@ export const useTextBoxInteraction = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       actionRef.current = null;
+      if (!didMoveRef.current && shouldSelectOnClickOnly) {
+        onSelectChange?.(true);
+      }
       if (type === "resize") {
         isResizingRef.current = false;
       }

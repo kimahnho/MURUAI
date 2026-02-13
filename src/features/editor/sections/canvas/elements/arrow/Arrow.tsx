@@ -108,6 +108,7 @@ const Arrow = ({
       lineRef,
       locked,
       isSelected,
+      selectionCount,
       onLineChange,
       onDragStateChange,
       onSelectChange,

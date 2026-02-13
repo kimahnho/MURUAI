@@ -146,6 +146,10 @@ const DesignPaper = ({
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const groupOverlayDragListenersRef = useRef<{
+    move: (event: PointerEvent) => void;
+    up: () => void;
+  } | null>(null);
   const isHorizontal = orientation === "horizontal";
   const pageWidth = isHorizontal ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const pageHeight = isHorizontal ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
@@ -172,6 +176,16 @@ const DesignPaper = ({
     };
   }, [editingTextId, readOnly, selectedIds]);
 
+  useEffect(() => {
+    return () => {
+      const listeners = groupOverlayDragListenersRef.current;
+      if (!listeners) return;
+      window.removeEventListener("pointermove", listeners.move);
+      window.removeEventListener("pointerup", listeners.up);
+      groupOverlayDragListenersRef.current = null;
+    };
+  }, []);
+
   const getContainerScale = () => {
     const node = containerRef.current;
     if (!node) return 1;
@@ -193,6 +207,7 @@ const DesignPaper = ({
 
   const {
     clearContextMenu,
+    handleSelect,
     handleSelectChange,
     openContextMenu,
     openCanvasContextMenu,
@@ -553,6 +568,106 @@ const DesignPaper = ({
       x: nextRect.x + snapOffset.x,
       y: nextRect.y + snapOffset.y,
     };
+  };
+
+  const handleGroupOverlayDragPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    groupRect: Rect,
+  ) => {
+    if (readOnly) return;
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const pointer = getPointerPosition(event);
+    const hitSelectedElement = [...elements]
+      .reverse()
+      .find((element) => {
+        if (!selectedIdsRef.current.includes(element.id)) return false;
+        if (element.visible === false || element.selectable === false || element.locked) {
+          return false;
+        }
+        const rect = getRectFromElement(element);
+        if (!rect) return false;
+        return (
+          pointer.x >= rect.x &&
+          pointer.x <= rect.x + rect.width &&
+          pointer.y >= rect.y &&
+          pointer.y <= rect.y + rect.height
+        );
+      });
+    const shouldSelectSingleOnClick = Boolean(hitSelectedElement && !event.shiftKey);
+    const activeId = selectedIdsRef.current[0];
+    if (!activeId) return;
+    const snapshot = buildGroupDragState(activeId);
+    if (!snapshot || snapshot.items.size <= 1) {
+      if (shouldSelectSingleOnClick && hitSelectedElement) {
+        handleSelect(hitSelectedElement.id);
+      }
+      return;
+    }
+    const startPointer = getPointerPosition(event);
+    const selectedItemIds = new Set(snapshot.items.keys() as Iterable<string>);
+    const DRAG_THRESHOLD_PX = 3;
+    let hasMoved = false;
+    let dragStarted = false;
+
+    const startDrag = () => {
+      if (dragStarted) return;
+      dragStarted = true;
+      groupDragRef.current = snapshot;
+      onInteractionChange?.(true, { type: "drag" });
+    };
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const currentPointer = getPointerPosition(moveEvent);
+      const delta = {
+        x: currentPointer.x - startPointer.x,
+        y: currentPointer.y - startPointer.y,
+      };
+      if (!hasMoved && Math.hypot(delta.x, delta.y) < DRAG_THRESHOLD_PX) {
+        return;
+      }
+      if (!hasMoved) {
+        hasMoved = true;
+      }
+      startDrag();
+      const movingRect = {
+        x: groupRect.x + delta.x,
+        y: groupRect.y + delta.y,
+        width: groupRect.width,
+        height: groupRect.height,
+      };
+      const { snapOffset } = smartGuides.compute({
+        activeRect: movingRect,
+        otherRects: getTargetRects(activeId, selectedItemIds),
+      });
+      applyGroupDelta({
+        x: delta.x + snapOffset.x,
+        y: delta.y + snapOffset.y,
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      groupOverlayDragListenersRef.current = null;
+      if (!hasMoved && shouldSelectSingleOnClick && hitSelectedElement) {
+        handleSelect(hitSelectedElement.id);
+        return;
+      }
+      if (dragStarted) {
+        groupDragRef.current = null;
+        onInteractionChange?.(false, { type: "drag" });
+        smartGuides.clear();
+      }
+    };
+
+    groupOverlayDragListenersRef.current = {
+      move: onPointerMove,
+      up: onPointerUp,
+    };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
   };
 
   const buildTextToolbarConfig = (
@@ -1009,6 +1124,7 @@ const DesignPaper = ({
         elements={elements}
         showHandles
         onResizeHandlePointerDown={handleGroupResizePointerDown}
+        onDragPointerDown={handleGroupOverlayDragPointerDown}
       />
       <DesignPaperContextMenu
         contextMenu={contextMenu}

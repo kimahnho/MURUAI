@@ -199,6 +199,7 @@ const RoundBox = ({
   const { startAction, cleanup } = useRoundBoxInteraction({
     locked,
     isSelected,
+    selectionCount,
     minWidth,
     minHeight,
     boxRef,

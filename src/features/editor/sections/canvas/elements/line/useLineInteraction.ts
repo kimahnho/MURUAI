@@ -12,6 +12,7 @@ type UseLineInteractionParams = {
   lineRef: RefObject<LineRef>;
   locked: boolean;
   isSelected: boolean;
+  selectionCount: number;
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
     isDragging: boolean,
@@ -27,15 +28,25 @@ export const useLineInteraction = ({
   lineRef,
   locked,
   isSelected,
+  selectionCount,
   onLineChange,
   onDragStateChange,
   onSelectChange,
   getPointerPosition,
 }: UseLineInteractionParams) => {
-  const ensureSelection = (event: ReactPointerEvent) => {
-    if (!isSelected || event.shiftKey) {
+  const ensureSelection = (
+    event: ReactPointerEvent,
+    options?: { deferSingleWhenMultiSelected?: boolean },
+  ) => {
+    const shouldSelectOnClickOnly =
+      Boolean(options?.deferSingleWhenMultiSelected) &&
+      isSelected &&
+      selectionCount > 1 &&
+      !event.shiftKey;
+    if (!shouldSelectOnClickOnly && (!isSelected || event.shiftKey)) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
+    return shouldSelectOnClickOnly;
   };
 
   const startDrag = (event: ReactPointerEvent<SVGLineElement>) => {
@@ -43,7 +54,9 @@ export const useLineInteraction = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    ensureSelection(event);
+    const shouldSelectOnClickOnly = ensureSelection(event, {
+      deferSingleWhenMultiSelected: true,
+    });
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -70,6 +83,9 @@ export const useLineInteraction = ({
     const upListener = () => {
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
+      if (!hasMoved && shouldSelectOnClickOnly) {
+        onSelectChange?.(true);
+      }
       if (hasMoved) {
         onDragStateChange?.(false, lineRef.current, { type: "drag" });
       }

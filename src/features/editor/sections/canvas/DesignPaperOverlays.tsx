@@ -36,6 +36,10 @@ type GroupSelectionOverlayProps = {
     handle: ResizeHandle,
     rect: Rect,
   ) => void;
+  onDragPointerDown?: (
+    event: ReactPointerEvent<HTMLDivElement>,
+    rect: Rect,
+  ) => void;
 };
 
 // 그룹 선택 시 바운딩 박스를 그린다.
@@ -46,6 +50,7 @@ export const GroupSelectionOverlay = ({
   elements,
   showHandles = false,
   onResizeHandlePointerDown,
+  onDragPointerDown,
 }: GroupSelectionOverlayProps) => {
   if (!isGroupedSelection || readOnly) return null;
 
@@ -130,6 +135,14 @@ export const GroupSelectionOverlay = ({
       }}
     >
       <div className="absolute inset-0 border-2 border-dashed border-gray-600" />
+      <div
+        className="absolute inset-0 pointer-events-auto"
+        style={{ cursor: "move" }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onDragPointerDown?.(event, groupBoundingBox);
+        }}
+      />
       {showHandles && (
         <>
           {renderCornerHandle("nw", 0, 0, "nwse-resize")}

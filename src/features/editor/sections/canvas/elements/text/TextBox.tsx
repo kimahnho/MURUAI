@@ -129,6 +129,7 @@ const TextBox = ({
     minHeight,
     widthMode,
     isSelected,
+    selectionCount,
     toolbar,
     onRequestDelete,
     onFinishEditing,
