@@ -36,7 +36,7 @@ type BeginEditingEvent =
   | ReactPointerEvent<HTMLDivElement>
   | ReactMouseEvent<HTMLDivElement>;
 
-// 텍스트 편집 blur 시 툴바 클릭을 "편집 유지"로 처리하기 위해
+// 텍스트 편집 흐림 처리 시 툴바 클릭을 "편집 유지"로 처리하기 위해
 // 현재 포인터가 툴바 영역에 있는지 판별한다.
 const isPointInToolbar = (x: number, y: number): boolean => {
   const toolbarRoot = document.getElementById("text-toolbar-root");
@@ -84,9 +84,9 @@ export const useTextBoxEditingHandlers = ({
   editableRef,
 }: UseTextBoxEditingHandlersProps) => {
   // 툴바 클릭으로 편집 영역 포커스가 잠깐 이동해도
-  // 선택 범위를 복원할 수 있도록 마지막 Range를 보관한다.
+  // 선택 범위를 복원할 수 있도록 마지막 선택 범위를 보관한다.
   const savedRangeRef = useRef<Range | null>(null);
-  // blur 이벤트의 relatedTarget이 비어 있는 브라우저 케이스를 보완하기 위해
+  // 흐림 이벤트의 relatedTarget이 비어 있는 브라우저 케이스를 보완하기 위해
   // 최신 포인터 위치를 함께 추적한다.
   const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -132,7 +132,7 @@ export const useTextBoxEditingHandlers = ({
     options?: BeginEditingOptions
   ) => {
     if (!editable || locked) return;
-    // 리사이즈 핸들 등에서 기본 selection 동작이 필요한 경우를 위해 옵션으로 분기한다.
+    // 리사이즈 핸들 등에서 기본 선택 동작이 필요한 경우를 위해 옵션으로 분기한다.
     if (!options?.allowDefault) {
       event.preventDefault();
     }
@@ -148,7 +148,7 @@ export const useTextBoxEditingHandlers = ({
   const applyStyleToSelection = (command: string, value?: string) => {
     if (!isEditing) return;
 
-    // 툴바 클릭 후 selection이 사라진 경우를 복원해 스타일 적용 대상을 유지한다.
+    // 툴바 클릭 후 선택이 사라진 경우를 복원해 스타일 적용 대상을 유지한다.
     restoreSelection();
 
     const selection = window.getSelection();
@@ -158,7 +158,7 @@ export const useTextBoxEditingHandlers = ({
 
     document.execCommand(command, false, value);
 
-    // execCommand 이후 DOM 구조가 바뀔 수 있어 최신 range를 다시 저장한다.
+    // execCommand 이후 DOM 구조가 바뀔 수 있어 최신 선택 범위를 다시 저장한다.
     if (hasSelection && selection.rangeCount > 0) {
       savedRangeRef.current = selection.getRangeAt(0).cloneRange();
     }

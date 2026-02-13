@@ -86,7 +86,7 @@ export const isAacCardElement = (
   const labelId = findLabelElementId(elements, element, isAacLabelElement);
   if (labelId) return true;
 
-  // 레이블이 없을 때는 imageBox inset과 border 규칙으로 보조 판별한다.
+  // 레이블이 없을 때는 이미지 박스 안쪽 여백과 테두리 규칙으로 보조 판별한다.
   if (!element.imageBox) return false;
   const sizeTolerance = 2;
   const hasInsetImageBox =

@@ -27,7 +27,7 @@ export const computeTextBoxSize = ({
     measure.textContent = text ?? "";
   }
 
-  // 실제 글자 영역만 측정하기 위해 padding/border를 제거한다.
+  // 실제 글자 영역만 측정하기 위해 여백/테두리를 제거한다.
   measure.style.padding = "0";
   measure.style.border = "none";
 
