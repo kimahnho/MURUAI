@@ -1,3 +1,6 @@
+/**
+ * 템플릿 스토어 이벤트를 구독해 현재 페이지/문서에 템플릿 적용을 연결하는 훅.
+ */
 import {
   useEffect,
   useRef,
@@ -81,6 +84,8 @@ export const useTemplateSubscription = ({
       if (!currentPage) return;
 
       if (pagesRef.current.length === 1 && !state.selectedPageIndices) {
+        // 단일 페이지에서는 적용 범위를 먼저 명시하게 해
+        // 템플릿 적용 의도를 사용자 선택으로 확정한다.
         setTemplateChoiceDialog({ templateId: state.selectedTemplate });
         return;
       }
@@ -116,6 +121,8 @@ export const useTemplateSubscription = ({
       if (recordTimeoutRef.current) {
         clearTimeout(recordTimeoutRef.current);
       }
+      // 템플릿 적용 직후의 연속 상태 업데이트를 한 프레임 뒤에 묶어
+      // 히스토리 스택이 과도하게 분리되지 않게 한다.
       recordTimeoutRef.current = setTimeout(() => {
         recordHistory("Apply template");
         isApplyingTemplateRef.current = false;

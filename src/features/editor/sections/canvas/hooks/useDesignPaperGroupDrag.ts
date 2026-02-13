@@ -1,3 +1,6 @@
+/**
+ * 다중 선택 그룹 이동 드래그 세션을 관리하고 요소 위치 패치를 적용하는 훅.
+ */
 import { useCallback, useRef, type MutableRefObject } from "react";
 import type { CanvasElement, LineElement, ShapeElement } from "../../../model/canvasTypes";
 import {
@@ -74,6 +77,7 @@ export const useDesignPaperGroupDrag = ({
       });
       const activeItem = items.get(activeId);
       if (!activeItem) return null;
+      // 드래그 시작 시점 좌표를 스냅샷으로 고정해 누적 오차 없이 delta 기반 이동을 계산한다.
       return {
         activeId,
         activeKind: activeItem.kind,
@@ -98,6 +102,7 @@ export const useDesignPaperGroupDrag = ({
         selectedIds.includes(el.id)
       );
 
+      // 그룹 일부만 선택된 상태에서는 그룹 경계 스냅을 비활성화해 의도치 않은 흡착을 막는다.
       if (!allGroupSelected) return null;
 
       const originalRect = getRectFromElement(element);
@@ -143,6 +148,7 @@ export const useDesignPaperGroupDrag = ({
       if (!snapshot) return;
       const selected = new Set(snapshot.items.keys());
       const linkedIds = new Set<string>();
+      // 감정 슬롯/라벨처럼 시각적으로 묶인 연결 요소는 선택 외부라도 함께 이동시킨다.
       elements.forEach((element) => {
         if (!selected.has(element.id)) return;
         if (!isEmotionSlotShape(element)) return;

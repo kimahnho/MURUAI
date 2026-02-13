@@ -1,3 +1,6 @@
+/**
+ * 방향 변경 이벤트를 구독해 활성 페이지의 orientation 패치를 반영하는 훅.
+ */
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useOrientationStore } from "../store/orientationStore";
 import type { Page } from "../model/pageTypes";
@@ -22,6 +25,8 @@ export const useOrientationSubscription = ({
       state.orientation !== prevState.orientation,
     onChange: (state) => {
       if (isSyncingOrientationRef.current) {
+        // 페이지 전환 동기화로 반영된 방향 변경은 다시 setPages 하지 않고
+        // 플래그만 해제해 루프를 차단한다.
         isSyncingOrientationRef.current = false;
         return;
       }

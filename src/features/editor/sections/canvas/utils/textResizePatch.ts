@@ -1,3 +1,6 @@
+/**
+ * 텍스트 리사이즈 결과를 요소 patch로 변환하는 계산 모듈.
+ */
 import type { TextElement } from "../../../model/canvasTypes";
 import type { Rect } from "../../../utils/designPaperUtils";
 

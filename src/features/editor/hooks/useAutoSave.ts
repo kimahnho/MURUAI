@@ -1,3 +1,6 @@
+/**
+ * 에디터 변경사항을 디바운스 기반으로 자동 저장하고 수동 저장 상태를 함께 관리하는 훅.
+ */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { measurePerf } from "../utils/perfLogger";
@@ -14,9 +17,7 @@ type AutoSaveParams = {
   pages: Page[];
   docId?: string | null;
   docName: string;
-  // ✅ null도 전달하므로 타입에 포함
   onSaveStateChange?: (state: SaveState | null) => void;
-  // 데이터 로딩 완료 여부 (초기 로딩 중에는 자동 저장 방지)
   isDataLoaded?: boolean;
 };
 
@@ -25,13 +26,13 @@ export const useAutoSave = ({
   docId,
   docName,
   onSaveStateChange,
-  isDataLoaded = true, // 기본값 true로 하위 호환성 유지
+  isDataLoaded = true,
 }: AutoSaveParams) => {
   const isDev = import.meta.env.DEV;
   const [saveState, setSaveState] = useState<SaveState | null>(null);
   const isPdfExporting = usePageSwapStore((state) => state.pdfExporting);
 
-  // ✅ setTimeout 타입 안정화 (Node/DOM 혼재 방지)
+  // 런타임별 타이머 타입 차이를 피하기 위해 반환 타입 기반으로 통일한다.
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -39,10 +40,10 @@ export const useAutoSave = ({
 
   const lastPagesRef = useRef(pages);
   const clientRevisionRef = useRef(0);
-  // 초기 저장을 방지하기 위한 플래그
+  // 첫 렌더 직후 빈 상태가 덮어쓰는 것을 막기 위해 초기 저장을 건너뛴다.
   const hasInitialSaveRef = useRef(false);
 
-  // ✅ deps 경고 방지 + 불필요한 재생성 방지: callback은 ref로 보관
+  // 외부 콜백 변경으로 효과 훅이 재실행되지 않게 최신 콜백만 ref로 유지한다.
   const onSaveStateChangeRef = useRef(onSaveStateChange);
   useEffect(() => {
     onSaveStateChangeRef.current = onSaveStateChange;
@@ -52,13 +53,11 @@ export const useAutoSave = ({
     onSaveStateChangeRef.current?.(state);
   };
 
-  // 데이터 유효성 검증
   const validateData = useCallback((pagesToSave: typeof pages) => {
     if (!pagesToSave || pagesToSave.length === 0) {
       console.warn("Save blocked: No pages to save");
       return false;
     }
-    // 모든 페이지에 요소가 없는 경우 차단
     const hasAnyElements = pagesToSave.some(
       (page) => page.elements && page.elements.length > 0,
     );
@@ -67,7 +66,6 @@ export const useAutoSave = ({
       return false;
     }
 
-    // 추가 안전장치: 총 요소 수가 너무 적으면 경고 (배포 시 데이터 손실 방지)
     const totalElements = pagesToSave.reduce(
       (sum, page) => sum + (page.elements?.length || 0),
       0,
@@ -86,14 +84,13 @@ export const useAutoSave = ({
   const performSave = useCallback(
     async (isManual = false) => {
       if (!docId) {
-        // docId가 없으면 저장 대상 없음 (UI는 파생값으로 null 처리)
+        // 문서 ID가 없으면 저장 대상이 없으므로 즉시 종료한다.
         return;
       }
 
       const myRevision = ++clientRevisionRef.current;
 
       try {
-        // 수동 저장 시에만 상태 표시
         if (isManual) {
           setSaveState("saving");
           emitSaveState("saving");
@@ -103,7 +100,7 @@ export const useAutoSave = ({
         const user = data.user;
 
         if (!user) {
-          // 최신 요청일 때만 상태 반영
+          // 이전 요청이 늦게 끝나도 상태가 뒤집히지 않도록 최신 버전만 반영한다.
           if (myRevision === clientRevisionRef.current && isManual) {
             setSaveState(null);
             emitSaveState(null);
@@ -149,14 +146,12 @@ export const useAutoSave = ({
           },
         );
 
-        // ✅ 레이스 방지: 최신 저장만 반영
         if (myRevision !== clientRevisionRef.current) return;
 
-        // 수동 저장 시에만 "저장됨" 표시
+        // 자동 저장은 조용히 처리하고, 수동 저장만 사용자 피드백을 노출한다.
         if (isManual) {
           setSaveState("saved");
           emitSaveState("saved");
-          // 2초 후 상태 초기화
           if (statusResetTimeoutRef.current) {
             clearTimeout(statusResetTimeoutRef.current);
           }
@@ -184,13 +179,12 @@ export const useAutoSave = ({
   useEffect(() => {
     lastPagesRef.current = pages;
 
-    // 기존 타이머 정리
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
 
-    // ✅ docId가 없으면 "동기 setState in effect"를 피해서 비동기로 reset
+    // 효과 훅 내부 동기 setState 경고를 피하기 위해 비동기로 상태를 초기화한다.
     if (!docId) {
       const t = setTimeout(() => {
         setSaveState(null);
@@ -200,12 +194,12 @@ export const useAutoSave = ({
       return () => clearTimeout(t);
     }
 
-    // PDF 내보내기 중에는 자동 저장을 일시 중지한다.
+    // PDF 생성 중 저장이 겹치면 스냅샷 일관성이 깨질 수 있어 자동 저장을 멈춘다.
     if (isPdfExporting) {
       return;
     }
 
-    // 🔒 데이터 로딩 중에는 자동 저장 방지 (배포 시 빈 상태 저장 방지)
+    // 데이터 로딩이 완료되기 전에는 빈 상태 저장을 막는다.
     if (!isDataLoaded) {
       if (isDev) {
         console.log("Auto-save skipped: Data not loaded yet");
@@ -213,7 +207,6 @@ export const useAutoSave = ({
       return;
     }
 
-    // 🔒 초기 마운트 시 즉시 저장 방지 (첫 렌더링은 건너뛰기)
     if (!hasInitialSaveRef.current) {
       hasInitialSaveRef.current = true;
       if (isDev) {
@@ -222,7 +215,7 @@ export const useAutoSave = ({
       return;
     }
 
-    // 1초 디바운스 자동 저장 (상태 표시 없음)
+    // 잦은 편집 입력을 묶기 위해 1초 디바운스로 저장한다.
     saveTimeoutRef.current = setTimeout(() => performSave(false), 1000);
 
     return () => {
@@ -268,7 +261,7 @@ export const useAutoSave = ({
     performSave(true);
   }, [docId, performSave]);
 
-  // ✅ docId가 없으면 UI에는 항상 null로 보이게(파생값)
+  // 신규 문서 생성 전에는 저장 상태를 UI에 노출하지 않는다.
   const effectiveSaveState = docId ? saveState : null;
 
   return { saveState: effectiveSaveState, manualSave, retrySave };

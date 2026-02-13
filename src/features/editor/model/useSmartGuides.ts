@@ -1,3 +1,6 @@
+/**
+ * 스마트 가이드 렌더링에 사용되는 타입과 계산 계약을 정의하는 모듈.
+ */
 import { useCallback, useRef, useState } from "react";
 
 export type AlignmentGuide = {
@@ -156,6 +159,7 @@ export const useSmartGuides = ({
         x: bestXDistance <= snapThreshold ? bestXDelta : 0,
         y: bestYDistance <= snapThreshold ? bestYDelta : 0,
       };
+      // 계산 결과는 ref로도 유지해 드래그 중 최신 스냅 오프셋을 동기적으로 참조할 수 있게 한다.
       snapOffsetRef.current = snapOffset;
       if (bestXDistance <= snapThreshold) {
         nextGuides.push({

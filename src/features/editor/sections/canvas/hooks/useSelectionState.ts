@@ -1,3 +1,6 @@
+/**
+ * 현재 페이지 기준 선택 요소/선택 박스/다중 선택 파생 상태를 계산하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useNumberInput } from "../../../shared/hooks/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";
@@ -51,6 +54,7 @@ export const useSelectionState = ({
     element.type === "ellipse";
   const isMultiColorSelection =
     selectedElements.length > 1 && selectedElements.every(isColorTarget);
+  // 다중 선택 UI는 잠금 요소가 섞일 수 있어 "수정 가능한 첫 요소"를 대표값으로 사용한다.
   const multiColorSource = isMultiColorSelection
     ? getUnlockedOrFirst(selectedElements)
     : null;
@@ -99,6 +103,7 @@ export const useSelectionState = ({
       maxMultiFontSize,
       Math.max(minMultiFontSize, value),
     );
+    // 텍스트/도형 텍스트를 같은 액션으로 갱신해 혼합 선택 편집 경험을 맞춘다.
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
         elements.map((el) => applySelectedFontSize(el, selectedIds, nextSize)),
@@ -142,6 +147,7 @@ export const useSelectionState = ({
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
   const applyMultiBorderPatch = (patch: Partial<ShapeElement["border"]>) => {
     if (!activePage) return;
+    // 테두리 기본값을 함께 넘겨 테두리가 없는 도형도 동일 규칙으로 생성/갱신한다.
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
         elements.map((el) =>

@@ -1,3 +1,6 @@
+/**
+ * 요소 이동/리사이즈 중 스냅 가이드와 정렬 포인트를 표시하는 오버레이 컴포넌트.
+ */
 import type { AlignmentGuide } from "../../model/useSmartGuides";
 
 interface SmartGuideOverlayProps {

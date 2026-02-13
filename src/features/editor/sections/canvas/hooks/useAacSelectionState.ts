@@ -1,3 +1,6 @@
+/**
+ * AAC 카드 선택 맥락에 필요한 파생 상태와 인덱스를 계산하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import type {
   CanvasElement,
@@ -7,7 +10,7 @@ import type {
 import type { Page } from "../../../model/pageTypes";
 import type { AacLabelPosition } from "../../../utils/aacBoardUtils";
 import { findLabelElementId, isAacLabelElement } from "../../../utils/imageFillUtils";
-import { bumpPageRevision } from "../../../utils/pageRevision";
+import { updatePageById } from "../../../utils/pageMutation";
 
 const AAC_CARD_PREFIX = "aac-card-";
 const AAC_LABEL_PREFIX = "aac-label-";
@@ -62,6 +65,7 @@ export const buildAacIndex = (elements: CanvasElement[]) => {
     const isExplicitAac = tempId?.startsWith(AAC_CARD_PREFIX);
     const hasLinkedAacLabel =
       Boolean(element.labelId) && aacLabelIds.has(element.labelId ?? "");
+    // 이전 문서에는 tempId/labelId가 없는 경우가 있어 외형 규칙으로 AAC 카드를 보정 판별한다.
     const isFallbackAac =
       !element.labelId && hasAacBorder(element) && hasInsetImageBox(element);
     if (!isExplicitAac && !hasLinkedAacLabel && !isFallbackAac) return;
@@ -105,6 +109,7 @@ export const useAacSelectionState = ({
 
     selectedElements.forEach((element) => {
       if (element.type === "text") {
+        // 라벨을 선택한 경우에도 연결된 카드 편집 액션이 열리도록 카드 선택으로 승격한다.
         const linkedCard = aacCardsByLabelId.get(element.id);
         if (linkedCard) {
           targets.set(linkedCard.id, linkedCard);
@@ -168,10 +173,9 @@ export const useAacSelectionState = ({
       return Math.max(1, Math.round(rawHeight * 2) / 2);
     };
 
+    // 선택된 AAC 카드 집합만 대상으로 라벨/이미지 영역 배치를 동기화한다.
     setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-
+      updatePageById(prevPages, selectedPageId, (page) => {
         const elements = page.elements;
         const elementById = new Map(
           elements.map((element) => [element.id, element]),
@@ -200,6 +204,7 @@ export const useAacSelectionState = ({
             (!labelElement || labelElement.type !== "text") &&
             position !== "none"
           ) {
+            // 라벨이 없는 AAC 카드도 위치 변경 액션 시 즉시 편집 가능한 기본 라벨을 생성한다.
             const nextLabelId = labelId ?? crypto.randomUUID();
             const nextLabel: TextElement = {
               id: nextLabelId,
@@ -238,7 +243,7 @@ export const useAacSelectionState = ({
 
         const labelIds = new Set(labelInfoMap.keys());
 
-        return bumpPageRevision({
+        return {
           ...page,
           elements: [
             ...elements.map((el) => {
@@ -270,6 +275,7 @@ export const useAacSelectionState = ({
                   position === "none" ? 0 : labelHeight + labelGap;
 
                 const existingBox = card.imageBox;
+                // 라벨 영역이 바뀌면 이미지 박스를 남은 영역 중앙으로 재정렬해 시각 균형을 맞춘다.
                 const imageAreaHeight = Math.max(
                   1,
                   card.h - labelAreaHeight,
@@ -326,7 +332,7 @@ export const useAacSelectionState = ({
             }),
             ...newLabels,
           ],
-        });
+        };
       }),
     );
   };

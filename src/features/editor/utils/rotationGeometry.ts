@@ -1,3 +1,6 @@
+/**
+ * 회전 중심/각도 계산에 필요한 기하 연산 유틸을 제공하는 모듈.
+ */
 import type { Rect } from "./designPaperUtils";
 
 export const getRotatedCorners = (rect: Rect, rotationDeg: number) => {
@@ -14,6 +17,7 @@ export const getRotatedCorners = (rect: Rect, rotationDeg: number) => {
     { x: halfW, y: halfH },
     { x: -halfW, y: halfH },
   ];
+  // 중심점 기준 회전 변환으로 사각형의 실제 화면 좌표 꼭짓점을 계산한다.
   return corners.map((pt) => ({
     x: cx + pt.x * cos - pt.y * sin,
     y: cy + pt.x * sin + pt.y * cos,

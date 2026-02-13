@@ -1,3 +1,6 @@
+/**
+ * 기본 템플릿 2번 페이지 구성을 정의하는 모듈.
+ */
 import type { Template } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
@@ -8,6 +11,7 @@ const pageHeightMm = 297;
 const horizontalPaddingMm = 16;
 const contentWidthMm = pageWidthMm - horizontalPaddingMm * 2;
 
+// 헤더(제목/날짜) 레이아웃 기준값
 const headerYmm = 16;
 const headerHeightMm = 16;
 const headerRadiusMm = 8;
@@ -24,6 +28,7 @@ const targetBoxXmm = (pageWidthMm - targetBoxWidthMm) / 2;
 const questionHeightMm = 6;
 const questionYmm = targetBoxYmm + targetBoxHeightMm + 6;
 
+// 답변 작성 영역과 하단 가이드 라인 배치 기준값
 const responseBoxHeightMm = 110;
 const responseBoxYmm = questionYmm + questionHeightMm + 6;
 

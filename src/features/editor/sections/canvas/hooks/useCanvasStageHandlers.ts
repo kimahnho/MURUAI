@@ -1,3 +1,6 @@
+/**
+ * 캔버스 스테이지 포인터/휠/선택 입력 핸들러를 조합해 상위 컴포넌트에 제공하는 훅.
+ */
 import {
   useCallback,
   type Dispatch,

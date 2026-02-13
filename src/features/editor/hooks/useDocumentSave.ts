@@ -1,3 +1,6 @@
+/**
+ * 수동 저장 시 사용자 문서 payload를 구성하고 저장 결과 UI 상태를 관리하는 훅.
+ */
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";
@@ -31,6 +34,7 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
   const manualSaveRef = useRef<(() => void) | null>(null);
 
+  // 외부에서 최신 캔버스 조회 함수를 등록해 저장 시 오래된 스냅샷 사용을 피한다.
   const registerCanvasGetter = useCallback((getter: () => CanvasDocument) => {
     canvasGetterRef.current = getter;
   }, []);
@@ -51,6 +55,7 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   }, []);
 
   const handleSave = useCallback(async () => {
+    // 자동저장 훅이 수동 저장 함수를 등록한 경우 저장 경로를 일원화한다.
     if (manualSaveRef.current) {
       manualSaveRef.current();
       return;

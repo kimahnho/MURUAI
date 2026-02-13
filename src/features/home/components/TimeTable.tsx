@@ -1,3 +1,6 @@
+/**
+ * 선택 학생의 시간표를 표 형태로 렌더링하는 컴포넌트.
+ */
 import { useState, useEffect } from "react";
 import { getWeekDays } from "../utils/dateUtils";
 import { scheduleModel, type Schedule } from "../model/schedule.model";

@@ -1,3 +1,6 @@
+/**
+ * 편집 방향 전환 요청과 템플릿 제약 메시지를 처리하는 훅.
+ */
 import { useTemplateStore } from "../store/templateStore";
 import { useOrientationStore } from "../store/orientationStore";
 import { useToastStore } from "../store/toastStore";

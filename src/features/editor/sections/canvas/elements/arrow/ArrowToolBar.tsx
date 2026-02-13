@@ -1,3 +1,6 @@
+/**
+ * 화살표 요소의 선/머리 스타일 편집 액션을 제공하는 툴바 컴포넌트.
+ */
 import { RotateCw } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -39,6 +42,7 @@ const ArrowToolBar = ({
   onRotatePointerDown,
   onPointerDown,
 }: ArrowToolBarProps) => {
+  // 숫자 입력 훅으로 슬라이더/직접 입력/엔터 커밋 동작을 동일 규칙(min/max, 포커스 복원)으로 통일한다.
   const widthInput = useNumberInput({
     value: width,
     min: minWidth,
@@ -65,6 +69,7 @@ const ArrowToolBar = ({
 
   return (
     <div className="flex items-center gap-3" onPointerDown={onPointerDown}>
+      {/* 회전 버튼은 드래그 회전 시작점만 전달하고 실제 각도 계산은 상위 인터랙션 훅에서 처리한다. */}
       <button
         type="button"
         onPointerDown={onRotatePointerDown}
@@ -186,6 +191,7 @@ const ArrowToolBar = ({
 
       {length !== undefined && onLengthChange && (
         <div className="flex items-center gap-2">
+          {/* 길이 편집은 시작점 고정 기반 계산으로 화살표 방향(각도)을 유지한다. */}
           <span className="text-14-regular text-black-60">길이</span>
           <input
             type="text"
@@ -219,6 +225,7 @@ const ArrowToolBar = ({
             step={1}
             value={angleInput.displayValue}
             onChange={(event) => {
+              // 각도 입력은 즉시 반영해 회전 프리뷰와 숫자 값이 분리되지 않게 유지한다.
               angleInput.handleChange(event.target.value);
             }}
             onBlur={angleInput.handleBlur}

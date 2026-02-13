@@ -1,3 +1,6 @@
+/**
+ * 선택 도형 요소의 채우기/테두리 등 속성을 편집하는 패널 컴포넌트.
+ */
 import { useState } from "react";
 import { Ban, Loader2, Upload } from "lucide-react";
 import { useImageUploadToCloudinary } from "../hooks/useImageUploadToCloudinary";
@@ -104,6 +107,7 @@ const ShapeProperties = ({
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    // 같은 파일 재선택 시에도 change 이벤트가 동작하도록 입력 값을 초기화한다.
     event.target.value = "";
 
     const imageUrl = await uploadImage(file);
@@ -131,6 +135,7 @@ const ShapeProperties = ({
 
   const handleBorderStyleSelect = (style: BorderStyle | "none") => {
     if (style === "none") {
+      // 색상/굵기는 유지하되 enabled만 내려서 다시 켤 때 직전 설정을 복원한다.
       onUpdateElement(element.id, {
         border: { ...element.border, enabled: false } as ShapeElement["border"],
       });
@@ -148,7 +153,7 @@ const ShapeProperties = ({
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
-      {/* 크기 */}
+      {/* 선택된 도형의 기하(크기/모서리) 속성 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">크기</div>
         <div className="flex items-center gap-2">
@@ -219,7 +224,6 @@ const ShapeProperties = ({
         </div>
       </div>
 
-      {/* 모서리 (rect만) */}
       {element.type === "rect" && (
         <div className="flex flex-col gap-2">
           <div className="text-14-semibold text-black-90">모서리</div>
@@ -275,7 +279,7 @@ const ShapeProperties = ({
         </div>
       )}
 
-      {/* 색상 */}
+      {/* 시각 스타일(채우기/이미지/테두리) 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">박스 색상</div>
         <div className="flex items-center gap-2">
@@ -294,7 +298,6 @@ const ShapeProperties = ({
         </div>
       </div>
 
-      {/* 이미지 업로드 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">이미지</div>
         <label
@@ -317,7 +320,6 @@ const ShapeProperties = ({
         </label>
       </div>
 
-      {/* 테두리 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">테두리</div>
         <div className="flex flex-col gap-3 p-3 rounded-lg border border-black-25 bg-black-5">

@@ -1,3 +1,6 @@
+/**
+ * 템플릿 패널의 선택 템플릿/미리보기/적용 상태를 관리하는 훅.
+ */
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useAacBoardStore } from "@/features/editor/store/aacBoardStore";
 import { useStoryBoardStore } from "@/features/editor/store/storyBoardStore";

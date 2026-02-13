@@ -1,3 +1,6 @@
+/**
+ * 감정 추론 템플릿 2페이지 구성을 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../../model/canvasTypes";
 
@@ -26,6 +29,7 @@ export const emotionInferencePage2: Template = {
   id: "emotionInference_2",
   name: "감정 추론 활동 2",
   elements: [
+    // 공통 프레임과 로고를 먼저 배치해 다른 페이지와 시각 규칙을 맞춘다.
     {
       type: "roundRect",
       x: mmToPx(frameInsetMm),

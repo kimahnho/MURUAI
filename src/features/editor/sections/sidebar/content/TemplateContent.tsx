@@ -1,3 +1,6 @@
+/**
+ * 템플릿 목록 탐색/미리보기/적용 액션을 제공하는 사이드 패널 컴포넌트.
+ */
 import {
   BadgeCheck,
   ChevronLeft,
@@ -286,6 +289,7 @@ const TemplateCarousel = ({
               </div>
             );
           })}
+          {/* 마지막 페이지 카드 수가 부족해도 2열 그리드 폭이 흔들리지 않게 placeholder를 채운다. */}
           {placeholders.map((_, index) => (
             <div
               key={`placeholder-${index}`}
@@ -388,6 +392,7 @@ const TemplateContent = () => {
   const previewTemplateData = previewTemplate
     ? TEMPLATE_REGISTRY[previewTemplate]
     : null;
+  // 단일/다중 페이지 템플릿을 동일 다이얼로그에서 다루기 위해 pages 형태로 정규화한다.
   const previewPages: Template[] =
     previewTemplateData &&
     "pages" in previewTemplateData &&
@@ -406,6 +411,7 @@ const TemplateContent = () => {
 
   const handleApplySelectedPages = (selectedIndices: number[]) => {
     if (previewTemplate && selectedIndices.length > 0) {
+      // 전체 선택과 부분 선택을 분기해 기존 단일 적용 경로를 그대로 재사용한다.
       if (selectedIndices.length === previewPages.length) {
         requestTemplate(previewTemplate);
       } else {

@@ -1,3 +1,6 @@
+/**
+ * 관리자 대시보드 지표 조회와 필터 상태를 관리하는 훅.
+ */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAdminMetrics, type AdminMetrics } from "../api/adminMetrics";

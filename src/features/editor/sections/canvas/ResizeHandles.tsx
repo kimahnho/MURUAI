@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 외곽의 리사이즈 핸들을 렌더링하고 방향별 드래그 진입점을 제공하는 컴포넌트.
+ */
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { ResizeHandle } from "../../model/canvasTypes";
 
@@ -54,15 +57,12 @@ const HANDLE_CONFIGS: Array<{
   },
 ];
 
-/**
- * 리사이즈 핸들 컴포넌트
- * 8방향(n, s, e, w, nw, ne, sw, se) 핸들을 렌더링
- */
 export const ResizeHandles = ({
   onResizeStart,
   selectionColor = "var(--primary)",
   handleSize = 10,
 }: ResizeHandlesProps) => {
+  // 핸들 크기 기준 좌표를 미리 계산해 각 방향 핸들 배치를 동일 규칙으로 유지한다.
   const halfHandle = handleSize / 2;
 
   return (
@@ -70,6 +70,7 @@ export const ResizeHandles = ({
       {HANDLE_CONFIGS.map(({ handle, cursor, position }) => (
         <div
           key={handle}
+          // 리사이즈 시작점은 handle 타입만 전달하고 실제 크기 계산은 상위 인터랙션 훅에서 처리한다.
           onPointerDown={(event) => { onResizeStart(event, handle); }}
           data-capture-handle="true"
           className="absolute rounded-sm border bg-white-100"

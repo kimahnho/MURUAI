@@ -1,3 +1,6 @@
+/**
+ * 업로드 사이드패널의 파일 선택/업로드 진행 상태를 관리하는 훅.
+ */
 import {
   useEffect,
   useRef,
@@ -66,6 +69,7 @@ export const useUploadContentState = () => {
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
+      // 비동기 응답이 늦게 돌아온 경우 unmount 이후 setState를 막는다.
       if (!isMounted) return;
       if (error) {
         setIsFetching(false);
@@ -103,6 +107,7 @@ export const useUploadContentState = () => {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    // 같은 파일을 연속 업로드해도 change 이벤트가 다시 발생하도록 입력 값을 비운다.
     event.target.value = "";
 
     const url = await uploadImage(file);
@@ -154,6 +159,7 @@ export const useUploadContentState = () => {
       requestImageFill(url, undefined, { width, height }, { source: "upload" });
     };
     img.onerror = () => {
+      // 원본 크기 판별에 실패해도 삽입 동작 자체는 막지 않는다.
       requestImageFill(url, undefined, undefined, { source: "upload" });
     };
     img.src = url;

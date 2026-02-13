@@ -1,3 +1,6 @@
+/**
+ * 디자인 요소(도형/선/아이콘 등) 선택 진입점을 제공하는 패널 컴포넌트.
+ */
 import { Camera, Image, PenLine, Sparkles, Loader2 } from "lucide-react";
 import {
   useAiImageGeneration,
@@ -128,7 +131,7 @@ const DesignContentView = ({
     </div>
 
     <div className="flex flex-col gap-4">
-      {/* 스타일 선택 */}
+      {/* 생성 조건을 결정하는 입력 영역: 스타일 + 프롬프트 */}
       <div className="flex flex-col gap-2">
         <span className="text-14-semibold text-black-90">스타일 선택</span>
         <div className="flex gap-2">
@@ -146,7 +149,6 @@ const DesignContentView = ({
         </div>
       </div>
 
-      {/* 요구사항 입력 */}
       <div className="flex flex-col gap-2">
         <span className="text-14-semibold text-black-90">요구사항</span>
         <textarea
@@ -159,7 +161,6 @@ const DesignContentView = ({
         />
       </div>
 
-      {/* 생성 버튼 */}
       <button
         onClick={onGenerate}
         disabled={!canGenerate}
@@ -183,7 +184,7 @@ const DesignContentView = ({
       </button>
     </div>
 
-    {/* 생성된 이미지 표시 영역 */}
+    {/* 생성 결과를 다시 캔버스에 삽입할 수 있는 히스토리 영역 */}
     <div className="flex flex-col gap-2 flex-1 min-h-0">
       <span className="text-14-semibold text-black-90">생성된 이미지</span>
       <GeneratedImageGrid

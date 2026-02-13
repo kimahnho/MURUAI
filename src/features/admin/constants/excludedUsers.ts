@@ -1,3 +1,6 @@
+/**
+ * 관리 대상 제외 사용자 기본값/상수 목록을 정의하는 모듈.
+ */
 export const EXCLUDED_USER_IDS = new Set([
   "7745695c-0882-4a84-bc4c-56c036db2d5c",
   "a0578f6e-5b20-4739-b88a-f07815d29da5",

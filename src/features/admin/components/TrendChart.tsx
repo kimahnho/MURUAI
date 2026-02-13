@@ -1,3 +1,6 @@
+/**
+ * 기간별 추세 데이터를 선형 차트로 시각화하는 컴포넌트.
+ */
 export type TrendPoint = {
   date: string;
   created: number;

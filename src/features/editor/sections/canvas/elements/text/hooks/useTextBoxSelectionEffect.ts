@@ -1,3 +1,6 @@
+/**
+ * 텍스트 편집 선택 상태와 DOM selection 동기화를 처리하는 훅.
+ */
 import { useEffect, type MutableRefObject, type RefObject } from "react";
 import {
   placeCaretAtEnd,
@@ -27,9 +30,9 @@ export const useTextBoxSelectionEffect = ({
       if (!editable) return;
       editable.focus();
 
-      // IME 초기화를 위한 추가 프레임 대기 (한글 자모 분리 방지)
+      // 입력기(IME) 초기화를 위해 한 프레임 더 대기해 한글 자모 분리를 방지한다.
       requestAnimationFrame(() => {
-        // Step 3: select word at the double-click point.
+        // 더블클릭 진입이면 클릭 지점 단어 선택을 먼저 복원한다.
         const pendingWordSelect = pendingWordSelectRef.current;
         if (pendingWordSelect) {
           pendingWordSelectRef.current = null;
@@ -38,7 +41,7 @@ export const useTextBoxSelectionEffect = ({
           }
         }
 
-        // Attempt to place the caret at the click point.
+        // 단일 클릭 진입이면 클릭 지점 커서 배치를 우선 시도한다.
         const pendingCaret = pendingCaretRef.current;
         if (pendingCaret) {
           pendingCaretRef.current = null;
@@ -47,7 +50,7 @@ export const useTextBoxSelectionEffect = ({
           }
         }
 
-        // Default: place caret at the end without selecting all.
+        // 복원 정보가 없으면 전체 선택 대신 문장 끝 커서로 시작한다.
         placeCaretAtEnd(editable);
       });
     });

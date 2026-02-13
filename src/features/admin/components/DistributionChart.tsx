@@ -1,3 +1,6 @@
+/**
+ * 문서/사용량 분포 데이터를 차트로 시각화하는 컴포넌트.
+ */
 export type DistributionBucket = {
   label: string;
   value: number;

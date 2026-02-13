@@ -1,3 +1,6 @@
+/**
+ * 사용자 문서를 이미지/PDF로 내보내는 렌더링 유틸리티 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 import { logPerf, measurePerf } from "./perfLogger";
 
@@ -96,7 +99,7 @@ export const updateUserMadeVersion = async ({
     throw error;
   }
 
-  // ✅ 백업은 DB 트리거가 자동으로 처리 (60초 throttle 적용)
+  // 백업은 DB 트리거가 처리하므로 애플리케이션 레벨 이중 호출을 피한다.
 };
 
 export const assignUserMadeToTarget = async ({

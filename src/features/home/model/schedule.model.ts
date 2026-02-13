@@ -1,3 +1,6 @@
+/**
+ * 시간표 일정 엔티티와 표시용 타입 계약을 정의하는 모델 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 
 export interface Schedule {

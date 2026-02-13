@@ -1,3 +1,6 @@
+/**
+ * 새 문서 생성 후 편집 페이지로 이동하는 저장+네비게이션 흐름을 담당하는 훅.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";

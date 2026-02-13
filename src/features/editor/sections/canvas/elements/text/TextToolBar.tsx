@@ -1,3 +1,6 @@
+/**
+ * 텍스트 요소의 글꼴/정렬/강조 스타일 편집 액션을 제공하는 툴바 컴포넌트.
+ */
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   AlignCenterVertical,
@@ -103,6 +106,7 @@ const TextToolBar = ({
       setFontSizeInput(String(fontSize));
       return;
     }
+    // 직접 입력값은 범위를 강제해 폰트 패널과 캔버스 렌더링 값이 어긋나지 않게 맞춘다.
     const clamped = clampFontSize(nextValue);
     onFontSizeChange(clamped);
     setFontSizeInput(String(clamped));
@@ -145,7 +149,7 @@ const TextToolBar = ({
       className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
       onPointerDown={onPointerDown}
       onMouseDown={(event) => {
-        // input 요소는 preventDefault 하지 않음
+        // 숫자 입력창 클릭은 기본 포커스를 유지하고, 그 외 영역만 포커스 이탈을 막는다.
         const target = event.target as HTMLElement;
         if (target.tagName === "INPUT") {
           return;
@@ -304,6 +308,7 @@ const TextToolBar = ({
           onBlur={() => {
             if (!isLineHeightEditing) return;
             setIsLineHeightEditing(false);
+            // blur 시점에만 커밋해 입력 중 잦은 재렌더/측정 비용을 줄인다.
             commitLineHeightInput();
           }}
           onFocus={(event) => {

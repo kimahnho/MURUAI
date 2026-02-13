@@ -1,3 +1,6 @@
+/**
+ * 관리자 로그인 입력과 인증 실행 UI를 제공하는 컴포넌트.
+ */
 import { useState } from "react";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";

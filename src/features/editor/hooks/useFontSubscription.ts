@@ -1,3 +1,6 @@
+/**
+ * 폰트 패널 변경 이벤트를 구독해 선택 요소의 텍스트 스타일을 갱신하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";
@@ -27,6 +30,8 @@ export const useFontSubscription = ({
       const targetIds = selectedIdsRef.current;
       if (targetIds.length === 0) return;
 
+      // 텍스트 요소와 도형 내 텍스트 스타일을 같은 요청으로 맞춰
+      // 혼합 선택에서도 폰트 패널 동작이 일관되게 보이도록 한다.
       setPages((prevPages) =>
         updateElementsByPageId(prevPages, activePageId, (elements) =>
           elements.map((element) => {

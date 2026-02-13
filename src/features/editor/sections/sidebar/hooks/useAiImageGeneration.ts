@@ -1,3 +1,6 @@
+/**
+ * AI 이미지 생성, 업로드, 사용량 제한, 생성 이력 상태를 통합 관리하는 훅.
+ */
 import { useState, useEffect, useCallback } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
@@ -139,11 +142,11 @@ export const useAiImageGeneration = () => {
     canGenerate: true,
   });
 
-  // selector 기반 구독
+  // 선택자 단위 구독으로 불필요한 리렌더를 줄인다.
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
-  // 사용량 상태 조회 (ai_generated_images 테이블 기반)
+  // 생성 이력 테이블 기준 일일 사용량을 조회한다.
   const fetchUsageStatus = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc("get_ai_image_usage_status", {
@@ -163,7 +166,7 @@ export const useAiImageGeneration = () => {
     }
   }, []);
 
-  // 생성 이력 조회
+  // 생성 이력을 최신순으로 불러온다.
   const fetchGeneratedImages = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
@@ -197,7 +200,7 @@ export const useAiImageGeneration = () => {
     }
   }, []);
 
-  // 컴포넌트 마운트 시 사용량 및 이력 조회
+  // 마운트 시 사용량/이력을 먼저 동기화해 버튼 활성 상태를 안정화한다.
   useEffect(() => {
     fetchUsageStatus();
     fetchGeneratedImages();
@@ -211,7 +214,7 @@ export const useAiImageGeneration = () => {
   const generate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
-    // 중복 클릭 방지를 위해 즉시 비활성화
+    // 중복 클릭으로 중복 생성 요청이 발생하지 않게 즉시 잠근다.
     setIsGenerating(true);
 
     try {
@@ -229,7 +232,7 @@ export const useAiImageGeneration = () => {
         return;
       }
 
-      // 생성 가능 여부 체크 (DB 기준)
+      // 서버 기준 사용량 체크를 먼저 수행해 클라이언트 상태 오차를 보정한다.
       try {
         const { data: canGen, error: checkError } = await supabase.rpc(
           "can_generate_ai_image",
@@ -258,7 +261,7 @@ export const useAiImageGeneration = () => {
       const imagePath = await uploadToCloudinary(base64Image, user.id);
       const imageUrl = getCloudinaryUrl(imagePath);
 
-      // DB에 이미지 저장 (사용량 카운트도 이 테이블 기준)
+      // 이미지 저장 원격 호출이 카운트 증가까지 함께 처리한다.
       const { data: savedId, error: saveError } = await supabase.rpc(
         "save_ai_generated_image",
         {
@@ -273,7 +276,7 @@ export const useAiImageGeneration = () => {
         console.error("Failed to save image to DB:", saveError);
       }
 
-      // 제한 초과로 저장 실패한 경우
+      // 카운트 초과 시 원격 호출이 null을 반환하므로 사용자에게 즉시 안내한다.
       if (savedId === null) {
         showToast(
           `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,
@@ -291,7 +294,7 @@ export const useAiImageGeneration = () => {
       };
       setGeneratedImages((prev) => [newImage, ...prev]);
 
-      // 사용량 상태 업데이트
+      // 로컬 사용량 상태를 선반영해 UI 피드백 지연을 줄인다.
       setUsageStatus((prev) => {
         const newUsed = prev.used + 1;
         return {
@@ -302,7 +305,7 @@ export const useAiImageGeneration = () => {
         };
       });
 
-      // 캔버스에 이미지 요소로 바로 추가 (선택된 요소와 무관하게 새 요소로 삽입)
+      // 선택 상태와 무관하게 새 이미지 요소를 삽입해 생성 결과를 바로 확인시킨다.
       requestImageFill(
         imageUrl,
         undefined,
@@ -334,7 +337,6 @@ export const useAiImageGeneration = () => {
   };
 
   return {
-    // state
     selectedStyle,
     prompt,
     isGenerating,
@@ -342,7 +344,6 @@ export const useAiImageGeneration = () => {
     generatedImages,
     canGenerate,
     usageStatus,
-    // actions
     setSelectedStyle,
     setPrompt,
     generate,

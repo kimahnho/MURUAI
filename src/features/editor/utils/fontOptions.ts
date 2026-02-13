@@ -1,3 +1,6 @@
+/**
+ * 에디터 폰트 옵션 목록과 폰트 메타데이터 유틸을 제공하는 모듈.
+ */
 export type FontWeightOption = {
   label: string;
   value: number;
@@ -10,6 +13,7 @@ export type FontOption = {
   weights: FontWeightOption[];
 };
 
+// 숫자 weight를 사용자 표시용 한국어 라벨로 매핑한다.
 const weightLabelMap: Record<number, string> = {
   400: "보통",
   700: "굵은",
@@ -196,6 +200,7 @@ export const FONT_OPTIONS: FontOption[] = [
 ];
 
 export const getFontLabel = (family: string) => {
+  // 등록된 폰트가 아니면 원본 family를 반환해 커스텀 폰트도 안전하게 표시한다.
   const match = FONT_OPTIONS.find((font) => font.family === family);
   return match?.label ?? family;
 };
@@ -203,6 +208,7 @@ export const getFontLabel = (family: string) => {
 export const normalizeFontWeight = (
   value: number | "normal" | "bold" | undefined,
 ) => {
+  // CSS 문자열/숫자 표현을 숫자 weight로 정규화해 비교 로직을 단순화한다.
   if (typeof value === "number") return value;
   if (value === "bold") return 700;
   return 400;

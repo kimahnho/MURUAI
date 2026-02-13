@@ -1,3 +1,6 @@
+/**
+ * 감정 이모지 목록 상태와 선택 동작을 관리하는 훅.
+ */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
 

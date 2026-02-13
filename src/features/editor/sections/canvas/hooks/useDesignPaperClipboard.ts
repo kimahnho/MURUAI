@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 복사/붙여넣기 단축 동작을 캔버스 상태와 연결하는 훅.
+ */
 import { useCallback, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
@@ -32,7 +35,7 @@ export const useDesignPaperClipboard = ({
         );
         sessionStorage.removeItem("copiedPageId");
       } catch {
-        // ignore clipboard failures
+        // 저장소 접근 실패는 복사만 건너뛰고 편집 동작은 계속 유지한다.
       }
     },
     [pageId]
@@ -71,6 +74,8 @@ export const useDesignPaperClipboard = ({
     const clipboard = getClipboard();
     if (!clipboard || clipboard.length === 0) return;
     const meta = getClipboardMeta();
+    // 다른 페이지에서 붙여넣는 경우에는 원래 좌표를 유지하고,
+    // 같은 페이지에서는 겹침을 피하기 위해 고정 오프셋을 적용한다.
     const offset = meta?.pageId && meta.pageId !== pageId ? 0 : 10;
     const bounds = position
       ? clipboard.reduce<{ minX: number; minY: number } | null>(

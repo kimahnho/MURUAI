@@ -1,3 +1,6 @@
+/**
+ * 에디터 전역 스토어 구독 훅들을 조합해 구독 생명주기를 통합 관리하는 훅.
+ */
 import type { Dispatch, SetStateAction, MutableRefObject } from "react";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
@@ -126,6 +129,8 @@ export const useEditorSubscriptions = ({
 }: EditorSubscriptionsParams) => {
   const { showEmotionInferenceToast } = useTemplateNotifications();
 
+  // 이미지 채우기 요청은 선택 요소 교체/신규 삽입까지 포함하므로
+  // 다른 구독보다 먼저 연결해 최신 선택 상태를 기준으로 동작하게 한다.
   useImageFillSubscription({
     pagesRef,
     selectedPageIdRef,
@@ -135,6 +140,7 @@ export const useEditorSubscriptions = ({
     setEditingTextId,
   });
 
+  // 템플릿 적용은 페이지 구조를 바꾸므로 이후 구독들이 새로운 페이지를 기준으로 처리되게 한다.
   useTemplateSubscription({
     pages,
     selectedPageId,
@@ -153,6 +159,8 @@ export const useEditorSubscriptions = ({
     addSelectedTemplatePages,
   });
 
+  // 폰트/요소/방향/보드 구독은 서로 독립 요청을 소비하므로
+  // 내부 가드(요청 ID/조건)로만 실행 순서를 제어한다.
   useFontSubscription({
     selectedPageIdRef,
     selectedIdsRef,

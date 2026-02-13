@@ -1,3 +1,6 @@
+/**
+ * 관리자 대시보드 화면 섹션 배치와 데이터 연결을 담당하는 컴포넌트.
+ */
 import { Link } from "react-router-dom";
 import DateRangeFilter from "./DateRangeFilter";
 import KpiCards from "./KpiCards";
@@ -163,6 +166,7 @@ const AdminDashboardView = ({
       <KpiCards items={kpiItems} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {/* 좌측에는 시계열, 우측에는 분포/요일 요약을 배치해 조회 맥락을 분리한다. */}
         <div className="xl:col-span-2">
           <TrendChart
             title="일자별 추이 (생성/다운로드)"
@@ -209,6 +213,7 @@ const AdminDashboardView = ({
             유저별 자료 데이터가 없습니다.
           </div>
         ) : (
+          // 상위 사용자만 요약 노출하고 상세는 user-docs 페이지로 위임한다.
           <div className="flex flex-col gap-3">
             {userDocs.map((entry) => {
               const displayName = entry.userName || entry.userId;

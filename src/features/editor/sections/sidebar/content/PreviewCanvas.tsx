@@ -1,3 +1,6 @@
+/**
+ * 템플릿/요소 미리보기용 축소 캔버스를 렌더링하는 컴포넌트.
+ */
 import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import type { PreviewMetrics } from "./previewMetrics";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";

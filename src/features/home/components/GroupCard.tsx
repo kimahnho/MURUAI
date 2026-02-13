@@ -1,3 +1,6 @@
+/**
+ * 그룹 정보를 카드 형태로 표시하고 선택/편집 진입을 제공하는 컴포넌트.
+ */
 import type { Group } from "../model/group.model";
 
 interface GroupCardProps {

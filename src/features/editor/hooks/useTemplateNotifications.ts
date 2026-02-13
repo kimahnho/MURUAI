@@ -1,3 +1,6 @@
+/**
+ * 템플릿 적용 결과를 사용자 토스트 메시지로 안내하는 훅.
+ */
 import { useCallback } from "react";
 import { useToastStore } from "../store/toastStore";
 

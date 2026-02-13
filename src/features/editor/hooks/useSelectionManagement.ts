@@ -1,3 +1,6 @@
+/**
+ * 선택 상태 계산, 선택 해제, 선택 툴바 액션을 통합 관리하는 훅.
+ */
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../model/pageTypes";
 import type { SideBarMenu } from "../store/sideBarStore";
@@ -26,6 +29,7 @@ export const useSelectionManagement = ({
   setSideBarMenu,
   setFontPanel,
 }: SelectionManagementParams) => {
+  // 선택 파생값 계산과 액션 핸들러를 분리 훅으로 결합해 DesignPaper 의존 로직을 한 지점에서 묶는다.
   const selectionState = useSelectionState({
     pages,
     selectedPageId,

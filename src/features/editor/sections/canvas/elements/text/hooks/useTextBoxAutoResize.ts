@@ -1,3 +1,6 @@
+/**
+ * 텍스트 내용 변화에 맞춰 박스 크기를 자동 보정하는 훅.
+ */
 import {
   useEffect,
   useRef,
@@ -42,7 +45,7 @@ export const useTextBoxAutoResize = ({
   boxRef,
   isResizingRef,
 }: UseTextBoxAutoResizeProps) => {
-  // element 모드에서 캔버스 경계 도달 여부를 추적
+  // 요소 기준 폭 모드에서 캔버스 경계 도달 여부를 추적한다.
   const hasReachedBoundaryRef = useRef(false);
   const wasMultiLineRef = useRef(false);
 
@@ -83,7 +86,7 @@ export const useTextBoxAutoResize = ({
       return Math.ceil(measure.scrollWidth) + widthBuffer;
     };
 
-    // element 모드: 너비 고정, 캔버스 경계 도달 시에만 줄바꿈 계산
+    // 요소 기준 폭 모드: 너비 고정, 캔버스 경계 도달 시에만 줄바꿈 계산
     if (widthMode === "element") {
       // 단일 라인 너비 측정
       const singleLineWidth = getSingleLineWidth();
@@ -170,7 +173,7 @@ export const useTextBoxAutoResize = ({
       return;
     }
 
-    // auto/fixed 모드: 기존 로직
+    // 자동/고정 폭 모드는 폭 변경과 높이 재계산을 함께 처리한다.
     const isAutoWidth = widthMode === "auto";
 
     if (isAutoWidth) {

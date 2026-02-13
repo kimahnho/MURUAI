@@ -1,3 +1,6 @@
+/**
+ * 학생 목록 조회/선택/생성/수정 상태를 관리하는 홈 스토어 훅.
+ */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { studentModel, type Student } from "../model/student.model";

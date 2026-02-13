@@ -1,3 +1,6 @@
+/**
+ * 선 요소의 끝점/전체 이동 입력을 해석해 좌표 패치를 적용하는 인터랙션 훅.
+ */
 import { type RefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
@@ -41,6 +44,8 @@ export const useLineInteraction = ({
     event: ReactPointerEvent,
     options?: { deferSingleWhenMultiSelected?: boolean },
   ) => {
+    // 다중 선택 상태에서 선택된 요소를 드래그하려는 순간에는
+    // 단일 선택 전환을 미루고, "클릭만 발생한 경우"에만 선택을 줄인다.
     const shouldSelectOnClickOnly =
       Boolean(options?.deferSingleWhenMultiSelected) &&
       isSelected &&
@@ -88,6 +93,7 @@ export const useLineInteraction = ({
         onDragStateChange?.(true, lineRef.current, { type: "drag" });
       },
       onEnd: (moved) => {
+        // 이동이 없으면 클릭으로 해석해 단일 선택 전환을 수행한다.
         if (!moved && shouldSelectOnClickOnly) {
           onSelectChange?.(true);
           return;

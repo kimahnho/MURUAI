@@ -1,3 +1,6 @@
+/**
+ * 사이드바 현재 메뉴에 맞는 요소 패널을 라우팅해 표시하는 컨테이너 컴포넌트.
+ */
 import {
   ArrowRight,
   Circle,
@@ -52,6 +55,7 @@ const ElementContentView = ({
             return (
               <button
                 key={shape.id}
+                // 도형 선택 이벤트는 type만 전달하고, 기본 크기/위치는 스토어 생성 규칙으로 일관 처리한다.
                 onClick={() => { onSelectShape(shape.type); }}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
@@ -69,6 +73,7 @@ const ElementContentView = ({
 };
 
 const ElementContent = () => {
+  // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
   const onSelectShape = useElementStore((s) => s.requestElement);
 
   return (

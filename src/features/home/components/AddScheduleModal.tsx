@@ -1,3 +1,6 @@
+/**
+ * 시간표 일정 추가 입력과 저장 액션을 처리하는 모달 컴포넌트.
+ */
 import { Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";

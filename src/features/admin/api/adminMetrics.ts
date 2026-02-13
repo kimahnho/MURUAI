@@ -1,3 +1,6 @@
+/**
+ * 관리자 대시보드 지표 조회 API 호출을 담당하는 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 import { EXCLUDED_USER_ID_LIST, EXCLUDED_USER_IDS } from "../constants/excludedUsers";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
@@ -252,6 +255,7 @@ export const fetchAdminMetrics = async (
     [];
 
   if (!hasRpc) {
+    // RPC가 없거나 실패한 환경에서도 대시보드가 동작하도록 테이블 조회 fallback을 제공한다.
     const docsQuery = supabase
       .from("user_made_n")
       .select("id,user_id,name,created_at,canvas_data")
@@ -338,6 +342,7 @@ export const fetchAdminMetrics = async (
         return b.docCount - a.docCount;
       })
       .slice(0, 5);
+    // 사용자 문서 목록은 최근 순 3건만 보여줘 카드 밀도를 유지한다.
     userDocs = Array.from(userDocsMap.values())
       .map((entry) => ({
         ...entry,
@@ -352,6 +357,7 @@ export const fetchAdminMetrics = async (
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
   } else {
+    // RPC 경로는 서버에서 집계한 트렌드를 우선 사용하고, 비어 있으면 일자 틀만 채워 반환한다.
     trend = rpcTrend && rpcTrend.length > 0
       ? rpcTrend.map((point) => ({
           date: point.date ?? "",

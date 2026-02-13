@@ -1,3 +1,6 @@
+/**
+ * 하단 페이지 바의 선택 페이지 가시성 유지를 위한 자동 스크롤을 관리하는 훅.
+ */
 import { useEffect, useRef } from "react";
 
 type UseBottomBarScrollParams = {
@@ -38,6 +41,7 @@ export const useBottomBarScroll = ({
 
   useEffect(() => {
     const prevCount = prevPageCountRef.current;
+    // 페이지가 추가되고 마지막 페이지가 선택된 경우에만 우측 끝까지 이동해 신규 페이지를 즉시 노출한다.
     if (pagesLength > prevCount && isSelectedLastPage) {
       const addOffset =
         addButtonIndex != null ? itemOffsets[addButtonIndex] ?? 0 : 0;
@@ -61,6 +65,7 @@ export const useBottomBarScroll = ({
     const offset = itemOffsets[selectedItemIndex] ?? 0;
     const width = itemWidths[selectedItemIndex] ?? 0;
     const centerOffset = offset + width / 2 - scroller.clientWidth / 2;
+    // 수동 선택 전환 시 선택 페이지를 중앙 근처에 배치해 연속 탐색 시 시선 이동을 줄인다.
     scrollToOffset(centerOffset);
   }, [selectedItemIndex, selectedPageId, itemOffsets, itemWidths, totalWidth]);
 
@@ -74,6 +79,7 @@ export const useBottomBarScroll = ({
       if (!scroller) return;
       const delta = event.deltaY || event.deltaX;
       if (Math.abs(delta) < 4) return;
+      // 트랙패드/휠의 세로 입력을 가로 스크롤로 변환해 페이지 바 조작성을 높인다.
       event.preventDefault();
       scroller.scrollLeft += delta;
     };

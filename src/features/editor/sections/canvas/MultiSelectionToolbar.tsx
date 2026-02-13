@@ -1,3 +1,6 @@
+/**
+ * 다중 선택 상태에서 공통 편집 액션을 제공하는 툴바 컴포넌트.
+ */
 import { useState, type FocusEvent } from "react";
 import { AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Ban } from "lucide-react";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -63,6 +66,7 @@ const MultiSelectionToolbar = ({
   onDistributeHorizontal,
   onDistributeVertical,
 }: MultiSelectionToolbarProps) => {
+  // 테두리 패널은 다중 선택 편집 모드에서만 열고 닫으며, 외부 클릭 전파 차단으로 캔버스 선택 해제를 방지한다.
   const [isMultiBorderPanelOpen, setIsMultiBorderPanelOpen] = useState(false);
 
   if (!isVisible) return null;
@@ -86,6 +90,7 @@ const MultiSelectionToolbar = ({
           </div>
           {hasMultiFontTargets && (
             <>
+              {/* 다중 선택 텍스트는 공통 교집합 값만 표시하고 변경값은 전체 선택에 일괄 적용한다. */}
               <button
                 type="button"
                 onClick={onOpenFontPanel}
@@ -148,6 +153,7 @@ const MultiSelectionToolbar = ({
           )}
           {hasMultiBorderTargets && (
             <div className="relative">
+              {/* 버튼은 "테두리 사용 여부"와 "패널 오픈 여부"를 함께 강조해 현재 편집 상태를 즉시 인지하게 한다. */}
               <button
                 type="button"
                 onClick={() => { setIsMultiBorderPanelOpen((prev) => !prev); }}
@@ -167,6 +173,7 @@ const MultiSelectionToolbar = ({
                 >
                   <div className="flex items-center gap-2">
                     {borderStyleOptions.map((styleOption) => {
+                      // 다중 선택에서는 현재 공통 스타일과 일치하는 옵션만 active로 표시해 일괄 패치 결과를 예측 가능하게 유지한다.
                       const isActive = activeBorderStyle === styleOption;
                       const buttonClass = `flex h-12 w-12 items-center justify-center rounded-lg border ${
                         isActive
@@ -241,6 +248,7 @@ const MultiSelectionToolbar = ({
                         const digits =
                           event.target.value.replace(/[^0-9]/g, "");
                         if (!digits) return;
+                        // 다중 선택에서는 즉시 patch를 적용해 선택된 요소의 공통 스타일을 동기화한다.
                         applyMultiBorderPatch({
                           width: clampBorderWidth(Number(digits)),
                         });
@@ -273,6 +281,7 @@ const MultiSelectionToolbar = ({
           )}
           {canDistribute && onDistributeHorizontal && onDistributeVertical && (
             <>
+              {/* 분배 액션은 동일 축 정렬 이후 간격만 조정하므로, 다중 선택 정렬 작업의 마지막 단계에서 사용한다. */}
               <div className="w-px h-5 bg-black-25" />
               <button
                 type="button"

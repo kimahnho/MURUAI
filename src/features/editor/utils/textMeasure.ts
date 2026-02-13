@@ -1,3 +1,6 @@
+/**
+ * 텍스트 문자열의 렌더링 크기 측정과 폰트 메트릭 계산 유틸을 제공하는 모듈.
+ */
 type MeasureOptions = {
   lineHeight?: number;
   letterSpacing?: number;
@@ -32,7 +35,7 @@ export const measureTextBoxSize = (
   span.style.border = "none";
   const maxWidth = options.maxWidth;
 
-  // 먼저 단일 라인으로 텍스트 폭 측정
+  // 먼저 단일 라인 폭을 측정해 줄바꿈 여부를 판단한다.
   span.style.whiteSpace = "pre";
   span.style.display = "inline-block";
   span.style.fontSize = `${fontSize}px`;
@@ -56,13 +59,13 @@ export const measureTextBoxSize = (
   }
   document.body.appendChild(span);
 
-  // 측정 오차 보정을 위한 버퍼
+  // 브라우저 측정 오차 보정
   const widthBuffer = 4;
   const heightBuffer = 2;
 
   const singleLineWidth = Math.ceil(span.getBoundingClientRect().width) + widthBuffer;
 
-  // maxWidth가 있고 텍스트가 maxWidth를 초과하면 줄바꿈 적용
+  // 최대 너비를 넘으면 줄바꿈 모드로 전환한다.
   const hasMaxWidth = typeof maxWidth === "number" && maxWidth > 0;
   const exceedsMaxWidth = hasMaxWidth && singleLineWidth > maxWidth;
 
@@ -70,14 +73,14 @@ export const measureTextBoxSize = (
   let finalHeight: number;
 
   if (exceedsMaxWidth) {
-    // maxWidth로 제한하고 줄바꿈 허용
+    // 너비를 최대치로 고정하고 줄바꿈을 허용한다.
     span.style.width = `${maxWidth}px`;
     span.style.whiteSpace = "pre-wrap";
     const rect = span.getBoundingClientRect();
     finalWidth = maxWidth;
     finalHeight = Math.ceil(rect.height) + heightBuffer;
   } else {
-    // 단일 라인 유지
+    // 최대 너비를 넘지 않으면 단일 라인을 유지한다.
     const rect = span.getBoundingClientRect();
     finalWidth = singleLineWidth;
     finalHeight = Math.ceil(rect.height) + heightBuffer;

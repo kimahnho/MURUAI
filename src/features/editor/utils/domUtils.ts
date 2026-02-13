@@ -1,3 +1,6 @@
+/**
+ * 캔버스 DOM 좌표/스케일 계산에 필요한 브라우저 보조 유틸을 제공하는 모듈.
+ */
 import type { Point, Rect } from "../model/canvasTypes";
 
 /**

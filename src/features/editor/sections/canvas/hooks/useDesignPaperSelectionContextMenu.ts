@@ -1,3 +1,6 @@
+/**
+ * 선택 상태 기준 컨텍스트 메뉴 열림/좌표/대상 정보를 관리하는 훅.
+ */
 import {
   useCallback,
   type Dispatch,
@@ -67,6 +70,7 @@ export const useDesignPaperSelectionContextMenu = ({
         return;
       }
       const baseIds = options?.additive ? currentSelectedIds : [];
+      // 선택된 요소를 배열 선두로 유지해 툴바/액션의 기준 요소가 항상 마지막 클릭 대상이 되게 한다.
       const nextSelectedIds = [
         elementId,
         ...baseIds.filter((id) => id !== elementId),
@@ -123,6 +127,7 @@ export const useDesignPaperSelectionContextMenu = ({
         if (options?.additive) {
           const currentSelectedIds = selectedIdsRef.current;
           if (currentSelectedIds.includes(elementId)) {
+            // Shift 재클릭은 다중 선택 토글 해제로 처리한다.
             const nextSelectedIds = currentSelectedIds.filter(
               (id) => id !== elementId,
             );
@@ -178,6 +183,7 @@ export const useDesignPaperSelectionContextMenu = ({
       const rawY = event.clientY - (rect?.top ?? 0);
       const menuWidth = 220;
       const menuHeight = 4 * 36 + 8;
+      // 컨텍스트 메뉴가 페이지 밖으로 넘어가지 않도록 렌더링 좌표를 클램프한다.
       const clampedX = Math.min(
         Math.max(rawX, 8),
         Math.max(8, pageWidth - menuWidth),

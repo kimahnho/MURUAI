@@ -1,3 +1,6 @@
+/**
+ * 템플릿 적용 요청을 처리하고 페이지 교체/삽입 결과를 상태에 반영하는 훅.
+ */
 import {
   useCallback,
   useEffect,
@@ -88,6 +91,7 @@ export const useTemplateApplyActions = ({
       clearTimeout(recordTimeoutRef.current);
     }
     recordTimeoutRef.current = setTimeout(() => {
+      // 템플릿 적용 직후 비동기 상태가 안정화된 뒤 히스토리를 기록해 undo 스냅샷을 단일화한다.
       recordHistory("Apply template to current page");
       isApplyingTemplateRef.current = false;
       recordTimeoutRef.current = null;
@@ -132,6 +136,7 @@ export const useTemplateApplyActions = ({
       clearTimeout(recordTimeoutRef.current);
     }
     recordTimeoutRef.current = setTimeout(() => {
+      // 새 페이지 생성 + 템플릿 삽입을 하나의 히스토리 단계로 묶는다.
       recordHistory("Apply template to new page");
       isApplyingTemplateRef.current = false;
       recordTimeoutRef.current = null;

@@ -1,3 +1,6 @@
+/**
+ * 템플릿별 사용 통계를 표 형태로 표시하는 컴포넌트.
+ */
 import type { TemplateStat } from "../api/adminMetrics";
 import { TEMPLATE_REGISTRY } from "@/features/editor/templates/templateRegistry";
 

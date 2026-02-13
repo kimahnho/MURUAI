@@ -1,3 +1,6 @@
+/**
+ * 키보드 단축키 입력을 받아 삭제/이동/선택 관련 편집 동작을 처리하는 훅.
+ */
 import { useEffect, useRef, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import {
@@ -65,6 +68,7 @@ export const useDesignPaperKeyboard = ({
         !event.ctrlKey &&
         !event.altKey
       ) {
+        // IME 조합 키 입력에서는 텍스트 요소의 편집 모드만 열고 실제 입력은 에디터에 위임한다.
         if (currentSelectedIds.length === 1) {
           const selectedId = currentSelectedIds[0];
           const selectedElement = elements.find(
@@ -88,6 +92,7 @@ export const useDesignPaperKeyboard = ({
         !event.altKey &&
         !event.isComposing;
       if (isPrintableKey) {
+        // 텍스트가 선택된 상태에서 글자 입력이 시작되면 기존 내용을 새 입력 문자로 초기화한다.
         if (currentSelectedIds.length === 1) {
           const selectedId = currentSelectedIds[0];
           const selectedElement = elements.find(
@@ -190,6 +195,7 @@ export const useDesignPaperKeyboard = ({
           height: maxY - minY,
         };
 
+        // 방향키 이동도 마우스 드래그와 동일한 스냅 가이드 기준을 사용해 미세 정렬을 맞춘다.
         const otherRects = elements
           .filter(
             (el) =>

@@ -1,3 +1,6 @@
+/**
+ * AAC 카드 검색/선택/삽입 동작을 제공하는 패널 컴포넌트.
+ */
 import { type DragEvent as ReactDragEvent } from "react";
 import { Search } from "lucide-react";
 import { useAacContentState } from "../hooks/useAacContentState";
@@ -43,6 +46,7 @@ const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
   imageUrl: string
 ) => {
+  // AAC 이미지도 캔버스 드롭 처리기가 기대하는 MIME 키로 전달한다.
   event.dataTransfer.setData("application/x-muru-image", imageUrl);
   event.dataTransfer.setData("text/plain", imageUrl);
   event.dataTransfer.effectAllowed = "copy";
@@ -71,6 +75,7 @@ const AACContent = () => {
     img.style.display = "none";
     const parent = img.parentElement;
     if (!parent) return;
+    // 이미지 로드 실패 시 이모지 fallback을 넣어 카드 의미를 잃지 않게 한다.
     const fallback = document.createElement("span");
     fallback.textContent = emoji || "🖼️";
     fallback.className = "text-24-regular";
@@ -86,8 +91,8 @@ const AACContent = () => {
         </span>
       </div>
 
-      {/* 카테고리 버튼 */}
       <div className="grid grid-cols-4 gap-2">
+        {/* 카테고리 선택은 하단 이미지 목록 필터와 직접 연결된다. */}
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
@@ -103,7 +108,6 @@ const AACContent = () => {
         ))}
       </div>
 
-      {/* 검색 영역 */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-s text-black-50" />
         <input
@@ -115,8 +119,8 @@ const AACContent = () => {
         />
       </div>
 
-      {/* 이미지 그리드 영역 (스크롤 가능) */}
       <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4">
+        {/* 이미지 선택/드래그 모두 같은 삽입 액션으로 연결된다. */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
             불러오는 중입니다

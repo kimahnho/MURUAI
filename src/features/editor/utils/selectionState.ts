@@ -1,3 +1,6 @@
+/**
+ * 선택 상태 계산에 필요한 공통 판별 로직을 제공하는 모듈.
+ */
 import type { CanvasElement } from "../model/canvasTypes";
 
 type SelectionRenderState = {
@@ -19,6 +22,7 @@ export const getSelectionRenderState = ({
   selectedIds: string[];
   previewSelectedIds?: string[] | null;
 }): SelectionRenderState => {
+  // 드래그 박스 선택 중에는 previewSelectedIds를 우선 적용해 선택 확정 전에도 UI 피드백을 제공한다.
   const renderSelectedIds =
     previewSelectedIds && previewSelectedIds.length > 0
       ? previewSelectedIds
@@ -60,6 +64,7 @@ export const getSelectionRenderState = ({
     );
 
   const shouldShowIndividualBorder = (elementId: string) =>
+    // 그룹 렌더링 중에는 개별 테두리를 숨겨 "하나의 그룹 선택" 시각 피드백을 유지한다.
     renderSelectedIds.includes(elementId) &&
     (!isRenderGroupedSelection || renderSelectedIds.length === 1);
 

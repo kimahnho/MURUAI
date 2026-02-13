@@ -1,3 +1,6 @@
+/**
+ * 이미지 채우기 요청과 대상 선택 정보를 전달하는 스토어 모듈.
+ */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
 

@@ -1,3 +1,6 @@
+/**
+ * 페이지 요소 스왑 인/아웃과 메모리 제한 관리를 통해 대용량 편집 성능을 유지하는 훅.
+ */
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../model/pageTypes";
@@ -71,6 +74,7 @@ export const usePageSwap = ({
         (page) => !pendingRef.current.has(page.id),
       );
       if (batchTargets.length > 0) {
+        // 같은 페이지가 중복 로드되지 않도록 pending 집합으로 배치 진입을 잠근다.
         batchTargets.forEach((page) => {
           pendingRef.current.add(page.id);
         });
@@ -87,6 +91,7 @@ export const usePageSwap = ({
             hydratedMap.set(pageId, elements);
           });
           if (hydratedMap.size > 0) {
+            // 스왑 적용 구간은 begin/endSwap으로 감싸 히스토리/구독 훅의 중간 상태 반응을 막는다.
             beginSwap();
             setPages((prev) =>
               prev.map((page) =>
@@ -122,6 +127,7 @@ export const usePageSwap = ({
       const candidates = lruRef.current.filter(
         (id) => !activeIds.has(id),
       );
+      // 현재 편집에 필요한 페이지(requiredSet)는 eviction 후보에서 항상 제외한다.
       const toEvict = candidates.slice(0, loadedCount - maxActivePages);
       if (toEvict.length === 0) return;
 

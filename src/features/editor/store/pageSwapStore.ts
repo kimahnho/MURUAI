@@ -1,3 +1,6 @@
+/**
+ * 페이지 스왑 인/아웃 상태와 동기화 신호를 관리하는 스토어.
+ */
 import { create } from "zustand";
 
 type PageSwapState = {
@@ -36,6 +39,7 @@ export const usePageSwapStore = create<PageSwapState>((set, get) => ({
   setPdfPreviewActive: (active) => set({ pdfPreviewActive: active }),
   setPdfExporting: (active) => set({ pdfExporting: active }),
   requestHydration: () => {
+    // requestId를 단조 증가시켜 비동기 hydration 응답의 최신성 비교 기준으로 사용한다.
     const next = get().hydrationRequestId + 1;
     set({ hydrationRequestId: next });
     return next;
@@ -54,6 +58,7 @@ export const usePageSwapStore = create<PageSwapState>((set, get) => ({
     })),
   setForceHydrate: (active) => set({ forceHydrate: active }),
   requestForceHydrate: () => {
+    // 강제 hydrate는 별도 requestId를 사용해 일반 hydration 신호와 충돌하지 않게 분리한다.
     const next = get().forceHydrateRequestId + 1;
     set({ forceHydrateRequestId: next, forceHydrate: true });
     return next;
@@ -74,6 +79,7 @@ export const waitForForceHydrate = (requestId: number) =>
       return;
     }
     const unsubscribe = usePageSwapStore.subscribe((state) => {
+      // 준비 완료 id가 요청 id 이상이 되는 순간 대기 해제한다.
       if (state.forceHydrateReadyId >= requestId) {
         unsubscribe();
         resolve();

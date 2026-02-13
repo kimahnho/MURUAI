@@ -1,3 +1,6 @@
+/**
+ * 에디터 좌측 사이드바의 메뉴 전환과 패널 콘텐츠를 렌더링하는 컴포넌트.
+ */
 import {
   PenTool,
   Layout,
@@ -45,6 +48,7 @@ const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "aac", icon: Grid2X2Icon },
 ];
 
+// 메뉴 id와 콘텐츠 컴포넌트를 1:1 매핑해 토글 로직을 단순화하고, 메뉴 확장 시 분기 누락을 줄인다.
 const CONTENT_COMPONENTS: Record<
   Exclude<SideBarMenu, null>,
   ComponentType
@@ -68,7 +72,7 @@ const SideBar = () => {
 
   return (
     <div className="flex h-full">
-      {/* 아이콘 바 */}
+      {/* 좌측 아이콘 메뉴: 편집 도구 카테고리 전환 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
         {MENU_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -76,6 +80,7 @@ const SideBar = () => {
             <button
               key={item.id}
               onClick={() => { toggleMenu(item.id); }}
+              // 같은 아이콘을 다시 누르면 닫히고, 다른 아이콘을 누르면 즉시 패널이 교체된다.
               className={`flex flex-col rounded-xl items-center justify-center gap-1 w-full h-16 cursor-pointer transition ${
                 selectedMenu === item.id
                   ? "bg-[#5500ff]/20"
@@ -98,7 +103,7 @@ const SideBar = () => {
           );
         })}
       </div>
-      {/* 상세 옵션 바 */}
+      {/* 우측 상세 패널: 현재 선택된 카테고리의 실제 편집 UI */}
       {selectedMenu && (
         <div className="flex flex-col w-82 h-full px-4 py-4 border-r border-black-25 gap-2">
           <div className="text-title-20-semibold text-black-100">

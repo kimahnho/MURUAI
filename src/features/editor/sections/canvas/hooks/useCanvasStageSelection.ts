@@ -1,3 +1,6 @@
+/**
+ * 스테이지 영역 선택(드래그 선택) 계산과 선택 결과 반영을 담당하는 훅.
+ */
 import {
   useEffect,
   useRef,
@@ -96,6 +99,7 @@ export const useCanvasStageSelection = ({
       !selectionDragRef.current ||
       (nextRect.width < dragThreshold && nextRect.height < dragThreshold);
     if (isClick) {
+      // 드래그 임계값 미만은 빈 영역 클릭으로 처리해 기존 선택 해제 규칙을 유지한다.
       if (!isAdditive) {
         onClearSelection();
       }
@@ -139,6 +143,7 @@ export const useCanvasStageSelection = ({
     setSelectionRect(null);
     setPreviewSelectedIds(null);
     previewSelectedIdsRef.current = null;
+    // 새 영역 선택이 시작되면 이전 컨텍스트 액션 상태를 함께 정리한다.
     stageActionsRef.current?.clearContextMenu();
     stageActionsRef.current?.setEditingImageId(null);
     stageActionsRef.current?.setEditingShapeTextId(null);
@@ -179,6 +184,7 @@ export const useCanvasStageSelection = ({
     const nextPreviewIds = [...new Set([...baseIds, ...hitIds])];
 
     previewSelectedIdsRef.current = nextPreviewIds;
+    // pointermove 빈도를 그대로 setState 하면 리렌더 비용이 커져 frame 단위로만 반영한다.
     if (previewFrameRef.current == null) {
       previewFrameRef.current = window.requestAnimationFrame(() => {
         previewFrameRef.current = null;

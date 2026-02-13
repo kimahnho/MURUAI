@@ -1,3 +1,6 @@
+/**
+ * 관리자 지표 KPI 카드를 요약 표시하는 컴포넌트.
+ */
 export type KpiCardData = {
   title: string;
   value: string | null;

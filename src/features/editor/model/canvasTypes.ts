@@ -1,4 +1,7 @@
-// Common utility types
+/**
+ * 캔버스 요소 타입과 공통 속성 계약을 정의하는 모듈.
+ */
+// 캔버스 요소 공통 좌표/기하 타입
 export type Point = {
   x: number;
   y: number;

@@ -1,3 +1,6 @@
+/**
+ * 그룹 생성 입력과 생성 액션을 처리하는 모달 컴포넌트.
+ */
 import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";

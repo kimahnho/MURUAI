@@ -1,3 +1,6 @@
+/**
+ * 홈 첫 화면 안내/설명 영역을 렌더링하는 컴포넌트.
+ */
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";

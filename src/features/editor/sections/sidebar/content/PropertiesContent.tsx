@@ -1,3 +1,6 @@
+/**
+ * 선택 요소 타입에 맞는 속성 편집 패널을 라우팅하는 컴포넌트.
+ */
 import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import ShapeProperties from "./ShapeProperties";
 import TextProperties from "./TextProperties";
@@ -29,6 +32,7 @@ const PropertiesContent = ({
   if (selectedElements.length === 1) {
     const element = selectedElements[0];
 
+    // 단일 선택에서만 타입별 상세 패널을 노출해 복수 선택 편집 정책과 충돌하지 않게 한다.
     if (element.type === "rect" || element.type === "ellipse") {
       return (
         <ShapeProperties element={element} onUpdateElement={onUpdateElement} />

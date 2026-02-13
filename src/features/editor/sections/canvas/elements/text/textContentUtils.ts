@@ -1,3 +1,6 @@
+/**
+ * 텍스트 편집 시 HTML/텍스트 정규화와 포맷 보조 처리를 담당하는 유틸 모듈.
+ */
 const stripHtml = (value: string) => {
   if (!value) return "";
   if (typeof window === "undefined" || typeof DOMParser === "undefined") {
@@ -20,8 +23,8 @@ export const isTextEmpty = (text?: string, richText?: string) =>
 export const DEFAULT_LINE_HEIGHT = 1.2;
 
 /**
- * Remove specific inline style tags from richText when applying global style.
- * This ensures partial styles follow the global style setting.
+ * 전역 텍스트 스타일을 적용할 때 richText 내부의 해당 인라인 스타일만 제거한다.
+ * 부분 스타일이 전역 스타일보다 우선하지 않도록 정리하는 용도다.
  */
 export const stripStyleTags = (
   richText: string,
@@ -83,7 +86,7 @@ export const stripStyleTags = (
         }
 
         if (shouldUnwrap) {
-          // Unwrap: replace element with its children
+          // 스타일 태그만 제거하고 내부 텍스트 노드는 유지한다.
           const parent = el.parentNode;
           if (parent) {
             while (el.firstChild) {
@@ -92,15 +95,15 @@ export const stripStyleTags = (
             parent.removeChild(el);
           }
         } else {
-          // Recursively process children
+          // 하위 노드도 동일 규칙으로 재귀 처리한다.
           processNode(el);
 
-          // Clean up empty style attributes
+          // 비어 있는 스타일 속성은 정리한다.
           if (el.getAttribute("style") === "") {
             el.removeAttribute("style");
           }
 
-          // Unwrap span elements that have no attributes
+          // 속성이 없는 인라인 래퍼는 불필요하므로 벗겨낸다.
           if (tagName === "span" && el.attributes.length === 0) {
             const parent = el.parentNode;
             if (parent) {

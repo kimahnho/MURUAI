@@ -1,3 +1,6 @@
+/**
+ * 선택 요소의 변형 액션을 상단에서 빠르게 실행하는 공통 툴바 컴포넌트.
+ */
 import {
   FlipHorizontal,
   FlipVertical,
@@ -28,6 +31,7 @@ const TransformToolbar = ({
   showRotateCW = true,
   showRotateCCW = true,
 }: TransformToolbarProps) => {
+  // 요소 유형별로 노출 액션이 달라지므로 상위에서 전달한 visibility 플래그를 그룹 단위로 계산한다.
   const positionStyle =
     position === "bottom"
       ? { top: "calc(100% + 28px)" }
@@ -41,6 +45,7 @@ const TransformToolbar = ({
       className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white-100 border border-black-25 rounded-lg shadow-lg px-2 py-1 z-50"
       style={positionStyle}
       onMouseDown={(event) => {
+        // 툴바 클릭이 캔버스 드래그 시작으로 해석되지 않도록 mouse/pointer 이벤트를 모두 차단한다.
         event.preventDefault();
         event.stopPropagation();
       }}

@@ -1,3 +1,6 @@
+/**
+ * 이미지 파일을 Cloudinary에 업로드하고 결과 URL을 반환하는 훅.
+ */
 import { useState, useCallback } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "@/features/editor/store/toastStore";

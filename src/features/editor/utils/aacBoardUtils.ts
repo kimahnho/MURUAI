@@ -1,3 +1,6 @@
+/**
+ * AAC 카드/라벨 레이아웃 생성과 위치 계산 유틸을 제공하는 모듈.
+ */
 import type { TemplateElement } from "../model/canvasTypes";
 
 export type AacLabelPosition = "top" | "bottom" | "none";
@@ -37,7 +40,7 @@ export const buildAacBoardElements = ({
   // 박스 크기를 150x150px로 고정
   // 용지 방향, 그리드 크기와 관계없이 동일한 박스 크기 유지
   const fixedBoxSizePx = 150;
-  const boxInset = snapPx(mmToPx(1)); // boxInset이 적용되므로 미리 보정
+  const boxInset = snapPx(mmToPx(1)); // 박스 안쪽 여백이 적용되므로 셀 크기를 미리 보정
   const cellSizePx = fixedBoxSizePx + boxInset * 2;
   const cellWidthMm = cellSizePx / MM_TO_PX;
   const cellHeightMm = cellSizePx / MM_TO_PX;
@@ -51,9 +54,9 @@ export const buildAacBoardElements = ({
     paddingHorizontalMm + (contentWidthMm - totalGridWidthMm) / 2;
   const startYMm = paddingTopMm + (contentHeightMm - totalGridHeightMm) / 2;
   const maxLabelHeightMm = 12;
-  const labelInset = snapPx(mmToPx(0)); // 라벨을 더 아래로 (2 -> 0.5)
-  const labelGap = snapPx(mmToPx(2)); // 이미지와 라벨 간격 줄임 (4 -> 2)
-  const imagePadding = snapPx(mmToPx(0)); // 이미지 패딩 줄여서 이미지 크기 증가 (3 -> 1.5)
+  const labelInset = snapPx(mmToPx(0)); // 라벨 위치 미세 보정
+  const labelGap = snapPx(mmToPx(2)); // 이미지와 라벨 사이 간격
+  const imagePadding = snapPx(mmToPx(0)); // 이미지 영역 내부 여백
   const labelFontSize = 18;
   const elements: AacBoardElement[] = [];
   let cellIndex = 0;
@@ -74,7 +77,7 @@ export const buildAacBoardElements = ({
       const labelHeight =
         labelPosition === "none"
           ? 0
-          : clampPx(Math.min(maxLabelHeight, Math.max(0, boxHeight * 0.22))); // 라벨 높이 비율 줄임 (0.35 -> 0.22)
+          : clampPx(Math.min(maxLabelHeight, Math.max(0, boxHeight * 0.22))); // 라벨 높이 비율을 낮춰 이미지 영역을 확보
       const labelY =
         labelPosition === "top"
           ? boxY + labelInset
@@ -94,11 +97,11 @@ export const buildAacBoardElements = ({
       const imageBoxSize = clampPx(
         Math.min(imageAreaWidth, imageAreaHeight) * 1.5,
       );
-      // 이미지를 박스 내 이미지 영역 중앙에 배치 (상대 좌표)
+      // 이미지를 박스 내부 이미지 영역 중앙에 상대 좌표로 배치한다.
       const imageRelX = snapPx(
         imageAreaX - boxX + (imageAreaWidth - imageBoxSize) / 2,
       );
-      const imageOffsetY = snapPx(mmToPx(2)); // 이미지를 아래로 2mm 내림
+      const imageOffsetY = snapPx(mmToPx(2)); // 시각 중심 보정을 위해 Y축으로 소폭 이동
       const imageRelY = snapPx(
         imageAreaY - boxY + (imageAreaHeight - imageBoxSize) / 2 + imageOffsetY,
       );

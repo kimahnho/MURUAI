@@ -1,3 +1,6 @@
+/**
+ * 감정 추론 템플릿 3페이지 구성을 정의하는 모듈.
+ */
 import { images } from "@/shared/assets";
 import type { Template } from "../../model/canvasTypes";
 
@@ -7,6 +10,7 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 const pageWidthMm = 210;
 const pageHeightMm = 297;
 
+// 상단 로고/치료목표 박스 배치
 const logoXmm = 9;
 const logoYmm = 2;
 const logoWidthMm = 24;
@@ -36,6 +40,7 @@ const vocabTitleWidthMm = 80;
 const vocabTitleHeightMm = 10;
 const vocabTitleXmm = (pageWidthMm - vocabTitleWidthMm) / 2;
 
+// 감정 어휘 카드 그리드 배치
 const cardColumns = 5;
 const cardRows = 2;
 const cardWidthMm = 28;

@@ -1,3 +1,6 @@
+/**
+ * 감정 사진 데이터 조회와 선택 상태를 관리하는 훅.
+ */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
 
@@ -50,7 +53,7 @@ export const useEmotionPhotos = () => {
   return useQuery({
     queryKey: ["emotion-photos"],
     queryFn: fetchAllEmotionPhotos,
-    staleTime: Infinity, // 데이터가 절대 stale하지 않음 (재배포 전까지)
-    gcTime: Infinity, // 캐시를 영원히 보관
+    staleTime: Infinity, // 정적 리소스 성격이라 세션 내 재검증을 생략한다.
+    gcTime: Infinity, // 사이드바 재진입 시 즉시 재사용하도록 캐시를 유지한다.
   });
 };

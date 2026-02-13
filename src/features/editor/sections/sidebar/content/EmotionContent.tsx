@@ -1,3 +1,6 @@
+/**
+ * 감정 리소스 선택과 삽입 흐름을 제공하는 패널 컴포넌트.
+ */
 import {
   Camera,
   Construction,
@@ -20,6 +23,7 @@ const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
   imageUrl: string
 ) => {
+  // 감정 이미지도 다른 이미지 소스와 동일한 드롭 포맷으로 캔버스에 전달한다.
   event.dataTransfer.setData("application/x-muru-image", imageUrl);
   event.dataTransfer.setData("text/plain", imageUrl);
   event.dataTransfer.effectAllowed = "copy";
@@ -207,6 +211,7 @@ const EmotionContent = () => {
         </div>
 
         <div className="flex flex-col flex-1 gap-2 min-h-0">
+          {/* AI 모드는 준비 중이므로 현재는 기본 감정 모드만 실제 삽입 경로를 제공한다. */}
           {selectedMode === "basic" ? (
             <EmotionContentArea onSelectEmotion={onSelectEmotion} />
           ) : (
@@ -275,6 +280,7 @@ const PhotoEmotionContent = ({
   const genderEmotions = (allEmotionPhotos ?? []).filter(
     (photo) => photo.category === gender
   );
+  // 성별 탭 필터를 먼저 적용해 검색 결과가 현재 탭 맥락을 벗어나지 않게 유지한다.
   const query = normalizeQuery(searchTerm);
   const filteredEmotions = genderEmotions.filter((emotion) =>
     matchesQuery(emotion.label, query)

@@ -1,3 +1,6 @@
+/**
+ * 이미지 라이브러리 목록 조회/페이지네이션/로딩 상태를 관리하는 훅.
+ */
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
 
@@ -45,6 +48,7 @@ const fetchImageLibraryPage = async ({
         : withStyle;
   const keyword = filters.keyword.trim();
   const canSearch = keyword.length >= MIN_KEYWORD_LENGTH;
+  // 짧은 키워드 검색은 결과 노이즈가 크므로 최소 길이를 넘겼을 때만 전문 검색을 붙인다.
   const withKeyword =
     canSearch
       ? withTags.ilike("search_text_ko", `%${keyword}%`)
@@ -68,6 +72,7 @@ export const useImageLibrary = (filters: ImageLibraryFilters) => {
       }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
+      // 마지막 페이지가 limit보다 작으면 더 가져올 데이터가 없다고 판단한다.
       if (lastPage.length < IMAGE_LIBRARY_LIMIT) return undefined;
       return allPages.length * IMAGE_LIBRARY_LIMIT;
     },

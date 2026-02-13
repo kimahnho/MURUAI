@@ -1,3 +1,6 @@
+/**
+ * 캔버스 좌표 변환과 요소 경계 계산 공통 유틸을 제공하는 모듈.
+ */
 export type Guide = {
   type: "vertical" | "horizontal";
   position: number;
@@ -56,11 +59,11 @@ export const buildGuides = ({
   const boxCenterX = active.x + active.width / 2;
   const boxCenterY = active.y + active.height / 2;
 
-  // 1) Canvas center guides
+  // 캔버스 중심선 정렬
   checkX(guides, canvasCenterX, boxCenterX, threshold);
   checkY(guides, canvasCenterY, boxCenterY, threshold);
 
-  // 2) Canvas edges (page bounds)
+  // 캔버스 경계선 정렬
   if (canvasBounds) {
     checkX(guides, 0, active.x, threshold);
     checkX(guides, canvasBounds.width, active.x + active.width, threshold);
@@ -68,7 +71,7 @@ export const buildGuides = ({
     checkY(guides, canvasBounds.height, active.y + active.height, threshold);
   }
 
-  // 2) Alignment with other elements (edges + centers)
+  // 다른 요소의 모서리/중심선 정렬
   others.forEach((target) => {
     const tMinX = target.x;
     const tMaxX = target.x + target.width;

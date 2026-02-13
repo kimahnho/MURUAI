@@ -1,3 +1,6 @@
+/**
+ * 템플릿 적용 방식 선택(단일/다중 등)을 안내하는 다이얼로그 컴포넌트.
+ */
 import BaseModal from "@/shared/ui/BaseModal";
 
 type TemplateChoiceDialogProps = {

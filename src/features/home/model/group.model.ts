@@ -1,3 +1,6 @@
+/**
+ * 그룹 도메인 데이터 구조와 관련 타입을 정의하는 모델 모듈.
+ */
 import { supabase } from "@/shared/api/supabase";
 import type { Student } from "./student.model";
 

@@ -1,3 +1,6 @@
+/**
+ * 스토리 시퀀스 생성 옵션 입력과 생성 실행을 담당하는 모달 컴포넌트.
+ */
 import { X } from "lucide-react";
 import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import type {
@@ -70,6 +73,7 @@ const StorySequenceModal = ({
                 type="number"
                 value={count}
                 onChange={(event) => {
+                  // 입력값 검증/보정은 상위 상태 훅에서 수행하고, 모달은 원본 문자열만 전달한다.
                   onChangeCount(event.target.value);
                 }}
                 className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
@@ -84,6 +88,7 @@ const StorySequenceModal = ({
             <span className="text-14-semibold text-black-90">
               카드 순서 방향
             </span>
+            {/* 방향 선택은 화살표 요소 생성 방향과 카드 배치 순서 계산에 동시에 반영된다. */}
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
@@ -138,6 +143,7 @@ const StorySequenceModal = ({
 
           <div className="flex flex-col gap-2">
             <span className="text-14-semibold text-black-90">용지 방향</span>
+            {/* 용지 방향 전환은 미리보기 캔버스 크기와 실제 생성 페이지 orientation을 함께 바꾼다. */}
             <div className="flex gap-2">
               {(["vertical", "horizontal"] as const).map((value) => (
                 <button
@@ -160,6 +166,7 @@ const StorySequenceModal = ({
 
           <div className="flex flex-col gap-3">
             <span className="text-14-semibold text-black-90">미리보기</span>
+            {/* 카드 개수/비율/방향 조합을 적용 결과와 동일한 레이아웃으로 사전 확인한다. */}
             <PreviewCanvas
               pageId="story-preview"
               orientation={orientation}
@@ -171,6 +178,7 @@ const StorySequenceModal = ({
           <button
             type="button"
             onClick={onApply}
+            // 적용 버튼은 현재 옵션 스냅샷으로 템플릿 요소를 생성해 캔버스에 일괄 삽입한다.
             className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary/90"
           >
             캔버스에 추가
