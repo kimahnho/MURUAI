@@ -42,10 +42,6 @@ export const router = createBrowserRouter([
     element: withSuspense(<DesignLayout />),
     children: [
       {
-        path: "design",
-        element: withSuspense(<DesignPage />),
-      },
-      {
         path: ":docId/edit",
         element: withSuspense(<DesignPage />),
       },
