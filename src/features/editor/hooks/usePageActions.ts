@@ -118,7 +118,7 @@ export const usePageActions = ({
     try {
       sessionStorage.setItem("copiedPageId", pageId);
     } catch {
-      // ignore clipboard failures
+      // 저장소 접근 실패는 복사 기능만 건너뛰고 편집 흐름은 유지한다.
     }
   }, []);
 

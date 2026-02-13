@@ -22,6 +22,8 @@ export const useOrientationSubscription = ({
       state.orientation !== prevState.orientation,
     onChange: (state) => {
       if (isSyncingOrientationRef.current) {
+        // 페이지 전환 동기화로 반영된 orientation 변경은 다시 setPages 하지 않고
+        // 플래그만 해제해 루프를 차단한다.
         isSyncingOrientationRef.current = false;
         return;
       }

@@ -45,6 +45,8 @@ export const useBoardSubscriptions = ({
       state.requestId !== prevState.requestId && Boolean(state.config),
     onChange: (state) => {
       if (!state.config) return;
+      // AAC 보드는 생성 직후 첫 요소를 바로 선택해
+      // 사용자가 추가 클릭 없이 텍스트 편집 흐름으로 진입하게 한다.
       const newPage = addAacBoardPage({
         config: state.config,
         setPages,
@@ -72,6 +74,8 @@ export const useBoardSubscriptions = ({
       state.requestId !== prevState.requestId && Boolean(state.config),
     onChange: (state) => {
       if (!state.config) return;
+      // 스토리보드는 페이지 생성과 포커스 전환만 수행하고
+      // 세부 편집 상태는 각 섹션 훅에서 이어서 관리한다.
       const newPage = addStoryBoardPage({
         config: state.config,
         setPages,

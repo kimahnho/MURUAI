@@ -1,28 +1,28 @@
 import { useMemo } from "react";
 
-// Represents a generic object on the canvas
+// 스냅 계산에 필요한 최소 사각형 정보.
 export interface Rect {
   id: string;
-  x: number; // Position Left
-  y: number; // Position Top
+  x: number;
+  y: number;
   width: number;
   height: number;
 }
 
-// Represents a guide line to be rendered
+// 화면에 렌더링할 가이드 선 정보.
 export interface GuideLine {
   type: "vertical" | "horizontal";
-  pos: number; // The fixed coordinate value (e.g., x=100)
-  start: number; // Line start position
-  end: number; // Line end position
-  gap?: number; // (Optional) Distance value to display
+  pos: number;
+  start: number;
+  end: number;
+  gap?: number;
 }
 
-// Hook return value
+// 보정된 좌표와 렌더링용 가이드 선 목록.
 export interface SnapResult {
-  x: number; // Corrected X position
-  y: number; // Corrected Y position
-  guides: GuideLine[]; // List of guides to render
+  x: number;
+  y: number;
+  guides: GuideLine[];
 }
 
 type AxisMatch = {

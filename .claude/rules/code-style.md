@@ -96,7 +96,8 @@ const content = (() => {
 
 ### 원칙
 - **최소화** - 코드가 자명해야 함
-- **Why > What** - 무엇을 하는지보다 왜 하는지
+- **Why + Role 중심** - 왜 필요한지와 이 코드가 어떤 역할/동작을 담당하는지 설명
+- **What 허용 조건** - 로직 흐름/상태 전이/이벤트 처리처럼 코드만으로 맥락 파악이 어려울 때는 동작 설명 주석 허용
 
 ### 금지
 ```typescript
@@ -135,6 +136,10 @@ interface ElementProps {
 // ✅ 비직관적인 로직 설명
 // Safari에서 pointer capture가 작동하지 않아 document 레벨 이벤트 사용
 document.addEventListener('pointermove', handleMove);
+
+// ✅ 훅/핸들러 역할 설명
+// 다중 선택 박스의 클릭/드래그를 구분해 클릭이면 단일 선택, 드래그면 그룹 이동을 수행
+const handleGroupOverlayDragPointerDown = () => { ... };
 ```
 
 ## CSS (Tailwind)
