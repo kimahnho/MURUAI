@@ -44,6 +44,7 @@ import { useDesignPaperStageActions } from "./hooks/useDesignPaperStageActions";
 import { useEmotionSlotBindings } from "./hooks/useEmotionSlotBindings";
 import { useDesignPaperRotation } from "./hooks/useDesignPaperRotation";
 import { useDesignPaperSelectionContextMenu } from "./hooks/useDesignPaperSelectionContextMenu";
+import { usePointerDragSession } from "./hooks/usePointerDragSession";
 import {
   DEFAULT_STROKE,
   getRectFromElement,
@@ -146,10 +147,7 @@ const DesignPaper = ({
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const groupOverlayDragListenersRef = useRef<{
-    move: (event: PointerEvent) => void;
-    up: () => void;
-  } | null>(null);
+  const { startPointerDragSession } = usePointerDragSession();
   const isHorizontal = orientation === "horizontal";
   const pageWidth = isHorizontal ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const pageHeight = isHorizontal ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
@@ -175,16 +173,6 @@ const DesignPaper = ({
       cancelAnimationFrame(frame);
     };
   }, [editingTextId, readOnly, selectedIds]);
-
-  useEffect(() => {
-    return () => {
-      const listeners = groupOverlayDragListenersRef.current;
-      if (!listeners) return;
-      window.removeEventListener("pointermove", listeners.move);
-      window.removeEventListener("pointerup", listeners.up);
-      groupOverlayDragListenersRef.current = null;
-    };
-  }, []);
 
   const getContainerScale = () => {
     const node = containerRef.current;
@@ -608,7 +596,6 @@ const DesignPaper = ({
     const startPointer = getPointerPosition(event);
     const selectedItemIds = new Set(snapshot.items.keys() as Iterable<string>);
     const DRAG_THRESHOLD_PX = 3;
-    let hasMoved = false;
     let dragStarted = false;
 
     const startDrag = () => {
@@ -618,56 +605,51 @@ const DesignPaper = ({
       onInteractionChange?.(true, { type: "drag" });
     };
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentPointer = getPointerPosition(moveEvent);
-      const delta = {
-        x: currentPointer.x - startPointer.x,
-        y: currentPointer.y - startPointer.y,
-      };
-      if (!hasMoved && Math.hypot(delta.x, delta.y) < DRAG_THRESHOLD_PX) {
-        return;
-      }
-      if (!hasMoved) {
-        hasMoved = true;
-      }
-      startDrag();
-      const movingRect = {
-        x: groupRect.x + delta.x,
-        y: groupRect.y + delta.y,
-        width: groupRect.width,
-        height: groupRect.height,
-      };
-      const { snapOffset } = smartGuides.compute({
-        activeRect: movingRect,
-        otherRects: getTargetRects(activeId, selectedItemIds),
-      });
-      applyGroupDelta({
-        x: delta.x + snapOffset.x,
-        y: delta.y + snapOffset.y,
-      });
-    };
-
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      groupOverlayDragListenersRef.current = null;
-      if (!hasMoved && shouldSelectSingleOnClick && hitSelectedElement) {
-        handleSelect(hitSelectedElement.id);
-        return;
-      }
-      if (dragStarted) {
-        groupDragRef.current = null;
-        onInteractionChange?.(false, { type: "drag" });
-        smartGuides.clear();
-      }
-    };
-
-    groupOverlayDragListenersRef.current = {
-      move: onPointerMove,
-      up: onPointerUp,
-    };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    startPointerDragSession({
+      thresholdPx: DRAG_THRESHOLD_PX,
+      startContext: undefined,
+      createMoveContext: (moveEvent) => {
+        const currentPointer = getPointerPosition(moveEvent);
+        const delta = {
+          x: currentPointer.x - startPointer.x,
+          y: currentPointer.y - startPointer.y,
+        };
+        return {
+          distance: Math.hypot(delta.x, delta.y),
+          context: delta,
+        };
+      },
+      onStart: () => {
+        startDrag();
+      },
+      onMove: (delta) => {
+        const movingRect = {
+          x: groupRect.x + delta.x,
+          y: groupRect.y + delta.y,
+          width: groupRect.width,
+          height: groupRect.height,
+        };
+        const { snapOffset } = smartGuides.compute({
+          activeRect: movingRect,
+          otherRects: getTargetRects(activeId, selectedItemIds),
+        });
+        applyGroupDelta({
+          x: delta.x + snapOffset.x,
+          y: delta.y + snapOffset.y,
+        });
+      },
+      onEnd: (moved) => {
+        if (!moved && shouldSelectSingleOnClick && hitSelectedElement) {
+          handleSelect(hitSelectedElement.id);
+          return;
+        }
+        if (dragStarted) {
+          groupDragRef.current = null;
+          onInteractionChange?.(false, { type: "drag" });
+          smartGuides.clear();
+        }
+      },
+    });
   };
 
   const buildTextToolbarConfig = (

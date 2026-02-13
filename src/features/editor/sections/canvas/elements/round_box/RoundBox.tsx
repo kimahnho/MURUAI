@@ -11,6 +11,7 @@ import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import TransformToolbar from "../TransformToolbar";
 import { useRoundBoxInteraction } from "./useRoundBoxInteraction";
 import { ResizeHandles, ImageHandles } from "./ResizeHandles";
+import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 
 interface RoundBoxProps {
   rect: Rect;
@@ -136,6 +137,7 @@ const RoundBox = ({
   const [isTextEditingState, setIsTextEditingState] = useState(false);
   const [editingText, setEditingText] = useState(text);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const { startPointerDragSession } = usePointerDragSession();
 
   const isImageEditing = isImageEditingProp ?? isImageEditingState;
   const setIsImageEditing = (value: boolean | ((prev: boolean) => boolean)) => {
@@ -262,25 +264,27 @@ const RoundBox = ({
       event.clientX - centerX,
     );
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentAngleRad = Math.atan2(
-        moveEvent.clientY - centerY,
-        moveEvent.clientX - centerX,
-      );
-      const deltaRad = currentAngleRad - startAngleRad;
-      const deltaDeg = (deltaRad * 180) / Math.PI;
-      const newRotation = Math.round((currentRotation + deltaDeg + 360) % 360);
-      onRotationChange(newRotation);
-    };
-
-    const onPointerUp = () => {
-      setIsRotating(false);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: undefined,
+      createMoveContext: (moveEvent) => ({
+        distance: 0,
+        context: moveEvent,
+      }),
+      onMove: (moveEvent) => {
+        const currentAngleRad = Math.atan2(
+          moveEvent.clientY - centerY,
+          moveEvent.clientX - centerX,
+        );
+        const deltaRad = currentAngleRad - startAngleRad;
+        const deltaDeg = (deltaRad * 180) / Math.PI;
+        const newRotation = Math.round((currentRotation + deltaDeg + 360) % 360);
+        onRotationChange(newRotation);
+      },
+      onEnd: () => {
+        setIsRotating(false);
+      },
+    });
   };
 
   const elementTransformStyle = (() => {
