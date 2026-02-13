@@ -2,13 +2,13 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
-import {
-  saveUserMadeVersion,
-  updateUserMadeVersion,
-} from "../utils/userMadeExport";
-import { resolvePagesForPersistence } from "../utils/persistPages";
 import { measurePerf } from "../utils/perfLogger";
 import type { CanvasDocument } from "../model/pageTypes";
+import {
+  buildPersistPayload,
+  saveExistingDocument,
+  saveNewDocument,
+} from "../utils/documentPersistence";
 
 type DocumentSaveParams = {
   docId?: string;
@@ -65,26 +65,25 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         return;
       }
       const currentPages = getCanvasData().pages;
-      const pagesToPersist = await measurePerf(
+      const canvasData = await measurePerf(
         "manualsave.resolvePagesForPersistence",
-        () => resolvePagesForPersistence(currentPages),
+        () => buildPersistPayload(currentPages),
         {
           totalPages: currentPages.length,
           swappedPages: currentPages.filter((page) => page.isSwapped).length,
           hasDocId: Boolean(docId),
         },
       );
-      const canvasData = { pages: pagesToPersist };
       if (docId) {
         await measurePerf(
           "manualsave.updateUserMadeVersion",
           () =>
-            updateUserMadeVersion({
+            saveExistingDocument({
               docId,
               name: getName(),
-              canvasData,
+              pages: canvasData.pages,
             }),
-          { totalPages: pagesToPersist.length },
+          { totalPages: canvasData.pages.length },
         );
         setLastSavedUserMadeId(docId);
         showToast("저장했습니다.");
@@ -92,12 +91,12 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         const { id } = await measurePerf(
           "manualsave.saveUserMadeVersion",
           () =>
-            saveUserMadeVersion({
+            saveNewDocument({
               userId: user.id,
               name: getName(),
-              canvasData,
+              pages: canvasData.pages,
             }),
-          { totalPages: pagesToPersist.length },
+          { totalPages: canvasData.pages.length },
         );
         setLastSavedUserMadeId(id);
         navigate(`/${id}/edit`, { replace: true });

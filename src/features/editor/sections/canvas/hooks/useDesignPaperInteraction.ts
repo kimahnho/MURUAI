@@ -15,6 +15,7 @@ import {
   applyGroupResizeSnapshot,
   type GroupResizeSnapshot,
 } from "../../../utils/groupResize";
+import { buildTextResizePatch } from "../utils/textResizePatch";
 
 type Point = LineElement["start"];
 
@@ -267,31 +268,13 @@ export const useDesignPaperInteraction = ({
               height: targetElement.h,
             }
           : nextRect);
-      const handle = activeInteraction.handle;
-      const hasWidthHandle =
-        handle != null && (handle.includes("e") || handle.includes("w"));
-      const shouldScaleFont =
-        handle != null && ["nw", "ne", "sw", "se"].includes(handle);
-      const baseFontSize =
-        activeInteraction.startFontSize ?? targetElement.style.fontSize;
-      const heightRatio = startRect.height
-        ? nextRect.height / startRect.height
-        : 1;
-      const nextFontSize = shouldScaleFont
-        ? Math.max(6, Math.round(baseFontSize * heightRatio))
-        : baseFontSize;
-      const patch: TextElementPatch = {
-        x: nextRect.x,
-        y: nextRect.y,
-        w: nextRect.width,
-        h: nextRect.height,
-      };
-      if (hasWidthHandle) {
-        patch.widthMode = "fixed";
-      }
-      if (shouldScaleFont) {
-        patch.style = { fontSize: nextFontSize };
-      }
+      const patch = buildTextResizePatch({
+        handle: activeInteraction.handle,
+        startHeight: startRect.height,
+        nextRect,
+        baseFontSize:
+          activeInteraction.startFontSize ?? targetElement.style.fontSize,
+      });
       updateElement(elementId, patch);
       setActivePreview({ id: elementId, rect: nextRect });
       return;
@@ -453,30 +436,13 @@ export const useDesignPaperInteraction = ({
         activeInteraction?.startRect
       ) {
         const handle = activeInteraction.handle;
-        const hasWidthHandle =
-          handle != null && (handle.includes("e") || handle.includes("w"));
-        const shouldScaleFont =
-          handle != null && ["nw", "ne", "sw", "se"].includes(handle);
-        const heightRatio = activeInteraction.startRect.height
-          ? finalRect.height / activeInteraction.startRect.height
-          : 1;
-        const baseFontSize =
-          activeInteraction.startFontSize ?? targetElement.style.fontSize;
-        const nextFontSize = shouldScaleFont
-          ? Math.max(6, Math.round(baseFontSize * heightRatio))
-          : baseFontSize;
-        const patch: TextElementPatch = {
-          x: finalRect.x,
-          y: finalRect.y,
-          w: finalRect.width,
-          h: finalRect.height,
-        };
-        if (hasWidthHandle) {
-          patch.widthMode = "fixed";
-        }
-        if (shouldScaleFont) {
-          patch.style = { fontSize: nextFontSize };
-        }
+        const patch = buildTextResizePatch({
+          handle,
+          startHeight: activeInteraction.startRect.height,
+          nextRect: finalRect,
+          baseFontSize:
+            activeInteraction.startFontSize ?? targetElement.style.fontSize,
+        });
         updateElement(elementId, patch);
       } else {
         const isResize = context?.type === "resize";

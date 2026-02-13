@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../../../model/pageTypes";
 import type { SideBarMenu } from "../../../store/sideBarStore";
-import { bumpPageRevision } from "../../../utils/pageRevision";
+import { updateElementsByPageId } from "../../../utils/pageMutation";
 
 type SelectionToolbarActionsParams = {
   activePage: Page | null;
@@ -27,39 +27,34 @@ export const useSelectionToolbarActions = ({
   const handleMultiColorChange = (nextColor: string) => {
     if (!activePage) return;
     setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === selectedPageId
-          ? bumpPageRevision({
-              ...page,
-              elements: page.elements.map((el) => {
-                if (!selectedIds.includes(el.id) || el.locked) {
-                  return el;
-                }
-                if (el.type === "text") {
-                  const textElement = el;
-                  return {
-                    ...textElement,
-                    style: {
-                      ...textElement.style,
-                      color: nextColor,
-                    },
-                  };
-                }
-                if (
-                  el.type === "rect" ||
-                  el.type === "roundRect" ||
-                  el.type === "ellipse"
-                ) {
-                  return {
-                    ...el,
-                    fill: nextColor,
-                  };
-                }
-                return el;
-              }),
-            })
-          : page
-      )
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => {
+          if (!selectedIds.includes(el.id) || el.locked) {
+            return el;
+          }
+          if (el.type === "text") {
+            const textElement = el;
+            return {
+              ...textElement,
+              style: {
+                ...textElement.style,
+                color: nextColor,
+              },
+            };
+          }
+          if (
+            el.type === "rect" ||
+            el.type === "roundRect" ||
+            el.type === "ellipse"
+          ) {
+            return {
+              ...el,
+              fill: nextColor,
+            };
+          }
+          return el;
+        }),
+      ),
     );
   };
 

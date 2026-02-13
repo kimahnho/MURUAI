@@ -1,13 +1,9 @@
-import {
-  useEffect,
-  type Dispatch,
-  type SetStateAction,
-  type MutableRefObject,
-} from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useOrientationStore } from "../store/orientationStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
-import { bumpPageRevision } from "../utils/pageRevision";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { updatePageById } from "../utils/pageMutation";
 
 type OrientationSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;
@@ -20,22 +16,23 @@ export const useOrientationSubscription = ({
   isSyncingOrientationRef,
   setPages,
 }: OrientationSubscriptionParams) => {
-  useEffect(() => {
-    const unsubscribe = useOrientationStore.subscribe((state, prevState) => {
-      if (state.orientation === prevState.orientation) return;
+  useStoreSubscription({
+    subscribe: useOrientationStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.orientation !== prevState.orientation,
+    onChange: (state) => {
       if (isSyncingOrientationRef.current) {
         isSyncingOrientationRef.current = false;
         return;
       }
       const activePageId = selectedPageIdRef.current;
       setPages((prevPages) =>
-        prevPages.map((page) =>
-          page.id === activePageId
-            ? bumpPageRevision({ ...page, orientation: state.orientation })
-            : page
-        )
+        updatePageById(prevPages, activePageId, (page) => ({
+          ...page,
+          orientation: state.orientation,
+        })),
       );
-    });
-    return unsubscribe;
-  }, [isSyncingOrientationRef, selectedPageIdRef, setPages]);
+    },
+    deps: [isSyncingOrientationRef, selectedPageIdRef, setPages],
+  });
 };

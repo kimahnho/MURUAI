@@ -1,7 +1,8 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 
 type TextPreset = {
   text: string;
@@ -54,10 +55,11 @@ export const useElementSubscription = ({
   addShapeElement,
   addLineElement,
 }: ElementSubscriptionParams) => {
-  useEffect(() => {
-    const unsubscribe = useElementStore.subscribe((state, prevState) => {
-      if (state.requestId === prevState.requestId) return;
-      if (!state.requestedType) return;
+  useStoreSubscription({
+    subscribe: useElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.requestedType),
+    onChange: (state) => {
       const activePageId = selectedPageIdRef.current;
       const getOrientation = () =>
         pagesRef.current.find((page) => page.id === activePageId)
@@ -77,35 +79,35 @@ export const useElementSubscription = ({
               getOrientation,
             })
           : state.requestedType === "rect" ||
-            state.requestedType === "roundRect" ||
-            state.requestedType === "ellipse"
-          ? addShapeElement({
-              pageId: activePageId,
-              elementType: state.requestedType,
-              setPages,
-              getOrientation,
-            })
-          : state.requestedType === "line" || state.requestedType === "arrow"
-          ? addLineElement({
-              pageId: activePageId,
-              elementType: state.requestedType,
-              setPages,
-              getOrientation,
-            })
-          : null;
+              state.requestedType === "roundRect" ||
+              state.requestedType === "ellipse"
+            ? addShapeElement({
+                pageId: activePageId,
+                elementType: state.requestedType,
+                setPages,
+                getOrientation,
+              })
+            : state.requestedType === "line" || state.requestedType === "arrow"
+              ? addLineElement({
+                  pageId: activePageId,
+                  elementType: state.requestedType,
+                  setPages,
+                  getOrientation,
+                })
+              : null;
       if (!elementId) return;
       setSelectedIds([elementId]);
       setEditingTextId(null);
-    });
-    return unsubscribe;
-  }, [
-    addLineElement,
-    addShapeElement,
-    addTextElement,
-    pagesRef,
-    selectedPageIdRef,
-    setEditingTextId,
-    setPages,
-    setSelectedIds,
-  ]);
+    },
+    deps: [
+      addLineElement,
+      addShapeElement,
+      addTextElement,
+      pagesRef,
+      selectedPageIdRef,
+      setEditingTextId,
+      setPages,
+      setSelectedIds,
+    ],
+  });
 };

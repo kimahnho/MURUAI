@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useImageFillStore } from "../store/imageFillStore";
 import type { Page } from "../model/pageTypes";
 import type { ShapeElement } from "../model/canvasTypes";
@@ -14,6 +14,7 @@ import {
   isEmotionLabelElement,
 } from "../utils/imageFillUtils";
 import { isEmotionSlotShape } from "../utils/designPaperUtils";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 
 /**
  * "채우기(cover)" 방식으로 imageBox 계산
@@ -70,9 +71,11 @@ export const useImageFillSubscription = ({
   setSelectedIds,
   setEditingTextId,
 }: ImageFillSubscriptionParams) => {
-  useEffect(() => {
-    const unsubscribe = useImageFillStore.subscribe((state, prevState) => {
-      if (state.requestId === prevState.requestId) return;
+  useStoreSubscription({
+    subscribe: useImageFillStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.imageUrl),
+    onChange: (state) => {
       if (!state.imageUrl) return;
       const shouldForceInsert = state.forceInsert === true;
       const activePageId = selectedPageIdRef.current;
@@ -276,14 +279,14 @@ export const useImageFillSubscription = ({
           }
         }
       }
-    });
-    return unsubscribe;
-  }, [
-    pagesRef,
-    selectedPageIdRef,
-    selectedIdsRef,
-    setPages,
-    setSelectedIds,
-    setEditingTextId,
-  ]);
+    },
+    deps: [
+      pagesRef,
+      selectedPageIdRef,
+      selectedIdsRef,
+      setPages,
+      setSelectedIds,
+      setEditingTextId,
+    ],
+  });
 };

@@ -1,8 +1,9 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
-import { bumpPageRevision } from "../utils/pageRevision";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { updateElementsByPageId } from "../utils/pageMutation";
 
 type FontSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;
@@ -15,9 +16,11 @@ export const useFontSubscription = ({
   selectedIdsRef,
   setPages,
 }: FontSubscriptionParams) => {
-  useEffect(() => {
-    const unsubscribe = useFontStore.subscribe((state, prevState) => {
-      if (state.requestId === prevState.requestId) return;
+  useStoreSubscription({
+    subscribe: useFontStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.request),
+    onChange: (state) => {
       const payload = state.request;
       if (!payload) return;
       const activePageId = selectedPageIdRef.current;
@@ -25,56 +28,48 @@ export const useFontSubscription = ({
       if (targetIds.length === 0) return;
 
       setPages((prevPages) =>
-        prevPages.map((page) => {
-          if (page.id !== activePageId) return page;
-          return bumpPageRevision({
-            ...page,
-            elements: page.elements.map((element) => {
-              if (element.locked || !targetIds.includes(element.id)) {
-                return element;
-              }
-              if (element.type === "text") {
-                return {
-                  ...element,
-                  style: {
-                    ...element.style,
-                    ...(payload.fontFamily
-                      ? { fontFamily: payload.fontFamily }
-                      : {}),
-                    ...(payload.fontWeight != null
-                      ? { fontWeight: payload.fontWeight }
-                      : {}),
-                  },
-                };
-              }
-              if (
-                element.type === "rect" ||
-                element.type === "roundRect" ||
-                element.type === "ellipse"
-              ) {
-                const nextWeight =
-                  payload.fontWeight != null
-                    ? payload.fontWeight >= 700
-                      ? "bold"
-                      : "normal"
-                    : undefined;
-                return {
-                  ...element,
-                  textStyle: {
-                    ...element.textStyle,
-                    ...(payload.fontFamily
-                      ? { fontFamily: payload.fontFamily }
-                      : {}),
-                    ...(nextWeight ? { fontWeight: nextWeight } : {}),
-                  },
-                };
-              }
+        updateElementsByPageId(prevPages, activePageId, (elements) =>
+          elements.map((element) => {
+            if (element.locked || !targetIds.includes(element.id)) {
               return element;
-            }),
-          });
-        })
+            }
+            if (element.type === "text") {
+              return {
+                ...element,
+                style: {
+                  ...element.style,
+                  ...(payload.fontFamily ? { fontFamily: payload.fontFamily } : {}),
+                  ...(payload.fontWeight != null
+                    ? { fontWeight: payload.fontWeight }
+                    : {}),
+                },
+              };
+            }
+            if (
+              element.type === "rect" ||
+              element.type === "roundRect" ||
+              element.type === "ellipse"
+            ) {
+              const nextWeight =
+                payload.fontWeight != null
+                  ? payload.fontWeight >= 700
+                    ? "bold"
+                    : "normal"
+                  : undefined;
+              return {
+                ...element,
+                textStyle: {
+                  ...element.textStyle,
+                  ...(payload.fontFamily ? { fontFamily: payload.fontFamily } : {}),
+                  ...(nextWeight ? { fontWeight: nextWeight } : {}),
+                },
+              };
+            }
+            return element;
+          }),
+        ),
       );
-    });
-    return unsubscribe;
-  }, [selectedPageIdRef, selectedIdsRef, setPages]);
+    },
+    deps: [selectedPageIdRef, selectedIdsRef, setPages],
+  });
 };

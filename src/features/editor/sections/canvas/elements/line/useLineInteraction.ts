@@ -1,6 +1,7 @@
 import { type RefObject, type PointerEvent as ReactPointerEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
+import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 
 type LineRef = {
   start: Point;
@@ -34,6 +35,8 @@ export const useLineInteraction = ({
   onSelectChange,
   getPointerPosition,
 }: UseLineInteractionParams) => {
+  const { startPointerDragSession } = usePointerDragSession();
+
   const ensureSelection = (
     event: ReactPointerEvent,
     options?: { deferSingleWhenMultiSelected?: boolean },
@@ -62,37 +65,38 @@ export const useLineInteraction = ({
     const dragStart = lineRef.current;
     const startX = event.clientX;
     const startY = event.clientY;
-    let hasMoved = false;
-
-    const moveListener = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault();
-      const dx = (moveEvent.clientX - startX) / scale;
-      const dy = (moveEvent.clientY - startY) / scale;
-      const next = {
-        start: { x: dragStart.start.x + dx, y: dragStart.start.y + dy },
-        end: { x: dragStart.end.x + dx, y: dragStart.end.y + dy },
-      };
-      if (!hasMoved) {
-        hasMoved = true;
-        onDragStateChange?.(true, next, { type: "drag" });
-      }
-      lineRef.current = next;
-      onLineChange?.(next);
-    };
-
-    const upListener = () => {
-      window.removeEventListener("pointermove", moveListener);
-      window.removeEventListener("pointerup", upListener);
-      if (!hasMoved && shouldSelectOnClickOnly) {
-        onSelectChange?.(true);
-      }
-      if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current, { type: "drag" });
-      }
-    };
-
-    window.addEventListener("pointermove", moveListener);
-    window.addEventListener("pointerup", upListener);
+    startPointerDragSession({
+      startContext: null,
+      createMoveContext: (moveEvent) => {
+        const dx = (moveEvent.clientX - startX) / scale;
+        const dy = (moveEvent.clientY - startY) / scale;
+        return {
+          distance: Math.hypot(dx, dy),
+          context: { moveEvent, dx, dy },
+        };
+      },
+      onMove: ({ moveEvent, dx, dy }) => {
+        moveEvent.preventDefault();
+        const next = {
+          start: { x: dragStart.start.x + dx, y: dragStart.start.y + dy },
+          end: { x: dragStart.end.x + dx, y: dragStart.end.y + dy },
+        };
+        lineRef.current = next;
+        onLineChange?.(next);
+      },
+      onStart: () => {
+        onDragStateChange?.(true, lineRef.current, { type: "drag" });
+      },
+      onEnd: (moved) => {
+        if (!moved && shouldSelectOnClickOnly) {
+          onSelectChange?.(true);
+          return;
+        }
+        if (moved) {
+          onDragStateChange?.(false, lineRef.current, { type: "drag" });
+        }
+      },
+    });
   };
 
   const startResize = (
@@ -107,33 +111,42 @@ export const useLineInteraction = ({
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
-    let hasMoved = false;
-
-    const moveListener = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault();
-      const pointer = getPointerPosition(moveEvent, scale);
-      const next =
-        handle === "start"
-          ? { start: pointer, end: dragStart.end }
-          : { start: dragStart.start, end: pointer };
-      if (!hasMoved) {
-        hasMoved = true;
-        onDragStateChange?.(true, next, { type: "resize" });
-      }
-      lineRef.current = next;
-      onLineChange?.(next);
-    };
-
-    const upListener = () => {
-      window.removeEventListener("pointermove", moveListener);
-      window.removeEventListener("pointerup", upListener);
-      if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current, { type: "resize" });
-      }
-    };
-
-    window.addEventListener("pointermove", moveListener);
-    window.addEventListener("pointerup", upListener);
+    startPointerDragSession({
+      startContext: null,
+      createMoveContext: (moveEvent) => {
+        const pointer = getPointerPosition(moveEvent, scale);
+        const next =
+          handle === "start"
+            ? { start: pointer, end: dragStart.end }
+            : { start: dragStart.start, end: pointer };
+        return {
+          distance:
+            handle === "start"
+              ? Math.hypot(
+                  next.start.x - dragStart.start.x,
+                  next.start.y - dragStart.start.y,
+                )
+              : Math.hypot(
+                  next.end.x - dragStart.end.x,
+                  next.end.y - dragStart.end.y,
+                ),
+          context: { moveEvent, next },
+        };
+      },
+      onMove: ({ moveEvent, next }) => {
+        moveEvent.preventDefault();
+        lineRef.current = next;
+        onLineChange?.(next);
+      },
+      onStart: () => {
+        onDragStateChange?.(true, lineRef.current, { type: "resize" });
+      },
+      onEnd: (moved) => {
+        if (moved) {
+          onDragStateChange?.(false, lineRef.current, { type: "resize" });
+        }
+      },
+    });
   };
 
   const handleWrapperPointerDown = (

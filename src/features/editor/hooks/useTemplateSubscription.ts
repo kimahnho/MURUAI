@@ -9,6 +9,7 @@ import { useTemplateStore } from "../store/templateStore";
 import type { Page } from "../model/pageTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 import type { ReadonlyRef } from "../model/refTypes";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 
 type AddTemplatePage = (args: {
   templateId: TemplateId;
@@ -65,14 +66,16 @@ export const useTemplateSubscription = ({
 }: TemplateSubscriptionParams) => {
   const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = useTemplateStore.subscribe((state, prevState) => {
-      if (state.templateRequestId === prevState.templateRequestId) return;
+  useStoreSubscription({
+    subscribe: useTemplateStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.templateRequestId !== prevState.templateRequestId &&
+      Boolean(state.selectedTemplate),
+    onChange: (state) => {
       if (!state.selectedTemplate) return;
-
       const currentPageId = selectedPageIdRef.current;
       const currentPage = pagesRef.current.find(
-        (page) => page.id === currentPageId
+        (page) => page.id === currentPageId,
       );
 
       if (!currentPage) return;
@@ -118,27 +121,30 @@ export const useTemplateSubscription = ({
         isApplyingTemplateRef.current = false;
         recordTimeoutRef.current = null;
       }, 100);
-    });
+    },
+    deps: [
+      addTemplatePage,
+      addSelectedTemplatePages,
+      orientationRef,
+      pagesRef,
+      recordHistory,
+      selectedPageIdRef,
+      setActivePage,
+      setPages,
+      setTemplateChoiceDialog,
+      showEmotionInferenceToast,
+      isApplyingTemplateRef,
+    ],
+  });
+
+  useEffect(() => {
     return () => {
-      unsubscribe();
       if (recordTimeoutRef.current) {
         clearTimeout(recordTimeoutRef.current);
         recordTimeoutRef.current = null;
       }
     };
-  }, [
-    addTemplatePage,
-    addSelectedTemplatePages,
-    orientationRef,
-    pagesRef,
-    recordHistory,
-    selectedPageIdRef,
-    setActivePage,
-    setPages,
-    setTemplateChoiceDialog,
-    showEmotionInferenceToast,
-    isApplyingTemplateRef,
-  ]);
+  }, []);
 
   useEffect(() => {
     const pageTemplateId =
