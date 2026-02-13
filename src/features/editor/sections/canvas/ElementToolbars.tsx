@@ -9,7 +9,7 @@ import type {
 } from "../../model/canvasTypes";
 import type { Page } from "../../model/pageTypes";
 import type { AacLabelPosition } from "../../utils/aacBoardUtils";
-import { bumpPageRevision } from "../../utils/pageRevision";
+import { updateElementsByPageId } from "../../utils/pageMutation";
 
 const AacToolBar = lazy(() => import("./AacToolBar"));
 
@@ -65,15 +65,8 @@ const ElementToolbars = ({
     updater: (element: CanvasElement) => CanvasElement,
   ) => {
     setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === selectedPageId
-          ? bumpPageRevision({
-              ...page,
-              elements: page.elements.map((el) =>
-                el.id === elementId ? updater(el) : el,
-              ),
-            })
-          : page,
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => (el.id === elementId ? updater(el) : el)),
       ),
     );
   };
@@ -82,22 +75,17 @@ const ElementToolbars = ({
     updater: (element: LineElement) => Partial<LineElement>,
   ) => {
     setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === selectedPageId
-          ? bumpPageRevision({
-              ...page,
-              elements: page.elements.map((el) => {
-                if (
-                  selectedIds.includes(el.id) &&
-                  (el.type === "line" || el.type === "arrow") &&
-                  !el.locked
-                ) {
-                  return { ...el, ...updater(el) };
-                }
-                return el;
-              }),
-            })
-          : page,
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => {
+          if (
+            selectedIds.includes(el.id) &&
+            (el.type === "line" || el.type === "arrow") &&
+            !el.locked
+          ) {
+            return { ...el, ...updater(el) };
+          }
+          return el;
+        }),
       ),
     );
   };

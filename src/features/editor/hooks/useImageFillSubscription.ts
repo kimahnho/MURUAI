@@ -15,6 +15,7 @@ import {
 } from "../utils/imageFillUtils";
 import { isEmotionSlotShape } from "../utils/designPaperUtils";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { updatePageById } from "../utils/pageMutation";
 
 /**
  * "채우기(cover)" 방식으로 imageBox 계산
@@ -127,13 +128,12 @@ export const useImageFillSubscription = ({
         };
 
         setPages((prevPages) =>
-          prevPages.map((page) => {
-            if (page.id !== activePageId) return page;
-            return bumpPageRevision({
+          updatePageById(prevPages, activePageId, (page) =>
+            bumpPageRevision({
               ...page,
               elements: [...page.elements, newImageElement],
-            });
-          })
+            }),
+          ),
         );
 
         setSelectedIds([newElementId]);
@@ -144,8 +144,7 @@ export const useImageFillSubscription = ({
       }
 
       setPages((prevPages) =>
-        prevPages.map((page) => {
-          if (page.id !== activePageId) return page;
+        updatePageById(prevPages, activePageId, (page) => {
           let hasChanges = false;
           const labelUpdates = new Map<string, string>();
           if (labelText) {
@@ -237,7 +236,7 @@ export const useImageFillSubscription = ({
                 elements: nextElementsWithLabels,
               })
             : page;
-        })
+        }),
       );
 
       if (activeSelectedIds.length === 1) {
