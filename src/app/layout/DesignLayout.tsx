@@ -19,7 +19,7 @@ import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-import PdfPreviewContainer from "@/features/editor/components/PdfPreviewContainer";
+import PdfPreviewContainer from "@/features/editor/shared/PdfPreviewContainer";
 import {
   usePageSwapStore,
   waitForHydration,
@@ -30,7 +30,7 @@ import { useExportModal } from "@/features/editor/hooks/useExportModal";
 import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
 
 const ExportModal = lazy(
-  () => import("@/features/editor/components/ExportModal"),
+  () => import("@/features/editor/shared/ExportModal"),
 );
 
 const DesignLayout = () => {

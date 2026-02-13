@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import DesignPaper from "@/features/editor/components/DesignPaper";
+import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 
 type UserMadeRow = {

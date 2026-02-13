@@ -1,0 +1,175 @@
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
+import { supabase } from "@/shared/api/supabase";
+import { useToastStore } from "@/features/editor/store/toastStore";
+import { useImageFillStore } from "@/features/editor/store/imageFillStore";
+import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
+import { useImageUploadToCloudinary } from "./useImageUploadToCloudinary";
+
+type UploadedFile = {
+  id: string;
+  image_path: string;
+  created_at: string;
+};
+
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
+  | string
+  | undefined;
+
+const getImageUrl = (path: string) => {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  if (CLOUDINARY_CLOUD_NAME) {
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
+  }
+  return path;
+};
+
+type UploadedFileItem = UploadedFile & { url: string };
+
+export const useUploadContentState = () => {
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const showToast = useToastStore((state) => state.showToast);
+  const requestImageFill = useImageFillStore(
+    (state) => state.requestImageFill
+  );
+  const { uploadImage, isUploading: isLoading } =
+    useImageUploadToCloudinary();
+  const refetchTrigger = useUploadListStore((s) => s.refetchTrigger);
+  const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
+  const [contextMenu, setContextMenu] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) {
+        setUploadedFiles([]);
+        return;
+      }
+      setIsFetching(true);
+      const { data: uploads, error } = await supabase
+        .from("user_uploads_n")
+        .select("id,image_path,created_at")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (!isMounted) return;
+      if (error) {
+        setIsFetching(false);
+        showToast("업로드 목록을 불러오지 못했어요.");
+        return;
+      }
+      setUploadedFiles((uploads as UploadedFile[]) ?? []);
+      setIsFetching(false);
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [showToast, refetchTrigger]);
+
+  const handleUploadClick = () => {
+    inputRef.current?.click();
+  };
+
+  const handleDeleteUpload = async (id: string) => {
+    const { error } = await supabase
+      .from("user_uploads_n")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      showToast("삭제하지 못했어요.");
+      return;
+    }
+    setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = "";
+
+    const url = await uploadImage(file);
+    if (url) {
+      triggerRefetch();
+    }
+  };
+
+  const fileItems: UploadedFileItem[] = uploadedFiles.map((file) => ({
+    ...file,
+    url: getImageUrl(file.image_path),
+  }));
+
+  const handleOpenContextMenu = (
+    event: ReactMouseEvent<HTMLDivElement>,
+    id: string
+  ) => {
+    event.preventDefault();
+    setContextMenu({
+      id,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleDeleteFromMenu = (id: string) => {
+    handleDeleteUpload(id);
+    setContextMenu(null);
+  };
+
+  const handleSelectImage = (url: string) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxSize = 300;
+      const { naturalWidth, naturalHeight } = img;
+      let width = naturalWidth;
+      let height = naturalHeight;
+
+      if (naturalWidth > maxSize || naturalHeight > maxSize) {
+        if (naturalWidth >= naturalHeight) {
+          width = maxSize;
+          height = Math.round((naturalHeight / naturalWidth) * maxSize);
+        } else {
+          height = maxSize;
+          width = Math.round((naturalWidth / naturalHeight) * maxSize);
+        }
+      }
+
+      requestImageFill(url, undefined, { width, height }, { source: "upload" });
+    };
+    img.onerror = () => {
+      requestImageFill(url, undefined, undefined, { source: "upload" });
+    };
+    img.src = url;
+  };
+
+  return {
+    inputRef: inputRef,
+    isLoading,
+    isFetching,
+    files: fileItems,
+    contextMenu,
+    onUploadClick: handleUploadClick,
+    onFileChange: handleFileChange,
+    onOpenContextMenu: handleOpenContextMenu,
+    onCloseContextMenu: () => { setContextMenu(null); },
+    onDeleteUpload: handleDeleteFromMenu,
+    onSelectImage: handleSelectImage,
+  };
+};

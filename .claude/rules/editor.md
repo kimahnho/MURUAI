@@ -9,65 +9,124 @@ src/pages/editor/
   DesignPage.tsx                    # 메인 페이지 (pages와 features 1:1 대응)
 
 src/features/editor/
-  components/                       # UI 컴포넌트
-    MainSection.tsx                 # 캔버스 + 툴바 영역
-    SideBar.tsx                     # 사이드바
-    CanvasStage.tsx                 # 캔버스 컨테이너
-    DesignPaper.tsx                 # A4 문서 렌더러
-    ShapeTransformBar.tsx           # 도형 회전/플립 툴바 + 회전 핸들 + 크기 라벨
-    RotationBadge.tsx               # 회전 중 각도 표시 배지
-    BottomBar.tsx                   # 페이지 네비게이션
-    ElementToolbars.tsx             # 요소별 툴바
-    MultiSelectionToolbar.tsx       # 다중 선택 툴바
+  sections/                         # 섹션별 분리
+    sidebar/                        # 사이드바 섹션
+      SideBar.tsx                   # 사이드바 라우터
+      MultiPageTemplateDialog.tsx   # 멀티페이지 템플릿 적용 다이얼로그
+      TemplateChoiceDialog.tsx      # 템플릿 선택 다이얼로그
+      content/                      # 사이드바 콘텐츠 패널
+        AACContent.tsx              # AAC 카드 라이브러리
+        DesignContent.tsx           # AI 이미지 생성
+        ElementContent.tsx          # 기본 도형/요소
+        EmotionContent.tsx          # 감정 사진/이모지
+        FontContent.tsx             # 폰트 선택
+        ImageLibraryContent.tsx     # 이미지 라이브러리
+        TemplateContent.tsx         # 템플릿 갤러리
+        TextContent.tsx             # 텍스트 삽입
+        UploadContent.tsx           # 파일 업로드
+        ShapeProperties.tsx         # 도형 속성 편집
+        TextProperties.tsx          # 텍스트 속성 편집
+        AacBoardModal.tsx           # AAC 의사소통 판 설정
+        StorySequenceModal.tsx      # 이야기 장면 순서
+        PreviewCanvas.tsx           # 프리뷰 캔버스
+        previewMetrics.ts           # 프리뷰 크기/스케일 계산
+      hooks/                        # 사이드바 전용 훅
+        useAacCards.ts
+        useAacContentState.ts
+        useAiImageGeneration.ts
+        useEmotionContentState.ts
+        useEmotionEmojis.ts
+        useEmotionPhotos.ts
+        useFontContentState.ts
+        useImageLibrary.ts
+        useImageUploadToCloudinary.ts
+        useTemplateContentState.ts
+        useUploadContentState.ts
+
+    canvas/                         # 캔버스 메인 섹션
+      CanvasStage.tsx               # 캔버스 컨테이너 (viewport, zoom, pan)
+      DesignPaper.tsx               # A4 문서 렌더러 (핵심)
+      DesignPaperContextMenu.tsx    # 우클릭 메뉴
+      DesignPaperOverlays.tsx       # 선택 오버레이
+      ElementToolbars.tsx           # 요소별 툴바
+      MultiSelectionToolbar.tsx     # 다중 선택 툴바
+      ShapeTransformBar.tsx         # 도형 회전/플립 + 크기 라벨
+      RotationBadge.tsx             # 회전 중 각도 표시
+      AacToolBar.tsx                # AAC 툴바
+      SmartGuideOverlay.tsx         # 스마트 가이드 오버레이
+      elements/                     # 캔버스 요소 컴포넌트
+        arrow/                      # 화살표 요소
+        circle/                     # 원형 요소
+        line/                       # 선 요소
+        round_box/                  # 사각형/둥근사각형 요소
+        text/                       # 텍스트 요소
+      hooks/                        # 캔버스 전용 훅
+        useDesignPaperClipboard.ts
+        useDesignPaperGroupDrag.ts
+        useDesignPaperInteraction.ts # 드래그/리사이즈/라인 인터랙션
+        useDesignPaperKeyboard.ts
+        useDesignPaperPaste.ts
+        useDesignPaperStageActions.ts
+        useEmotionSlotBindings.ts
+        useAacSelectionState.ts
+        useCanvasStageHandlers.ts
+        useCanvasStageSelection.ts
+        useCanvasViewport.ts        # useCanvasZoom + useCanvasWheelZoom 복합 훅
+        useCanvasZoom.ts
+        useCanvasWheelZoom.ts
+        useSelectionState.ts        # 다중 선택 상태 (색상/폰트/보더/분배)
+        useSelectionToolbarActions.ts
+        useSelectionClearer.ts
+        useSnapGuides.ts
+
+    bottombar/                      # 하단 페이지바 섹션
+      BottomBar.tsx                 # 페이지 네비게이션
+      hooks/
+        useBottomBarDrag.ts         # 페이지 드래그 재정렬
+        useBottomBarScroll.ts       # 선택 페이지 자동 스크롤
+
+  shared/                           # 에디터 내 공용 컴포넌트/훅
+    MainSection.tsx                 # 캔버스+툴바 영역 오케스트레이터
+    ColorPickerPopover.tsx          # 색상 선택기
     ExportModal.tsx                 # 내보내기 모달
-    detail_content/                 # 사이드바 콘텐츠 패널
-      PropertiesContent.tsx         # 속성 패널 (라우터 역할)
-      ShapeProperties.tsx           # 도형 속성 편집
-      TextProperties.tsx            # 텍스트 속성 편집
-      AacBoardModal.tsx             # AAC 의사소통 판 설정 모달
-      StorySequenceModal.tsx        # 이야기 장면 순서 모달
-      PreviewCanvas.tsx             # 프리뷰 캔버스 공용 컴포넌트
-      previewMetrics.ts             # 프리뷰 크기/스케일 계산 유틸
-    template_component/             # 요소 컴포넌트 (text, line, arrow 등)
-      round_box/
-        RoundBox.tsx                # 도형 박스 컴포넌트
-        useRoundBoxInteraction.ts   # 드래그/리사이즈/이미지 조작 포인터 핸들러
-        ResizeHandles.tsx           # 8방향 리사이즈 + 이미지 핸들 컴포넌트
-    hooks/                          # DesignPaper 전용 훅
-  hooks/                            # 에디터 전용 훅
-    useSelectionState.ts            # 다중 선택 상태 (색상/폰트/보더/분배)
-    useAacSelectionState.ts         # AAC 카드 감지/라벨 위치 (useSelectionState에서 분리)
-    useAutoSave.ts
-    useHistorySync.ts
-    useSnapGuides.ts                # 스냅 가이드
-    useEditorHistory.ts             # useHistorySync + useTextEditTransaction 복합 훅
-    usePageManagement.ts            # useActivePageManager + usePageActions 복합 훅
-    useSelectionManagement.ts       # useSelectionState + 툴바 + clearer 복합 훅
-    useCanvasViewport.ts            # useCanvasZoom + useCanvasWheelZoom 복합 훅
-    useEditorSubscriptions.ts       # 6개 구독 훅 통합
+    PdfPreviewContainer.tsx         # PDF 프리뷰 컨테이너
+    hooks/
+      useDragAndDrop.ts             # 범용 드래그앤드롭
+      useNumberInput.ts             # 숫자 입력
+      useSyncedRef.ts               # ref 동기화
+
+  hooks/                            # 페이지 레벨 훅 (에디터 전체에서 사용)
+    useEditorHistory.ts             # useHistorySync + useTextEditTransaction
+    usePageManagement.ts            # useActivePageManager + usePageActions
+    useSelectionManagement.ts       # useSelectionState + 툴바 + clearer
+    useEditorSubscriptions.ts       # 6개 스토어 구독 통합
+    useAutoSave.ts                  # 자동 저장
     useDocumentLoader.ts            # 문서 생성/로딩 (DesignLayout용)
-    useDocumentSave.ts              # 저장/자동저장 (DesignLayout용)
+    useDocumentSave.ts              # 저장 (DesignLayout용)
     useExportModal.ts               # 내보내기 모달 상태 (DesignLayout용)
-    useOrientationControl.ts        # 방향 제어 + 템플릿 잠금 (DesignLayout용)
-    ...
-  store/
-    elementStore.ts
-    templateStore.ts
-    fontStore.ts
-    sideBarStore.ts
-    unifiedHistoryStore.ts          # Undo/Redo
-    ...
-  model/
-    canvasTypes.ts                  # 요소 타입 정의
-    pageTypes.ts                    # 문서/페이지 타입
-    useSmartGuides.ts
-    ...
-  templates/                        # 템플릿 정의
-  utils/                            # 유틸리티
-    distributeElements.ts           # 요소 균등 분배 순수 함수
-    elementTransforms.ts            # flip/rotate 핸들러 팩토리
-    imageBoxScaling.ts              # 이미지 박스 비율 보정 유틸
+    useOrientationControl.ts        # 방향 제어 (DesignLayout용)
+    useTemplateApplyActions.ts      # 템플릿 적용 액션
+    ...                             # 기타 페이지 레벨 훅
+
+  store/                            # Zustand 스토어 (변경 없음)
+  model/                            # 타입/도메인 모델 (변경 없음)
+  utils/                            # 유틸리티 (변경 없음)
+  templates/                        # 템플릿 정의 (변경 없음)
+  constants/                        # 상수 정의 (변경 없음)
 ```
+
+## 폴더 구조 원칙
+
+### 섹션 분리 규칙
+- `sections/<section>/` — 해당 섹션 전용 컴포넌트 + 훅
+- `sections/<section>/hooks/` — 해당 섹션에서만 사용되는 훅
+- `hooks/` (루트) — 페이지 전체에서 사용되는 훅
+- `shared/` — 여러 섹션에서 공유하는 컴포넌트/훅
+
+### 훅 배치 기준
+- 단일 섹션 전용 → `sections/<section>/hooks/`
+- 여러 섹션/페이지 레벨 → `hooks/`
+- 범용 유틸 성격 → `shared/hooks/`
 
 ## 아키텍처 원칙
 
@@ -99,7 +158,7 @@ type CanvasElement = TextElement | ShapeElement | LineElement | ArrowElement;
 ```
 
 - 각 요소는 `id`, `type`, `position`, `size` 필수
-- 요소별 컴포넌트: `components/template_component/`
+- 요소별 컴포넌트: `sections/canvas/elements/`
 
 ## 주의사항
 
