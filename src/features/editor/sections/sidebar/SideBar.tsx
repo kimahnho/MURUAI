@@ -3,6 +3,7 @@
  */
 import {
   PenTool,
+  FileText,
   Layout,
   Smile,
   Box,
@@ -21,12 +22,14 @@ import TextContent from "./content/TextContent";
 import FontContent from "./content/FontContent";
 import TemplateContent from "./content/TemplateContent";
 import DesignContent from "./content/DesignContent";
+import PageContent from "./content/PageContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
 
 type MenuItemId = Exclude<SideBarMenu, null | "font">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
+  page: "페이지",
   template: "템플릿",
   emotion: "감정",
   element: "요소",
@@ -39,6 +42,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
 
 const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "design", icon: PenTool },
+  { id: "page", icon: FileText },
   { id: "template", icon: Layout },
   { id: "emotion", icon: Smile },
   { id: "element", icon: Box },
@@ -54,6 +58,7 @@ const CONTENT_COMPONENTS: Record<
   ComponentType
 > = {
   design: DesignContent,
+  page: PageContent,
   template: TemplateContent,
   emotion: EmotionContent,
   element: ElementContent,

@@ -44,6 +44,9 @@ const PdfPreviewContainer = ({
             pageId={`pdf-${page.id}`}
             orientation={normalizedOrientation}
             elements={page.elements}
+            pageNumber={page.pageNumber}
+            background={page.background}
+            numbering={page.numbering}
             selectedIds={[]}
             editingTextId={null}
             readOnly

@@ -46,12 +46,19 @@ import {
   type Rect,
 } from "../../utils/designPaperUtils";
 import type { DesignPaperStageActions } from "../../model/stageActions";
+import type { PageBackground, PageNumbering } from "../../model/pageTypes";
 import { getSelectionRenderState } from "../../utils/selectionState";
 import {
   getBottomCenterAnchor,
   getTopCenterAnchor,
   getRotatedLocalAnchor,
 } from "../../utils/rotationGeometry";
+import {
+  formatPageNumberLabel,
+  getPageNumberPositionStyle,
+  resolvePageBackground,
+  resolvePageNumbering,
+} from "../../utils/pagePresentation";
 import RotationBadge from "./RotationBadge";
 import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
 
@@ -61,6 +68,9 @@ interface DesignPaperProps {
   elements: CanvasElement[];
   selectedIds?: string[];
   editingTextId?: string | null;
+  pageNumber?: number;
+  background?: PageBackground;
+  numbering?: PageNumbering;
   selectionRect?: SelectionRect | null;
   previewSelectedIds?: string[] | null;
   stageActionsRef?: MutableRefObject<DesignPaperStageActions | null>;
@@ -89,6 +99,9 @@ const DesignPaper = ({
   elements,
   selectedIds = [],
   editingTextId = null,
+  pageNumber = 1,
+  background,
+  numbering,
   selectionRect = null,
   previewSelectedIds = null,
   stageActionsRef,
@@ -118,6 +131,20 @@ const DesignPaper = ({
   const isHorizontal = orientation === "horizontal";
   const pageWidth = isHorizontal ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const pageHeight = isHorizontal ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
+  const resolvedBackground = resolvePageBackground(background);
+  const resolvedNumbering = resolvePageNumbering(numbering);
+  const paperBackgroundStyle =
+    resolvedBackground.type === "color"
+      ? { backgroundColor: resolvedBackground.color }
+      : resolvedBackground.type === "image" && resolvedBackground.imageUrl
+        ? {
+            backgroundColor: "#ffffff",
+            backgroundImage: `url(${resolvedBackground.imageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }
+        : { backgroundColor: "#ffffff" };
   const smartGuides = useSmartGuides({
     canvasWidth: pageWidth,
     canvasHeight: pageHeight,
@@ -392,12 +419,12 @@ const DesignPaper = ({
     <div
       ref={containerRef}
       tabIndex={readOnly ? undefined : 0}
-      className={`relative bg-white shrink-0 outline-none transition-all ${
+      className={`relative overflow-hidden bg-white shrink-0 outline-none transition-all ${
         showShadow ? "shadow-lg" : ""
       } ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
-      style={{ width: pageWidth, height: pageHeight }}
+      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => {
@@ -480,6 +507,15 @@ const DesignPaper = ({
           rotationBadge={rotationBadge}
           getRotatedLocalAnchor={getRotatedLocalAnchor}
         />
+      )}
+      {resolvedNumbering.enabled && (
+        <div
+          style={getPageNumberPositionStyle(resolvedNumbering.position)}
+          className="text-16-medium text-black-70"
+          aria-hidden="true"
+        >
+          {formatPageNumberLabel(pageNumber, resolvedNumbering.format)}
+        </div>
       )}
     </div>
   );

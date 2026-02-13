@@ -26,6 +26,7 @@ type ColorPickerPopoverProps = {
   swatches?: string[];
   buttonClassName?: string;
   ariaLabel?: string;
+  closeSignal?: number;
 };
 
 const normalizeHex = (input: string) => {
@@ -50,6 +51,7 @@ const ColorPickerPopover = ({
   swatches = DEFAULT_SWATCHES,
   buttonClassName = "h-7 w-7",
   ariaLabel = "색상 선택",
+  closeSignal,
 }: ColorPickerPopoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +60,11 @@ const ColorPickerPopover = ({
   useEffect(() => {
     setHexInput(value.toUpperCase());
   }, [value]);
+
+  useEffect(() => {
+    if (closeSignal === undefined) return;
+    setIsOpen(false);
+  }, [closeSignal]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -121,14 +128,24 @@ const ColorPickerPopover = ({
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={value}
-                onMouseDown={(event) => { event.preventDefault(); }}
-                onChange={(event) => { onChange(event.target.value.toUpperCase()); }}
-                className="color-input h-8 w-8 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
-                style={{ WebkitAppearance: "none", appearance: "none" }}
-              />
+              <label className="relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-black-30">
+                <input
+                  type="color"
+                  value={value}
+                  onChange={(event) => {
+                    const nextColor = event.target.value.toUpperCase();
+                    onChange(nextColor);
+                    setHexInput(nextColor);
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="커스텀 색상 선택"
+                />
+                <span
+                  className="h-6 w-6 rounded"
+                  style={{ backgroundColor: value }}
+                  aria-hidden
+                />
+              </label>
               <input
                 type="text"
                 inputMode="text"

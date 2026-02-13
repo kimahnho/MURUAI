@@ -15,6 +15,7 @@ import { useOrientationSubscription } from "./useOrientationSubscription";
 import { useTemplateSubscription } from "./useTemplateSubscription";
 import { useBoardSubscriptions } from "./useBoardSubscriptions";
 import { useTemplateNotifications } from "./useTemplateNotifications";
+import { usePageSettingsSubscription } from "./usePageSettingsSubscription";
 
 type TextPreset = {
   text: string;
@@ -192,6 +193,13 @@ export const useEditorSubscriptions = ({
     setEditingTextId,
     addAacBoardPage,
     addStoryBoardPage,
+  });
+
+  usePageSettingsSubscription({
+    pages,
+    selectedPageId,
+    selectedPageIdRef,
+    setPages,
   });
 
   return { showEmotionInferenceToast };
