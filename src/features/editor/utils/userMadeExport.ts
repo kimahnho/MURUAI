@@ -119,6 +119,48 @@ export const assignUserMadeToTarget = async ({
   }
 };
 
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+type DevicePerformanceTier = "low" | "mid" | "high";
+
+const getDevicePerformanceTier = (): DevicePerformanceTier => {
+  if (typeof navigator === "undefined") return "mid";
+  const deviceMemory =
+    (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
+  const cpuThreads = navigator.hardwareConcurrency ?? 4;
+  if (deviceMemory <= 2 || cpuThreads <= 4) return "low";
+  if (deviceMemory <= 4 || cpuThreads <= 8) return "mid";
+  return "high";
+};
+
+const getAdaptiveCaptureScale = ({
+  requestedQuality,
+  width,
+  height,
+}: {
+  requestedQuality: number;
+  width: number;
+  height: number;
+}) => {
+  const tier = getDevicePerformanceTier();
+  const requested = clampNumber(requestedQuality, 1, 3);
+  const maxByTier =
+    tier === "low" ? 1.35 : tier === "mid" ? 1.8 : 2.25;
+  const pixelBudget =
+    tier === "low" ? 5_000_000 : tier === "mid" ? 9_000_000 : 14_000_000;
+  const area = Math.max(1, width * height);
+  const areaLimited = Math.sqrt(pixelBudget / area);
+  return clampNumber(Math.min(requested, maxByTier, areaLimited), 1, 3);
+};
+
+const buildScaleFallbacks = (baseScale: number) => {
+  const levels = [baseScale, Math.max(1, baseScale * 0.82), 1];
+  return Array.from(new Set(levels.map((value) =>
+    Number(value.toFixed(2))
+  )));
+};
+
 export const generatePdfFromDomPages = async ({
   quality = 2,
   pageIds,
@@ -158,143 +200,99 @@ export const generatePdfFromDomPages = async ({
         }
       };
 
-  const waitForImages = async (root: HTMLElement) => {
-    const images = Array.from(root.querySelectorAll("img"));
-    if (images.length === 0) return;
-    await Promise.all(
-      images.map(async (img) => {
-        if (img.complete && img.naturalWidth > 0) return;
-        try {
-          await img.decode();
-        } catch {
-          await new Promise<void>((resolve) => {
-            const done = () => {
-              resolve();
-            };
-            img.addEventListener("load", done, { once: true });
-            img.addEventListener("error", done, { once: true });
+      const waitForImages = async (root: HTMLElement) => {
+        const images = Array.from(root.querySelectorAll("img"));
+        if (images.length === 0) return;
+        await Promise.all(
+          images.map(async (img) => {
+            if (img.complete && img.naturalWidth > 0) return;
+            try {
+              await Promise.race([
+                img.decode(),
+                new Promise<void>((resolve) => {
+                  window.setTimeout(() => {
+                    resolve();
+                  }, 3000);
+                }),
+              ]);
+            } catch {
+              await new Promise<void>((resolve) => {
+                const done = () => {
+                  resolve();
+                };
+                img.addEventListener("load", done, { once: true });
+                img.addEventListener("error", done, { once: true });
+              });
+            }
+          }),
+        );
+      };
+
+      const waitForNextFrame = () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => {
+            resolve();
+          }),
+        );
+
+      const normalizePdfTextLayout = (root: HTMLElement) => {
+        const pdfTextYOffset = -10;
+        const restores: Array<() => void> = [];
+        const boxes = Array.from(
+          root.querySelectorAll<HTMLElement>('[data-textbox="true"]'),
+        );
+        boxes.forEach((box) => {
+          const content = box.querySelector<HTMLElement>(
+            '[data-textbox-content="true"]',
+          );
+          if (!content) return;
+          const boxRect = box.getBoundingClientRect();
+          const contentRect = content.getBoundingClientRect();
+          const alignItems = getComputedStyle(box).alignItems;
+          let offsetY = 0;
+          if (alignItems === "center") {
+            offsetY = (boxRect.height - contentRect.height) / 2;
+          } else if (alignItems === "flex-end") {
+            offsetY = boxRect.height - contentRect.height;
+          }
+          offsetY += pdfTextYOffset;
+          const prevBoxStyle = {
+            display: box.style.display,
+          };
+          const prevContentStyle = {
+            position: content.style.position,
+            top: content.style.top,
+            left: content.style.left,
+            right: content.style.right,
+            width: content.style.width,
+            marginTop: content.style.marginTop,
+            transform: content.style.transform,
+          };
+          box.style.display = "block";
+          content.style.position = "absolute";
+          content.style.left = "0";
+          content.style.right = "0";
+          content.style.width = "100%";
+          content.style.top = `${Math.round(offsetY * 100) / 100}px`;
+          content.style.marginTop = "0";
+          content.style.transform = "none";
+          restores.push(() => {
+            box.style.display = prevBoxStyle.display;
+            content.style.position = prevContentStyle.position;
+            content.style.top = prevContentStyle.top;
+            content.style.left = prevContentStyle.left;
+            content.style.right = prevContentStyle.right;
+            content.style.width = prevContentStyle.width;
+            content.style.marginTop = prevContentStyle.marginTop;
+            content.style.transform = prevContentStyle.transform;
           });
-        }
-      }),
-    );
-  };
-
-  const waitForNextFrame = () =>
-    new Promise<void>((resolve) =>
-      requestAnimationFrame(() => {
-        resolve();
-      }),
-    );
-
-  const normalizePdfTextLayout = (root: HTMLElement) => {
-    const pdfTextYOffset = -10;
-    const restores: Array<() => void> = [];
-    const boxes = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-textbox="true"]'),
-    );
-    boxes.forEach((box) => {
-      const content = box.querySelector<HTMLElement>(
-        '[data-textbox-content="true"]',
-      );
-      if (!content) return;
-      const boxRect = box.getBoundingClientRect();
-      const contentRect = content.getBoundingClientRect();
-      const alignItems = getComputedStyle(box).alignItems;
-      let offsetY = 0;
-      if (alignItems === "center") {
-        offsetY = (boxRect.height - contentRect.height) / 2;
-      } else if (alignItems === "flex-end") {
-        offsetY = boxRect.height - contentRect.height;
-      }
-      offsetY += pdfTextYOffset;
-      const prevBoxStyle = {
-        display: box.style.display,
+        });
+        return () => {
+          restores.forEach((restore) => {
+            restore();
+          });
+        };
       };
-      const prevContentStyle = {
-        position: content.style.position,
-        top: content.style.top,
-        left: content.style.left,
-        right: content.style.right,
-        width: content.style.width,
-        marginTop: content.style.marginTop,
-        transform: content.style.transform,
-      };
-      box.style.display = "block";
-      content.style.position = "absolute";
-      content.style.left = "0";
-      content.style.right = "0";
-      content.style.width = "100%";
-      content.style.top = `${Math.round(offsetY * 100) / 100}px`;
-      content.style.marginTop = "0";
-      content.style.transform = "none";
-      restores.push(() => {
-        box.style.display = prevBoxStyle.display;
-        content.style.position = prevContentStyle.position;
-        content.style.top = prevContentStyle.top;
-        content.style.left = prevContentStyle.left;
-        content.style.right = prevContentStyle.right;
-        content.style.width = prevContentStyle.width;
-        content.style.marginTop = prevContentStyle.marginTop;
-        content.style.transform = prevContentStyle.transform;
-      });
-    });
-    return () => {
-      restores.forEach((restore) => {
-        restore();
-      });
-    };
-  };
-
-  const normalizePdfImageLayout = (root: HTMLElement) => {
-    const restores: Array<() => void> = [];
-
-    // 이미지를 포함하는 절대 위치 요소들을 찾아서 정수 픽셀로 고정
-    const imageContainers = Array.from(
-      root.querySelectorAll<HTMLElement>("img"),
-    )
-      .map((img) => img.parentElement)
-      .filter((el): el is HTMLElement => el !== null);
-
-    imageContainers.forEach((container) => {
-      const style = getComputedStyle(container);
-      if (style.position !== "absolute") return;
-
-      const prevStyle = {
-        left: container.style.left,
-        top: container.style.top,
-        width: container.style.width,
-        height: container.style.height,
-      };
-
-      // 현재 계산된 값을 정수 픽셀로 고정
-      const rect = container.getBoundingClientRect();
-      const parentRect =
-        container.offsetParent?.getBoundingClientRect() ?? rect;
-
-      const left = Math.round(rect.left - parentRect.left);
-      const top = Math.round(rect.top - parentRect.top);
-      const width = Math.round(rect.width);
-      const height = Math.round(rect.height);
-
-      container.style.left = `${left}px`;
-      container.style.top = `${top}px`;
-      container.style.width = `${width}px`;
-      container.style.height = `${height}px`;
-
-      restores.push(() => {
-        container.style.left = prevStyle.left;
-        container.style.top = prevStyle.top;
-        container.style.width = prevStyle.width;
-        container.style.height = prevStyle.height;
-      });
-    });
-
-    return () => {
-      restores.forEach((restore) => {
-        restore();
-      });
-    };
-  };
 
       await waitForFonts();
       await waitForNextFrame();
@@ -332,36 +330,61 @@ export const generatePdfFromDomPages = async ({
         const rect = page.getBoundingClientRect();
         const width = Math.ceil(page.offsetWidth || rect.width);
         const height = Math.ceil(page.offsetHeight || rect.height);
+        const adaptiveScale = getAdaptiveCaptureScale({
+          requestedQuality: quality,
+          width,
+          height,
+        });
+        const scaleFallbacks = buildScaleFallbacks(adaptiveScale);
 
         await waitForImages(page);
         await waitForNextFrame();
 
         const restoreTextLayout = normalizePdfTextLayout(page);
-        const restoreImageLayout = normalizePdfImageLayout(page);
         await waitForNextFrame();
         let canvas: HTMLCanvasElement;
+        let usedScale = adaptiveScale;
         try {
-          canvas = await measurePerf(
-            "pdf.render.page",
-            () =>
-              html2canvas(page, {
-                scale: quality,
-                useCORS: true,
-                backgroundColor: "#ffffff",
-                width,
-                height,
-                windowWidth: width,
-                windowHeight: height,
-                x: 0,
-                y: 0,
-                scrollX: 0,
-                scrollY: 0,
-              }),
-            { index: i + 1, total: pages.length, width, height, quality },
-          );
+          let renderError: unknown = null;
+          let renderedCanvas: HTMLCanvasElement | null = null;
+          for (const scale of scaleFallbacks) {
+            if (signal?.aborted) {
+              throw new DOMException("PDF generation aborted", "AbortError");
+            }
+            try {
+              const attemptCanvas = await measurePerf(
+                "pdf.render.page",
+                () =>
+                  html2canvas(page, {
+                    scale,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    imageTimeout: 0,
+                    logging: false,
+                  }),
+                {
+                  index: i + 1,
+                  total: pages.length,
+                  width,
+                  height,
+                  requestedQuality: quality,
+                  adaptiveScale,
+                  attemptScale: scale,
+                },
+              );
+              usedScale = scale;
+              renderedCanvas = attemptCanvas;
+              break;
+            } catch (error) {
+              renderError = error;
+            }
+          }
+          if (!renderedCanvas) {
+            throw renderError ?? new Error("Failed to render page canvas");
+          }
+          canvas = renderedCanvas;
         } finally {
           restoreTextLayout();
-          restoreImageLayout();
         }
         const props = pdf.getImageProperties(canvas);
 
@@ -385,6 +408,13 @@ export const generatePdfFromDomPages = async ({
             setTimeout(resolve, 0);
           });
         }
+        logPerf("pdf.render.page.scale", {
+          index: i + 1,
+          total: pages.length,
+          requestedQuality: quality,
+          adaptiveScale,
+          usedScale,
+        });
         onProgress?.({ current: i + 1, total: pages.length });
       }
 

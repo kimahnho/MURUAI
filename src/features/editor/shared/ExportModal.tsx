@@ -215,7 +215,9 @@ const ExportModal = ({
       }
       const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
       const blob = await generatePdfFromDomPages({
-        quality: 6,
+        // 저사양 기기 대응을 위해 기본 품질은 보수적으로 두고,
+        // 실제 캡처 스케일은 generatePdfFromDomPages에서 기기 성능에 맞춰 조정한다.
+        quality: 2,
         pageIds,
         signal: abortControllerRef.current.signal,
         onProgress: setPdfProgress,
