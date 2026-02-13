@@ -26,7 +26,11 @@ type UseGroupOverlayDragParams = {
     isActive: boolean,
     context?: { type: "drag" | "resize" },
   ) => void;
-  handleSelect: (id: string) => void;
+  handleSelectChange: (
+    id: string,
+    isSelected: boolean,
+    options?: { additive?: boolean },
+  ) => void;
   smartGuides: SmartGuides;
   getTargetRects: (activeId: string, excludeIds?: Set<string>) => Rect[];
 };
@@ -40,7 +44,7 @@ export const useGroupOverlayDrag = ({
   groupDragRef,
   applyGroupDelta,
   onInteractionChange,
-  handleSelect,
+  handleSelectChange,
   smartGuides,
   getTargetRects,
 }: UseGroupOverlayDragParams) => {
@@ -71,15 +75,16 @@ export const useGroupOverlayDrag = ({
           pointer.y <= rect.y + rect.height
         );
       });
-      const shouldSelectSingleOnClick = Boolean(
-        hitSelectedElement && !event.shiftKey,
-      );
+      const clickedSelectedElementId = hitSelectedElement?.id ?? null;
+      const additiveOnClick = event.shiftKey;
       const activeId = selectedIdsRef.current[0];
       if (!activeId) return;
       const snapshot = buildGroupDragState(activeId);
       if (!snapshot || snapshot.items.size <= 1) {
-        if (shouldSelectSingleOnClick && hitSelectedElement) {
-          handleSelect(hitSelectedElement.id);
+        if (clickedSelectedElementId) {
+          handleSelectChange(clickedSelectedElementId, true, {
+            additive: additiveOnClick,
+          });
         }
         return;
       }
@@ -129,8 +134,10 @@ export const useGroupOverlayDrag = ({
           });
         },
         onEnd: (moved) => {
-          if (!moved && shouldSelectSingleOnClick && hitSelectedElement) {
-            handleSelect(hitSelectedElement.id);
+          if (!moved && clickedSelectedElementId) {
+            handleSelectChange(clickedSelectedElementId, true, {
+              additive: additiveOnClick,
+            });
             return;
           }
           if (dragStarted) {
@@ -148,7 +155,7 @@ export const useGroupOverlayDrag = ({
       getPointerPosition,
       getTargetRects,
       groupDragRef,
-      handleSelect,
+      handleSelectChange,
       onInteractionChange,
       readOnly,
       selectedIdsRef,

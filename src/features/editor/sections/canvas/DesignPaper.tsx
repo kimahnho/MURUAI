@@ -194,7 +194,6 @@ const DesignPaper = ({
 
   const {
     clearContextMenu,
-    handleSelect,
     handleSelectChange,
     openContextMenu,
     openCanvasContextMenu,
@@ -462,7 +461,7 @@ const DesignPaper = ({
     groupDragRef,
     applyGroupDelta,
     onInteractionChange,
-    handleSelect,
+    handleSelectChange,
     smartGuides,
     getTargetRects,
   });
