@@ -1,12 +1,12 @@
 import { lazy, Suspense } from "react";
-import type { OutletContext } from "@/features/editor/components/MainSection";
+import type { OutletContext } from "@/features/editor/shared/MainSection";
 import { useOutletContext } from "react-router-dom";
 import "@/features/editor/styles/editor-fonts.css";
 
 const MainSection = lazy(
-  () => import("@/features/editor/components/MainSection"),
+  () => import("@/features/editor/shared/MainSection"),
 );
-const SideBar = lazy(() => import("@/features/editor/components/SideBar"));
+const SideBar = lazy(() => import("@/features/editor/sections/sidebar/SideBar"));
 
 const DesignPage = () => {
   const { loadedDocumentId } = useOutletContext<OutletContext>();

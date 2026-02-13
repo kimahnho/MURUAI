@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";
+import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 
 const FirstCommentSection = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const { openAuthModal } = useModalStore();
+  const { isCreatingDoc, createAndOpenDocument } = useCreateDocumentNavigation();
 
   const handleMyMaterialsClick = () => {
     if (!isAuthenticated) {
@@ -15,12 +17,15 @@ const FirstCommentSection = () => {
     navigate("/mydoc");
   };
 
-  const handleStartDesignClick = () => {
+  const handleStartDesignClick = async () => {
     if (!isAuthenticated) {
       openAuthModal();
       return;
     }
-    navigate("/design");
+    await createAndOpenDocument({
+      replace: true,
+      onUnauthorized: openAuthModal,
+    });
   };
 
   return (
@@ -36,10 +41,11 @@ const FirstCommentSection = () => {
         <div className="flex w-full items-center justify-center gap-4">
           <button
             onClick={handleStartDesignClick}
-            className="flex w-50 h-14 items-center justify-center rounded-xl bg-primary cursor-pointer"
+            disabled={isCreatingDoc}
+            className="flex w-50 h-14 items-center justify-center rounded-xl bg-primary cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="text-18-title-semibold text-white-100">
-              바로 만들어보기
+              {isCreatingDoc ? "생성 중..." : "바로 만들어보기"}
             </span>
           </button>
           <button

@@ -1,9 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Page } from "../model/pageTypes";
 import type { SideBarMenu } from "../store/sideBarStore";
-import { useSelectionState } from "./useSelectionState";
-import { useSelectionToolbarActions } from "./useSelectionToolbarActions";
-import { useSelectionClearer } from "./useSelectionClearer";
+import { useSelectionState } from "../sections/canvas/hooks/useSelectionState";
+import { useSelectionToolbarActions } from "../sections/canvas/hooks/useSelectionToolbarActions";
+import { useSelectionClearer } from "../sections/canvas/hooks/useSelectionClearer";
 
 type SelectionManagementParams = {
   pages: Page[];

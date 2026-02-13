@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, Search, Shield } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
-import DesignPaper from "@/features/editor/components/DesignPaper";
+import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import { EXCLUDED_USER_IDS } from "@/features/admin/constants/excludedUsers";
 

@@ -1,0 +1,368 @@
+import type { Dispatch, SetStateAction } from "react";
+import { useNumberInput } from "../../../shared/hooks/useNumberInput";
+import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";
+import type {
+  CanvasElement,
+  ShapeElement,
+  TextElement,
+} from "../../../model/canvasTypes";
+import type { Page } from "../../../model/pageTypes";
+import { useAacSelectionState } from "./useAacSelectionState";
+import {
+  buildHorizontalDistribution,
+  buildVerticalDistribution,
+  applyPositionToElement,
+} from "../../../utils/distributeElements";
+import { bumpPageRevision } from "../../../utils/pageRevision";
+
+type BorderStyle = "solid" | "dashed" | "dotted" | "double";
+
+type SelectionStateParams = {
+  pages: Page[];
+  selectedPageId: string;
+  selectedIds: string[];
+  setPages: Dispatch<SetStateAction<Page[]>>;
+};
+
+export const useSelectionState = ({
+  pages,
+  selectedPageId,
+  selectedIds,
+  setPages,
+}: SelectionStateParams) => {
+  const activePage = pages.find((page) => page.id === selectedPageId) ?? null;
+  const selectedElements = activePage
+    ? activePage.elements.filter((element) => selectedIds.includes(element.id))
+    : [];
+  const activeToolbarElementId =
+    selectedIds.length === 1 ? selectedIds[0] : null;
+
+  const isColorTarget = (
+    element: CanvasElement,
+  ): element is TextElement | ShapeElement =>
+    element.type === "text" ||
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const isMultiColorSelection =
+    selectedElements.length > 1 && selectedElements.every(isColorTarget);
+  const multiColorSource = isMultiColorSelection
+    ? (selectedElements.find((element) => !element.locked) ??
+      selectedElements[0] ??
+      null)
+    : null;
+  const multiColorValue = (() => {
+    if (!multiColorSource) return "#000000";
+    if (multiColorSource.type === "text") {
+      return multiColorSource.style.color ?? "#000000";
+    }
+    const fill = multiColorSource.fill ?? "#ffffff";
+    const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
+    return isImageFill ? "#ffffff" : fill;
+  })();
+
+  const isFontTarget = (
+    element: CanvasElement,
+  ): element is TextElement | ShapeElement =>
+    element.type === "text" ||
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const multiFontTargets = isMultiColorSelection
+    ? selectedElements.filter(isFontTarget)
+    : [];
+  const multiFontSource =
+    multiFontTargets.length > 0
+      ? (multiFontTargets.find((element) => !element.locked) ??
+        multiFontTargets[0] ??
+        null)
+      : null;
+  const hasMultiFontTargets = multiFontTargets.length > 0;
+  const multiFontFamily =
+    multiFontSource && multiFontSource.type === "text"
+      ? (multiFontSource.style.fontFamily ?? "Pretendard")
+      : (multiFontSource?.textStyle?.fontFamily ?? "Pretendard");
+  const multiFontLabel = getFontLabel(multiFontFamily);
+  const multiFontWeight = multiFontSource
+    ? multiFontSource.type === "text"
+      ? normalizeFontWeight(multiFontSource.style.fontWeight)
+      : normalizeFontWeight(multiFontSource.textStyle?.fontWeight)
+    : 400;
+  const multiFontSize =
+    multiFontSource && multiFontSource.type === "text"
+      ? multiFontSource.style.fontSize
+      : (multiFontSource?.textStyle?.fontSize ?? 16);
+  const minMultiFontSize = 12;
+  const maxMultiFontSize = 120;
+  const applyMultiFontSize = (value: number) => {
+    if (!activePage) return;
+    const nextSize = Math.min(
+      maxMultiFontSize,
+      Math.max(minMultiFontSize, value),
+    );
+    setPages((prevPages) =>
+      prevPages.map((page) =>
+        page.id === selectedPageId
+          ? bumpPageRevision({
+              ...page,
+              elements: page.elements.map((el) => {
+                if (!selectedIds.includes(el.id) || el.locked) {
+                  return el;
+                }
+                if (el.type === "text") {
+                  return {
+                    ...el,
+                    style: {
+                      ...el.style,
+                      fontSize: nextSize,
+                    },
+                  };
+                }
+                if (
+                  el.type === "rect" ||
+                  el.type === "roundRect" ||
+                  el.type === "ellipse"
+                ) {
+                  return {
+                    ...el,
+                    textStyle: {
+                      ...el.textStyle,
+                      fontSize: nextSize,
+                    },
+                  };
+                }
+                return el;
+              }),
+            })
+          : page,
+      ),
+    );
+  };
+  const multiFontSizeInput = useNumberInput({
+    value: multiFontSize,
+    min: minMultiFontSize,
+    max: maxMultiFontSize,
+    onChange: applyMultiFontSize,
+  });
+
+  const isBorderTarget = (element: CanvasElement): element is ShapeElement =>
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const multiBorderTargets = isMultiColorSelection
+    ? selectedElements.filter(isBorderTarget)
+    : [];
+  const multiBorderSource =
+    multiBorderTargets.length > 0
+      ? (multiBorderTargets.find((element) => !element.locked) ??
+        multiBorderTargets[0] ??
+        null)
+      : null;
+  const hasMultiBorderTargets = multiBorderTargets.length > 0;
+  const multiBorderEnabled = multiBorderSource?.border?.enabled ?? false;
+  const multiBorderColor = multiBorderSource?.border?.color ?? "#000000";
+  const multiBorderWidth = multiBorderSource?.border?.width ?? 2;
+  const multiBorderStyle: BorderStyle =
+    multiBorderSource?.border?.style ?? "solid";
+  const borderStyleOptions: Array<BorderStyle | "none"> = [
+    "none",
+    "solid",
+    "dashed",
+    "double",
+    "dotted",
+  ];
+  const activeBorderStyle: BorderStyle | "none" = multiBorderEnabled
+    ? multiBorderStyle
+    : "none";
+  const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
+  const applyMultiBorderPatch = (patch: Partial<ShapeElement["border"]>) => {
+    if (!activePage) return;
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return bumpPageRevision({
+          ...page,
+          elements: page.elements.map((el) => {
+            if (!selectedIds.includes(el.id) || el.locked) {
+              return el;
+            }
+            if (
+              el.type !== "rect" &&
+              el.type !== "roundRect" &&
+              el.type !== "ellipse"
+            ) {
+              return el;
+            }
+            const baseBorder = el.border ?? {
+              enabled: multiBorderEnabled,
+              color: multiBorderColor,
+              width: multiBorderWidth,
+              style: multiBorderStyle,
+            };
+            return {
+              ...el,
+              border: {
+                ...baseBorder,
+                ...patch,
+              },
+            };
+          }),
+        });
+      }),
+    );
+  };
+
+  const selectedElement = activeToolbarElementId
+    ? activePage?.elements.find((el) => el.id === activeToolbarElementId)
+    : null;
+  const lineToolbarData = (() => {
+    if (!activePage) return null;
+
+    const selectedLines = selectedIds
+      .map((id) => activePage.elements.find((el) => el.id === id))
+      .filter(
+        (el): el is Extract<CanvasElement, { type: "line" | "arrow" }> =>
+          el != null &&
+          !el.locked &&
+          (el.type === "line" || el.type === "arrow"),
+      );
+
+    if (selectedLines.length === 0) return null;
+
+    const element = selectedLines[0];
+    const stroke = element.stroke ?? { color: "#000000", width: 2 };
+    const dx = element.end.x - element.start.x;
+    const dy = element.end.y - element.start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angleRad = Math.atan2(dy, dx);
+    const rawAngle = ((angleRad * 180) / Math.PI + 360) % 360;
+    const angle = Math.round(rawAngle) % 360;
+
+    return {
+      element,
+      stroke,
+      length,
+      angle,
+    };
+  })();
+
+  const shapeToolbarData = (() => {
+    if (
+      !selectedElement ||
+      selectedElement.locked ||
+      (selectedElement.type !== "rect" &&
+        selectedElement.type !== "roundRect" &&
+        selectedElement.type !== "ellipse")
+    ) {
+      return null;
+    }
+
+    const element = selectedElement;
+    const rect = {
+      x: element.x,
+      y: element.y,
+      width: element.w,
+      height: element.h,
+    };
+    const radius =
+      element.type === "ellipse"
+        ? Math.min(rect.width, rect.height) / 2
+        : (element.radius ?? 0);
+    const maxRadius = Math.min(rect.width, rect.height) / 2;
+    const minRadius = 0;
+    const clampRadius = (value: number) =>
+      Math.min(maxRadius, Math.max(minRadius, value));
+    const isImageFill =
+      element.fill.startsWith("url(") || element.fill.startsWith("data:");
+    const colorValue = isImageFill ? "#ffffff" : element.fill;
+    const borderEnabled = element.border?.enabled ?? false;
+    const borderColor = element.border?.color ?? "#000000";
+    const borderWidth = element.border?.width ?? 2;
+    const borderStyle = element.border?.style ?? "solid";
+
+    return {
+      element,
+      rect,
+      radius,
+      minRadius,
+      maxRadius,
+      clampRadius,
+      colorValue,
+      borderEnabled,
+      borderColor,
+      borderWidth,
+      borderStyle,
+    };
+  })();
+
+  const { aacToolbarData, applyAacLabelPosition } = useAacSelectionState({
+    activePage,
+    selectedPageId,
+    selectedElements,
+    setPages,
+  });
+
+  const canDistribute = selectedElements.length >= 3;
+
+  const distributeHorizontal = () => {
+    if (!activePage || selectedElements.length < 3) return;
+    const positionMap = buildHorizontalDistribution(selectedElements);
+    if (!positionMap) return;
+
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return bumpPageRevision({
+          ...page,
+          elements: page.elements.map((el) =>
+            applyPositionToElement(el, "x", positionMap),
+          ),
+        });
+      }),
+    );
+  };
+
+  const distributeVertical = () => {
+    if (!activePage || selectedElements.length < 3) return;
+    const positionMap = buildVerticalDistribution(selectedElements);
+    if (!positionMap) return;
+
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return bumpPageRevision({
+          ...page,
+          elements: page.elements.map((el) =>
+            applyPositionToElement(el, "y", positionMap),
+          ),
+        });
+      }),
+    );
+  };
+
+  return {
+    activePage,
+    isMultiColorSelection,
+    multiColorValue,
+    hasMultiFontTargets,
+    multiFontFamily,
+    multiFontLabel,
+    multiFontWeight,
+    multiFontSizeInput,
+    hasMultiBorderTargets,
+    multiBorderEnabled,
+    multiBorderColor,
+    multiBorderWidth,
+    activeBorderStyle,
+    borderStyleOptions,
+    clampBorderWidth,
+    applyMultiBorderPatch,
+    lineToolbarData,
+    shapeToolbarData,
+    aacToolbarData,
+    applyAacLabelPosition,
+    canDistribute,
+    distributeHorizontal,
+    distributeVertical,
+  };
+};

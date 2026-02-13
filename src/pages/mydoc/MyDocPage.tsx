@@ -13,8 +13,9 @@ import {
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import DesignPaper from "@/features/editor/components/DesignPaper";
+import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 
 type UserMadeRow = {
   id: string;
@@ -93,6 +94,7 @@ const MyDocPage = () => {
   const [pendingDuplicateDoc, setPendingDuplicateDoc] =
     useState<DocItem | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const { isCreatingDoc, createAndOpenDocument } = useCreateDocumentNavigation();
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -396,8 +398,13 @@ const MyDocPage = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/design")}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-14-semibold text-white-100 transition hover:bg-primary/90"
+          onClick={() => {
+            void createAndOpenDocument({
+              onError: () => setErrorMessage("새 학습자료를 만들지 못했어요."),
+            });
+          }}
+          disabled={isCreatingDoc}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-14-semibold text-white-100 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />새 자료 만들기
         </button>
@@ -615,7 +622,12 @@ const MyDocPage = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => navigate("/design")}
+                  onClick={() => {
+                    void createAndOpenDocument({
+                      onError: () => setErrorMessage("새 학습자료를 만들지 못했어요."),
+                    });
+                  }}
+                  disabled={isCreatingDoc}
                   className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary/5"
                 >
                   학습자료 만들어보기
@@ -626,8 +638,13 @@ const MyDocPage = () => {
             <div className="grid w-full grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               <button
                 type="button"
-                onClick={() => navigate("/design")}
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-black-30 bg-white-100 px-6 py-12 text-black-50 transition hover:border-primary hover:text-primary"
+                onClick={() => {
+                  void createAndOpenDocument({
+                    onError: () => setErrorMessage("새 학습자료를 만들지 못했어요."),
+                  });
+                }}
+                disabled={isCreatingDoc}
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-black-30 bg-white-100 px-6 py-12 text-black-50 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black-10">
                   <Plus className="h-5 w-5" />
