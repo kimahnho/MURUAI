@@ -123,6 +123,9 @@ export const useDesignPaperElementRenderer = ({
   setEditingShapeTextId,
   mmToPx,
 }: UseDesignPaperElementRendererParams) => {
+  const instructionGuideText = "목표 어휘에 맞는 이미지를 삽입해보세요.";
+  const defaultVocabularyLabel = "목표 어휘";
+
   const renderTextElement = (element: TextElement) => {
     // 단일 선택일 때만 텍스트 툴바를 노출해 다중 선택 조작과 충돌을 막는다.
     const showToolbar =
@@ -238,6 +241,20 @@ export const useDesignPaperElementRenderer = ({
     const isImageEditing =
       isImageFill && editingImageId === element.id && isSelected;
     const imageBox = element.imageBox;
+    const linkedLabelText =
+      element.labelId
+        ? elements.find(
+            (candidate): candidate is TextElement =>
+              candidate.id === element.labelId && candidate.type === "text",
+          )?.text ?? ""
+        : "";
+    const hasVocabularyInput =
+      linkedLabelText.trim().length > 0 &&
+      linkedLabelText.trim() !== defaultVocabularyLabel;
+    const shapeText =
+      element.text === instructionGuideText && hasVocabularyInput
+        ? ""
+        : element.text;
 
     const ShapeComponent = element.type === "ellipse" ? CircleBox : RoundBox;
     const handleImageBoxChange =
@@ -276,7 +293,8 @@ export const useDesignPaperElementRenderer = ({
         fill={element.fill}
         imageBox={imageBox}
         border={element.border}
-        text={element.text}
+        // 카드 라벨(목표 어휘)이 입력되면 안내 문구를 즉시 숨겨 실제 작업 영역에 집중하게 한다.
+        text={shapeText}
         textStyle={element.textStyle}
         isSelected={shouldShowIndividualBorder(element.id)}
         selectionCount={selectedIds.length}

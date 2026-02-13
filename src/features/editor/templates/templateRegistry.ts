@@ -12,6 +12,7 @@ import { normal_1 } from "./normal_1";
 import { normal_2 } from "./normal_2";
 import { wordPairTemplate } from "./wordPairTemplate";
 import { visualScheduleTemplate } from "./visualScheduleTemplate";
+import { vocabularyLearningCardTemplate } from "./vocabularyLearningCardTemplate";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -50,6 +51,12 @@ export const TEMPLATE_REGISTRY = {
     id: "visualSchedule",
     label: "시각적 스케줄표",
     template: visualScheduleTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  vocabularyLearningCard: {
+    id: "vocabularyLearningCard",
+    label: "어휘 학습 카드",
+    template: vocabularyLearningCardTemplate,
     orientation: "vertical-only" as TemplateOrientation,
   },
   normal_1: {

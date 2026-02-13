@@ -50,11 +50,15 @@ const isNormalTemplate = (templateId: string) =>
   templateId.startsWith("normal_");
 
 const isBasicTemplate = (templateId: string) =>
-  isNormalTemplate(templateId) || templateId === "visualSchedule";
+  isNormalTemplate(templateId) ||
+  templateId === "visualSchedule" ||
+  templateId === "vocabularyLearningCard";
 
 const sortBasicTemplates = (a: string, b: string) => {
   if (a === "visualSchedule" && b !== "visualSchedule") return -1;
   if (b === "visualSchedule" && a !== "visualSchedule") return 1;
+  if (a === "vocabularyLearningCard" && b !== "vocabularyLearningCard") return -1;
+  if (b === "vocabularyLearningCard" && a !== "vocabularyLearningCard") return 1;
   return sortNormalTemplates(a, b);
 };
 

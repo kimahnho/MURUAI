@@ -120,6 +120,10 @@ src/features/editor/
   constants/                        # 상수 정의 (변경 없음)
 ```
 
+## 연관 지침
+
+- PDF 내보내기 전용 지침: `.claude/rules/pdf-export.md`
+
 ## 폴더 구조 원칙
 
 ### 섹션 분리 규칙
