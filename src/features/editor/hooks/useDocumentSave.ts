@@ -31,7 +31,7 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
   const manualSaveRef = useRef<(() => void) | null>(null);
 
-  // 외부에서 최신 canvas getter를 등록해 저장 시 오래된 스냅샷 사용을 피한다.
+  // 외부에서 최신 캔버스 조회 함수를 등록해 저장 시 오래된 스냅샷 사용을 피한다.
   const registerCanvasGetter = useCallback((getter: () => CanvasDocument) => {
     canvasGetterRef.current = getter;
   }, []);

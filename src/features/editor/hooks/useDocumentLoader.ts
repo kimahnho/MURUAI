@@ -22,7 +22,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
     setLoadedDocument(null);
   }, []);
 
-  // docId로 기존 문서 로딩
+  // 문서 ID가 있으면 기존 문서를 불러오고, 없으면 신규 문서 상태로 유지한다.
   useEffect(() => {
     if (!docId) {
       setLoadedDocument(null);

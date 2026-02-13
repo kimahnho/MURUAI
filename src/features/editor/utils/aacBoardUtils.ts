@@ -37,7 +37,7 @@ export const buildAacBoardElements = ({
   // 박스 크기를 150x150px로 고정
   // 용지 방향, 그리드 크기와 관계없이 동일한 박스 크기 유지
   const fixedBoxSizePx = 150;
-  const boxInset = snapPx(mmToPx(1)); // boxInset이 적용되므로 미리 보정
+  const boxInset = snapPx(mmToPx(1)); // 박스 안쪽 여백이 적용되므로 셀 크기를 미리 보정
   const cellSizePx = fixedBoxSizePx + boxInset * 2;
   const cellWidthMm = cellSizePx / MM_TO_PX;
   const cellHeightMm = cellSizePx / MM_TO_PX;
@@ -74,7 +74,7 @@ export const buildAacBoardElements = ({
       const labelHeight =
         labelPosition === "none"
           ? 0
-          : clampPx(Math.min(maxLabelHeight, Math.max(0, boxHeight * 0.22))); // 라벨 높이 비율 줄임 (0.35 -> 0.22)
+          : clampPx(Math.min(maxLabelHeight, Math.max(0, boxHeight * 0.22))); // 라벨 높이 비율을 낮춰 이미지 영역을 확보
       const labelY =
         labelPosition === "top"
           ? boxY + labelInset

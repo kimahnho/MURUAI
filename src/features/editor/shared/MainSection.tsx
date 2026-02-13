@@ -120,9 +120,9 @@ const MainSection = () => {
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
 
-  // 데이터 로딩 완료 여부:
-  // 1) docId가 없는 신규 문서이거나
-  // 2) docId가 있고 loadedDocument가 처리되었고 pages가 실제로 존재함
+  // 자동 저장 시작 조건:
+  // 1) 문서 ID가 없는 신규 문서이거나
+  // 2) 문서 ID가 있고 문서 데이터 로딩이 끝났으며 페이지가 존재함
   const isDataLoaded = !docId || (loadedDocument !== null && pages.length > 0);
 
   const { retrySave, manualSave } = useAutoSave({
