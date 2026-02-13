@@ -145,7 +145,7 @@ const TextToolBar = ({
       className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
       onPointerDown={onPointerDown}
       onMouseDown={(event) => {
-        // input 요소는 preventDefault 하지 않음
+        // 숫자 입력창 클릭은 기본 포커스를 유지하고, 그 외 영역만 포커스 이탈을 막는다.
         const target = event.target as HTMLElement;
         if (target.tagName === "INPUT") {
           return;

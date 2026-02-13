@@ -1,4 +1,4 @@
-// Common utility types
+// 캔버스 요소 공통 좌표/기하 타입
 export type Point = {
   x: number;
   y: number;

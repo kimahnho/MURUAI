@@ -235,7 +235,7 @@ export const useRoundBoxInteraction = ({
         const aspectRatio = startRect.width / startRect.height;
 
         if (isShiftPressed && isCornerHandle) {
-          // Shift+코너 리사이즈는 원본 비율을 보존해 도형 스케일만 바뀌도록 한다.
+          // 쉬프트+코너 리사이즈는 원본 비율을 보존해 도형 스케일만 바뀌도록 한다.
           if (handle.includes("e")) {
             nextWidth = startRect.width + dx;
           }
