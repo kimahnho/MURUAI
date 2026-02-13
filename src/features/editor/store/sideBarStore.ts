@@ -6,6 +6,7 @@ import { mp } from "@/shared/utils/mixpanel";
 
 export type SideBarMenu =
   | "design"
+  | "page"
   | "template"
   | "emotion"
   | "element"

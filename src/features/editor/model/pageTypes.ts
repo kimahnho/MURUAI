@@ -6,11 +6,30 @@ import type { TemplateId } from "../templates/templateRegistry";
 
 export type PageTemplateId = TemplateId | "aacBoard";
 
+export type PageBackground =
+  | { type: "none" }
+  | { type: "color"; color: string }
+  | { type: "image"; imageUrl: string };
+
+export type PageNumberFormat = "number" | "dash" | "korean" | "english";
+export type PageNumberPosition =
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+export interface PageNumbering {
+  enabled: boolean;
+  format: PageNumberFormat;
+  position: PageNumberPosition;
+}
+
 export interface Page {
   id: string;
   pageNumber: number;
   templateId?: PageTemplateId | null;
   elements: CanvasElement[];
+  background?: PageBackground;
+  numbering?: PageNumbering;
   orientation?: "horizontal" | "vertical";
   rev?: number;
   isSwapped?: boolean;
