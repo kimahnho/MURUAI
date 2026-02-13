@@ -66,7 +66,9 @@ src/features/editor/
         useDesignPaperInteraction.ts # 드래그/리사이즈/라인 인터랙션
         useDesignPaperKeyboard.ts
         useDesignPaperPaste.ts
+        useDesignPaperRotation.ts
         useDesignPaperStageActions.ts
+        usePointerDragSession.ts    # pointer 세션(이동/업/threshold) 공통화
         useEmotionSlotBindings.ts
         useAacSelectionState.ts
         useCanvasStageHandlers.ts
@@ -93,6 +95,7 @@ src/features/editor/
     hooks/
       useDragAndDrop.ts             # 범용 드래그앤드롭
       useNumberInput.ts             # 숫자 입력
+      useStoreSubscription.ts       # store subscribe + guard + cleanup 공통화
       useSyncedRef.ts               # ref 동기화
 
   hooks/                            # 페이지 레벨 훅 (에디터 전체에서 사용)
@@ -110,7 +113,9 @@ src/features/editor/
 
   store/                            # Zustand 스토어 (변경 없음)
   model/                            # 타입/도메인 모델 (변경 없음)
-  utils/                            # 유틸리티 (변경 없음)
+  utils/                            # 유틸리티
+    pageMutation.ts                 # updatePageById/updateElementsByPageId
+    documentPersistence.ts          # buildPersistPayload/save 헬퍼
   templates/                        # 템플릿 정의 (변경 없음)
   constants/                        # 상수 정의 (변경 없음)
 ```
@@ -129,6 +134,13 @@ src/features/editor/
 - 범용 유틸 성격 → `shared/hooks/`
 
 ## 아키텍처 원칙
+
+### 훅/유틸 공통화 원칙
+- store 구독 로직은 `useStoreSubscription`을 우선 사용
+- pointer 드래그 로직은 `usePointerDragSession`을 우선 사용
+- `setPages(prev => prev.map(...))` 직접 반복 대신 `pageMutation` 유틸 우선 사용
+- 저장 경로는 `documentPersistence` 헬퍼(`buildPersistPayload`, `saveNewDocument`, `saveExistingDocument`)를 우선 사용
+- 대형 훅은 외부 API를 유지하고 내부 순수 계산만 `sections/canvas/utils/*`로 추출
 
 ### 렌더 분리
 - `CanvasStage`: viewport, zoom, pan, 포인터 이벤트 최상위 처리
@@ -166,3 +178,5 @@ type CanvasElement = TextElement | ShapeElement | LineElement | ArrowElement;
 2. **selection rect는 로컬 상태로 유지** - 드래그 완료 시에만 selectedIds를 store에 반영
 3. **템플릿 적용 시 isApplyingTemplateRef 체크** - 히스토리 충돌 방지
 4. **readOnly prop 사용 시** - 미리보기 용도로 이벤트 핸들러 비활성화
+5. **수동 pointer listener 추가 지양** - 신규 로직은 `usePointerDragSession` 기반으로 구현
+6. **페이지 갱신 일관성 유지** - `updatePageById`/`updateElementsByPageId` 사용으로 `bumpPageRevision` 누락 방지
