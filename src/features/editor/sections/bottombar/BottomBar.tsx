@@ -571,6 +571,7 @@ const BottomBar = ({
         style={{ paddingLeft: `${leftPadding}px`, paddingRight: `${rightPadding}px` }}
         onScroll={updateVisibleRange}
       >
+        {/* 페이지 썸네일/삽입 구분선/추가 버튼을 같은 가상 리스트로 렌더링한다. */}
         {visibleItems.map((item) => {
           if (item.type === "page") {
             const index = item.pageIndex;

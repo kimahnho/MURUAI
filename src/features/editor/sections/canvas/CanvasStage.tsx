@@ -103,6 +103,7 @@ const CanvasStage = ({
               pointerEvents: "all",
             }}
           >
+            {/* 실제 편집 상호작용은 DesignPaper 오버레이에서 처리한다. */}
             {selectedPage && (
               <DesignPaper
                 key={selectedPage.id}

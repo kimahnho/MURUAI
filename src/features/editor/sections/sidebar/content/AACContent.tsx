@@ -87,6 +87,7 @@ const AACContent = () => {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
+        {/* 카테고리 선택은 하단 이미지 목록 필터와 직접 연결된다. */}
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
@@ -114,6 +115,7 @@ const AACContent = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4">
+        {/* 이미지 선택/드래그 모두 같은 삽입 액션으로 연결된다. */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
             불러오는 중입니다

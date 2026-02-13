@@ -128,6 +128,7 @@ const DesignContentView = ({
     </div>
 
     <div className="flex flex-col gap-4">
+      {/* 생성 조건을 결정하는 입력 영역: 스타일 + 프롬프트 */}
       <div className="flex flex-col gap-2">
         <span className="text-14-semibold text-black-90">스타일 선택</span>
         <div className="flex gap-2">
@@ -180,6 +181,7 @@ const DesignContentView = ({
       </button>
     </div>
 
+    {/* 생성 결과를 다시 캔버스에 삽입할 수 있는 히스토리 영역 */}
     <div className="flex flex-col gap-2 flex-1 min-h-0">
       <span className="text-14-semibold text-black-90">생성된 이미지</span>
       <GeneratedImageGrid

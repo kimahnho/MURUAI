@@ -148,6 +148,7 @@ const ShapeProperties = ({
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
+      {/* 선택된 도형의 기하(크기/모서리) 속성 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">크기</div>
         <div className="flex items-center gap-2">
@@ -273,6 +274,7 @@ const ShapeProperties = ({
         </div>
       )}
 
+      {/* 시각 스타일(채우기/이미지/테두리) 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">박스 색상</div>
         <div className="flex items-center gap-2">

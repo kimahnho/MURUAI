@@ -76,6 +76,7 @@ const UploadContentView = ({
       </div>
 
       <div className="flex flex-col w-full flex-1 p-4">
+        {/* 업로드 자산은 클릭 삽입과 드래그 삽입 두 경로를 모두 지원한다. */}
         {isFetching ? (
           <div className="flex items-center justify-center h-full">
             <span className="text-body-14-regular text-gray-400">

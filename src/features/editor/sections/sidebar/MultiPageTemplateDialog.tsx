@@ -108,6 +108,7 @@ const MultiPageTemplateDialog = ({
         </div>
 
         <div className="flex flex-col gap-5">
+          {/* 상단 미리보기: 현재 탐색 중인 단일 페이지 시각화 */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-14-semibold text-black-90">
@@ -173,6 +174,7 @@ const MultiPageTemplateDialog = ({
             </div>
           </div>
 
+          {/* 하단 썸네일: 적용 대상 페이지 선택 */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-14-semibold text-black-90">페이지 선택</span>
@@ -251,6 +253,7 @@ const MultiPageTemplateDialog = ({
                         />
                       </div>
 
+                      {/* 썸네일 선택 상태를 즉시 확인할 수 있는 오버레이 */}
                       <div
                         className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition ${
                           isSelected
@@ -274,6 +277,7 @@ const MultiPageTemplateDialog = ({
             </div>
           </div>
 
+          {/* 전체 적용/선택 적용 분기 액션 */}
           <div className="flex gap-3 mt-2">
             <button
               type="button"

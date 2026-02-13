@@ -35,6 +35,7 @@ const TextProperties = ({
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
+      {/* 텍스트 자체 속성(크기/색상/강조) 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 크기</div>
         <div className="flex items-center gap-2">
@@ -86,6 +87,7 @@ const TextProperties = ({
         </div>
       </div>
 
+      {/* 박스 내 정렬 속성 편집 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 색상</div>
         <div className="flex items-center gap-2">

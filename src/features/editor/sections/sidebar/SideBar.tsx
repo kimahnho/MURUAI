@@ -68,6 +68,7 @@ const SideBar = () => {
 
   return (
     <div className="flex h-full">
+      {/* 좌측 아이콘 메뉴: 편집 도구 카테고리 전환 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
         {MENU_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -97,6 +98,7 @@ const SideBar = () => {
           );
         })}
       </div>
+      {/* 우측 상세 패널: 현재 선택된 카테고리의 실제 편집 UI */}
       {selectedMenu && (
         <div className="flex flex-col w-82 h-full px-4 py-4 border-r border-black-25 gap-2">
           <div className="text-title-20-semibold text-black-100">
