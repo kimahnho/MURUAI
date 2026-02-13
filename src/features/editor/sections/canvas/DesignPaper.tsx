@@ -30,10 +30,9 @@ import CircleBox from "./elements/circle/CircleBox";
 import Line from "./elements/line/Line";
 import RoundBox from "./elements/round_box/RoundBox";
 import TextBox from "./elements/text/TextBox";
-import { stripStyleTags } from "./elements/text/textContentUtils";
 import { useSideBarStore } from "../../store/sideBarStore";
 import { useFontStore } from "../../store/fontStore";
-import { getFontLabel, normalizeFontWeight } from "../../utils/fontOptions";
+import { normalizeFontWeight } from "../../utils/fontOptions";
 import { useDesignPaperActions } from "./hooks/useDesignPaperActions";
 import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
 import { useDesignPaperInteraction } from "./hooks/useDesignPaperInteraction";
@@ -67,6 +66,7 @@ import {
 } from "../../utils/rotationGeometry";
 import RotationBadge from "./RotationBadge";
 import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
+import { buildTextToolbarConfig } from "./utils/textToolbarConfig";
 
 interface DesignPaperProps {
   pageId: string;
@@ -571,107 +571,6 @@ const DesignPaper = ({
     };
   };
 
-  const buildTextToolbarConfig = (
-    element: TextElement,
-    fontWeight: number,
-    lineHeight: number,
-    letterSpacing: number,
-    clampFontSize: (v: number) => number,
-  ) => ({
-    offset: mmToPx(4),
-    minFontSize: 12,
-    maxFontSize: 120,
-    fontSize: element.style.fontSize,
-    lineHeight,
-    letterSpacing,
-    color: element.style.color,
-    isBold:
-      element.style.fontWeight === "bold" ||
-      (typeof element.style.fontWeight === "number" &&
-        element.style.fontWeight >= 700),
-    isUnderline: Boolean(element.style.underline),
-    isItalic: Boolean(element.style.italic),
-    isStrikethrough: Boolean(element.style.strikethrough),
-    align: element.style.alignX,
-    alignY: element.style.alignY,
-    fontFamily: element.style.fontFamily ?? "Pretendard",
-    fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
-    onFontFamilyClick: () => {
-      setSideBarMenu("font");
-      setFontPanel({
-        fontFamily: element.style.fontFamily ?? "Pretendard",
-        fontWeight: fontWeight,
-      });
-    },
-    onFontSizeChange: (value: number) => {
-      updateElement(element.id, {
-        style: { fontSize: clampFontSize(value) },
-      });
-    },
-    onFontSizeStep: (delta: number) => {
-      updateElement(element.id, {
-        style: {
-          fontSize: clampFontSize(element.style.fontSize + delta),
-        },
-      });
-    },
-    onLineHeightChange: (value: number) => {
-      updateElement(element.id, { style: { lineHeight: value } });
-    },
-    onLetterSpacingChange: (value: number) => {
-      updateElement(element.id, { style: { letterSpacing: value } });
-    },
-    onColorChange: (color: string) => {
-      updateElement(element.id, {
-        style: { color },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "color")
-          : undefined,
-      });
-    },
-    onToggleBold: () => {
-      updateElement(element.id, {
-        style: {
-          fontWeight:
-            element.style.fontWeight === "bold" ? "normal" : "bold",
-        },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "bold")
-          : undefined,
-      });
-    },
-    onToggleUnderline: () => {
-      updateElement(element.id, {
-        style: { underline: !element.style.underline },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "underline")
-          : undefined,
-      });
-    },
-    onToggleItalic: () => {
-      updateElement(element.id, {
-        style: { italic: !element.style.italic },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "italic")
-          : undefined,
-      });
-    },
-    onToggleStrikethrough: () => {
-      updateElement(element.id, {
-        style: { strikethrough: !element.style.strikethrough },
-        richText: element.richText
-          ? stripStyleTags(element.richText, "strikethrough")
-          : undefined,
-      });
-    },
-    onAlignChange: (align: "left" | "center" | "right") => {
-      updateElement(element.id, { style: { alignX: align } });
-    },
-    onAlignYChange: (alignY: "top" | "middle" | "bottom") => {
-      updateElement(element.id, { style: { alignY } });
-    },
-  });
-
   const renderTextElement = (element: TextElement) => {
     const showToolbar =
       selectedIds[0] === element.id && selectedIds.length === 1;
@@ -728,7 +627,17 @@ const DesignPaper = ({
         locked={locked}
         showToolbar={showToolbar}
         widthMode={element.widthMode ?? "auto"}
-        toolbar={buildTextToolbarConfig(element, fontWeight, lineHeight, letterSpacing, clampFontSize)}
+        toolbar={buildTextToolbarConfig({
+          element,
+          fontWeight,
+          lineHeight,
+          letterSpacing,
+          clampFontSize,
+          offset: mmToPx(4),
+          setSideBarMenu,
+          setFontPanel,
+          updateElement,
+        })}
         onTextChange={(nextText, nextRichText) => {
           updateElement(element.id, { text: nextText, richText: nextRichText });
         }}
