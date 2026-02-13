@@ -403,6 +403,8 @@ const DesignPaper = ({
         handleDeleteSelectionKeyDown(event);
       }}
       onPointerDown={(event) => {
+        // 내부 텍스트 편집 노드가 활성화된 상태가 아닐 때는 컨테이너 포커스를 유지해
+        // 키보드 단축키가 끊기지 않도록 한다.
         if (!readOnly) {
           const container = containerRef.current;
           if (container && !isEditableTarget(event.target)) {
@@ -411,6 +413,8 @@ const DesignPaper = ({
         }
       }}
       onPointerDownCapture={(event) => {
+        // 하위 요소 핸들러가 선택/드래그 상태를 바꾸기 전에 포인터 좌표를 먼저 저장해
+        // 스테이지 공통 동작이 동일한 기준 좌표를 사용하도록 한다.
         if (!readOnly) {
           if (!isEditableTarget(event.target)) {
             containerRef.current?.focus();
@@ -419,6 +423,8 @@ const DesignPaper = ({
         lastPointerRef.current = getPointerPosition(event);
       }}
       onPointerMoveCapture={(event) => {
+        // 붙여넣기/컨텍스트 메뉴가 마지막 포인터 위치를 참조하므로
+        // 스테이지 상대 좌표 캐시를 이동 중에도 계속 최신화한다.
         lastPointerRef.current = getPointerPosition(event);
       }}
       onContextMenu={openCanvasContextMenu}

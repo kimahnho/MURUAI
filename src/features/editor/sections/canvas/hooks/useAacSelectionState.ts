@@ -7,7 +7,7 @@ import type {
 import type { Page } from "../../../model/pageTypes";
 import type { AacLabelPosition } from "../../../utils/aacBoardUtils";
 import { findLabelElementId, isAacLabelElement } from "../../../utils/imageFillUtils";
-import { bumpPageRevision } from "../../../utils/pageRevision";
+import { updatePageById } from "../../../utils/pageMutation";
 
 const AAC_CARD_PREFIX = "aac-card-";
 const AAC_LABEL_PREFIX = "aac-label-";
@@ -168,10 +168,9 @@ export const useAacSelectionState = ({
       return Math.max(1, Math.round(rawHeight * 2) / 2);
     };
 
+    // 선택된 AAC 카드 집합만 대상으로 라벨/이미지 영역 배치를 동기화한다.
     setPages((prevPages) =>
-      prevPages.map((page) => {
-        if (page.id !== selectedPageId) return page;
-
+      updatePageById(prevPages, selectedPageId, (page) => {
         const elements = page.elements;
         const elementById = new Map(
           elements.map((element) => [element.id, element]),
@@ -238,7 +237,7 @@ export const useAacSelectionState = ({
 
         const labelIds = new Set(labelInfoMap.keys());
 
-        return bumpPageRevision({
+        return {
           ...page,
           elements: [
             ...elements.map((el) => {
@@ -326,7 +325,7 @@ export const useAacSelectionState = ({
             }),
             ...newLabels,
           ],
-        });
+        };
       }),
     );
   };

@@ -105,6 +105,8 @@ export const useDesignPaperInteraction = ({
   } | null>(null);
   const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
   const { startPointerDragSession } = usePointerDragSession();
+  const getElementById = (id: string) =>
+    elements.find((element) => element.id === id);
 
   const handleGroupResizePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -160,9 +162,7 @@ export const useDesignPaperInteraction = ({
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
-      const targetElement = elements.find(
-        (element) => element.id === elementId,
-      );
+      const targetElement = getElementById(elementId);
       const updates: Partial<ShapeElement> = {
         w: nextRect.width,
         h: nextRect.height,
@@ -252,6 +252,8 @@ export const useDesignPaperInteraction = ({
       targetElement &&
       targetElement.type === "text"
     ) {
+      // 텍스트 리사이즈는 시작 시점 rect를 기준으로 폰트 크기를 보정해
+      // 박스 크기 변화와 글자 스케일이 어긋나지 않도록 한다.
       const startRect =
         activeInteraction.startRect ??
         ("x" in targetElement && "w" in targetElement
@@ -341,9 +343,7 @@ export const useDesignPaperInteraction = ({
     context?: { type: "drag" | "resize"; handle?: ResizeHandle },
   ) => {
     if (isDragging) {
-      const targetElement = elements.find(
-        (element) => element.id === elementId,
-      );
+      const targetElement = getElementById(elementId);
       const startRect =
         finalRect ??
         (targetElement && "x" in targetElement && "w" in targetElement
@@ -377,6 +377,8 @@ export const useDesignPaperInteraction = ({
         handle,
       };
       if (context?.type === "drag") {
+        // 드래그 시작 시 그룹 스냅샷을 한 번 만들고 이동 내내 재사용해
+        // 서로 다른 타입이 섞여 있어도 그룹 이동 기준이 흔들리지 않게 한다.
         groupDragRef.current = buildGroupDragState(elementId);
         if (groupDragRef.current) {
           setActivePreview(null);
@@ -385,6 +387,8 @@ export const useDesignPaperInteraction = ({
         groupDragRef.current = null;
       }
       if (context?.type === "resize" && startRect) {
+        // 그룹 리사이즈는 각 요소의 시작 기하값 스냅샷을 기준으로
+        // 비율/앵커를 동일하게 유지한다.
         groupResizeRef.current = buildGroupResizeSnapshot(
           elementId,
           startRect,
@@ -408,9 +412,7 @@ export const useDesignPaperInteraction = ({
       groupResizeRef.current = null;
     }
     if (finalRect && !hadGroupDrag) {
-      const targetElement = elements.find(
-        (element) => element.id === elementId,
-      );
+      const targetElement = getElementById(elementId);
       const activeInteraction = activeInteractionRef.current;
       if (
         targetElement &&
@@ -538,6 +540,8 @@ export const useDesignPaperInteraction = ({
 
     const context = activeInteractionRef.current;
     if (context?.type === "resize") {
+      // 라인 리사이즈는 움직이는 끝점을 기준으로 스냅하고,
+      // 일반 드래그는 중심점을 기준으로 스냅해 끝점 드리프트를 줄인다.
       const currentElement = elements.find((e) => e.id === elementId);
       const currentLine =
         currentElement && (currentElement.type === "line" || currentElement.type === "arrow")

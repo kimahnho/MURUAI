@@ -48,6 +48,11 @@ type AacToolbarData = {
 };
 
 type LayerDirection = "forward" | "front" | "backward" | "back";
+type LayerPanelItem = {
+  direction: LayerDirection;
+  label: string;
+  Icon: typeof ArrowUpFromLine;
+};
 
 type ElementToolbarsProps = {
   shapeToolbarData: ShapeToolbarData | null;
@@ -68,38 +73,48 @@ const ElementToolbars = ({
   setPages,
   onAacLabelPositionChange,
 }: ElementToolbarsProps) => {
+  const moveLayerByDirection = (
+    elements: CanvasElement[],
+    index: number,
+    direction: LayerDirection,
+  ) => {
+    const nextElements = [...elements];
+    if (direction === "forward") {
+      if (index >= nextElements.length - 1) return elements;
+      [nextElements[index], nextElements[index + 1]] = [
+        nextElements[index + 1],
+        nextElements[index],
+      ];
+      return nextElements;
+    }
+    if (direction === "backward") {
+      if (index <= 0) return elements;
+      [nextElements[index - 1], nextElements[index]] = [
+        nextElements[index],
+        nextElements[index - 1],
+      ];
+      return nextElements;
+    }
+    if (direction === "front") {
+      if (index >= nextElements.length - 1) return elements;
+      const [target] = nextElements.splice(index, 1);
+      nextElements.push(target);
+      return nextElements;
+    }
+    if (index <= 0) return elements;
+    const [target] = nextElements.splice(index, 1);
+    nextElements.unshift(target);
+    return nextElements;
+  };
+
   const moveLayer = (elementId: string, direction: LayerDirection) => {
+    // 우클릭 메뉴와 상단 툴바의 레이어 이동 결과를 동일하게 유지하기 위해
+    // 방향별 재정렬 규칙을 공통 함수로 묶는다.
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) => {
         const index = elements.findIndex((el) => el.id === elementId);
         if (index === -1) return elements;
-        const nextElements = [...elements];
-        if (direction === "forward") {
-          if (index >= nextElements.length - 1) return elements;
-          [nextElements[index], nextElements[index + 1]] = [
-            nextElements[index + 1],
-            nextElements[index],
-          ];
-          return nextElements;
-        }
-        if (direction === "backward") {
-          if (index <= 0) return elements;
-          [nextElements[index - 1], nextElements[index]] = [
-            nextElements[index],
-            nextElements[index - 1],
-          ];
-          return nextElements;
-        }
-        if (direction === "front") {
-          if (index >= nextElements.length - 1) return elements;
-          const [target] = nextElements.splice(index, 1);
-          nextElements.push(target);
-          return nextElements;
-        }
-        if (index <= 0) return elements;
-        const [target] = nextElements.splice(index, 1);
-        nextElements.unshift(target);
-        return nextElements;
+        return moveLayerByDirection(elements, index, direction);
       }),
     );
     setLayerPanelElementId(null);
@@ -108,6 +123,12 @@ const ElementToolbars = ({
   const [layerPanelElementId, setLayerPanelElementId] = useState<string | null>(
     null,
   );
+  const layerPanelItems: LayerPanelItem[] = [
+    { direction: "forward", label: "앞으로 가져오기", Icon: ArrowUpFromLine },
+    { direction: "front", label: "맨 앞으로 가져오기", Icon: ChevronsUp },
+    { direction: "backward", label: "뒤로 보내기", Icon: ArrowUpToLine },
+    { direction: "back", label: "맨 뒤로 보내기", Icon: ChevronsDown },
+  ];
 
   const renderLayerPanelButton = (elementId: string) => {
     const isOpen = layerPanelElementId === elementId;
@@ -134,38 +155,17 @@ const ElementToolbars = ({
               event.stopPropagation();
             }}
           >
-            <button
-              type="button"
-              onClick={() => moveLayer(elementId, "forward")}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <ArrowUpFromLine className="h-4 w-4" />
-              앞으로 가져오기
-            </button>
-            <button
-              type="button"
-              onClick={() => moveLayer(elementId, "front")}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <ChevronsUp className="h-4 w-4" />
-              맨 앞으로 가져오기
-            </button>
-            <button
-              type="button"
-              onClick={() => moveLayer(elementId, "backward")}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <ArrowUpToLine className="h-4 w-4" />
-              뒤로 보내기
-            </button>
-            <button
-              type="button"
-              onClick={() => moveLayer(elementId, "back")}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <ChevronsDown className="h-4 w-4" />
-              맨 뒤로 보내기
-            </button>
+            {layerPanelItems.map(({ direction, label, Icon }) => (
+              <button
+                key={direction}
+                type="button"
+                onClick={() => moveLayer(elementId, direction)}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -232,7 +232,7 @@ const ElementToolbars = ({
     updateLineByLengthAndAngle(element.id, length, angleRad, element.start);
   };
 
-  // AAC 카드도 기본 shapeToolbar를 표시하고, 추가로 aacToolbar도 함께 표시
+  // AAC 카드는 도형 툴바와 AAC 툴바를 함께 보여 동일한 편집 진입점을 유지한다.
   const showShapeToolbar = !!shapeToolbarData;
 
   return (

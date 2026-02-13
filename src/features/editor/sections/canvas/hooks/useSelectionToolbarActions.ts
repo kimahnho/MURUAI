@@ -26,6 +26,8 @@ export const useSelectionToolbarActions = ({
 }: SelectionToolbarActionsParams) => {
   const handleMultiColorChange = (nextColor: string) => {
     if (!activePage) return;
+    // 다중 선택 색상 변경은 텍스트/도형 타입을 함께 처리해
+    // 툴바 입력 한 번으로 혼합 선택의 색을 통일한다.
     setPages((prevPages) =>
       updateElementsByPageId(prevPages, selectedPageId, (elements) =>
         elements.map((el) => {
@@ -59,6 +61,8 @@ export const useSelectionToolbarActions = ({
   };
 
   const handleOpenFontPanel = () => {
+    // 다중 선택의 대표 폰트 값을 먼저 패널에 주입해
+    // 사용자가 즉시 현재 상태를 인지하고 수정할 수 있게 한다.
     setSideBarMenu("font");
     setFontPanel({
       fontFamily: multiFontFamily,

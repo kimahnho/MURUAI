@@ -105,6 +105,8 @@ export const useImageFillSubscription = ({
       const labelText = state.label?.trim();
 
       if (activeSelectedIds.length === 0) {
+        // 강제 삽입 요청인데 선택된 카드가 없으면 새 이미지를 생성해
+        // 입력 의도를 버리지 않고 바로 편집 가능한 상태로 전환한다.
         const newElementId = `element-${Date.now()}-${Math.random()
           .toString(36)
           .substring(2, 9)}`;
@@ -189,7 +191,8 @@ export const useImageFillSubscription = ({
             }
             if (element.locked) return element;
             hasChanges = true;
-            // 기존 imageBox가 없으면 "채우기(cover)" 방식으로 계산
+            // imageBox가 없는 레거시 요소도 동일한 cover 규칙을 적용해
+            // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
             const baseImageBox = element.imageBox ??
               calculateCoverImageBox(element.w, element.h, state.width, state.height);
             const borderWidth =

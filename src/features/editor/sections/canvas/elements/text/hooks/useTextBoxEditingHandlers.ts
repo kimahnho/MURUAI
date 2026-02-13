@@ -36,16 +36,16 @@ type BeginEditingEvent =
   | ReactPointerEvent<HTMLDivElement>
   | ReactMouseEvent<HTMLDivElement>;
 
-// Check if a point is within the toolbar area
+// 텍스트 편집 blur 시 툴바 클릭을 "편집 유지"로 처리하기 위해
+// 현재 포인터가 툴바 영역에 있는지 판별한다.
 const isPointInToolbar = (x: number, y: number): boolean => {
   const toolbarRoot = document.getElementById("text-toolbar-root");
   const toolbarElements = document.querySelectorAll("[data-textbox-toolbar]");
 
-  // Check toolbar root
   if (toolbarRoot) {
     const rect = toolbarRoot.getBoundingClientRect();
     if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-      // Also check if there's actual content (not just the container)
+      // 툴바 루트만 있는 빈 상태를 제외하기 위해 실제 인터랙션 가능한 자식만 검사한다.
       const children = toolbarRoot.querySelectorAll(".pointer-events-auto");
       for (const child of children) {
         const childRect = child.getBoundingClientRect();
@@ -56,7 +56,6 @@ const isPointInToolbar = (x: number, y: number): boolean => {
     }
   }
 
-  // Check direct toolbar elements
   for (const el of toolbarElements) {
     const rect = el.getBoundingClientRect();
     if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
@@ -84,9 +83,11 @@ export const useTextBoxEditingHandlers = ({
   isComposingRef,
   editableRef,
 }: UseTextBoxEditingHandlersProps) => {
-  // Selection snapshot for restoring after toolbar actions
+  // 툴바 클릭으로 편집 영역 포커스가 잠깐 이동해도
+  // 선택 범위를 복원할 수 있도록 마지막 Range를 보관한다.
   const savedRangeRef = useRef<Range | null>(null);
-  // Track mouse position for blur detection
+  // blur 이벤트의 relatedTarget이 비어 있는 브라우저 케이스를 보완하기 위해
+  // 최신 포인터 위치를 함께 추적한다.
   const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const restoreSelection = () => {
@@ -97,7 +98,6 @@ export const useTextBoxEditingHandlers = ({
     }
   };
 
-  // Track mouse position and auto-save selection when it changes
   useEffect(() => {
     if (!isEditing) return;
 
@@ -113,7 +113,7 @@ export const useTextBoxEditingHandlers = ({
       const editableNode = editableRef.current;
       if (!editableNode) return;
 
-      // Only save if selection is within the editable element
+      // 외부 영역 선택은 복원 대상이 아니므로 편집 노드 내부 선택만 저장한다.
       if (editableNode.contains(range.commonAncestorContainer)) {
         savedRangeRef.current = range.cloneRange();
       }
@@ -132,7 +132,7 @@ export const useTextBoxEditingHandlers = ({
     options?: BeginEditingOptions
   ) => {
     if (!editable || locked) return;
-    // Allow native selection when requested.
+    // 리사이즈 핸들 등에서 기본 selection 동작이 필요한 경우를 위해 옵션으로 분기한다.
     if (!options?.allowDefault) {
       event.preventDefault();
     }
@@ -142,26 +142,23 @@ export const useTextBoxEditingHandlers = ({
     if (!isSelected || shouldResetSelection) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
-    // Enter editing without selecting all text.
     onStartEditing?.();
   };
 
   const applyStyleToSelection = (command: string, value?: string) => {
     if (!isEditing) return;
 
-    // Restore selection if it was lost (e.g., due to toolbar click)
+    // 툴바 클릭 후 selection이 사라진 경우를 복원해 스타일 적용 대상을 유지한다.
     restoreSelection();
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
-    // Check if there's an actual selection (not just cursor)
     const hasSelection = !selection.isCollapsed;
 
     document.execCommand(command, false, value);
 
-    // After execCommand, save the new selection state
-    // (DOM may have changed, so we need to capture the new range)
+    // execCommand 이후 DOM 구조가 바뀔 수 있어 최신 range를 다시 저장한다.
     if (hasSelection && selection.rangeCount > 0) {
       savedRangeRef.current = selection.getRangeAt(0).cloneRange();
     }
@@ -216,7 +213,6 @@ export const useTextBoxEditingHandlers = ({
 
   const handleFontSizeChange = (size: number) => {
     if (isEditing) {
-      // Restore selection if it was lost (e.g., due to toolbar click)
       restoreSelection();
 
       const selection = window.getSelection();
@@ -235,13 +231,11 @@ export const useTextBoxEditingHandlers = ({
       span.style.fontSize = `${size}px`;
       range.surroundContents(span);
 
-      // Select the contents of the new span to maintain selection
       const newRange = document.createRange();
       newRange.selectNodeContents(span);
       selection.removeAllRanges();
       selection.addRange(newRange);
 
-      // Save the new selection state
       savedRangeRef.current = newRange.cloneRange();
 
       const editableNode = editableRef.current;
@@ -291,10 +285,8 @@ export const useTextBoxEditingHandlers = ({
   const handleEditingBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
 
-    // Check if mouse is over toolbar area using tracked position
     const { x, y } = mousePositionRef.current;
     if (isPointInToolbar(x, y)) {
-      // Mouse is over toolbar, refocus and maintain editing mode
       requestAnimationFrame(() => {
         editableRef.current?.focus();
         restoreSelection();
@@ -302,7 +294,6 @@ export const useTextBoxEditingHandlers = ({
       return;
     }
 
-    // Check if focus is moving to toolbar area - if so, don't finish editing
     const relatedTarget = event.relatedTarget as HTMLElement | null;
     if (relatedTarget) {
       const isToolbarClick =
@@ -317,7 +308,6 @@ export const useTextBoxEditingHandlers = ({
       }
     }
 
-    // If relatedTarget is null, check if activeElement is within toolbar
     const activeElement = document.activeElement as HTMLElement | null;
     if (activeElement) {
       const isToolbarActive =
@@ -354,18 +344,18 @@ export const useTextBoxEditingHandlers = ({
   };
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
-    // Skip key handling during IME composition.
+    // IME 조합 중에는 키 입력을 가로채면 한글 조합이 깨질 수 있어 무시한다.
     if (event.nativeEvent.isComposing || isComposingRef.current) {
       return;
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "u") {
-      // Prevent underline shortcuts while editing.
+      // 툴바 상태와 충돌을 막기 위해 기본 underline 단축키를 차단한다.
       event.preventDefault();
     }
   };
 
   const handlePaste: ClipboardEventHandler<HTMLDivElement> = (event) => {
-    // Sanitize paste: insert text/plain only.
+    // 외부 스타일이 유입되면 툴바 상태와 DOM이 어긋나므로 텍스트만 붙여넣는다.
     event.preventDefault();
     event.stopPropagation();
     const pastedText = event.clipboardData?.getData("text/plain") ?? "";

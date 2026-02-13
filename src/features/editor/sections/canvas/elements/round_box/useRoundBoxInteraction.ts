@@ -189,6 +189,7 @@ export const useRoundBoxInteraction = ({
           }
 
           if (handle.length === 2) {
+            // 코너 핸들은 축비율을 유지해 이미지 박스가 찌그러지지 않게 한다.
             const scaleX = nextW / startBox.w;
             const scaleY = nextH / startBox.h;
             const uniformScale =
@@ -234,6 +235,7 @@ export const useRoundBoxInteraction = ({
         const aspectRatio = startRect.width / startRect.height;
 
         if (isShiftPressed && isCornerHandle) {
+          // Shift+코너 리사이즈는 원본 비율을 보존해 도형 스케일만 바뀌도록 한다.
           if (handle.includes("e")) {
             nextWidth = startRect.width + dx;
           }
@@ -325,6 +327,8 @@ export const useRoundBoxInteraction = ({
         onRectChange?.(nextRect);
       },
       onEnd: (moved) => {
+        // 다중 선택된 도형을 드래그하려다 이동이 없으면 클릭으로 간주해
+        // 단일 선택으로 전환한다.
         if (!moved && shouldSelectOnClickOnly) {
           onSelectChange?.(true);
         }

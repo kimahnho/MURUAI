@@ -31,6 +31,7 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
   const manualSaveRef = useRef<(() => void) | null>(null);
 
+  // 외부에서 최신 canvas getter를 등록해 저장 시 오래된 스냅샷 사용을 피한다.
   const registerCanvasGetter = useCallback((getter: () => CanvasDocument) => {
     canvasGetterRef.current = getter;
   }, []);
@@ -51,6 +52,7 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   }, []);
 
   const handleSave = useCallback(async () => {
+    // 자동저장 훅이 수동 저장 함수를 등록한 경우 저장 경로를 일원화한다.
     if (manualSaveRef.current) {
       manualSaveRef.current();
       return;

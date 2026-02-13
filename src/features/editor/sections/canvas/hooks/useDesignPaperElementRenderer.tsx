@@ -121,6 +121,7 @@ export const useDesignPaperElementRenderer = ({
   mmToPx,
 }: UseDesignPaperElementRendererParams) => {
   const renderTextElement = (element: TextElement) => {
+    // 단일 선택일 때만 텍스트 툴바를 노출해 다중 선택 조작과 충돌을 막는다.
     const showToolbar =
       selectedIds[0] === element.id && selectedIds.length === 1;
     const isEditing = editingTextId === element.id;
@@ -246,6 +247,7 @@ export const useDesignPaperElementRenderer = ({
     const isShapeTextEditing = editingShapeTextId === element.id;
 
     const getLatestTransform = () => {
+      // 회전/플립 액션은 최신 transform을 기준으로 누적해야 역방향 점프가 생기지 않는다.
       const latest = elements.find((el) => el.id === element.id) ?? element;
       return "transform" in latest ? (latest.transform ?? {}) : {};
     };
@@ -380,6 +382,7 @@ export const useDesignPaperElementRenderer = ({
       onRotateCW: handleRotateCW,
       onRotateCCW: handleRotateCCW,
     };
+    // line/arrow는 동일 인터랙션 계약을 공유하므로 공통 props를 재사용한다.
     return element.type === "line" ? (
       <Line key={element.id} {...sharedProps} />
     ) : (
