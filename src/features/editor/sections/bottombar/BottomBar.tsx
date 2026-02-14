@@ -10,10 +10,9 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  Fragment,
-  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
@@ -119,7 +118,7 @@ const PageThumbnail = ({
           onClick={() => {
             onSelect(page.id);
           }}
-          className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
+          className={`relative box-border flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
             isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
           } ${
             isSelected
@@ -252,7 +251,7 @@ const AddPageButton = ({ onAdd }: AddPageButtonProps) => (
   >
     <button
       onClick={onAdd}
-      className="flex flex-col items-center justify-center w-16 h-22.5 rounded-lg border-2 border-dashed border-black-30 hover:border-primary hover:bg-primary/5 transition cursor-pointer"
+      className="flex box-border flex-col items-center justify-center w-16 h-22.5 rounded-lg border-2 border-dashed border-black-30 hover:border-primary hover:bg-primary/5 transition cursor-pointer"
     >
       <Plus className="w-5 h-5 text-black-60" />
     </button>
@@ -415,18 +414,14 @@ const BottomBar = ({
   }, [pages]);
 
   const itemWidths = useMemo(() => items.map((item) => item.width), [items]);
-  const { itemOffsets, totalWidth } = useMemo(() => {
+  const itemOffsets = useMemo(() => {
     const offsets: number[] = [];
     let offset = 0;
     for (let i = 0; i < itemWidths.length; i += 1) {
       offsets.push(offset);
       offset += itemWidths[i] + ITEM_GAP_PX;
     }
-    return {
-      itemOffsets: offsets,
-      totalWidth:
-        itemWidths.length > 0 ? offset - ITEM_GAP_PX : 0,
-    };
+    return offsets;
   }, [itemWidths]);
 
   const selectedItemIndex = useMemo(() => {
@@ -451,7 +446,6 @@ const BottomBar = ({
     addButtonIndex,
     itemOffsets,
     itemWidths,
-    totalWidth,
     isSelectedLastPage,
   });
   const { createDragHandlers } = useBottomBarDrag({
@@ -489,75 +483,58 @@ const BottomBar = ({
       setContextMenu({ pageId, ...position });
     };
 
-  const [visibleRange, setVisibleRange] = useState({
-    start: 0,
-    end: Math.max(0, items.length - 1),
-  });
-
-  const updateVisibleRange = useCallback(() => {
-    const scroller = listRef.current;
-    if (!scroller || items.length === 0) {
-      setVisibleRange({ start: 0, end: -1 });
-      return;
-    }
-    const scrollLeft = scroller.scrollLeft;
-    const viewportRight = scrollLeft + scroller.clientWidth;
-    let start = 0;
-    while (
-      start < items.length &&
-      itemOffsets[start] + itemWidths[start] < scrollLeft
-    ) {
-      start += 1;
-    }
-    let end = start;
-    while (end < items.length && itemOffsets[end] < viewportRight) {
-      end += 1;
-    }
-    end = Math.max(start, end - 1);
-    const buffer = 3;
-    // 스크롤 경계 근처 항목을 미리 렌더링해 빠른 스크롤 시 빈 구간이 보이는 현상을 줄인다.
-    const nextStart = Math.max(0, start - buffer);
-    const nextEnd = Math.min(items.length - 1, end + buffer);
-    setVisibleRange((prev) =>
-      prev.start === nextStart && prev.end === nextEnd
-        ? prev
-        : { start: nextStart, end: nextEnd },
-    );
-  }, [items.length, itemOffsets, itemWidths, listRef]);
-
-  useEffect(() => {
-    updateVisibleRange();
-  }, [items, updateVisibleRange]);
-
-  useEffect(() => {
-    const handleResize = () => updateVisibleRange();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [updateVisibleRange]);
-
-  const leftPadding =
-    items.length > 0 ? itemOffsets[visibleRange.start] ?? 0 : 0;
-  const endOffset =
-    items.length > 0 && visibleRange.end >= 0
-      ? (itemOffsets[visibleRange.end] ?? 0) +
-        (itemWidths[visibleRange.end] ?? 0)
-      : 0;
-  const rightPadding = Math.max(0, totalWidth - endOffset);
-  const visibleItems =
-    visibleRange.end >= visibleRange.start
-      ? items.slice(visibleRange.start, visibleRange.end + 1)
-      : [];
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!onVisiblePageIdsChange) return;
-    // 현재 뷰포트에 보이는 페이지 ID를 상위로 전달해 페이지 스왑 최적화에 사용한다.
-    const ids = visibleItems
-      .filter((item) => item.type === "page")
-      .map((item) => item.page.id);
-    onVisiblePageIdsChange(ids);
-  }, [onVisiblePageIdsChange, visibleItems]);
+    const scroller = listRef.current;
+    if (!scroller || items.length === 0) {
+      onVisiblePageIdsChange([]);
+      return;
+    }
+
+    const computeVisiblePageIds = () => {
+      const scrollLeft = scroller.scrollLeft;
+      const viewportRight = scrollLeft + scroller.clientWidth;
+      const buffer = 16;
+      const ids: string[] = [];
+
+      items.forEach((item, index) => {
+        if (item.type !== "page") return;
+        const left = itemOffsets[index] ?? 0;
+        const right = left + (itemWidths[index] ?? 0);
+        if (right >= scrollLeft - buffer && left <= viewportRight + buffer) {
+          ids.push(item.page.id);
+        }
+      });
+      onVisiblePageIdsChange(ids);
+    };
+
+    const scheduleVisibleUpdate = () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        computeVisiblePageIds();
+      });
+    };
+
+    computeVisiblePageIds();
+    scroller.addEventListener("scroll", scheduleVisibleUpdate, {
+      passive: true,
+    });
+    window.addEventListener("resize", scheduleVisibleUpdate);
+
+    return () => {
+      scroller.removeEventListener("scroll", scheduleVisibleUpdate);
+      window.removeEventListener("resize", scheduleVisibleUpdate);
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [items, itemOffsets, itemWidths, listRef, onVisiblePageIdsChange]);
 
   return (
     <div
@@ -574,15 +551,12 @@ const BottomBar = ({
       <div
         ref={listRef}
         className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden"
-        style={{ paddingLeft: `${leftPadding}px`, paddingRight: `${rightPadding}px` }}
-        onScroll={updateVisibleRange}
       >
-        {/* 페이지 썸네일/삽입 구분선/추가 버튼을 같은 가상 리스트로 렌더링한다. */}
-        {visibleItems.map((item) => {
+        {items.map((item) => {
           if (item.type === "page") {
             const index = item.pageIndex;
             return (
-              <Fragment key={item.key}>
+              <div key={item.key}>
                 <PageThumbnail
                   page={item.page}
                   isSelected={selectedPageId === item.page.id}
@@ -595,7 +569,7 @@ const BottomBar = ({
                   onContextMenu={handlePageContextMenu(item.page.id)}
                   dragHandlers={createDragHandlers(item.page.id)}
                 />
-              </Fragment>
+              </div>
             );
           }
           if (item.type === "divider") {
