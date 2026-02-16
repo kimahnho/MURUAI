@@ -14,6 +14,7 @@ import { updatePageById } from "../../../utils/pageMutation";
 
 const AAC_CARD_PREFIX = "aac-card-";
 const AAC_LABEL_PREFIX = "aac-label-";
+const EMOTION_CARD_PREFIX = "emotion";
 const AAC_BORDER_COLOR = "#E5E7EB";
 const AAC_BORDER_WIDTH = 2;
 const AAC_IMAGEBOX_TOLERANCE = 2;
@@ -62,6 +63,8 @@ export const buildAacIndex = (elements: CanvasElement[]) => {
       return;
     }
     const tempId = getTempId(element);
+    // 감정 카드 tempId를 가진 요소는 AAC 판별에서 제외한다.
+    if (tempId?.startsWith(EMOTION_CARD_PREFIX)) return;
     const isExplicitAac = tempId?.startsWith(AAC_CARD_PREFIX);
     const hasLinkedAacLabel =
       Boolean(element.labelId) && aacLabelIds.has(element.labelId ?? "");

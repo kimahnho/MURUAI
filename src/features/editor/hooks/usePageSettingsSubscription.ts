@@ -44,13 +44,24 @@ export const usePageSettingsSubscription = ({
       const request = state.request;
       if (!request) return;
       const activePageId = selectedPageIdRef.current;
-      setPages((prevPages) =>
-        updatePageById(prevPages, activePageId, (page) => ({
-          ...page,
-          ...(request.background ? { background: request.background } : {}),
-          ...(request.numbering ? { numbering: request.numbering } : {}),
-        })),
-      );
+      setPages((prevPages) => {
+        let nextPages = prevPages;
+        // 배경은 활성 페이지에만 적용한다.
+        if (request.background) {
+          nextPages = updatePageById(nextPages, activePageId, (page) => ({
+            ...page,
+            background: request.background,
+          }));
+        }
+        // 넘버링은 전체 페이지에 일괄 적용한다.
+        if (request.numbering) {
+          nextPages = nextPages.map((page) => ({
+            ...page,
+            numbering: request.numbering,
+          }));
+        }
+        return nextPages;
+      });
     },
     deps: [selectedPageIdRef, setPages],
   });

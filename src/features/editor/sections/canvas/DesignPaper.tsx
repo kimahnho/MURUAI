@@ -266,6 +266,27 @@ const DesignPaper = ({
     findEmotionLabelId,
   });
 
+  const {
+    moveElement,
+    groupSelectedElements,
+    ungroupSelectedElements,
+    deleteElementById,
+    deleteSelectedElements,
+    handleDeleteSelectionKeyDown,
+  } = useDesignPaperActions({
+    elements,
+    selectedIds,
+    readOnly,
+    editingTextId,
+    editingImageId,
+    onElementsChange,
+    onSelectedIdsChange,
+    onEditingTextIdChange,
+    setEditingImageId,
+    setContextMenu,
+    selectedIdsRef,
+  });
+
   useDesignPaperKeyboard({
     readOnly,
     editingTextId,
@@ -279,6 +300,7 @@ const DesignPaper = ({
     clearContextMenu,
     clearEmotionSlotImage,
     copySelectedElements,
+    deleteSelectedElements,
     pasteElements,
     getClipboard,
     smartGuides,
@@ -347,27 +369,6 @@ const DesignPaper = ({
       updateElement,
       onInteractionChange,
     });
-
-  const {
-    moveElement,
-    groupSelectedElements,
-    ungroupSelectedElements,
-    deleteElementById,
-    deleteSelectedElements,
-    handleDeleteSelectionKeyDown,
-  } = useDesignPaperActions({
-    elements,
-    selectedIds,
-    readOnly,
-    editingTextId,
-    editingImageId,
-    onElementsChange,
-    onSelectedIdsChange,
-    onEditingTextIdChange,
-    setEditingImageId,
-    setContextMenu,
-    selectedIdsRef,
-  });
 
   const {
     isGroupedSelection,
