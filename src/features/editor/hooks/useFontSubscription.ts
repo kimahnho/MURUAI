@@ -7,6 +7,7 @@ import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 import { updateElementsByPageId } from "../utils/pageMutation";
+import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 
 type FontSubscriptionParams = {
   selectedPageIdRef: ReadonlyRef<string>;
@@ -39,6 +40,10 @@ export const useFontSubscription = ({
               return element;
             }
             if (element.type === "text") {
+              const nextRichText =
+                payload.fontFamily && element.richText
+                  ? stripStyleTags(element.richText, "fontFamily")
+                  : undefined;
               return {
                 ...element,
                 style: {
@@ -48,6 +53,7 @@ export const useFontSubscription = ({
                     ? { fontWeight: payload.fontWeight }
                     : {}),
                 },
+                ...(nextRichText != null ? { richText: nextRichText } : {}),
               };
             }
             if (

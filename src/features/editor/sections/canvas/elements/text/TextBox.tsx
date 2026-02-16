@@ -153,7 +153,15 @@ const TextBox = ({
     handleToggleItalic,
     handleToggleStrikethrough,
     handleColorChange,
-    handleFontSizeChange,
+    handleFontSizeStep,
+    handleFontSizeTypeStart,
+    handleFontSizeTypeCommit,
+    handleFontSizeTypeCancel,
+    handleFontSizeTypingDigit,
+    handleFontSizeTypingBackspace,
+    handleToolbarPointerDown,
+    fontSizeUiState,
+    fontSizeTypingState,
   } = useTextBoxEditingHandlers({
     editable,
     locked,
@@ -337,7 +345,7 @@ const TextBox = ({
             event.stopPropagation();
           }}
           // 편집 모드에서 텍스트 선택을 보장한다.
-          className={`w-full select-text outline-none no-text-underline ${textClassName}`}
+          className={`w-full select-text outline-none no-text-underline textbox-force-font-family ${textClassName}`}
           style={{
             ...textStyle,
             textAlign,
@@ -351,7 +359,7 @@ const TextBox = ({
       ) : (
         <div
           data-textbox-content="true"
-          className={`block w-full pointer-events-none ${textClassName}`}
+          className={`block w-full pointer-events-none textbox-force-font-family ${textClassName}`}
           style={{
             ...textStyle,
             textAlign,
@@ -392,10 +400,16 @@ const TextBox = ({
             <div
               data-textbox-toolbar="true"
               className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
+              onPointerDownCapture={() => {
+                handleToolbarPointerDown();
+              }}
               onMouseDown={(event) => {
                 // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
                 const target = event.target as HTMLElement;
-                if (target.tagName !== "INPUT") {
+                const isFocusableInput =
+                  target.tagName === "INPUT" &&
+                  target.getAttribute("data-fontsize-readonly") !== "true";
+                if (!isFocusableInput) {
                   event.preventDefault();
                 }
               }}
@@ -405,6 +419,8 @@ const TextBox = ({
                 minFontSize={toolbar.minFontSize}
                 maxFontSize={toolbar.maxFontSize}
                 fontSize={toolbar.fontSize}
+                fontSizeDisplay={fontSizeUiState.displayValue}
+                isFontSizeMixed={fontSizeUiState.isMixed}
                 fontFamily={toolbar.fontFamily}
                 fontLabel={toolbar.fontLabel}
                 lineHeight={toolbar.lineHeight}
@@ -416,10 +432,14 @@ const TextBox = ({
                 isStrikethrough={toolbar.isStrikethrough}
                 align={toolbar.align}
                 alignY={toolbar.alignY}
-                onFontSizeChange={handleFontSizeChange}
-                onFontSizeStep={(delta) => {
-                  handleFontSizeChange(toolbar.fontSize + delta);
-                }}
+                onFontSizeStep={handleFontSizeStep}
+                onFontSizeTypingStart={handleFontSizeTypeStart}
+                onFontSizeTypingDigit={handleFontSizeTypingDigit}
+                onFontSizeTypingBackspace={handleFontSizeTypingBackspace}
+                onFontSizeTypingCommit={handleFontSizeTypeCommit}
+                onFontSizeTypingCancel={handleFontSizeTypeCancel}
+                fontSizeTypingActive={fontSizeTypingState.active}
+                fontSizeTypingBuffer={fontSizeTypingState.buffer}
                 onLineHeightChange={toolbar.onLineHeightChange}
                 onLetterSpacingChange={toolbar.onLetterSpacingChange}
                 onColorChange={handleColorChange}
@@ -430,9 +450,6 @@ const TextBox = ({
                 onToggleStrikethrough={handleToggleStrikethrough}
                 onAlignChange={toolbar.onAlignChange}
                 onAlignYChange={toolbar.onAlignYChange}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
               />
             </div>,
             toolbarPortal,
@@ -441,10 +458,16 @@ const TextBox = ({
           <div
             data-textbox-toolbar="true"
             className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
+            onPointerDownCapture={() => {
+              handleToolbarPointerDown();
+            }}
             onMouseDown={(event) => {
               // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
               const target = event.target as HTMLElement;
-              if (target.tagName !== "INPUT") {
+              const isFocusableInput =
+                target.tagName === "INPUT" &&
+                target.getAttribute("data-fontsize-readonly") !== "true";
+              if (!isFocusableInput) {
                 event.preventDefault();
               }
             }}
@@ -454,6 +477,8 @@ const TextBox = ({
               minFontSize={toolbar.minFontSize}
               maxFontSize={toolbar.maxFontSize}
               fontSize={toolbar.fontSize}
+              fontSizeDisplay={fontSizeUiState.displayValue}
+              isFontSizeMixed={fontSizeUiState.isMixed}
               fontFamily={toolbar.fontFamily}
               fontLabel={toolbar.fontLabel}
               lineHeight={toolbar.lineHeight}
@@ -465,10 +490,14 @@ const TextBox = ({
               isStrikethrough={toolbar.isStrikethrough}
               align={toolbar.align}
               alignY={toolbar.alignY}
-              onFontSizeChange={handleFontSizeChange}
-              onFontSizeStep={(delta) => {
-                handleFontSizeChange(toolbar.fontSize + delta);
-              }}
+              onFontSizeStep={handleFontSizeStep}
+              onFontSizeTypingStart={handleFontSizeTypeStart}
+              onFontSizeTypingDigit={handleFontSizeTypingDigit}
+              onFontSizeTypingBackspace={handleFontSizeTypingBackspace}
+              onFontSizeTypingCommit={handleFontSizeTypeCommit}
+              onFontSizeTypingCancel={handleFontSizeTypeCancel}
+              fontSizeTypingActive={fontSizeTypingState.active}
+              fontSizeTypingBuffer={fontSizeTypingState.buffer}
               onLineHeightChange={toolbar.onLineHeightChange}
               onLetterSpacingChange={toolbar.onLetterSpacingChange}
               onColorChange={handleColorChange}
@@ -479,9 +508,6 @@ const TextBox = ({
               onToggleStrikethrough={handleToggleStrikethrough}
               onAlignChange={toolbar.onAlignChange}
               onAlignYChange={toolbar.onAlignYChange}
-              onPointerDown={(event) => {
-                event.stopPropagation();
-              }}
             />
           </div>
         ))}
