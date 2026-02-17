@@ -39,7 +39,7 @@ export const useTextBoxAutoResize = ({
   richText,
   text,
   styleSignature,
-  rectRef,
+  rectRef: _rectRef,
   editableRef,
   measureRef,
   boxRef,
@@ -48,14 +48,41 @@ export const useTextBoxAutoResize = ({
   // 요소 기준 폭 모드에서 캔버스 경계 도달 여부를 추적한다.
   const hasReachedBoundaryRef = useRef(false);
   const wasMultiLineRef = useRef(false);
+  const lastEmittedRectRef = useRef<Rect | null>(null);
+  const lastMeasureKeyRef = useRef("");
+  const onRectChangeRef = useRef(onRectChange);
 
   useEffect(() => {
-    if (!onRectChange) return;
+    onRectChangeRef.current = onRectChange;
+  }, [onRectChange]);
+
+  const isRectClose = (a: Rect, b: Rect) =>
+    Math.abs(a.x - b.x) <= 0.25 &&
+    Math.abs(a.y - b.y) <= 0.25 &&
+    Math.abs(a.width - b.width) <= 0.25 &&
+    Math.abs(a.height - b.height) <= 0.25;
+  const rectWidth = rect.width;
+
+  useEffect(() => {
+    if (!onRectChangeRef.current) return;
     if (isResizingRef.current) return;
+    const measureKey = `${widthMode}|${styleSignature}|${isEditing ? 1 : 0}|${text}|${richText ?? ""}`;
+    if (lastMeasureKeyRef.current !== measureKey) {
+      lastMeasureKeyRef.current = measureKey;
+      lastEmittedRectRef.current = null;
+      hasReachedBoundaryRef.current = false;
+      wasMultiLineRef.current = false;
+    }
     const measure = measureRef.current;
     if (!measure) return;
     const editableNode = editableRef.current;
-    const currentRect = rectRef.current ?? rect;
+    const currentRect = rect;
+    if (
+      lastEmittedRectRef.current &&
+      isRectClose(currentRect, lastEmittedRectRef.current)
+    ) {
+      return;
+    }
     const rectWidth = currentRect.width;
     const rectHeight = currentRect.height;
     const maxWidth = boxRef.current?.parentElement?.clientWidth ?? rectWidth;
@@ -84,6 +111,14 @@ export const useTextBoxAutoResize = ({
       setMeasureContent();
       const widthBuffer = 4;
       return Math.ceil(measure.scrollWidth) + widthBuffer;
+    };
+    const emitRectChange = (nextRect: Rect) => {
+      if (isRectClose(nextRect, currentRect)) return;
+      if (lastEmittedRectRef.current && isRectClose(nextRect, lastEmittedRectRef.current)) {
+        return;
+      }
+      lastEmittedRectRef.current = nextRect;
+      onRectChangeRef.current?.(nextRect);
     };
 
     // 요소 기준 폭 모드: 너비 고정, 캔버스 경계 도달 시에만 줄바꿈 계산
@@ -118,7 +153,7 @@ export const useTextBoxAutoResize = ({
               : textAlign === "center"
               ? currentRect.x - widthDelta / 2
               : currentRect.x;
-          onRectChange({
+          emitRectChange({
             ...currentRect,
             x: newX,
             width: maxAllowedWidth,
@@ -139,7 +174,7 @@ export const useTextBoxAutoResize = ({
         });
         const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
         if (heightChanged) {
-          onRectChange({
+          emitRectChange({
             ...currentRect,
             height: targetHeight,
           });
@@ -163,7 +198,7 @@ export const useTextBoxAutoResize = ({
         });
         const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
         if (heightChanged) {
-          onRectChange({
+          emitRectChange({
             ...currentRect,
             height: targetHeight,
           });
@@ -194,7 +229,7 @@ export const useTextBoxAutoResize = ({
               : textAlign === "center"
               ? currentRect.x - widthDelta / 2
               : currentRect.x;
-          onRectChange({
+          emitRectChange({
             ...currentRect,
             x: newX,
             width: targetWidth,
@@ -223,7 +258,7 @@ export const useTextBoxAutoResize = ({
             : textAlign === "center"
             ? currentRect.x - widthDelta / 2
             : currentRect.x;
-        onRectChange({
+        emitRectChange({
           ...currentRect,
           x: newX,
           width: targetWidth,
@@ -251,7 +286,7 @@ export const useTextBoxAutoResize = ({
       });
       const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
       if (heightChanged) {
-        onRectChange({
+        emitRectChange({
           ...currentRect,
           height: targetHeight,
         });
@@ -263,8 +298,7 @@ export const useTextBoxAutoResize = ({
     widthMode,
     minHeight,
     minWidth,
-    onRectChange,
-    rect,
+    rectWidth,
     richText,
     styleSignature,
     text,
@@ -273,6 +307,5 @@ export const useTextBoxAutoResize = ({
     editableRef,
     isResizingRef,
     measureRef,
-    rectRef,
   ]);
 };

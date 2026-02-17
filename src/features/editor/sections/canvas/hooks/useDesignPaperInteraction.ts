@@ -9,8 +9,7 @@ import type {
   LineElement,
   ResizeHandle,
 } from "../../../model/canvasTypes";
-import type { Rect } from "../../../utils/designPaperUtils";
-import { isEmotionSlotShape } from "../../../utils/designPaperUtils";
+import { RECT_TOLERANCE, isEmotionSlotShape, isSameRect, type Rect } from "../../../utils/designPaperUtils";
 import { computeScaledImageBox, isImageFillElement } from "../../../utils/imageBoxScaling";
 import {
   computeGroupRectFromDeltas,
@@ -166,6 +165,24 @@ export const useDesignPaperInteraction = ({
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
       const targetElement = getElementById(elementId);
+      if (targetElement?.type === "text" && isSameRect(nextRect, targetElement)) {
+        return;
+      }
+      if (
+        targetElement &&
+        (targetElement.type === "rect" ||
+          targetElement.type === "roundRect" ||
+          targetElement.type === "ellipse")
+      ) {
+        const isSameShapeRect =
+          Math.abs(nextRect.x - targetElement.x) <= RECT_TOLERANCE &&
+          Math.abs(nextRect.y - targetElement.y) <= RECT_TOLERANCE &&
+          Math.abs(nextRect.width - targetElement.w) <= RECT_TOLERANCE &&
+          Math.abs(nextRect.height - targetElement.h) <= RECT_TOLERANCE;
+        if (isSameShapeRect) {
+          return;
+        }
+      }
       const updates: Partial<ShapeElement> = {
         w: nextRect.width,
         h: nextRect.height,

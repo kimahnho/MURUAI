@@ -6,7 +6,7 @@ import { useFontStore } from "../store/fontStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
-import { updateElementsByPageId } from "../utils/pageMutation";
+import { bumpPageRevision } from "../utils/pageRevision";
 import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 
 type FontSubscriptionParams = {
@@ -33,53 +33,91 @@ export const useFontSubscription = ({
 
       // 텍스트 요소와 도형 내 텍스트 스타일을 같은 요청으로 맞춰
       // 혼합 선택에서도 폰트 패널 동작이 일관되게 보이도록 한다.
-      setPages((prevPages) =>
-        updateElementsByPageId(prevPages, activePageId, (elements) =>
-          elements.map((element) => {
-            if (element.locked || !targetIds.includes(element.id)) {
+      setPages((prevPages) => {
+        const pageIndex = prevPages.findIndex((page) => page.id === activePageId);
+        if (pageIndex < 0) return prevPages;
+
+        const page = prevPages[pageIndex];
+        let didChange = false;
+
+        const nextElements = page.elements.map((element) => {
+          if (element.locked || !targetIds.includes(element.id)) {
+            return element;
+          }
+
+          if (element.type === "text") {
+            const nextFontFamily = payload.fontFamily ?? element.style.fontFamily;
+            const nextFontWeight =
+              payload.fontWeight != null ? payload.fontWeight : element.style.fontWeight;
+            const nextRichText =
+              payload.fontFamily && element.richText
+                ? stripStyleTags(element.richText, "fontFamily")
+                : element.richText;
+
+            const styleChanged =
+              nextFontFamily !== element.style.fontFamily ||
+              nextFontWeight !== element.style.fontWeight;
+            const richTextChanged = nextRichText !== element.richText;
+            if (!styleChanged && !richTextChanged) {
               return element;
             }
-            if (element.type === "text") {
-              const nextRichText =
-                payload.fontFamily && element.richText
-                  ? stripStyleTags(element.richText, "fontFamily")
-                  : undefined;
-              return {
-                ...element,
-                style: {
-                  ...element.style,
-                  ...(payload.fontFamily ? { fontFamily: payload.fontFamily } : {}),
-                  ...(payload.fontWeight != null
-                    ? { fontWeight: payload.fontWeight }
-                    : {}),
-                },
-                ...(nextRichText != null ? { richText: nextRichText } : {}),
-              };
+
+            didChange = true;
+            return {
+              ...element,
+              style: {
+                ...element.style,
+                fontFamily: nextFontFamily,
+                fontWeight: nextFontWeight,
+              },
+              ...(richTextChanged ? { richText: nextRichText } : {}),
+            };
+          }
+
+          if (
+            element.type === "rect" ||
+            element.type === "roundRect" ||
+            element.type === "ellipse"
+          ) {
+            const nextWeight =
+              payload.fontWeight != null
+                ? payload.fontWeight >= 700
+                  ? "bold"
+                  : "normal"
+                : element.textStyle?.fontWeight;
+            const nextFamily = payload.fontFamily ?? element.textStyle?.fontFamily;
+
+            const styleChanged =
+              nextFamily !== element.textStyle?.fontFamily ||
+              nextWeight !== element.textStyle?.fontWeight;
+
+            if (!styleChanged) {
+              return element;
             }
-            if (
-              element.type === "rect" ||
-              element.type === "roundRect" ||
-              element.type === "ellipse"
-            ) {
-              const nextWeight =
-                payload.fontWeight != null
-                  ? payload.fontWeight >= 700
-                    ? "bold"
-                    : "normal"
-                  : undefined;
-              return {
-                ...element,
-                textStyle: {
-                  ...element.textStyle,
-                  ...(payload.fontFamily ? { fontFamily: payload.fontFamily } : {}),
-                  ...(nextWeight ? { fontWeight: nextWeight } : {}),
-                },
-              };
-            }
-            return element;
-          }),
-        ),
-      );
+
+            didChange = true;
+            return {
+              ...element,
+              textStyle: {
+                ...element.textStyle,
+                ...(nextFamily != null ? { fontFamily: nextFamily } : {}),
+                ...(nextWeight != null ? { fontWeight: nextWeight } : {}),
+              },
+            };
+          }
+
+          return element;
+        });
+
+        if (!didChange) return prevPages;
+
+        const nextPages = [...prevPages];
+        nextPages[pageIndex] = bumpPageRevision({
+          ...page,
+          elements: nextElements,
+        });
+        return nextPages;
+      });
     },
     deps: [selectedPageIdRef, selectedIdsRef, setPages],
   });

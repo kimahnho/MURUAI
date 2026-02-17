@@ -62,10 +62,18 @@ export const buildAacIndex = (elements: CanvasElement[]) => {
     ) {
       return;
     }
+    // 감정 카드는 AAC 판별에서 제외한다.
+    if (
+      element.subType === "emotionSlot" ||
+      element.subType === "emotionInference"
+    ) {
+      return;
+    }
     const tempId = getTempId(element);
-    // 감정 카드 tempId를 가진 요소는 AAC 판별에서 제외한다.
+    // 기존 문서 호환: tempId 기반 감정 카드 제외
     if (tempId?.startsWith(EMOTION_CARD_PREFIX)) return;
-    const isExplicitAac = tempId?.startsWith(AAC_CARD_PREFIX);
+    const isExplicitAac =
+      element.subType === "aacCard" || tempId?.startsWith(AAC_CARD_PREFIX);
     const hasLinkedAacLabel =
       Boolean(element.labelId) && aacLabelIds.has(element.labelId ?? "");
     // 이전 문서에는 tempId/labelId가 없는 경우가 있어 외형 규칙으로 AAC 카드를 보정 판별한다.

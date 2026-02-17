@@ -153,6 +153,7 @@ export const emotionInferencePage4: Template = {
             fontWeight: "normal" as const,
             color: "#A5B4FC",
           },
+          subType: "emotionInference" as const,
           tempId: cardTempId,
           labelId: labelTempId,
         },

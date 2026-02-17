@@ -45,6 +45,28 @@ export const useElementPatchUpdater = ({
     latestElementsRef.current = elements;
   }, [elements]);
 
+  const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+
+  const deepEqual = (left: unknown, right: unknown): boolean => {
+    if (Object.is(left, right)) return true;
+    if (typeof left !== typeof right) return false;
+    if (Array.isArray(left) || Array.isArray(right)) {
+      if (!Array.isArray(left) || !Array.isArray(right)) return false;
+      if (left.length !== right.length) return false;
+      return left.every((item, index) => deepEqual(item, right[index]));
+    }
+    if (!isPlainObject(left) || !isPlainObject(right)) return false;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    return leftKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(right, key) &&
+        deepEqual(left[key], right[key]),
+    );
+  };
+
   const applyPatchToElement = (
     element: CanvasElement,
     patch: ElementPatch
@@ -115,11 +137,18 @@ export const useElementPatchUpdater = ({
     if (readOnly || !onElementsChange) return;
     // 요소 타입별 중첩 필드(style/border/stroke)는 얕은 병합으로 유실되기 쉬워 명시적 분기 병합을 수행한다.
     const baseElements = latestElementsRef.current;
+    let didChange = false;
     const nextElements = baseElements.map((element): CanvasElement => {
       if (element.id !== id) return element;
-      return applyPatchToElement(element, patch);
+      const nextElement = applyPatchToElement(element, patch);
+      if (!deepEqual(element, nextElement)) {
+        didChange = true;
+        return nextElement;
+      }
+      return element;
     });
 
+    if (!didChange) return;
     latestElementsRef.current = nextElements;
     onElementsChange(nextElements);
   };

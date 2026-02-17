@@ -82,6 +82,15 @@ export const isAacCardElement = (
   ) {
     return false;
   }
+  // 감정 카드는 AAC 판별에서 제외한다.
+  if (
+    element.subType === "emotionSlot" ||
+    element.subType === "emotionInference"
+  ) {
+    return false;
+  }
+  // subType으로 명시적 판별
+  if (element.subType === "aacCard") return true;
   // 레이블 ID가 있으면 명시적으로 연결된 AAC 카드로 본다.
   if (element.labelId !== undefined) return true;
 
@@ -138,7 +147,11 @@ export const isEmotionInferenceCard = (
   ) {
     return false;
   }
+  // subType으로 명시적 판별
+  if (element.subType === "emotionInference") return true;
+  // 기존 문서 호환: subType이 없고 labelId + border.color로 판별
   return (
+    element.subType === undefined &&
     element.labelId !== undefined &&
     element.border?.enabled === true &&
     element.border.color === "#A5B4FC"
