@@ -1,10 +1,13 @@
 /**
  * 텍스트 입력/포맷/키보드 편집 이벤트를 처리하는 텍스트 편집 훅.
+ * 편집 세션/selection/toolbar intent는 전용 controller로 위임한다.
  */
 import {
   useEffect,
   useRef,
+  useState,
   type ClipboardEventHandler,
+  type FocusEvent,
   type FormEventHandler,
   type KeyboardEventHandler,
   type MouseEvent as ReactMouseEvent,
@@ -12,8 +15,18 @@ import {
   type MutableRefObject,
   type RefObject,
 } from "react";
-import { isTextEmpty } from "../textContentUtils";
+import {
+  isTextEmpty,
+  normalizeInlineFontSizeOverrides,
+} from "../textContentUtils";
 import type { TextBoxProps } from "../textBoxTypes";
+import {
+  resolveFontSizeUiStateFromRange,
+  type FontSizeUiState,
+} from "../textSelectionSession";
+import { useTextFormattingCommands } from "./useTextFormattingCommands";
+import { useTextSelectionSession } from "./useTextSelectionSession";
+import { useToolbarFontSizeInput } from "./useToolbarFontSizeInput";
 
 type UseTextBoxEditingHandlersProps = {
   editable: boolean;
@@ -39,34 +52,14 @@ type BeginEditingEvent =
   | ReactPointerEvent<HTMLDivElement>
   | ReactMouseEvent<HTMLDivElement>;
 
-// 텍스트 편집 흐림 처리 시 툴바 클릭을 "편집 유지"로 처리하기 위해
-// 현재 포인터가 툴바 영역에 있는지 판별한다.
-const isPointInToolbar = (x: number, y: number): boolean => {
-  const toolbarRoot = document.getElementById("text-toolbar-root");
-  const toolbarElements = document.querySelectorAll("[data-textbox-toolbar]");
+const FALLBACK_FONT_SIZE = 16;
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 120;
 
-  if (toolbarRoot) {
-    const rect = toolbarRoot.getBoundingClientRect();
-    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-      // 툴바 루트만 있는 빈 상태를 제외하기 위해 실제 인터랙션 가능한 자식만 검사한다.
-      const children = toolbarRoot.querySelectorAll(".pointer-events-auto");
-      for (const child of children) {
-        const childRect = child.getBoundingClientRect();
-        if (x >= childRect.left && x <= childRect.right && y >= childRect.top && y <= childRect.bottom) {
-          return true;
-        }
-      }
-    }
-  }
-
-  for (const el of toolbarElements) {
-    const rect = el.getBoundingClientRect();
-    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-      return true;
-    }
-  }
-
-  return false;
+const clampFontSize = (size: number, toolbar?: TextBoxProps["toolbar"]) => {
+  const min = toolbar?.minFontSize ?? MIN_FONT_SIZE;
+  const max = toolbar?.maxFontSize ?? MAX_FONT_SIZE;
+  return Math.min(max, Math.max(min, size));
 };
 
 export const useTextBoxEditingHandlers = ({
@@ -86,184 +79,255 @@ export const useTextBoxEditingHandlers = ({
   isComposingRef,
   editableRef,
 }: UseTextBoxEditingHandlersProps) => {
-  // 툴바 클릭으로 편집 영역 포커스가 잠깐 이동해도
-  // 선택 범위를 복원할 수 있도록 마지막 선택 범위를 보관한다.
-  const savedRangeRef = useRef<Range | null>(null);
-  // 흐림 이벤트의 relatedTarget이 비어 있는 브라우저 케이스를 보완하기 위해
-  // 최신 포인터 위치를 함께 추적한다.
-  const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [fontSizeUiState, setFontSizeUiState] = useState<FontSizeUiState>({
+      resolvedSize: clampFontSize(toolbar?.fontSize ?? FALLBACK_FONT_SIZE, toolbar),
+      isMixed: false,
+      displayValue: String(
+        clampFontSize(toolbar?.fontSize ?? FALLBACK_FONT_SIZE, toolbar),
+      ),
+    });
 
-  const restoreSelection = () => {
-    const selection = window.getSelection();
-    if (selection && savedRangeRef.current) {
-      selection.removeAllRanges();
-      selection.addRange(savedRangeRef.current);
+  const fontSizeInputStartedInEditingRef = useRef(false);
+  const lastResolvedFontSizeRef = useRef(
+    clampFontSize(toolbar?.fontSize ?? FALLBACK_FONT_SIZE, toolbar),
+  );
+
+  const selectionSession = useTextSelectionSession({
+    isEditing,
+    editableRef,
+  });
+
+  const fallbackFontSize = clampFontSize(
+    toolbar?.fontSize ?? FALLBACK_FONT_SIZE,
+    toolbar,
+  );
+
+  const syncFontSizeUiState = () => {
+    if (!isEditing) {
+      lastResolvedFontSizeRef.current = fallbackFontSize;
+      setFontSizeUiState({
+        resolvedSize: fallbackFontSize,
+        isMixed: false,
+        displayValue: String(fallbackFontSize),
+      });
+      return;
     }
+
+    const activeElement = document.activeElement as HTMLElement | null;
+    const isToolbarInputFocused =
+      activeElement?.tagName === "INPUT" &&
+      Boolean(activeElement.closest("[data-textbox-toolbar]"));
+    if (isToolbarInputFocused) {
+      return;
+    }
+
+    const normalized = selectionSession.getSelectionRange();
+    if (!normalized) {
+      const preserved = lastResolvedFontSizeRef.current;
+      setFontSizeUiState((prev) => ({
+        resolvedSize: preserved,
+        isMixed: prev.isMixed,
+        displayValue: prev.isMixed ? "--" : String(preserved),
+      }));
+      return;
+    }
+
+    const next = resolveFontSizeUiStateFromRange({
+      range: normalized.range,
+      fallback: fallbackFontSize,
+      clamp: (value) => clampFontSize(value, toolbar),
+    });
+
+    lastResolvedFontSizeRef.current = next.resolvedSize;
+    setFontSizeUiState(next);
   };
+
+  const syncFontSizeUiStateRef = useRef(syncFontSizeUiState);
+  useEffect(() => {
+    syncFontSizeUiStateRef.current = syncFontSizeUiState;
+  });
+
+  const emitTextChange = () => {
+    const editableNode = editableRef.current;
+    if (!editableNode) return;
+    onTextChange?.(editableNode.innerText, editableNode.innerHTML);
+  };
+
+  const formattingCommands = useTextFormattingCommands({
+    isEditing,
+    editableRef,
+    fallbackFontSize,
+    clampFontSize: (value) => clampFontSize(value, toolbar),
+    selectionSession,
+    emitTextChange,
+    syncFontSizeUiState,
+  });
+  const captureSelectionIfInsideEditable =
+    selectionSession.captureSelectionIfInsideEditable;
+  const setToolbarInputActive = selectionSession.setToolbarInputActive;
 
   useEffect(() => {
     if (!isEditing) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
-      mousePositionRef.current = { x: event.clientX, y: event.clientY };
-    };
-
     const handleSelectionChange = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
-
-      const range = selection.getRangeAt(0);
-      const editableNode = editableRef.current;
-      if (!editableNode) return;
-
-      // 외부 영역 선택은 복원 대상이 아니므로 편집 노드 내부 선택만 저장한다.
-      if (editableNode.contains(range.commonAncestorContainer)) {
-        savedRangeRef.current = range.cloneRange();
-      }
+      captureSelectionIfInsideEditable();
+      syncFontSizeUiStateRef.current();
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("selectionchange", handleSelectionChange);
+    const rafId = requestAnimationFrame(() => {
+      syncFontSizeUiStateRef.current();
+    });
+
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
+      cancelAnimationFrame(rafId);
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
-  }, [isEditing, editableRef]);
+  }, [isEditing, captureSelectionIfInsideEditable]);
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      syncFontSizeUiStateRef.current();
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [isEditing, toolbar?.fontSize]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    fontSizeInputStartedInEditingRef.current = false;
+    setToolbarInputActive(false);
+  }, [isEditing, setToolbarInputActive]);
+
+  const handleToolbarInputFocus = () => {
+    if (!isEditing) return;
+    setToolbarInputActive(true);
+  };
+
+  const handleToolbarInputBlur = () => {
+    if (!isEditing) return;
+    requestAnimationFrame(() => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isToolbarInput =
+        activeElement?.tagName === "INPUT" &&
+        Boolean(activeElement.closest("[data-textbox-toolbar]"));
+      if (isToolbarInput) return;
+      setToolbarInputActive(false);
+    });
+  };
 
   const beginEditing = (
     event: BeginEditingEvent,
-    options?: BeginEditingOptions
+    options?: BeginEditingOptions,
   ) => {
     if (!editable || locked) return;
-    // 리사이즈 핸들 등에서 기본 선택 동작이 필요한 경우를 위해 옵션으로 분기한다.
+
     if (!options?.allowDefault) {
       event.preventDefault();
     }
+
     event.stopPropagation();
+
     const shouldResetSelection =
       isSelected && !event.shiftKey && selectionCount > 1;
+
     if (!isSelected || shouldResetSelection) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
+
+    selectionSession.beginEditingSession();
     onStartEditing?.();
   };
 
-  const applyStyleToSelection = (command: string, value?: string) => {
-    if (!isEditing) return;
+  const handleFontSizeCommitValue = (value: number) => {
+    const clamped = clampFontSize(value, toolbar);
+    const shouldApplyInline =
+      isEditing || fontSizeInputStartedInEditingRef.current;
 
-    // 툴바 클릭 후 선택이 사라진 경우를 복원해 스타일 적용 대상을 유지한다.
-    restoreSelection();
-
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const hasSelection = !selection.isCollapsed;
-
-    document.execCommand(command, false, value);
-
-    // execCommand 이후 DOM 구조가 바뀔 수 있어 최신 선택 범위를 다시 저장한다.
-    if (hasSelection && selection.rangeCount > 0) {
-      savedRangeRef.current = selection.getRangeAt(0).cloneRange();
+    if (shouldApplyInline) {
+      // input에서 editable로 focus가 돌아올 때 발생하는 selectionchange에서
+      // 스냅샷이 collapsed로 덮어씌워지지 않도록 toolbar intent guard를 갱신한다.
+      selectionSession.handleToolbarPointerDown();
+      const applied = formattingCommands.applyFontSizeChange(clamped, {
+        requireExpandedSelection: true,
+      });
+      // 편집 세션 중 커밋은 전역 폰트 변경으로 내려가지 않게 차단한다.
+      if (!applied) return;
+      return;
     }
 
-    const editableNode = editableRef.current;
-    if (!editableNode) return;
+    toolbar?.onFontSizeChange(clamped);
+  };
 
-    const plainText = editableNode.innerText;
-    const html = editableNode.innerHTML;
-    onTextChange?.(plainText, html);
+  const fontSizeInputState = useToolbarFontSizeInput({
+    displayValue: fontSizeUiState.displayValue,
+    min: toolbar?.minFontSize ?? MIN_FONT_SIZE,
+    max: toolbar?.maxFontSize ?? MAX_FONT_SIZE,
+    onCommitValue: handleFontSizeCommitValue,
+  });
+
+  const handleFontSizeStep = (delta: number) => {
+    if (isEditing) {
+      selectionSession.handleToolbarPointerDown();
+      formattingCommands.applyFontSizeStep(delta);
+      return;
+    }
+
+    toolbar?.onFontSizeStep(delta);
   };
 
   const handleToggleBold = () => {
     if (isEditing) {
-      applyStyleToSelection("bold");
-    } else {
-      toolbar?.onToggleBold();
+      formattingCommands.toggleBold();
+      return;
     }
+    toolbar?.onToggleBold();
   };
 
   const handleToggleUnderline = () => {
     if (isEditing) {
-      applyStyleToSelection("underline");
-    } else {
-      toolbar?.onToggleUnderline();
+      formattingCommands.toggleUnderline();
+      return;
     }
+    toolbar?.onToggleUnderline();
   };
 
   const handleToggleItalic = () => {
     if (isEditing) {
-      applyStyleToSelection("italic");
-    } else {
-      toolbar?.onToggleItalic();
+      formattingCommands.toggleItalic();
+      return;
     }
+    toolbar?.onToggleItalic();
   };
 
   const handleToggleStrikethrough = () => {
     if (isEditing) {
-      applyStyleToSelection("strikeThrough");
-    } else {
-      toolbar?.onToggleStrikethrough();
+      formattingCommands.toggleStrikethrough();
+      return;
     }
+    toolbar?.onToggleStrikethrough();
   };
 
   const handleColorChange = (color: string) => {
     if (isEditing) {
-      applyStyleToSelection("foreColor", color);
-    } else {
-      toolbar?.onColorChange(color);
+      formattingCommands.applyColor(color);
+      return;
     }
-  };
-
-  const handleFontSizeChange = (size: number) => {
-    if (isEditing) {
-      restoreSelection();
-
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) {
-        toolbar?.onFontSizeChange(size);
-        return;
-      }
-
-      const range = selection.getRangeAt(0);
-      if (range.collapsed) {
-        toolbar?.onFontSizeChange(size);
-        return;
-      }
-
-      const span = document.createElement("span");
-      span.style.fontSize = `${size}px`;
-      range.surroundContents(span);
-
-      const newRange = document.createRange();
-      newRange.selectNodeContents(span);
-      selection.removeAllRanges();
-      selection.addRange(newRange);
-
-      savedRangeRef.current = newRange.cloneRange();
-
-      const editableNode = editableRef.current;
-      if (!editableNode) return;
-
-      const plainText = editableNode.innerText;
-      const html = editableNode.innerHTML;
-      onTextChange?.(plainText, html);
-    } else {
-      toolbar?.onFontSizeChange(size);
-    }
+    toolbar?.onColorChange(color);
   };
 
   const insertPlainText = (value: string) => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    if (document.queryCommandSupported?.("insertText")) {
-      document.execCommand("insertText", false, value);
-      return;
-    }
-    const range = selection.getRangeAt(0);
+    const normalized = selectionSession.getSelectionRange();
+    if (!normalized) return;
+
+    const { selection, range } = normalized;
     range.deleteContents();
+
     const fragment = document.createDocumentFragment();
     const lines = value.split(/\r?\n/);
     let lastNode: ChildNode | null = null;
+
     lines.forEach((line, index) => {
       if (index > 0) {
         const br = document.createElement("br");
@@ -276,97 +340,89 @@ export const useTextBoxEditingHandlers = ({
         lastNode = textNode;
       }
     });
+
     range.insertNode(fragment);
+
     if (lastNode) {
       range.setStartAfter(lastNode);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      selectionSession.setSelectionSnapshot(range);
     }
   };
 
-  const handleEditingBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+  const handleEditingBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
 
-    const { x, y } = mousePositionRef.current;
-    if (isPointInToolbar(x, y)) {
-      requestAnimationFrame(() => {
-        editableRef.current?.focus();
-        restoreSelection();
-      });
+    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    const shouldFinish = selectionSession.shouldFinishEditingOnBlur({
+      relatedTarget,
+    });
+
+    if (!shouldFinish) {
+      // 툴바/입력 포커스로 넘어가는 경우에는 editable 재포커스를 하지 않는다.
+      // 선택 하이라이트는 사라져도 snapshot 기반으로 툴바 명령 대상을 복원한다.
       return;
     }
 
-    const relatedTarget = event.relatedTarget as HTMLElement | null;
-    if (relatedTarget) {
-      const isToolbarClick =
-        relatedTarget.closest("#text-toolbar-root") ||
-        relatedTarget.closest("[data-textbox-toolbar]");
-      if (isToolbarClick) {
-        requestAnimationFrame(() => {
-          editableRef.current?.focus();
-          restoreSelection();
-        });
-        return;
-      }
-    }
-
-    const activeElement = document.activeElement as HTMLElement | null;
-    if (activeElement) {
-      const isToolbarActive =
-        activeElement.closest("#text-toolbar-root") ||
-        activeElement.closest("[data-textbox-toolbar]");
-      if (isToolbarActive) {
-        requestAnimationFrame(() => {
-          editableRef.current?.focus();
-          restoreSelection();
-        });
-        return;
-      }
-    }
+    formattingCommands.clearPendingInlineStyle();
+    setToolbarInputActive(false);
 
     const editableNode = editableRef.current;
+    if (editableNode) {
+      normalizeInlineFontSizeOverrides({
+        editable: editableNode,
+        baseFontSize: fallbackFontSize,
+      });
+    }
     const nextText = editableNode?.innerText ?? text;
     const nextRichText = editableNode?.innerHTML ?? richText;
+
     if (isTextEmpty(nextText, nextRichText)) {
-      if (onRequestDelete) {
-        onRequestDelete();
-      } else {
-        onFinishEditing?.();
-      }
+      if (onRequestDelete) onRequestDelete();
+      else onFinishEditing?.();
       return;
     }
+
+    // 편집 종료 전 최종 DOM 상태를 store에 반영해 인라인 스타일 유실을 방지한다.
+    onTextChange?.(nextText, nextRichText);
     onFinishEditing?.();
   };
 
+  const handleBeforeInput: FormEventHandler<HTMLDivElement> = (event) => {
+    formattingCommands.handleBeforeInput(event);
+  };
+
   const handleInput: FormEventHandler<HTMLDivElement> = (event) => {
+    selectionSession.captureSelectionIfInsideEditable();
+    formattingCommands.handleInputPostProcess();
+
     const target = event.currentTarget;
-    const plainText = target.innerText;
-    const html = target.innerHTML;
-    onTextChange?.(plainText, html);
+    onTextChange?.(target.innerText, target.innerHTML);
+
+    selectionSession.captureSelectionIfInsideEditable();
+    syncFontSizeUiState();
   };
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
-    // IME 조합 중에는 키 입력을 가로채면 한글 조합이 깨질 수 있어 무시한다.
-    if (event.nativeEvent.isComposing || isComposingRef.current) {
-      return;
-    }
+    if (event.nativeEvent.isComposing || isComposingRef.current) return;
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "u") {
-      // 툴바 상태와 충돌을 막기 위해 기본 underline 단축키를 차단한다.
       event.preventDefault();
     }
   };
 
   const handlePaste: ClipboardEventHandler<HTMLDivElement> = (event) => {
-    // 외부 스타일이 유입되면 툴바 상태와 DOM이 어긋나므로 텍스트만 붙여넣는다.
     event.preventDefault();
     event.stopPropagation();
+
     const pastedText = event.clipboardData?.getData("text/plain") ?? "";
     if (!pastedText) return;
+
     insertPlainText(pastedText);
-    const editableNode = editableRef.current;
-    if (!editableNode) return;
-    onTextChange?.(editableNode.innerText, editableNode.innerHTML);
+    emitTextChange();
+    syncFontSizeUiState();
   };
 
   const handleCompositionStart = () => {
@@ -380,6 +436,7 @@ export const useTextBoxEditingHandlers = ({
   return {
     beginEditing,
     handleEditingBlur,
+    handleBeforeInput,
     handleInput,
     handleKeyDown,
     handlePaste,
@@ -390,6 +447,25 @@ export const useTextBoxEditingHandlers = ({
     handleToggleItalic,
     handleToggleStrikethrough,
     handleColorChange,
-    handleFontSizeChange,
+    handleFontSizeStep,
+    handleToolbarPointerDown: selectionSession.handleToolbarPointerDown,
+    handleToolbarInputFocus,
+    handleToolbarInputBlur,
+    fontSizeUiState,
+    fontSizeInput: {
+      value: fontSizeInputState.value,
+      isDirty: fontSizeInputState.isDirty,
+      onChange: fontSizeInputState.onChange,
+      onCommit: fontSizeInputState.onCommit,
+      onCancel: fontSizeInputState.onCancel,
+      onFocus: () => {
+        fontSizeInputStartedInEditingRef.current = isEditing;
+        handleToolbarInputFocus();
+        fontSizeInputState.onFocus();
+      },
+      onBlur: () => {
+        fontSizeInputStartedInEditingRef.current = false;
+      },
+    },
   };
 };

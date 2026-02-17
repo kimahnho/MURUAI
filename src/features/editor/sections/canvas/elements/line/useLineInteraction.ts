@@ -92,9 +92,9 @@ export const useLineInteraction = ({
       onStart: () => {
         onDragStateChange?.(true, lineRef.current, { type: "drag" });
       },
-      onEnd: (moved) => {
+      onEnd: (moved, reason) => {
         // 이동이 없으면 클릭으로 해석해 단일 선택 전환을 수행한다.
-        if (!moved && shouldSelectOnClickOnly) {
+        if (!moved && shouldSelectOnClickOnly && reason === "pointerup") {
           onSelectChange?.(true);
           return;
         }

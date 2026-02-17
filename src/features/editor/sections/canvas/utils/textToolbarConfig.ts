@@ -64,6 +64,10 @@ export const buildTextToolbarConfig = ({
   onFontSizeChange: (value: number) => {
     updateElement(element.id, {
       style: { fontSize: clampFontSize(value) },
+      // 전역 폰트 크기 변경 시 기존 인라인 font-size를 제거해 원복/우선순위 충돌을 방지한다.
+      richText: element.richText
+        ? stripStyleTags(element.richText, "fontSize")
+        : undefined,
     });
   },
   onFontSizeStep: (delta: number) => {
@@ -71,6 +75,9 @@ export const buildTextToolbarConfig = ({
       style: {
         fontSize: clampFontSize(element.style.fontSize + delta),
       },
+      richText: element.richText
+        ? stripStyleTags(element.richText, "fontSize")
+        : undefined,
     });
   },
   onLineHeightChange: (value: number) => {

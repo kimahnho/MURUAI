@@ -6,13 +6,22 @@ import { useCallback, useEffect, useRef } from "react";
 type PointerListeners = {
   moveListener: (event: PointerEvent) => void;
   upListener: () => void;
+  cancelListener: () => void;
+  blurListener: () => void;
+  visibilityChangeListener: () => void;
 };
+
+export type PointerDragEndReason =
+  | "pointerup"
+  | "pointercancel"
+  | "blur"
+  | "visibilitychange";
 
 export type PointerDragSessionOptions<TStart, TMove> = {
   thresholdPx?: number;
   onStart?: (ctx: TStart) => void;
   onMove: (ctx: TMove) => void;
-  onEnd?: (moved: boolean) => void;
+  onEnd?: (moved: boolean, reason?: PointerDragEndReason) => void;
 };
 
 type StartPointerDragSessionParams<TStart, TMove> =
@@ -32,6 +41,12 @@ export const usePointerDragSession = () => {
     if (!listeners) return;
     window.removeEventListener("pointermove", listeners.moveListener);
     window.removeEventListener("pointerup", listeners.upListener);
+    window.removeEventListener("pointercancel", listeners.cancelListener);
+    window.removeEventListener("blur", listeners.blurListener);
+    document.removeEventListener(
+      "visibilitychange",
+      listeners.visibilityChangeListener,
+    );
     listenersRef.current = null;
   }, []);
 
@@ -47,6 +62,14 @@ export const usePointerDragSession = () => {
       // 새 세션 시작 전 이전 리스너를 정리해 다중 pointer 세션 중첩을 방지한다.
       cleanup();
       let hasMoved = false;
+      let ended = false;
+
+      const finish = (reason: PointerDragEndReason) => {
+        if (ended) return;
+        ended = true;
+        cleanup();
+        onEnd?.(hasMoved, reason);
+      };
 
       const moveListener = (event: PointerEvent) => {
         const { distance, context } = createMoveContext(event);
@@ -60,13 +83,35 @@ export const usePointerDragSession = () => {
       };
 
       const upListener = () => {
-        cleanup();
-        onEnd?.(hasMoved);
+        finish("pointerup");
       };
 
-      listenersRef.current = { moveListener, upListener };
+      const cancelListener = () => {
+        finish("pointercancel");
+      };
+
+      const blurListener = () => {
+        finish("blur");
+      };
+
+      const visibilityChangeListener = () => {
+        if (document.visibilityState === "hidden") {
+          finish("visibilitychange");
+        }
+      };
+
+      listenersRef.current = {
+        moveListener,
+        upListener,
+        cancelListener,
+        blurListener,
+        visibilityChangeListener,
+      };
       window.addEventListener("pointermove", moveListener);
       window.addEventListener("pointerup", upListener);
+      window.addEventListener("pointercancel", cancelListener);
+      window.addEventListener("blur", blurListener);
+      document.addEventListener("visibilitychange", visibilityChangeListener);
     },
     [cleanup],
   );

@@ -60,9 +60,8 @@ export const useGroupOverlayDrag = ({
       event.preventDefault();
       event.stopPropagation();
       const pointer = getPointerPosition(event);
-      // 오버레이 안에서도 실제 요소를 눌렀는지 판별해 클릭 시 선택 토글 대상으로 사용한다.
-      const hitSelectedElement = [...elements].reverse().find((element) => {
-        if (!selectedIdsRef.current.includes(element.id)) return false;
+      // 오버레이가 이벤트를 가로채므로, 포인터 위치 기준으로 실제 요소를 직접 hit-test 한다.
+      const hitElement = [...elements].reverse().find((element) => {
         if (
           element.visible === false ||
           element.selectable === false ||
@@ -79,7 +78,16 @@ export const useGroupOverlayDrag = ({
           pointer.y <= rect.y + rect.height
         );
       });
+      const hitSelectedElement =
+        hitElement && selectedIdsRef.current.includes(hitElement.id)
+          ? hitElement
+          : null;
+      const hitUnselectedElement =
+        hitElement && !selectedIdsRef.current.includes(hitElement.id)
+          ? hitElement
+          : null;
       const clickedSelectedElementId = hitSelectedElement?.id ?? null;
+      const clickedUnselectedElementId = hitUnselectedElement?.id ?? null;
       const additiveOnClick = event.shiftKey;
       const activeId = selectedIdsRef.current[0];
       if (!activeId) return;
@@ -139,19 +147,25 @@ export const useGroupOverlayDrag = ({
             y: delta.y + snapOffset.y,
           });
         },
-        onEnd: (moved) => {
+        onEnd: (moved, reason) => {
           // threshold 미만이면 클릭으로 해석해 개별 요소 선택 전환/토글을 수행한다.
-          if (!moved && clickedSelectedElementId) {
-            handleSelectChange(clickedSelectedElementId, true, {
-              additive: additiveOnClick,
-            });
-            return;
+          if (!moved && reason === "pointerup") {
+            if (clickedSelectedElementId) {
+              handleSelectChange(clickedSelectedElementId, true, {
+                additive: additiveOnClick,
+              });
+            } else if (additiveOnClick && clickedUnselectedElementId) {
+              // Shift+클릭으로는 오버레이 아래의 비선택 요소도 다중 선택에 추가한다.
+              handleSelectChange(clickedUnselectedElementId, true, {
+                additive: true,
+              });
+            }
           }
           if (dragStarted) {
             groupDragRef.current = null;
             onInteractionChange?.(false, { type: "drag" });
-            smartGuides.clear();
           }
+          smartGuides.clear();
         },
       });
     },

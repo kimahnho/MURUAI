@@ -236,7 +236,6 @@ export const generatePdfFromDomPages = async ({
         );
 
       const normalizePdfTextLayout = (root: HTMLElement) => {
-        const pdfTextYOffset = -10;
         const restores: Array<() => void> = [];
         const boxes = Array.from(
           root.querySelectorAll<HTMLElement>('[data-textbox="true"]'),
@@ -248,14 +247,8 @@ export const generatePdfFromDomPages = async ({
           if (!content) return;
           const boxRect = box.getBoundingClientRect();
           const contentRect = content.getBoundingClientRect();
-          const alignItems = getComputedStyle(box).alignItems;
-          let offsetY = 0;
-          if (alignItems === "center") {
-            offsetY = (boxRect.height - contentRect.height) / 2;
-          } else if (alignItems === "flex-end") {
-            offsetY = boxRect.height - contentRect.height;
-          }
-          offsetY += pdfTextYOffset;
+          const relativeTop = contentRect.top - boxRect.top;
+          const offsetY = Number.isFinite(relativeTop) ? relativeTop : 0;
           const prevBoxStyle = {
             display: box.style.display,
           };

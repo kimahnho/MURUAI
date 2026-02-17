@@ -266,6 +266,27 @@ const DesignPaper = ({
     findEmotionLabelId,
   });
 
+  const {
+    moveElement,
+    groupSelectedElements,
+    ungroupSelectedElements,
+    deleteElementById,
+    deleteSelectedElements,
+    handleDeleteSelectionKeyDown,
+  } = useDesignPaperActions({
+    elements,
+    selectedIds,
+    readOnly,
+    editingTextId,
+    editingImageId,
+    onElementsChange,
+    onSelectedIdsChange,
+    onEditingTextIdChange,
+    setEditingImageId,
+    setContextMenu,
+    selectedIdsRef,
+  });
+
   useDesignPaperKeyboard({
     readOnly,
     editingTextId,
@@ -279,6 +300,7 @@ const DesignPaper = ({
     clearContextMenu,
     clearEmotionSlotImage,
     copySelectedElements,
+    deleteSelectedElements,
     pasteElements,
     getClipboard,
     smartGuides,
@@ -349,27 +371,6 @@ const DesignPaper = ({
     });
 
   const {
-    moveElement,
-    groupSelectedElements,
-    ungroupSelectedElements,
-    deleteElementById,
-    deleteSelectedElements,
-    handleDeleteSelectionKeyDown,
-  } = useDesignPaperActions({
-    elements,
-    selectedIds,
-    readOnly,
-    editingTextId,
-    editingImageId,
-    onElementsChange,
-    onSelectedIdsChange,
-    onEditingTextIdChange,
-    setEditingImageId,
-    setContextMenu,
-    selectedIdsRef,
-  });
-
-  const {
     isGroupedSelection,
     canGroupSelection,
     canUngroupSelection,
@@ -438,7 +439,12 @@ const DesignPaper = ({
         // 키보드 단축키가 끊기지 않도록 한다.
         if (!readOnly) {
           const container = containerRef.current;
-          if (container && !isEditableTarget(event.target)) {
+          const target = event.target as HTMLElement | null;
+          const isToolbarTarget = Boolean(
+            target?.closest("#text-toolbar-root") ||
+              target?.closest("[data-textbox-toolbar]"),
+          );
+          if (container && !isEditableTarget(event.target) && !isToolbarTarget) {
             container.focus();
           }
         }
@@ -447,7 +453,12 @@ const DesignPaper = ({
         // 하위 요소 핸들러가 선택/드래그 상태를 바꾸기 전에 포인터 좌표를 먼저 저장해
         // 스테이지 공통 동작이 동일한 기준 좌표를 사용하도록 한다.
         if (!readOnly) {
-          if (!isEditableTarget(event.target)) {
+          const target = event.target as HTMLElement | null;
+          const isToolbarTarget = Boolean(
+            target?.closest("#text-toolbar-root") ||
+              target?.closest("[data-textbox-toolbar]"),
+          );
+          if (!isEditableTarget(event.target) && !isToolbarTarget) {
             containerRef.current?.focus();
           }
         }
