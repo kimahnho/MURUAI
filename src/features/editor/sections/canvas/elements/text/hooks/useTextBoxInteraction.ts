@@ -278,8 +278,12 @@ export const useTextBoxInteraction = ({
         rectRef.current = nextRect;
         onRectChange?.(nextRect);
       },
-      onEnd: () => {
-        if (!didMoveRef.current && shouldSelectOnClickOnly) {
+      onEnd: (_moved, reason) => {
+        if (
+          !didMoveRef.current &&
+          shouldSelectOnClickOnly &&
+          reason === "pointerup"
+        ) {
           onSelectChange?.(true);
         }
         if (type === "resize") {

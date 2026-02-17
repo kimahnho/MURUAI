@@ -329,10 +329,10 @@ export const useRoundBoxInteraction = ({
         rectRef.current = nextRect;
         onRectChange?.(nextRect);
       },
-      onEnd: (moved) => {
+      onEnd: (moved, reason) => {
         // 다중 선택된 도형을 드래그하려다 이동이 없으면 클릭으로 간주해
         // 단일 선택으로 전환한다.
-        if (!moved && shouldSelectOnClickOnly) {
+        if (!moved && shouldSelectOnClickOnly && reason === "pointerup") {
           onSelectChange?.(true);
         }
         if (moved && (type === "drag" || type === "resize")) {
