@@ -4,7 +4,10 @@
 import type { TextElement } from "../../../model/canvasTypes";
 import { getFontLabel } from "../../../utils/fontOptions";
 import type { SideBarMenu } from "../../../store/sideBarStore";
-import { stripStyleTags } from "../elements/text/textContentUtils";
+import {
+  applyFontSizeDeltaToRichText,
+  stripStyleTags,
+} from "../elements/text/textContentUtils";
 
 type TextToolbarConfigParams = {
   element: TextElement;
@@ -71,12 +74,17 @@ export const buildTextToolbarConfig = ({
     });
   },
   onFontSizeStep: (delta: number) => {
+    const nextBaseFontSize = clampFontSize(element.style.fontSize + delta);
     updateElement(element.id, {
       style: {
-        fontSize: clampFontSize(element.style.fontSize + delta),
+        fontSize: nextBaseFontSize,
       },
       richText: element.richText
-        ? stripStyleTags(element.richText, "fontSize")
+        ? applyFontSizeDeltaToRichText({
+            richText: element.richText,
+            delta,
+            clamp: clampFontSize,
+          })
         : undefined,
     });
   },

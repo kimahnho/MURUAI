@@ -18,6 +18,7 @@ import {
 import {
   isTextEmpty,
   normalizeInlineFontSizeOverrides,
+  resolveInlineFontSize,
 } from "../textContentUtils";
 import type { TextBoxProps } from "../textBoxTypes";
 import {
@@ -62,6 +63,93 @@ const clampFontSize = (size: number, toolbar?: TextBoxProps["toolbar"]) => {
   return Math.min(max, Math.max(min, size));
 };
 
+const resolveFontSizeUiStateFromRichText = ({
+  richText,
+  fallback,
+  clamp,
+}: {
+  richText?: string;
+  fallback: number;
+  clamp: (value: number) => number;
+}): FontSizeUiState => {
+  const normalizedFallback = clamp(fallback);
+  if (
+    !richText ||
+    typeof window === "undefined" ||
+    typeof DOMParser === "undefined"
+  ) {
+    return {
+      resolvedSize: normalizedFallback,
+      isMixed: false,
+      displayValue: String(normalizedFallback),
+    };
+  }
+
+  const doc = new DOMParser().parseFromString(richText, "text/html");
+  const sizes = new Set<number>();
+  const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  while (current) {
+    const textNode = current as Text;
+    if (textNode.textContent && textNode.textContent.trim().length > 0) {
+      sizes.add(clamp(resolveInlineFontSize(textNode, normalizedFallback)));
+      if (sizes.size > 1) {
+        return {
+          resolvedSize: normalizedFallback,
+          isMixed: true,
+          displayValue: "--",
+        };
+      }
+    }
+    current = walker.nextNode();
+  }
+
+  if (sizes.size === 1) {
+    const [size] = Array.from(sizes);
+    return { resolvedSize: size, isMixed: false, displayValue: String(size) };
+  }
+
+  return {
+    resolvedSize: normalizedFallback,
+    isMixed: false,
+    displayValue: String(normalizedFallback),
+  };
+};
+
+const resolveWholeContentFontSizeUiState = ({
+  isEditing,
+  editableRef,
+  richText,
+  fallback,
+  clamp,
+}: {
+  isEditing: boolean;
+  editableRef: RefObject<HTMLDivElement | null>;
+  richText?: string;
+  fallback: number;
+  clamp: (value: number) => number;
+}): FontSizeUiState => {
+  const sourceRichText = isEditing
+    ? (editableRef.current?.innerHTML ?? richText)
+    : richText;
+  return resolveFontSizeUiStateFromRichText({
+    richText: sourceRichText,
+    fallback,
+    clamp,
+  });
+};
+
+const hasLiveExpandedSelectionInEditable = (
+  editable: HTMLDivElement | null,
+): boolean => {
+  if (!editable || typeof window === "undefined") return false;
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return false;
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) return false;
+  return editable.contains(range.commonAncestorContainer);
+};
+
 export const useTextBoxEditingHandlers = ({
   editable,
   locked,
@@ -104,12 +192,15 @@ export const useTextBoxEditingHandlers = ({
 
   const syncFontSizeUiState = () => {
     if (!isEditing) {
-      lastResolvedFontSizeRef.current = fallbackFontSize;
-      setFontSizeUiState({
-        resolvedSize: fallbackFontSize,
-        isMixed: false,
-        displayValue: String(fallbackFontSize),
+      const next = resolveWholeContentFontSizeUiState({
+        isEditing,
+        editableRef,
+        richText,
+        fallback: fallbackFontSize,
+        clamp: (value) => clampFontSize(value, toolbar),
       });
+      lastResolvedFontSizeRef.current = next.resolvedSize;
+      setFontSizeUiState(next);
       return;
     }
 
@@ -122,21 +213,19 @@ export const useTextBoxEditingHandlers = ({
     }
 
     const normalized = selectionSession.getSelectionRange();
-    if (!normalized) {
-      const preserved = lastResolvedFontSizeRef.current;
-      setFontSizeUiState((prev) => ({
-        resolvedSize: preserved,
-        isMixed: prev.isMixed,
-        displayValue: prev.isMixed ? "--" : String(preserved),
-      }));
-      return;
-    }
-
-    const next = resolveFontSizeUiStateFromRange({
-      range: normalized.range,
-      fallback: fallbackFontSize,
-      clamp: (value) => clampFontSize(value, toolbar),
-    });
+    const next = normalized
+      ? resolveFontSizeUiStateFromRange({
+          range: normalized.range,
+          fallback: fallbackFontSize,
+          clamp: (value) => clampFontSize(value, toolbar),
+        })
+      : resolveWholeContentFontSizeUiState({
+          isEditing,
+          editableRef,
+          richText,
+          fallback: fallbackFontSize,
+          clamp: (value) => clampFontSize(value, toolbar),
+        });
 
     lastResolvedFontSizeRef.current = next.resolvedSize;
     setFontSizeUiState(next);
@@ -192,7 +281,7 @@ export const useTextBoxEditingHandlers = ({
     return () => {
       cancelAnimationFrame(rafId);
     };
-  }, [isEditing, toolbar?.fontSize]);
+  }, [isEditing, toolbar?.fontSize, richText, text]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -252,8 +341,9 @@ export const useTextBoxEditingHandlers = ({
       const applied = formattingCommands.applyFontSizeChange(clamped, {
         requireExpandedSelection: true,
       });
-      // 편집 세션 중 커밋은 전역 폰트 변경으로 내려가지 않게 차단한다.
-      if (!applied) return;
+      if (!applied) {
+        toolbar?.onFontSizeChange(clamped);
+      }
       return;
     }
 
@@ -269,11 +359,21 @@ export const useTextBoxEditingHandlers = ({
 
   const handleFontSizeStep = (delta: number) => {
     if (isEditing) {
-      selectionSession.handleToolbarPointerDown();
-      formattingCommands.applyFontSizeStep(delta);
-      return;
+      formattingCommands.clearPendingInlineStyle();
+      const hasLiveExpandedSelection = hasLiveExpandedSelectionInEditable(
+        editableRef.current,
+      );
+      if (hasLiveExpandedSelection) {
+        selectionSession.handleToolbarPointerDown();
+        const applied = formattingCommands.applyFontSizeStep(delta, {
+          requireExpandedSelection: true,
+        });
+        if (applied) return;
+      } else {
+        const applied = formattingCommands.applyFontSizeStepToWholeContent(delta);
+        if (applied) return;
+      }
     }
-
     toolbar?.onFontSizeStep(delta);
   };
 

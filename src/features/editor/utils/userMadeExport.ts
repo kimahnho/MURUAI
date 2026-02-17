@@ -123,6 +123,8 @@ const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 type DevicePerformanceTier = "low" | "mid" | "high";
+const LOW_TIER_EXPORT_Y_OFFSET_PX = -10;
+const BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX = -10;
 
 const getDevicePerformanceTier = (): DevicePerformanceTier => {
   if (typeof navigator === "undefined") return "mid";
@@ -161,6 +163,39 @@ const buildScaleFallbacks = (baseScale: number) => {
   )));
 };
 
+const normalizePdfElementCapturePosition = (
+  page: HTMLElement,
+  tier: DevicePerformanceTier,
+) => {
+  if (tier !== "low") {
+    return () => {};
+  }
+  const designPaper = page.querySelector<HTMLElement>("[data-page-id]");
+  if (!designPaper) {
+    return () => {};
+  }
+  const candidates = Array.from(designPaper.children).filter((child) => {
+    if (!(child instanceof HTMLElement)) return false;
+    // 페이지 번호/오버레이가 아닌 캔버스 요소만 보정한다.
+    return child.style.position === "absolute";
+  }) as HTMLElement[];
+  const prevStyles = candidates.map((node) => ({
+    node,
+    transform: node.style.transform,
+  }));
+  candidates.forEach((node) => {
+    const base = node.style.transform?.trim();
+    node.style.transform = base
+      ? `${base} translateY(${LOW_TIER_EXPORT_Y_OFFSET_PX}px)`
+      : `translateY(${LOW_TIER_EXPORT_Y_OFFSET_PX}px)`;
+  });
+  return () => {
+    prevStyles.forEach(({ node, transform }) => {
+      node.style.transform = transform;
+    });
+  };
+};
+
 export const generatePdfFromDomPages = async ({
   quality = 2,
   pageIds,
@@ -175,6 +210,7 @@ export const generatePdfFromDomPages = async ({
   return measurePerf(
     "pdf.generate.total",
     async () => {
+      const deviceTier = getDevicePerformanceTier();
       const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
         import("html2canvas"),
         import("jspdf"),
@@ -248,7 +284,9 @@ export const generatePdfFromDomPages = async ({
           const boxRect = box.getBoundingClientRect();
           const contentRect = content.getBoundingClientRect();
           const relativeTop = contentRect.top - boxRect.top;
-          const offsetY = Number.isFinite(relativeTop) ? relativeTop : 0;
+          const offsetY = Number.isFinite(relativeTop)
+            ? relativeTop + BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX
+            : BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX;
           const prevBoxStyle = {
             display: box.style.display,
           };
@@ -333,6 +371,10 @@ export const generatePdfFromDomPages = async ({
         await waitForImages(page);
         await waitForNextFrame();
 
+        const restoreElementOffset = normalizePdfElementCapturePosition(
+          page,
+          deviceTier,
+        );
         const restoreTextLayout = normalizePdfTextLayout(page);
         await waitForNextFrame();
         let canvas: HTMLCanvasElement;
@@ -378,6 +420,7 @@ export const generatePdfFromDomPages = async ({
           canvas = renderedCanvas;
         } finally {
           restoreTextLayout();
+          restoreElementOffset();
         }
         const props = pdf.getImageProperties(canvas);
 
@@ -407,6 +450,7 @@ export const generatePdfFromDomPages = async ({
           requestedQuality: quality,
           adaptiveScale,
           usedScale,
+          deviceTier,
         });
         onProgress?.({ current: i + 1, total: pages.length });
       }

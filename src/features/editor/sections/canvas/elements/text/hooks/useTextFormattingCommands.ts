@@ -244,8 +244,41 @@ export const useTextFormattingCommands = ({
       size: number,
       options?: { requireExpandedSelection?: boolean },
     ) => applyCommandToSelection({ type: "setFontSize", size }, options),
-    applyFontSizeStep: (delta: number) =>
-      applyCommandToSelection({ type: "setFontSizeStep", delta }),
+    applyFontSizeStep: (
+      delta: number,
+      options?: { requireExpandedSelection?: boolean },
+    ) => applyCommandToSelection({ type: "setFontSizeStep", delta }, options),
+    applyFontSizeStepToWholeContent: (delta: number) => {
+      const editable = editableRef.current;
+      if (!editable) return false;
+
+      const range = document.createRange();
+      range.selectNodeContents(editable);
+      if (range.collapsed) return false;
+
+      const nextRange = applyRichTextCommandInPlace({
+        range,
+        editable,
+        command: {
+          type: "setFontSizeStep",
+          delta,
+          fallback: fallbackFontSize,
+          clamp: clampFontSize,
+        },
+      });
+      if (!nextRange) return false;
+
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(nextRange);
+      }
+      selectionSession.setSelectionSnapshot(nextRange);
+      pendingInlineStyleRef.current = {};
+      emitTextChange();
+      syncFontSizeUiState();
+      return true;
+    },
     applyColor: (color: string) =>
       applyCommandToSelection({ type: "setColor", color }),
     toggleBold: () => applyCommandToSelection({ type: "toggleBold" }),
