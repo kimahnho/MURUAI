@@ -124,7 +124,7 @@ const clampNumber = (value: number, min: number, max: number) =>
 
 type DevicePerformanceTier = "low" | "mid" | "high";
 const LOW_TIER_EXPORT_Y_OFFSET_PX = -10;
-const BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX = -10;
+const BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX = -15;
 
 const getDevicePerformanceTier = (): DevicePerformanceTier => {
   if (typeof navigator === "undefined") return "mid";
