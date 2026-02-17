@@ -34,13 +34,15 @@ interface TextToolBarProps {
   align: "left" | "center" | "right";
   alignY: "top" | "middle" | "bottom";
   onFontSizeStep: (delta: number) => void;
-  onFontSizeTypingStart: () => void;
-  onFontSizeTypingDigit: (digit: string) => void;
-  onFontSizeTypingBackspace: () => void;
-  onFontSizeTypingCommit: () => void;
-  onFontSizeTypingCancel: () => void;
-  fontSizeTypingActive: boolean;
-  fontSizeTypingBuffer: string;
+  fontSizeInputValue: string;
+  isFontSizeInputDirty: boolean;
+  onFontSizeInputChange: (value: string) => void;
+  onFontSizeInputCommit: () => void;
+  onFontSizeInputCancel: () => void;
+  onFontSizeInputFocus: () => void;
+  onFontSizeInputBlur: () => void;
+  onToolbarInputFocus: () => void;
+  onToolbarInputBlur: () => void;
   onLineHeightChange: (value: number) => void;
   onLetterSpacingChange: (value: number) => void;
   onColorChange: (value: string) => void;
@@ -72,13 +74,15 @@ const TextToolBar = ({
   align,
   alignY,
   onFontSizeStep,
-  onFontSizeTypingStart,
-  onFontSizeTypingDigit,
-  onFontSizeTypingBackspace,
-  onFontSizeTypingCommit,
-  onFontSizeTypingCancel,
-  fontSizeTypingActive,
-  fontSizeTypingBuffer,
+  fontSizeInputValue,
+  isFontSizeInputDirty,
+  onFontSizeInputChange,
+  onFontSizeInputCommit,
+  onFontSizeInputCancel,
+  onFontSizeInputFocus,
+  onFontSizeInputBlur,
+  onToolbarInputFocus,
+  onToolbarInputBlur,
   onLineHeightChange,
   onLetterSpacingChange,
   onColorChange,
@@ -138,20 +142,7 @@ const TextToolBar = ({
   };
 
   return (
-    <div
-      className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
-      onMouseDown={(event) => {
-        // 텍스트 편집 selection 유지를 위해 툴바 클릭 시 편집기 포커스를 유지한다.
-        const target = event.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" &&
-          target.getAttribute("data-fontsize-readonly") !== "true"
-        ) {
-          return;
-        }
-        event.preventDefault();
-      }}
-    >
+    <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
       <button
         type="button"
         onMouseDown={(event) => {
@@ -183,47 +174,45 @@ const TextToolBar = ({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          readOnly
-          tabIndex={-1}
           role="spinbutton"
-          data-fontsize-readonly="true"
           aria-label="Font size input"
           aria-valuemin={minFontSize}
           aria-valuemax={maxFontSize}
           aria-valuenow={fontSize}
-          value={
-            fontSizeTypingActive
-              ? fontSizeTypingBuffer || fontSizeDisplay
-              : fontSizeDisplay
-          }
+          value={fontSizeInputValue}
+          onChange={(event) => {
+            onFontSizeInputChange(event.target.value);
+          }}
+          onFocus={(event) => {
+            onFontSizeInputFocus();
+            event.target.select();
+          }}
+          onBlur={() => {
+            onFontSizeInputCommit();
+            onFontSizeInputBlur();
+            onToolbarInputBlur();
+          }}
           onPointerDown={(event) => {
-            event.preventDefault();
             event.stopPropagation();
-            onFontSizeTypingStart();
+            const input = event.currentTarget;
+            requestAnimationFrame(() => {
+              input.focus();
+            });
           }}
           onMouseDown={(event) => {
-            event.preventDefault();
             event.stopPropagation();
           }}
           onKeyDown={(event) => {
-            if (/^\d$/.test(event.key)) {
-              event.preventDefault();
-              onFontSizeTypingDigit(event.key);
-              return;
-            }
-            if (event.key === "Backspace") {
-              event.preventDefault();
-              onFontSizeTypingBackspace();
-              return;
-            }
             if (event.key === "Enter") {
               event.preventDefault();
-              onFontSizeTypingCommit();
+              onFontSizeInputCommit();
+              event.currentTarget.blur();
               return;
             }
             if (event.key === "Escape") {
               event.preventDefault();
-              onFontSizeTypingCancel();
+              onFontSizeInputCancel();
+              event.currentTarget.blur();
             }
           }}
           className="no-spinner w-12 appearance-none border-x border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
@@ -235,9 +224,7 @@ const TextToolBar = ({
           }}
         />
         <span className="sr-only" aria-live="polite">
-          {fontSizeTypingActive
-            ? `Font size typing ${fontSizeTypingBuffer || "empty"}`
-            : `Font size ${fontSizeDisplay} ${isFontSizeMixed ? "mixed" : "single"}`}
+          {`Font size ${fontSizeDisplay} ${isFontSizeMixed ? "mixed" : "single"}${isFontSizeInputDirty ? " editing" : ""}`}
         </span>
         <button
           type="button"
@@ -278,11 +265,14 @@ const TextToolBar = ({
             event.currentTarget.blur();
           }}
           onBlur={() => {
-            if (!isLetterSpacingEditing) return;
-            setIsLetterSpacingEditing(false);
-            commitLetterSpacingInput();
+            if (isLetterSpacingEditing) {
+              setIsLetterSpacingEditing(false);
+              commitLetterSpacingInput();
+            }
+            onToolbarInputBlur();
           }}
           onFocus={(event) => {
+            onToolbarInputFocus();
             setLetterSpacingInput(formatNumber(letterSpacing));
             setIsLetterSpacingEditing(true);
             event.target.select();
@@ -322,12 +312,15 @@ const TextToolBar = ({
             event.currentTarget.blur();
           }}
           onBlur={() => {
-            if (!isLineHeightEditing) return;
-            setIsLineHeightEditing(false);
-            // blur 시점에만 커밋해 입력 중 잦은 재렌더/측정 비용을 줄인다.
-            commitLineHeightInput();
+            if (isLineHeightEditing) {
+              setIsLineHeightEditing(false);
+              // blur 시점에만 커밋해 입력 중 잦은 재렌더/측정 비용을 줄인다.
+              commitLineHeightInput();
+            }
+            onToolbarInputBlur();
           }}
           onFocus={(event) => {
+            onToolbarInputFocus();
             setLineHeightInput(formatNumber(lineHeight));
             setIsLineHeightEditing(true);
             event.target.select();

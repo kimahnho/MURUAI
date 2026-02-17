@@ -7,8 +7,7 @@ import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 type TextAlign = "left" | "center" | "right";
 type TextAlignY = "top" | "middle" | "bottom";
 
-/** 텍스트 선택 시 상단 툴바에 표시되는 공통 편집 액션 계약 */
-type TextBoxToolbar = {
+export type TextBoxToolbarState = {
   offset?: number;
   minFontSize: number;
   maxFontSize: number;
@@ -24,6 +23,9 @@ type TextBoxToolbar = {
   isStrikethrough: boolean;
   align: TextAlign;
   alignY: TextAlignY;
+};
+
+export type TextBoxToolbarGlobalActions = {
   onFontSizeChange: (value: number) => void;
   onFontSizeStep: (delta: number) => void;
   onLineHeightChange: (value: number) => void;
@@ -36,6 +38,18 @@ type TextBoxToolbar = {
   onToggleStrikethrough: () => void;
   onAlignChange: (value: TextAlign) => void;
   onAlignYChange: (value: TextAlignY) => void;
+};
+
+/** 텍스트 선택 시 상단 툴바에 표시되는 공통 편집 액션 계약 */
+type TextBoxToolbar = TextBoxToolbarState & TextBoxToolbarGlobalActions;
+
+export type ToolbarFontSizeInputViewModel = {
+  value: string;
+  isDirty: boolean;
+  onChange: (value: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+  onFocus: () => void;
 };
 
 /** 캔버스 텍스트 박스 렌더러가 지원해야 하는 입력/상태/콜백 계약 */

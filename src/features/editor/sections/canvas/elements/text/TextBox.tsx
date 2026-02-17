@@ -143,6 +143,7 @@ const TextBox = ({
   const {
     beginEditing,
     handleEditingBlur,
+    handleBeforeInput,
     handleInput,
     handleKeyDown,
     handlePaste,
@@ -154,14 +155,11 @@ const TextBox = ({
     handleToggleStrikethrough,
     handleColorChange,
     handleFontSizeStep,
-    handleFontSizeTypeStart,
-    handleFontSizeTypeCommit,
-    handleFontSizeTypeCancel,
-    handleFontSizeTypingDigit,
-    handleFontSizeTypingBackspace,
     handleToolbarPointerDown,
+    handleToolbarInputFocus,
+    handleToolbarInputBlur,
     fontSizeUiState,
-    fontSizeTypingState,
+    fontSizeInput,
   } = useTextBoxEditingHandlers({
     editable,
     locked,
@@ -251,6 +249,55 @@ const TextBox = ({
   const showHandles = showChrome && !locked && isSelected && selectionCount <= 1;
   // 텍스트가 박스 폭을 초과하면 줄바꿈
   const contentWhiteSpace = "pre-wrap";
+  const toolbarCard = toolbar ? (
+    <div
+      data-textbox-toolbar="true"
+      className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
+      onPointerDownCapture={() => {
+        handleToolbarPointerDown();
+      }}
+    >
+      <TextToolBar
+        isVisible
+        minFontSize={toolbar.minFontSize}
+        maxFontSize={toolbar.maxFontSize}
+        fontSize={toolbar.fontSize}
+        fontSizeDisplay={fontSizeUiState.displayValue}
+        isFontSizeMixed={fontSizeUiState.isMixed}
+        fontFamily={toolbar.fontFamily}
+        fontLabel={toolbar.fontLabel}
+        lineHeight={toolbar.lineHeight}
+        letterSpacing={toolbar.letterSpacing}
+        color={toolbar.color}
+        isBold={toolbar.isBold}
+        isUnderline={toolbar.isUnderline}
+        isItalic={toolbar.isItalic}
+        isStrikethrough={toolbar.isStrikethrough}
+        align={toolbar.align}
+        alignY={toolbar.alignY}
+        onFontSizeStep={handleFontSizeStep}
+        fontSizeInputValue={fontSizeInput.value}
+        isFontSizeInputDirty={fontSizeInput.isDirty}
+        onFontSizeInputChange={fontSizeInput.onChange}
+        onFontSizeInputCommit={fontSizeInput.onCommit}
+        onFontSizeInputCancel={fontSizeInput.onCancel}
+        onFontSizeInputFocus={fontSizeInput.onFocus}
+        onFontSizeInputBlur={fontSizeInput.onBlur}
+        onToolbarInputFocus={handleToolbarInputFocus}
+        onToolbarInputBlur={handleToolbarInputBlur}
+        onLineHeightChange={toolbar.onLineHeightChange}
+        onLetterSpacingChange={toolbar.onLetterSpacingChange}
+        onColorChange={handleColorChange}
+        onFontFamilyClick={toolbar.onFontFamilyClick}
+        onToggleBold={handleToggleBold}
+        onToggleUnderline={handleToggleUnderline}
+        onToggleItalic={handleToggleItalic}
+        onToggleStrikethrough={handleToggleStrikethrough}
+        onAlignChange={toolbar.onAlignChange}
+        onAlignYChange={toolbar.onAlignYChange}
+      />
+    </div>
+  ) : null;
 
   return (
     <div
@@ -328,6 +375,7 @@ const TextBox = ({
           contentEditable
           suppressContentEditableWarning
           spellCheck={false}
+          onBeforeInput={handleBeforeInput}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -395,122 +443,9 @@ const TextBox = ({
         isSelected &&
         !locked &&
         showToolbar &&
-        (toolbarPortal ? (
-          createPortal(
-            <div
-              data-textbox-toolbar="true"
-              className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-              onPointerDownCapture={() => {
-                handleToolbarPointerDown();
-              }}
-              onMouseDown={(event) => {
-                // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
-                const target = event.target as HTMLElement;
-                const isFocusableInput =
-                  target.tagName === "INPUT" &&
-                  target.getAttribute("data-fontsize-readonly") !== "true";
-                if (!isFocusableInput) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <TextToolBar
-                isVisible
-                minFontSize={toolbar.minFontSize}
-                maxFontSize={toolbar.maxFontSize}
-                fontSize={toolbar.fontSize}
-                fontSizeDisplay={fontSizeUiState.displayValue}
-                isFontSizeMixed={fontSizeUiState.isMixed}
-                fontFamily={toolbar.fontFamily}
-                fontLabel={toolbar.fontLabel}
-                lineHeight={toolbar.lineHeight}
-                letterSpacing={toolbar.letterSpacing}
-                color={toolbar.color}
-                isBold={toolbar.isBold}
-                isUnderline={toolbar.isUnderline}
-                isItalic={toolbar.isItalic}
-                isStrikethrough={toolbar.isStrikethrough}
-                align={toolbar.align}
-                alignY={toolbar.alignY}
-                onFontSizeStep={handleFontSizeStep}
-                onFontSizeTypingStart={handleFontSizeTypeStart}
-                onFontSizeTypingDigit={handleFontSizeTypingDigit}
-                onFontSizeTypingBackspace={handleFontSizeTypingBackspace}
-                onFontSizeTypingCommit={handleFontSizeTypeCommit}
-                onFontSizeTypingCancel={handleFontSizeTypeCancel}
-                fontSizeTypingActive={fontSizeTypingState.active}
-                fontSizeTypingBuffer={fontSizeTypingState.buffer}
-                onLineHeightChange={toolbar.onLineHeightChange}
-                onLetterSpacingChange={toolbar.onLetterSpacingChange}
-                onColorChange={handleColorChange}
-                onFontFamilyClick={toolbar.onFontFamilyClick}
-                onToggleBold={handleToggleBold}
-                onToggleUnderline={handleToggleUnderline}
-                onToggleItalic={handleToggleItalic}
-                onToggleStrikethrough={handleToggleStrikethrough}
-                onAlignChange={toolbar.onAlignChange}
-                onAlignYChange={toolbar.onAlignYChange}
-              />
-            </div>,
-            toolbarPortal,
-          )
-        ) : (
-          <div
-            data-textbox-toolbar="true"
-            className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-            onPointerDownCapture={() => {
-              handleToolbarPointerDown();
-            }}
-            onMouseDown={(event) => {
-              // 숫자 입력창 포커스는 유지하고, 그 외 클릭은 포커스 이탈을 막는다.
-              const target = event.target as HTMLElement;
-              const isFocusableInput =
-                target.tagName === "INPUT" &&
-                target.getAttribute("data-fontsize-readonly") !== "true";
-              if (!isFocusableInput) {
-                event.preventDefault();
-              }
-            }}
-          >
-            <TextToolBar
-              isVisible
-              minFontSize={toolbar.minFontSize}
-              maxFontSize={toolbar.maxFontSize}
-              fontSize={toolbar.fontSize}
-              fontSizeDisplay={fontSizeUiState.displayValue}
-              isFontSizeMixed={fontSizeUiState.isMixed}
-              fontFamily={toolbar.fontFamily}
-              fontLabel={toolbar.fontLabel}
-              lineHeight={toolbar.lineHeight}
-              letterSpacing={toolbar.letterSpacing}
-              color={toolbar.color}
-              isBold={toolbar.isBold}
-              isUnderline={toolbar.isUnderline}
-              isItalic={toolbar.isItalic}
-              isStrikethrough={toolbar.isStrikethrough}
-              align={toolbar.align}
-              alignY={toolbar.alignY}
-              onFontSizeStep={handleFontSizeStep}
-              onFontSizeTypingStart={handleFontSizeTypeStart}
-              onFontSizeTypingDigit={handleFontSizeTypingDigit}
-              onFontSizeTypingBackspace={handleFontSizeTypingBackspace}
-              onFontSizeTypingCommit={handleFontSizeTypeCommit}
-              onFontSizeTypingCancel={handleFontSizeTypeCancel}
-              fontSizeTypingActive={fontSizeTypingState.active}
-              fontSizeTypingBuffer={fontSizeTypingState.buffer}
-              onLineHeightChange={toolbar.onLineHeightChange}
-              onLetterSpacingChange={toolbar.onLetterSpacingChange}
-              onColorChange={handleColorChange}
-              onFontFamilyClick={toolbar.onFontFamilyClick}
-              onToggleBold={handleToggleBold}
-              onToggleUnderline={handleToggleUnderline}
-              onToggleItalic={handleToggleItalic}
-              onToggleStrikethrough={handleToggleStrikethrough}
-              onAlignChange={toolbar.onAlignChange}
-              onAlignYChange={toolbar.onAlignYChange}
-            />
-          </div>
-        ))}
+        (toolbarPortal && toolbarCard
+          ? createPortal(toolbarCard, toolbarPortal)
+          : toolbarCard)}
       <div
         ref={measureRef}
         aria-hidden

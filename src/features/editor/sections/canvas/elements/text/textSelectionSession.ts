@@ -1,9 +1,21 @@
 /**
  * contentEditable selection 스냅샷/복원과 폰트 크기 UI 계산을 담당하는 세션 유틸.
  */
-export type TextSelectionSnapshot = {
-  range: Range;
+export type SerializedPosition = {
+  path: number[];
+  offset: number;
+};
+
+export type SerializedRangeSnapshot = {
+  start: SerializedPosition;
+  end: SerializedPosition;
+  collapsed: boolean;
   revision: number;
+};
+
+export type SelectionRestoreResult = {
+  selection: Selection;
+  range: Range;
 };
 
 export type FontSizeUiState = {
@@ -28,25 +40,73 @@ const resolveComputedFontSize = (node: Node | null, fallback: number): number =>
   return Math.round(parsed);
 };
 
-export const cloneRangeSafely = (range: Range | null): Range | null => {
-  if (!range) return null;
-  try {
-    return range.cloneRange();
-  } catch {
-    return null;
+const getNodeIndex = (node: Node): number => {
+  let index = 0;
+  let current = node.previousSibling;
+  while (current) {
+    index += 1;
+    current = current.previousSibling;
   }
+  return index;
+};
+
+const serializePosition = (
+  editable: HTMLElement,
+  node: Node,
+  offset: number,
+): SerializedPosition | null => {
+  const path: number[] = [];
+  let current: Node | null = node;
+
+  while (current && current !== editable) {
+    const parentNode: Node | null = current.parentNode;
+    if (!parentNode) return null;
+    path.push(getNodeIndex(current));
+    current = parentNode;
+  }
+
+  if (current !== editable) return null;
+  path.reverse();
+
+  const normalizedOffset = (() => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return Math.min(offset, (node as Text).length);
+    }
+    return Math.min(offset, node.childNodes.length);
+  })();
+
+  return { path, offset: Math.max(0, normalizedOffset) };
+};
+
+const resolvePositionNode = (
+  editable: HTMLElement,
+  position: SerializedPosition,
+): { node: Node; offset: number } | null => {
+  let node: Node = editable;
+
+  for (const index of position.path) {
+    const child = node.childNodes.item(index);
+    if (!child) return null;
+    node = child;
+  }
+
+  const offset = node.nodeType === Node.TEXT_NODE
+    ? Math.min(position.offset, (node as Text).length)
+    : Math.min(position.offset, node.childNodes.length);
+
+  return { node, offset: Math.max(0, offset) };
 };
 
 export const isRangeInEditable = (
   range: Range | null,
-  editable: HTMLElement | null
+  editable: HTMLElement | null,
 ): boolean => {
   if (!range || !editable) return false;
   return editable.contains(range.commonAncestorContainer);
 };
 
 export const getLiveRangeInEditable = (
-  editable: HTMLElement | null
+  editable: HTMLElement | null,
 ): { selection: Selection; range: Range } | null => {
   if (typeof window === "undefined" || !editable) return null;
   const selection = window.getSelection();
@@ -56,17 +116,63 @@ export const getLiveRangeInEditable = (
   return { selection, range };
 };
 
-export const restoreSelectionSnapshot = (
-  snapshot: TextSelectionSnapshot | null
-): Selection | null => {
-  if (typeof window === "undefined" || !snapshot) return null;
+export const serializeRangeSnapshot = ({
+  range,
+  editable,
+  revision,
+}: {
+  range: Range;
+  editable: HTMLElement;
+  revision: number;
+}): SerializedRangeSnapshot | null => {
+  if (!isRangeInEditable(range, editable)) return null;
+
+  const start = serializePosition(editable, range.startContainer, range.startOffset);
+  const end = serializePosition(editable, range.endContainer, range.endOffset);
+  if (!start || !end) return null;
+
+  return {
+    start,
+    end,
+    collapsed: range.collapsed,
+    revision,
+  };
+};
+
+export const deserializeRangeSnapshot = ({
+  snapshot,
+  editable,
+}: {
+  snapshot: SerializedRangeSnapshot;
+  editable: HTMLElement;
+}): Range | null => {
+  const start = resolvePositionNode(editable, snapshot.start);
+  const end = resolvePositionNode(editable, snapshot.end);
+  if (!start || !end) return null;
+
+  const range = document.createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset);
+  return range;
+};
+
+export const restoreSerializedSelection = ({
+  snapshot,
+  editable,
+}: {
+  snapshot: SerializedRangeSnapshot | null;
+  editable: HTMLElement | null;
+}): SelectionRestoreResult | null => {
+  if (typeof window === "undefined" || !snapshot || !editable) return null;
   const selection = window.getSelection();
   if (!selection) return null;
-  const cloned = cloneRangeSafely(snapshot.range);
-  if (!cloned) return null;
+
+  const range = deserializeRangeSnapshot({ snapshot, editable });
+  if (!range || !isRangeInEditable(range, editable)) return null;
+
   selection.removeAllRanges();
-  selection.addRange(cloned);
-  return selection;
+  selection.addRange(range);
+  return { selection, range };
 };
 
 export const normalizeSelectionRange = ({
@@ -74,15 +180,11 @@ export const normalizeSelectionRange = ({
   snapshot,
 }: {
   editable: HTMLElement | null;
-  snapshot: TextSelectionSnapshot | null;
-}): { selection: Selection; range: Range } | null => {
+  snapshot: SerializedRangeSnapshot | null;
+}): SelectionRestoreResult | null => {
   const live = getLiveRangeInEditable(editable);
   if (live) return live;
-  if (!editable || !snapshot) return null;
-  if (!isRangeInEditable(snapshot.range, editable)) return null;
-  const selection = restoreSelectionSnapshot(snapshot);
-  if (!selection || selection.rangeCount === 0) return null;
-  return { selection, range: selection.getRangeAt(0) };
+  return restoreSerializedSelection({ snapshot, editable });
 };
 
 export const resolveFontSizeUiStateFromRange = ({
@@ -102,7 +204,7 @@ export const resolveFontSizeUiStateFromRange = ({
   const sizes = new Set<number>();
   const walker = document.createTreeWalker(
     range.commonAncestorContainer,
-    NodeFilter.SHOW_TEXT
+    NodeFilter.SHOW_TEXT,
   );
   let current = walker.nextNode();
   while (current) {
@@ -123,4 +225,3 @@ export const resolveFontSizeUiStateFromRange = ({
   const [size] = Array.from(sizes);
   return { resolvedSize: size, isMixed: false, displayValue: String(size) };
 };
-

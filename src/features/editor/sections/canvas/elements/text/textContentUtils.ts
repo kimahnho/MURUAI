@@ -35,6 +35,7 @@ export const stripStyleTags = (
     | "strikethrough"
     | "color"
     | "fontFamily"
+    | "fontSize"
 ): string => {
   if (!richText || typeof window === "undefined" || typeof DOMParser === "undefined") {
     return richText;
@@ -98,6 +99,14 @@ export const stripStyleTags = (
               el.style.fontFamily = "inherit";
             }
             break;
+          case "fontSize":
+            if (tagName === "font" && el.hasAttribute("size")) {
+              el.removeAttribute("size");
+            }
+            if (el.style.fontSize) {
+              el.style.fontSize = "";
+            }
+            break;
         }
 
         if (shouldUnwrap) {
@@ -159,19 +168,20 @@ export const resolveInlineFontSize = (
   return fallback;
 };
 
-/**
- * Range 내 선택된 텍스트의 font-size를 in-place로 변경한다.
- * extractContents를 사용하지 않아 DOM 구조와 Range 참조를 보존한다.
- *
- * @returns 수정된 영역을 감싸는 새 Range, 실패 시 null
- */
-export const applyFontSizeInPlace = (
-  range: Range,
-  editable: HTMLElement,
-  resolveSize: (baseSize: number) => number,
-  fallback: number,
-): Range | null => {
-  // 1. Range 경계 텍스트 노드를 분할하여 선택 범위를 정확히 맞춘다
+const getComputedElement = (node: Node): HTMLElement | null =>
+  node.nodeType === Node.ELEMENT_NODE
+    ? (node as HTMLElement)
+    : node.parentElement;
+
+const resolveComputedFontSizeAtNode = (node: Node, fallback: number): number => {
+  const element = getComputedElement(node);
+  if (!element) return fallback;
+  const parsed = Number.parseFloat(window.getComputedStyle(element).fontSize);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.round(parsed);
+};
+
+const splitRangeBoundaries = (range: Range) => {
   if (
     range.startContainer.nodeType === Node.TEXT_NODE &&
     range.startOffset > 0
@@ -186,59 +196,398 @@ export const applyFontSizeInPlace = (
   ) {
     (range.endContainer as Text).splitText(range.endOffset);
   }
+};
 
-  // 2. 범위 내 텍스트 노드를 수집 (DOM에서 제거하지 않음)
+const collectTextNodesInRange = (range: Range): Text[] => {
   const ancestor =
     range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-      ? range.commonAncestorContainer.parentElement!
+      ? range.commonAncestorContainer.parentElement
       : range.commonAncestorContainer;
+  if (!ancestor) return [];
+
   const walker = document.createTreeWalker(ancestor, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
   let current = walker.nextNode();
   while (current) {
-    if (
-      current.textContent &&
-      current.textContent.length > 0 &&
-      range.intersectsNode(current)
-    ) {
-      textNodes.push(current as Text);
+    const textNode = current as Text;
+    if (textNode.textContent && textNode.textContent.length > 0 && range.intersectsNode(textNode)) {
+      textNodes.push(textNode);
     }
     current = walker.nextNode();
   }
+
+  return textNodes;
+};
+
+const normalizeStyleString = (value: string | null): string =>
+  (value ?? "")
+    .split(";")
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .sort()
+    .join(";");
+
+const normalizeAdjacentSpans = (span: HTMLElement): HTMLElement => {
+  let current = span;
+  const styleSignature = normalizeStyleString(current.getAttribute("style"));
+
+  const mergePrev = () => {
+    const prev = current.previousSibling;
+    if (!(prev instanceof HTMLElement) || prev.tagName !== "SPAN") return false;
+    if (normalizeStyleString(prev.getAttribute("style")) !== styleSignature) return false;
+
+    while (current.firstChild) {
+      prev.appendChild(current.firstChild);
+    }
+    current.remove();
+    current = prev;
+    return true;
+  };
+
+  const mergeNext = () => {
+    const next = current.nextSibling;
+    if (!(next instanceof HTMLElement) || next.tagName !== "SPAN") return false;
+    if (normalizeStyleString(next.getAttribute("style")) !== styleSignature) return false;
+
+    while (next.firstChild) {
+      current.appendChild(next.firstChild);
+    }
+    next.remove();
+    return true;
+  };
+
+  while (mergePrev()) {
+    // no-op
+  }
+  while (mergeNext()) {
+    // no-op
+  }
+
+  return current;
+};
+
+const createRangeFromNodes = (nodes: Node[]): Range | null => {
+  if (nodes.length === 0) return null;
+  const range = document.createRange();
+  range.setStartBefore(nodes[0]);
+  range.setEndAfter(nodes[nodes.length - 1]);
+  return range;
+};
+
+const applyStylePatchInPlace = ({
+  range,
+  editable,
+  patcher,
+}: {
+  range: Range;
+  editable: HTMLElement;
+  patcher: (args: { textNode: Text; target: HTMLElement }) => void;
+}): Range | null => {
+  splitRangeBoundaries(range);
+  const textNodes = collectTextNodesInRange(range);
   if (textNodes.length === 0) return null;
 
-  // 3. 각 텍스트 노드에 font-size를 in-place 적용
-  const wrappedNodes: Node[] = [];
+  const styledNodes: HTMLElement[] = [];
+
   for (const textNode of textNodes) {
-    const baseSize = resolveInlineFontSize(textNode, fallback);
-    const newSize = resolveSize(baseSize);
     const parent = textNode.parentElement;
+    let target: HTMLElement;
 
     if (
       parent &&
       parent !== editable &&
       parent.tagName === "SPAN" &&
-      parent.style.fontSize &&
       parent.childNodes.length === 1
     ) {
-      // 부모 span이 font-size를 가지고 유일한 자식이면 직접 갱신
-      parent.style.fontSize = `${newSize}px`;
-      wrappedNodes.push(parent);
+      target = parent;
     } else {
-      // 새 span으로 감싸기
-      const span = document.createElement("span");
-      span.style.fontSize = `${newSize}px`;
-      textNode.parentNode!.insertBefore(span, textNode);
-      span.appendChild(textNode);
-      wrappedNodes.push(span);
+      target = document.createElement("span");
+      textNode.parentNode?.insertBefore(target, textNode);
+      target.appendChild(textNode);
     }
+
+    patcher({ textNode, target });
+    styledNodes.push(normalizeAdjacentSpans(target));
   }
 
-  if (wrappedNodes.length === 0) return null;
+  const dedupedNodes = styledNodes.filter(
+    (node, index) => styledNodes.indexOf(node) === index,
+  );
 
-  // 4. 수정된 노드들로 새 Range 생성
-  const nextRange = document.createRange();
-  nextRange.setStartBefore(wrappedNodes[0]);
-  nextRange.setEndAfter(wrappedNodes[wrappedNodes.length - 1]);
-  return nextRange;
+  return createRangeFromNodes(dedupedNodes);
+};
+
+const getComputedDecorationLines = (node: Node): Set<string> => {
+  const element = getComputedElement(node);
+  if (!element) return new Set();
+  const line = window.getComputedStyle(element).textDecorationLine;
+  return new Set(
+    line
+      .split(" ")
+      .map((token) => token.trim())
+      .filter((token) => token && token !== "none"),
+  );
+};
+
+const isNodeBold = (node: Node) => {
+  const element = getComputedElement(node);
+  if (!element) return false;
+  const computed = window.getComputedStyle(element).fontWeight;
+  if (computed === "bold") return true;
+  const numeric = Number.parseInt(computed, 10);
+  return Number.isFinite(numeric) && numeric >= 600;
+};
+
+const isNodeItalic = (node: Node) => {
+  const element = getComputedElement(node);
+  if (!element) return false;
+  return window.getComputedStyle(element).fontStyle === "italic";
+};
+
+/**
+ * 편집 중 inline font-size 중 기본 폰트 크기와 같은 값은 제거한다.
+ * 기본값과 다른 크기만 명시적으로 유지해 richText를 안정적으로 정규화한다.
+ */
+export const normalizeInlineFontSizeOverrides = ({
+  editable,
+  baseFontSize,
+}: {
+  editable: HTMLElement;
+  baseFontSize: number;
+}) => {
+  const normalizedBase = Math.round(baseFontSize);
+
+  const walk = (node: Node) => {
+    const children = Array.from(node.childNodes);
+    for (const child of children) {
+      walk(child);
+    }
+
+    if (!(node instanceof HTMLElement)) return;
+    if (node === editable || node.tagName !== "SPAN") return;
+
+    if (node.style.fontSize) {
+      const parsed = Number.parseFloat(node.style.fontSize);
+      if (Number.isFinite(parsed) && Math.round(parsed) === normalizedBase) {
+        node.style.fontSize = "";
+      }
+    }
+
+    if (node.getAttribute("style") === "") {
+      node.removeAttribute("style");
+    }
+
+    if (node.tagName === "SPAN" && node.attributes.length === 0) {
+      const parent = node.parentNode;
+      if (!parent) return;
+      while (node.firstChild) {
+        parent.insertBefore(node.firstChild, node);
+      }
+      parent.removeChild(node);
+      return;
+    }
+
+    if (node.tagName === "SPAN" && node.hasAttribute("style")) {
+      normalizeAdjacentSpans(node);
+    }
+  };
+
+  walk(editable);
+};
+
+export type PendingInlineStyle = {
+  fontSize?: number;
+  color?: string;
+  fontWeight?: "bold" | "normal";
+  fontStyle?: "italic" | "normal";
+  underline?: boolean;
+  strikethrough?: boolean;
+};
+
+export type RichTextCommand =
+  | { type: "setFontSize"; size: number; fallback: number }
+  | {
+      type: "setFontSizeStep";
+      delta: number;
+      fallback: number;
+      clamp: (value: number) => number;
+    }
+  | { type: "setColor"; color: string }
+  | { type: "toggleBold" }
+  | { type: "toggleItalic" }
+  | { type: "toggleUnderline" }
+  | { type: "toggleStrikethrough" };
+
+export const hasPendingInlineStyle = (pending: PendingInlineStyle) =>
+  pending.fontSize != null ||
+  pending.color != null ||
+  pending.fontWeight != null ||
+  pending.fontStyle != null ||
+  pending.underline != null ||
+  pending.strikethrough != null;
+
+const applyPendingPatch = (target: HTMLElement, pending: PendingInlineStyle) => {
+  if (pending.fontSize != null) {
+    target.style.fontSize = `${pending.fontSize}px`;
+  }
+  if (pending.color != null) {
+    target.style.color = pending.color;
+  }
+  if (pending.fontWeight != null) {
+    target.style.fontWeight = pending.fontWeight;
+  }
+  if (pending.fontStyle != null) {
+    target.style.fontStyle = pending.fontStyle;
+  }
+
+  const shouldTouchDecoration =
+    pending.underline != null || pending.strikethrough != null;
+
+  if (shouldTouchDecoration) {
+    const lines = getComputedDecorationLines(target);
+
+    if (pending.underline != null) {
+      if (pending.underline) lines.add("underline");
+      else lines.delete("underline");
+    }
+
+    if (pending.strikethrough != null) {
+      if (pending.strikethrough) lines.add("line-through");
+      else lines.delete("line-through");
+    }
+
+    target.style.textDecorationLine = lines.size > 0
+      ? Array.from(lines).join(" ")
+      : "none";
+  }
+};
+
+/**
+ * Range 내 선택된 텍스트의 font-size를 in-place로 변경한다.
+ * extractContents를 사용하지 않아 DOM 구조와 Range 참조를 보존한다.
+ *
+ * @returns 수정된 영역을 감싸는 새 Range, 실패 시 null
+ */
+export const applyFontSizeInPlace = (
+  range: Range,
+  editable: HTMLElement,
+  resolveSize: (baseSize: number) => number,
+  fallback: number,
+): Range | null => {
+  return applyStylePatchInPlace({
+    range,
+    editable,
+    patcher: ({ textNode, target }) => {
+      const baseSize = resolveInlineFontSize(textNode, fallback);
+      const newSize = resolveSize(baseSize);
+      target.style.fontSize = `${newSize}px`;
+    },
+  });
+};
+
+export const applyPendingInlineStyleInPlace = (
+  range: Range,
+  editable: HTMLElement,
+  pending: PendingInlineStyle,
+): Range | null => {
+  return applyStylePatchInPlace({
+    range,
+    editable,
+    patcher: ({ target }) => {
+      applyPendingPatch(target, pending);
+    },
+  });
+};
+
+export const applyRichTextCommandInPlace = ({
+  range,
+  editable,
+  command,
+}: {
+  range: Range;
+  editable: HTMLElement;
+  command: RichTextCommand;
+}): Range | null => {
+  const textNodes = collectTextNodesInRange(range);
+
+  if (command.type === "setFontSize") {
+    return applyFontSizeInPlace(
+      range,
+      editable,
+      () => command.size,
+      command.fallback,
+    );
+  }
+
+  if (command.type === "setFontSizeStep") {
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ textNode, target }) => {
+        const base = resolveComputedFontSizeAtNode(textNode, command.fallback);
+        const next = command.clamp(base + command.delta);
+        target.style.fontSize = `${next}px`;
+      },
+    });
+  }
+
+  if (command.type === "setColor") {
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ target }) => {
+        target.style.color = command.color;
+      },
+    });
+  }
+
+  if (command.type === "toggleBold") {
+    const allBold = textNodes.length > 0 && textNodes.every((node) => isNodeBold(node));
+    const next = allBold ? "normal" : "bold";
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ target }) => {
+        target.style.fontWeight = next;
+      },
+    });
+  }
+
+  if (command.type === "toggleItalic") {
+    const allItalic = textNodes.length > 0 && textNodes.every((node) => isNodeItalic(node));
+    const next = allItalic ? "normal" : "italic";
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ target }) => {
+        target.style.fontStyle = next;
+      },
+    });
+  }
+
+  if (command.type === "toggleUnderline" || command.type === "toggleStrikethrough") {
+    const lineType = command.type === "toggleUnderline" ? "underline" : "line-through";
+    const allHaveLine =
+      textNodes.length > 0 &&
+      textNodes.every((node) => getComputedDecorationLines(node).has(lineType));
+
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ target }) => {
+        const lines = getComputedDecorationLines(target);
+        if (allHaveLine) {
+          lines.delete(lineType);
+        } else {
+          lines.add(lineType);
+        }
+
+        target.style.textDecorationLine = lines.size > 0
+          ? Array.from(lines).join(" ")
+          : "none";
+      },
+    });
+  }
+
+  return null;
 };
