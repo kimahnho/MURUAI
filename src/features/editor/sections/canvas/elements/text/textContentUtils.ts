@@ -147,6 +147,75 @@ export const stripStyleTags = (
 };
 
 /**
+ * richText 내부의 인라인 font-size 값을 delta만큼 증감한다.
+ * 요소 기본 폰트 크기(style.fontSize)는 호출부에서 별도로 갱신한다.
+ */
+export const applyFontSizeDeltaToRichText = ({
+  richText,
+  delta,
+  clamp,
+}: {
+  richText: string;
+  delta: number;
+  clamp: (value: number) => number;
+}): string => {
+  if (!richText) {
+    return richText;
+  }
+
+  const htmlFontSizeMap: Record<string, number> = {
+    "1": 10,
+    "2": 13,
+    "3": 16,
+    "4": 18,
+    "5": 24,
+    "6": 32,
+    "7": 48,
+  };
+
+  const withSteppedInlineSizes = richText.replace(
+    /font-size\s*:\s*([0-9]*\.?[0-9]+)\s*(px|pt)?/gi,
+    (match, value: string, unit?: string) => {
+      const parsed = Number.parseFloat(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) return match;
+      const sizeInPx =
+        (unit ?? "px").toLowerCase() === "pt"
+          ? Math.round(parsed * (96 / 72))
+          : Math.round(parsed);
+      const next = clamp(sizeInPx + delta);
+      return `font-size: ${next}px`;
+    },
+  );
+
+  return withSteppedInlineSizes.replace(
+    /<font([^>]*?)\s+size=["']?([1-7])["']?([^>]*)>/gi,
+    (_match, before: string, sizeValue: string, after: string) => {
+      const mapped = htmlFontSizeMap[sizeValue];
+      if (!mapped) return _match;
+      const next = clamp(mapped + delta);
+      const rawAttrs = `${before}${after}`;
+      const styleMatch = rawAttrs.match(/\sstyle=["']([^"']*)["']/i);
+      const existingStyle = styleMatch?.[1] ?? "";
+      const cleanedStyle = existingStyle
+        .replace(/font-size\s*:[^;]+;?/gi, "")
+        .trim();
+      const stylePrefix =
+        cleanedStyle.length > 0
+          ? cleanedStyle.endsWith(";")
+            ? `${cleanedStyle} `
+            : `${cleanedStyle}; `
+          : "";
+      const nextStyle = `${stylePrefix}font-size: ${next}px;`;
+      const attrsWithoutStyle = rawAttrs.replace(
+        /\sstyle=["'][^"']*["']/i,
+        "",
+      );
+      return `<font${attrsWithoutStyle} style="${nextStyle}">`;
+    },
+  );
+};
+
+/**
  * 노드에서 가장 가까운 인라인 font-size를 읽는다.
  * 조상 element의 style.fontSize를 순회하며, 없으면 fallback을 반환한다.
  */
