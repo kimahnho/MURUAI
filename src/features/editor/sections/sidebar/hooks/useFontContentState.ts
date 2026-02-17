@@ -8,7 +8,6 @@ import { useFontStore } from "@/features/editor/store/fontStore";
 export const useFontContentState = () => {
   const panelFontFamily = useFontStore((state) => state.panelFontFamily);
   const panelFontWeight = useFontStore((state) => state.panelFontWeight);
-  const setPanelFont = useFontStore((state) => state.setPanelFont);
   const applyFont = useFontStore((state) => state.applyFont);
   const selectedFont =
     FONT_OPTIONS.find((font) => font.family === panelFontFamily) ??
@@ -29,8 +28,7 @@ export const useFontContentState = () => {
     const nextWeight = availableWeights.includes(panelFontWeight)
       ? panelFontWeight
       : (font.weights[0]?.value ?? 400);
-    // 폰트 변경 시 현재 weight가 없으면 해당 폰트의 첫 weight로 안전하게 fallback한다.
-    setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
+    // applyFont가 패널 값과 실제 적용 요청을 함께 갱신하므로 단일 업데이트만 발생시킨다.
     applyFont({ fontFamily: font.family, fontWeight: nextWeight });
     setExpandedFontIds((prev) =>
       prev.includes(font.id) ? prev : [...prev, font.id],
@@ -39,7 +37,6 @@ export const useFontContentState = () => {
   };
 
   const handleWeightSelect = (family: string, weight: number) => {
-    setPanelFont({ fontFamily: family, fontWeight: weight });
     applyFont({ fontFamily: family, fontWeight: weight });
     const font = FONT_OPTIONS.find((item) => item.family === family);
     if (font) {

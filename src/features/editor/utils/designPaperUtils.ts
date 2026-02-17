@@ -31,15 +31,18 @@ export const isEditableTarget = (
   );
 };
 
-// 감정 슬롯 도형은 테두리 색상 규약으로 식별해 템플릿 특화 동작(자동 바인딩 등)에 사용한다.
+// 감정 슬롯/감정 추론 도형을 subType 우선으로 식별하고, 기존 문서 호환을 위해 border.color fallback을 유지한다.
 export const isEmotionSlotShape = (
   element: CanvasElement
 ): element is ShapeElement =>
   (element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse") &&
-  element.border?.enabled === true &&
-  element.border?.color === "#A5B4FC";
+  (element.subType === "emotionSlot" ||
+    element.subType === "emotionInference" ||
+    (element.subType === undefined &&
+      element.border?.enabled === true &&
+      element.border?.color === "#A5B4FC"));
 
 const isNormalWeight = (weight: TextElement["style"]["fontWeight"]) =>
   weight === "normal" || weight === 400;

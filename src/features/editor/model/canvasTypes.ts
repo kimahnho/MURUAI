@@ -58,8 +58,11 @@ export type TextElement = ElementBase & {
   };
 };
 
+export type ShapeSubType = "emotionSlot" | "emotionInference" | "aacCard";
+
 export type ShapeElement = ElementBase & {
   type: "rect" | "roundRect" | "ellipse";
+  subType?: ShapeSubType;
   x: number;
   y: number;
   w: number;

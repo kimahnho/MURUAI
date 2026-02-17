@@ -127,6 +127,7 @@ export const buildAacBoardElements = ({
           width: 2,
           style: "solid",
         },
+        subType: "aacCard",
         tempId: cardTempId,
         labelId: labelPosition !== "none" ? labelTempId : undefined,
       });

@@ -183,6 +183,7 @@ export const emotionInferencePage3: Template = {
             width: 1.5,
             style: "solid" as const,
           },
+          subType: "emotionInference" as const,
           tempId: cardTempId,
           labelId: labelTempId,
         },

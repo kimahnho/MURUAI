@@ -25,12 +25,15 @@ export const useCanvasStageHandlers = ({
 }: CanvasStageHandlersParams) => {
   const handleElementsChange = useCallback(
     (nextElements: CanvasElement[]) => {
-      setPages((prevPages) =>
-        updatePageById(prevPages, selectedPageId, (page) => ({
+      setPages((prevPages) => {
+        const targetPage = prevPages.find((page) => page.id === selectedPageId);
+        if (!targetPage) return prevPages;
+        if (targetPage.elements === nextElements) return prevPages;
+        return updatePageById(prevPages, selectedPageId, (page) => ({
           ...page,
           elements: nextElements,
-        })),
-      );
+        }));
+      });
     },
     [selectedPageId, setPages]
   );

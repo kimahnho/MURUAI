@@ -12,12 +12,17 @@ export const updatePageById = (
   pages: Page[],
   pageId: string,
   updater: (page: Page) => Page,
-): Page[] =>
-  pages.map((page) => {
+): Page[] => {
+  let didChange = false;
+  const nextPages = pages.map((page) => {
     if (page.id !== pageId) return page;
     const nextPage = updater(page);
+    if (nextPage === page) return page;
+    didChange = true;
     return bumpPageRevision(nextPage);
   });
+  return didChange ? nextPages : pages;
+};
 
 /**
  * pageId에 해당하는 페이지의 elements 배열만 교체한다.
