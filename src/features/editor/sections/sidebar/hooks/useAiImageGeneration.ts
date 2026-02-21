@@ -34,7 +34,7 @@ export type UsageStatus = {
 
 const DAILY_LIMIT = 20;
 
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
+const RAW_GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
   | string
   | undefined;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
@@ -42,6 +42,23 @@ const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env
   .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
+
+const sanitizeGoogleApiKey = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+
+  // Remove BOM/zero-width chars that can be introduced by copy/paste.
+  const sanitized = value.replace(/[\uFEFF\u200B-\u200D\u2060]/g, "").trim();
+  return sanitized.length > 0 ? sanitized : undefined;
+};
+
+const hasNonIso88591CodePoint = (value: string): boolean => {
+  for (const ch of value) {
+    if (ch.codePointAt(0)! > 0xff) return true;
+  }
+  return false;
+};
+
+const GOOGLE_API_KEY = sanitizeGoogleApiKey(RAW_GOOGLE_API_KEY);
 
 const getCloudinaryUrl = (path: string): string => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -56,6 +73,11 @@ const getCloudinaryUrl = (path: string): string => {
 const generateImageWithGemini = async (prompt: string): Promise<string> => {
   if (!GOOGLE_API_KEY) {
     throw new Error("Google API key is not configured");
+  }
+  if (hasNonIso88591CodePoint(GOOGLE_API_KEY)) {
+    throw new Error(
+      "Google API key contains unsupported characters. Re-enter VITE_GOOGLE_API_KEY using plain ASCII text.",
+    );
   }
 
   const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
