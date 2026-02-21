@@ -98,7 +98,10 @@ export const STYLE_PROMPTS: Record<ImageStyle, string | null> = {
 - **No Patterns:** 배경이나 옷에 복잡한 체크무늬, 줄무늬, 모아레 현상 유발 패턴 금지.
 
 [Output Instruction]
-위의 [Background Logic]에 따라 배경 유무를 결정하고, 규칙을 준수한 영어 프롬프트를 작성하라.`,
+위의 [Background Logic]에 따라 배경 유무를 결정하고, 규칙을 준수한 영어 프롬프트를 작성하라.
+Strictly follow the user's input only. Do not include any individuals, objects, or elements not explicitly mentioned by the user
+유저가 입력한 내용을 철저하게 반영해야한다.(유저가 입력하지 않은 인물이나 요소들은 제작하지 않는다)
+`,
   lineart: `[Role Definition]
 당신은 자폐 스펙트럼(ASD) 아동을 위한 **'초단순화된 선화(Simpified Line Art)'** 전문 디렉터입니다.
 

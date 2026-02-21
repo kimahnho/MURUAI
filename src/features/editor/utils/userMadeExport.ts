@@ -124,7 +124,6 @@ const clampNumber = (value: number, min: number, max: number) =>
 
 type DevicePerformanceTier = "low" | "mid" | "high";
 const LOW_TIER_EXPORT_Y_OFFSET_PX = -10;
-const BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX = -23;
 
 const getDevicePerformanceTier = (): DevicePerformanceTier => {
   if (typeof navigator === "undefined") return "mid";
@@ -147,8 +146,7 @@ const getAdaptiveCaptureScale = ({
 }) => {
   const tier = getDevicePerformanceTier();
   const requested = clampNumber(requestedQuality, 1, 3);
-  const maxByTier =
-    tier === "low" ? 1.35 : tier === "mid" ? 1.8 : 2.25;
+  const maxByTier = tier === "low" ? 1.35 : tier === "mid" ? 1.8 : 2.25;
   const pixelBudget =
     tier === "low" ? 5_000_000 : tier === "mid" ? 9_000_000 : 14_000_000;
   const area = Math.max(1, width * height);
@@ -158,9 +156,7 @@ const getAdaptiveCaptureScale = ({
 
 const buildScaleFallbacks = (baseScale: number) => {
   const levels = [baseScale, Math.max(1, baseScale * 0.82), 1];
-  return Array.from(new Set(levels.map((value) =>
-    Number(value.toFixed(2))
-  )));
+  return Array.from(new Set(levels.map((value) => Number(value.toFixed(2)))));
 };
 
 const normalizePdfElementCapturePosition = (
@@ -271,6 +267,9 @@ export const generatePdfFromDomPages = async ({
           }),
         );
 
+      // html2canvas 1.x가 flex align-items를 잘못 렌더해 텍스트가 아래로 밀리는 문제를 우회한다.
+      // 원본 DOM의 flex를 !important 인라인 스타일로 block으로 덮어쓰고,
+      // 수직 정렬은 padding-top으로 재현한 뒤 캡처 후 복원한다.
       const normalizePdfTextLayout = (root: HTMLElement) => {
         const restores: Array<() => void> = [];
         const boxes = Array.from(
@@ -281,47 +280,48 @@ export const generatePdfFromDomPages = async ({
             '[data-textbox-content="true"]',
           );
           if (!content) return;
-          const boxRect = box.getBoundingClientRect();
-          const contentRect = content.getBoundingClientRect();
-          const relativeTop = contentRect.top - boxRect.top;
-          const offsetY = Number.isFinite(relativeTop)
-            ? relativeTop + BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX
-            : BASE_TEXTBOX_CONTENT_EXPORT_Y_OFFSET_PX;
-          const prevBoxStyle = {
-            display: box.style.display,
-          };
-          const prevContentStyle = {
-            position: content.style.position,
-            top: content.style.top,
-            left: content.style.left,
-            right: content.style.right,
-            width: content.style.width,
-            marginTop: content.style.marginTop,
-            transform: content.style.transform,
-          };
-          box.style.display = "block";
-          content.style.position = "absolute";
-          content.style.left = "0";
-          content.style.right = "0";
-          content.style.width = "100%";
-          content.style.top = `${Math.round(offsetY * 100) / 100}px`;
-          content.style.marginTop = "0";
-          content.style.transform = "none";
+          const boxH = box.offsetHeight;
+          const contentH = content.offsetHeight;
+          const classes = box.className;
+          const isAlignCenter = classes.includes("items-center");
+          const isAlignEnd = classes.includes("items-end");
+          let paddingTop = 0;
+          if (isAlignCenter) {
+            paddingTop = Math.max(0, (boxH - contentH) / 2);
+          } else if (isAlignEnd) {
+            paddingTop = Math.max(0, boxH - contentH);
+          }
+          // 이전 style attribute 전체를 저장해 캡처 후 완벽 복원한다.
+          const prevBoxStyleAttr = box.getAttribute("style") ?? "";
+          // TextBox 위치를 10px 위로 보정한다.
+          const currentTop = parseFloat(box.style.top) || 0;
+          box.style.setProperty("top", `${currentTop - 15}px`, "important");
+          // !important로 Tailwind flex 클래스를 확실히 무효화한다.
+          box.style.setProperty("display", "block", "important");
+          box.style.setProperty("align-items", "unset", "important");
+          box.style.setProperty("justify-content", "unset", "important");
+          box.style.setProperty(
+            "padding-top",
+            `${Math.round(paddingTop * 100) / 100}px`,
+            "important",
+          );
+          // measure div 숨기기
+          const measureDiv = box.querySelector<HTMLElement>(
+            '[aria-hidden="true"]',
+          );
+          const prevMeasureStyleAttr = measureDiv?.getAttribute("style") ?? "";
+          if (measureDiv) {
+            measureDiv.style.setProperty("display", "none", "important");
+          }
           restores.push(() => {
-            box.style.display = prevBoxStyle.display;
-            content.style.position = prevContentStyle.position;
-            content.style.top = prevContentStyle.top;
-            content.style.left = prevContentStyle.left;
-            content.style.right = prevContentStyle.right;
-            content.style.width = prevContentStyle.width;
-            content.style.marginTop = prevContentStyle.marginTop;
-            content.style.transform = prevContentStyle.transform;
+            box.setAttribute("style", prevBoxStyleAttr);
+            if (measureDiv) {
+              measureDiv.setAttribute("style", prevMeasureStyleAttr);
+            }
           });
         });
         return () => {
-          restores.forEach((restore) => {
-            restore();
-          });
+          restores.forEach((fn) => fn());
         };
       };
 
@@ -329,18 +329,20 @@ export const generatePdfFromDomPages = async ({
       await waitForNextFrame();
       await waitForNextFrame();
 
-  const getPageSize = (orientation: "horizontal" | "vertical") =>
-    orientation === "horizontal"
-      ? { width: 297, height: 210 }
-      : { width: 210, height: 297 };
+      const getPageSize = (orientation: "horizontal" | "vertical") =>
+        orientation === "horizontal"
+          ? { width: 297, height: 210 }
+          : { width: 210, height: 297 };
 
-  const resolveOrientation = (page: HTMLElement): "horizontal" | "vertical" => {
-    const datasetOrientation = page.dataset.orientation;
-    if (datasetOrientation === "horizontal") return "horizontal";
-    if (datasetOrientation === "vertical") return "vertical";
-    const rect = page.getBoundingClientRect();
-    return rect.width > rect.height ? "horizontal" : "vertical";
-  };
+      const resolveOrientation = (
+        page: HTMLElement,
+      ): "horizontal" | "vertical" => {
+        const datasetOrientation = page.dataset.orientation;
+        if (datasetOrientation === "horizontal") return "horizontal";
+        if (datasetOrientation === "vertical") return "vertical";
+        const rect = page.getBoundingClientRect();
+        return rect.width > rect.height ? "horizontal" : "vertical";
+      };
 
       const firstOrientation = resolveOrientation(pages[0]);
       const firstSize = getPageSize(firstOrientation);
