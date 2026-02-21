@@ -46,8 +46,12 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env
 const sanitizeGoogleApiKey = (value: string | undefined): string | undefined => {
   if (!value) return undefined;
 
-  // Remove BOM/zero-width chars that can be introduced by copy/paste.
-  const sanitized = value.replace(/[\uFEFF\u200B-\u200D\u2060]/g, "").trim();
+  // Normalize copy/paste artifacts and surrounding quotes from dashboard inputs.
+  const normalized = value
+    .normalize("NFKC")
+    .replace(/[\uFEFF\u200B-\u200D\u2060]/g, "")
+    .trim();
+  const sanitized = normalized.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
   return sanitized.length > 0 ? sanitized : undefined;
 };
 
@@ -59,6 +63,20 @@ const hasNonIso88591CodePoint = (value: string): boolean => {
 };
 
 const GOOGLE_API_KEY = sanitizeGoogleApiKey(RAW_GOOGLE_API_KEY);
+
+const collectNonIso88591Meta = (value: string): string => {
+  const issues: string[] = [];
+  for (let i = 0; i < value.length; i += 1) {
+    const codePoint = value.codePointAt(i);
+    if (codePoint === undefined) continue;
+    if (codePoint > 0xff) {
+      issues.push(`pos=${i + 1},U+${codePoint.toString(16).toUpperCase()}`);
+      if (issues.length >= 5) break;
+    }
+    if (codePoint > 0xffff) i += 1;
+  }
+  return issues.join(" ");
+};
 
 const getCloudinaryUrl = (path: string): string => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -75,8 +93,9 @@ const generateImageWithGemini = async (prompt: string): Promise<string> => {
     throw new Error("Google API key is not configured");
   }
   if (hasNonIso88591CodePoint(GOOGLE_API_KEY)) {
+    const issueMeta = collectNonIso88591Meta(GOOGLE_API_KEY);
     throw new Error(
-      "Google API key contains unsupported characters. Re-enter VITE_GOOGLE_API_KEY using plain ASCII text.",
+      `Google API key contains unsupported characters. Re-enter VITE_GOOGLE_API_KEY using plain ASCII text. ${issueMeta}`,
     );
   }
 
