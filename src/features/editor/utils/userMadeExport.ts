@@ -295,7 +295,7 @@ export const generatePdfFromDomPages = async ({
           const prevBoxStyleAttr = box.getAttribute("style") ?? "";
           // TextBox 위치를 10px 위로 보정한다.
           const currentTop = parseFloat(box.style.top) || 0;
-          box.style.setProperty("top", `${currentTop - 15}px`, "important");
+          box.style.setProperty("top", `${currentTop - 12}px`, "important");
           // !important로 Tailwind flex 클래스를 확실히 무효화한다.
           box.style.setProperty("display", "block", "important");
           box.style.setProperty("align-items", "unset", "important");
