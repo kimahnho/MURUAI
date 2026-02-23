@@ -20,7 +20,7 @@ type ImageLibraryFilters = {
 };
 
 const IMAGE_LIBRARY_LIMIT = 48;
-const MIN_KEYWORD_LENGTH = 2;
+const MIN_KEYWORD_LENGTH = 1;
 
 const fetchImageLibraryPage = async ({
   pageParam,
