@@ -118,7 +118,7 @@ const PageThumbnail = ({
           onClick={() => {
             onSelect(page.id);
           }}
-          className={`relative box-border flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
+          className={`relative box-border flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden outline-none focus:outline-none focus:ring-0 ${
             isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
           } ${
             isSelected
@@ -536,11 +536,38 @@ const BottomBar = ({
     };
   }, [items, itemOffsets, itemWidths, listRef, onVisiblePageIdsChange]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      // 텍스트 입력 중이면 무시
+      const target = event.target as HTMLElement;
+      if (
+        target.isContentEditable ||
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+      const index = pages.findIndex((p) => p.id === selectedPageId);
+      if (index < 0) return;
+      if (event.key === "ArrowLeft" && index > 0) {
+        event.preventDefault();
+        onSelectPage(pages[index - 1].id);
+      } else if (event.key === "ArrowRight" && index < pages.length - 1) {
+        event.preventDefault();
+        onSelectPage(pages[index + 1].id);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pages, selectedPageId, onSelectPage]);
+
   return (
     <div
       ref={containerRef}
-      tabIndex={0}
-      className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4 outline-none"
+      className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4"
       onPointerDown={() => {
         setContextMenu(null);
       }}
