@@ -51,7 +51,7 @@ export type TextElement = ElementBase & {
     underline?: boolean;
     italic?: boolean;
     strikethrough?: boolean;
-    alignX: "left" | "center" | "right";
+    alignX: "left" | "center" | "right" | "justify";
     alignY: "top" | "middle" | "bottom";
     lineHeight?: number;
     letterSpacing?: number;

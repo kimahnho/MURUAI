@@ -4,7 +4,7 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 
-type TextAlign = "left" | "center" | "right";
+type TextAlign = "left" | "center" | "right" | "justify";
 type TextAlignY = "top" | "middle" | "bottom";
 
 export type TextBoxToolbarState = {
