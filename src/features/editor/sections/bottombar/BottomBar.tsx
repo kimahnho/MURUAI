@@ -113,6 +113,32 @@ const PageThumbnail = ({
       className="group flex shrink-0 flex-col items-center gap-1 cursor-move"
       style={{ width: `${isHorizontal ? PREVIEW_BOX.horizontal.width : PREVIEW_BOX.vertical.width}px` }}
     >
+      <div className="flex items-center justify-center gap-1 h-5">
+        {canMoveLeft && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onMovePage?.(page.id, "left");
+            }}
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
+            title="왼쪽으로 이동"
+          >
+            <ChevronLeft className="w-3 h-3 text-black-60" />
+          </button>
+        )}
+        {canMoveRight && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onMovePage?.(page.id, "right");
+            }}
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
+            title="오른쪽으로 이동"
+          >
+            <ChevronRight className="w-3 h-3 text-black-60" />
+          </button>
+        )}
+      </div>
       <div className="relative">
         <button
           onClick={() => {
@@ -164,54 +190,28 @@ const PageThumbnail = ({
             {page.pageNumber}
           </span>
         </button>
-        <>
-          {canMoveLeft && (
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onMovePage?.(page.id, "left");
-              }}
-              className="absolute left-0 top-1/2 translate-x-1/3 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
-            >
-              <ChevronLeft className="w-3 h-3 text-white" />
-            </button>
-          )}
-          {canMoveRight && (
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onMovePage?.(page.id, "right");
-              }}
-              className="absolute right-0 top-1/2 -translate-x-1/3 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
-            >
-              <ChevronRight className="w-3 h-3 text-white" />
-            </button>
-          )}
-        </>
       </div>
       <div className="flex items-center justify-center gap-1 h-5">
-        <>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onDuplicate?.(page.id);
-            }}
-            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
-            title="복제"
-          >
-            <Copy className="w-3 h-3 text-black-60" />
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(page.id);
-            }}
-            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-100 hover:text-white"
-            title="삭제"
-          >
-            <Trash2 className="w-3 h-3 text-black-60 hover:text-white" />
-          </button>
-        </>
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onDuplicate?.(page.id);
+          }}
+          className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
+          title="복제"
+        >
+          <Copy className="w-3 h-3 text-black-60" />
+        </button>
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(page.id);
+          }}
+          className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-100 hover:text-white"
+          title="삭제"
+        >
+          <Trash2 className="w-3 h-3 text-black-60 hover:text-white" />
+        </button>
       </div>
     </div>
   );
@@ -567,7 +567,7 @@ const BottomBar = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4"
+      className="relative flex shrink-0 w-full h-40 bg-white border-t border-black-25 items-center px-4"
       onPointerDown={() => {
         setContextMenu(null);
       }}
@@ -577,7 +577,7 @@ const BottomBar = ({
     >
       <div
         ref={listRef}
-        className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden"
+        className="flex flex-1 h-full items-center gap-2 overflow-x-auto overflow-y-hidden"
       >
         {items.map((item) => {
           if (item.type === "page") {
