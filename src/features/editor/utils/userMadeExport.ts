@@ -293,18 +293,24 @@ export const generatePdfFromDomPages = async ({
           }
           // 이전 style attribute 전체를 저장해 캡처 후 완벽 복원한다.
           const prevBoxStyleAttr = box.getAttribute("style") ?? "";
-          // TextBox 위치를 10px 위로 보정한다.
+          const isClipped = box.style.overflow === "hidden";
           const currentTop = parseFloat(box.style.top) || 0;
-          box.style.setProperty("top", `${currentTop - 12}px`, "important");
-          // !important로 Tailwind flex 클래스를 확실히 무효화한다.
-          box.style.setProperty("display", "block", "important");
-          box.style.setProperty("align-items", "unset", "important");
-          box.style.setProperty("justify-content", "unset", "important");
-          box.style.setProperty(
-            "padding-top",
-            `${Math.round(paddingTop * 100) / 100}px`,
-            "important",
-          );
+          if (isClipped) {
+            // AAC 라벨 등 overflow: hidden 박스는 소폭 Y 보정 + overflow 해제로 잘림 방지
+            box.style.setProperty("top", `${currentTop - 6}px`, "important");
+            box.style.setProperty("overflow", "visible", "important");
+          } else {
+            box.style.setProperty("top", `${currentTop - 12}px`, "important");
+            // !important로 Tailwind flex 클래스를 확실히 무효화한다.
+            box.style.setProperty("display", "block", "important");
+            box.style.setProperty("align-items", "unset", "important");
+            box.style.setProperty("justify-content", "unset", "important");
+            box.style.setProperty(
+              "padding-top",
+              `${Math.round(paddingTop * 100) / 100}px`,
+              "important",
+            );
+          }
           // measure div 숨기기
           const measureDiv = box.querySelector<HTMLElement>(
             '[aria-hidden="true"]',
