@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
+  AlignJustify,
   AlignStartHorizontal,
   Italic,
   Strikethrough,
@@ -31,7 +32,7 @@ interface TextToolBarProps {
   isUnderline: boolean;
   isItalic: boolean;
   isStrikethrough: boolean;
-  align: "left" | "center" | "right";
+  align: "left" | "center" | "right" | "justify";
   alignY: "top" | "middle" | "bottom";
   onFontSizeStep: (delta: number) => void;
   fontSizeInputValue: string;
@@ -51,7 +52,7 @@ interface TextToolBarProps {
   onToggleUnderline: () => void;
   onToggleItalic: () => void;
   onToggleStrikethrough: () => void;
-  onAlignChange: (value: "left" | "center" | "right") => void;
+  onAlignChange: (value: "left" | "center" | "right" | "justify") => void;
   onAlignYChange: (value: "top" | "middle" | "bottom") => void;
 }
 
@@ -404,6 +405,7 @@ const TextToolBar = ({
             { key: "left", Icon: TextAlignStart, label: "좌측 정렬" },
             { key: "center", Icon: TextAlignCenter, label: "가운데 정렬" },
             { key: "right", Icon: TextAlignEnd, label: "우측 정렬" },
+            { key: "justify", Icon: AlignJustify, label: "양쪽 정렬" },
           ] as const
         ).map(({ key, Icon, label }) => (
           <button

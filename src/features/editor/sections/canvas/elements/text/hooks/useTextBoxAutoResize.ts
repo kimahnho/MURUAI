@@ -15,7 +15,7 @@ type UseTextBoxAutoResizeProps = {
   widthMode: "auto" | "fixed" | "element";
   minWidth: number;
   minHeight: number;
-  textAlign: "left" | "center" | "right";
+  textAlign: "left" | "center" | "right" | "justify";
   onRectChange?: (rect: Rect) => void;
   rect: Rect;
   richText?: string;

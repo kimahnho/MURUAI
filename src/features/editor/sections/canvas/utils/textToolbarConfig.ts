@@ -137,7 +137,7 @@ export const buildTextToolbarConfig = ({
         : undefined,
     });
   },
-  onAlignChange: (align: "left" | "center" | "right") => {
+  onAlignChange: (align: "left" | "center" | "right" | "justify") => {
     // 정렬 변경은 richText 마크업이 아닌 요소 style 레벨에서 처리해 전역 정렬 기준을 유지한다.
     updateElement(element.id, { style: { alignX: align } });
   },

@@ -234,7 +234,7 @@ const TextBox = ({
   };
 
   const justifyClass =
-    textAlign === "left"
+    textAlign === "left" || textAlign === "justify"
       ? "justify-start"
       : textAlign === "right"
         ? "justify-end"

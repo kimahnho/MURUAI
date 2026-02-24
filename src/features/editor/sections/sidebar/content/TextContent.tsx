@@ -7,7 +7,7 @@ type TextPreset = {
   text: string;
   fontSize: number;
   fontWeight: "normal" | "bold";
-  alignX?: "left" | "center" | "right";
+  alignX?: "left" | "center" | "right" | "justify";
   alignY?: "top" | "middle" | "bottom";
   widthMode?: "auto" | "fixed" | "element";
 };
