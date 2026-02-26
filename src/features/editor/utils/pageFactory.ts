@@ -4,6 +4,15 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasDocument, Page } from "../model/pageTypes";
 import type { CanvasElement } from "../model/canvasTypes";
+import fiveSpaceWritingNoteBg from "../templates/template_pdf/five-space-writing-note/preview.png";
+import tenSpaceWritingNoteBg from "../templates/template_pdf/ten-space-writing-note/preview.png";
+import lineNoteWideBg from "../templates/template_pdf/line-note-wide/preview.png";
+import lineNoteMediumBg from "../templates/template_pdf/line-note-medium/preview.png";
+import lineNoteNarrowBg from "../templates/template_pdf/line-note-narrow/preview.png";
+import emotionDiaryBg from "../templates/template_pdf/emotion-diary/preview.png";
+import pictureDiaryLineNoteBg from "../templates/template_pdf/picture-diary-line-note/preview.png";
+import dictationPracticeBg from "../templates/template_pdf/dictation-practice/preview.png";
+import yellowDiaryLinesBg from "../templates/template_pdf/yellow-diary-lines/preview.png";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -28,6 +37,39 @@ import { bumpPageRevision, ensurePageRevision } from "./pageRevision";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
+
+const getTemplateBackground = (
+  templateId: TemplateId
+): Page["background"] | undefined => {
+  if (templateId === "fiveSpaceWritingNote") {
+    return { type: "image", imageUrl: fiveSpaceWritingNoteBg };
+  }
+  if (templateId === "tenSpaceWritingNote") {
+    return { type: "image", imageUrl: tenSpaceWritingNoteBg };
+  }
+  if (templateId === "lineNoteWide") {
+    return { type: "image", imageUrl: lineNoteWideBg };
+  }
+  if (templateId === "lineNoteMedium") {
+    return { type: "image", imageUrl: lineNoteMediumBg };
+  }
+  if (templateId === "lineNoteNarrow") {
+    return { type: "image", imageUrl: lineNoteNarrowBg };
+  }
+  if (templateId === "emotionDiary") {
+    return { type: "image", imageUrl: emotionDiaryBg };
+  }
+  if (templateId === "pictureDiaryLineNote") {
+    return { type: "image", imageUrl: pictureDiaryLineNoteBg };
+  }
+  if (templateId === "dictationPractice") {
+    return { type: "image", imageUrl: dictationPracticeBg };
+  }
+  if (templateId === "yellowDiaryLines") {
+    return { type: "image", imageUrl: yellowDiaryLinesBg };
+  }
+  return undefined;
+};
 
 export const buildInitialPages = (
   document: CanvasDocument | null,
@@ -80,6 +122,7 @@ export const applyTemplateToCurrentPage = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
+  const templateBackground = getTemplateBackground(templateId);
 
   setPages((prevPages) => {
     const currentIndex = prevPages.findIndex(
@@ -93,6 +136,7 @@ export const applyTemplateToCurrentPage = ({
       ...bumpPageRevision(basePage),
       templateId,
       orientation: nextOrientation,
+      background: templateBackground,
       elements: withLogoCanvasElements(
         instantiateTemplate(templates[0])
       ),
@@ -105,6 +149,7 @@ export const applyTemplateToCurrentPage = ({
         pageNumber: 0,
         templateId,
         orientation: nextOrientation,
+        background: templateBackground,
         elements: withLogoCanvasElements(
           instantiateTemplate(template)
         ),
@@ -141,6 +186,7 @@ export const addTemplatePage = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
+  const templateBackground = getTemplateBackground(templateId);
   const firstPageId = crypto.randomUUID();
   setPages((prevPages) => {
     const nextPages = [...prevPages];
@@ -151,6 +197,7 @@ export const addTemplatePage = ({
         pageNumber: nextPages.length + 1,
         templateId,
         orientation: nextOrientation,
+        background: templateBackground,
         elements: withLogoCanvasElements(
           instantiateTemplate(template)
         ),
@@ -437,6 +484,7 @@ export const addSelectedTemplatePages = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
+  const templateBackground = getTemplateBackground(templateId);
 
   const firstPageId = crypto.randomUUID();
 
@@ -449,6 +497,7 @@ export const addSelectedTemplatePages = ({
         pageNumber: nextPages.length + 1,
         templateId,
         orientation: nextOrientation,
+        background: templateBackground,
         elements: withLogoCanvasElements(instantiateTemplate(template)),
         rev: 0,
       });

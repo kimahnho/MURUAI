@@ -13,6 +13,15 @@ import { normal_2 } from "./normal_2";
 import { wordPairTemplate } from "./wordPairTemplate";
 import { visualScheduleTemplate } from "./visualScheduleTemplate";
 import { vocabularyLearningCardTemplate } from "./vocabularyLearningCardTemplate";
+import { fiveSpaceWritingNote } from "./fiveSpaceWritingNote";
+import { tenSpaceWritingNote } from "./tenSpaceWritingNote";
+import { lineNoteWideTemplate } from "./lineNoteWideTemplate";
+import { lineNoteMediumTemplate } from "./lineNoteMediumTemplate";
+import { lineNoteNarrowTemplate } from "./lineNoteNarrowTemplate";
+import { emotionDiaryTemplate } from "./emotionDiaryTemplate";
+import { pictureDiaryLineNoteTemplate } from "./pictureDiaryLineNoteTemplate";
+import { dictationPracticeTemplate } from "./dictationPracticeTemplate";
+import { yellowDiaryLinesTemplate } from "./yellowDiaryLinesTemplate";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -69,6 +78,60 @@ export const TEMPLATE_REGISTRY = {
     id: "normal_2",
     label: "감정 탐험 노트",
     template: normal_2,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  fiveSpaceWritingNote: {
+    id: "fiveSpaceWritingNote",
+    label: "5칸 쓰기노트",
+    template: fiveSpaceWritingNote,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  tenSpaceWritingNote: {
+    id: "tenSpaceWritingNote",
+    label: "10칸 쓰기노트",
+    template: tenSpaceWritingNote,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  lineNoteWide: {
+    id: "lineNoteWide",
+    label: "줄노트 넓은간격",
+    template: lineNoteWideTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  lineNoteMedium: {
+    id: "lineNoteMedium",
+    label: "줄노트 중간간격",
+    template: lineNoteMediumTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  lineNoteNarrow: {
+    id: "lineNoteNarrow",
+    label: "줄노트 좁은간격",
+    template: lineNoteNarrowTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  emotionDiary: {
+    id: "emotionDiary",
+    label: "감정일기",
+    template: emotionDiaryTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  pictureDiaryLineNote: {
+    id: "pictureDiaryLineNote",
+    label: "그림일기 줄노트",
+    template: pictureDiaryLineNoteTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dictationPractice: {
+    id: "dictationPractice",
+    label: "받아쓰기 연습장",
+    template: dictationPracticeTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  yellowDiaryLines: {
+    id: "yellowDiaryLines",
+    label: "일기장 노랑 줄글",
+    template: yellowDiaryLinesTemplate,
     orientation: "vertical-only" as TemplateOrientation,
   },
 };

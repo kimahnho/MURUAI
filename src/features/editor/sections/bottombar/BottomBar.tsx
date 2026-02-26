@@ -176,6 +176,7 @@ const PageThumbnail = ({
                   pageId={page.id}
                   orientation={page.orientation ?? "vertical"}
                   elements={page.elements}
+                  background={page.background}
                   selectedIds={[]}
                   editingTextId={null}
                   readOnly
