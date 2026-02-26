@@ -98,6 +98,17 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 - TanStack Query로 서버 상태 관리
 - Lucide React 아이콘 사용
 
+## 템플릿 PDF 자산 관리 지침
+
+- 경로: `src/features/editor/templates/template_pdf/<template-slug>/`
+- 각 템플릿 폴더에는 아래 두 파일을 유지한다.
+  - `template.pdf`: 원본 템플릿 PDF
+  - `preview.png`: 에디터/썸네일에서 사용하는 배경 이미지(고해상도 권장)
+- 템플릿이 "배경만" 필요한 경우 템플릿 TS 파일(`src/features/editor/templates/*.ts`)의 `elements`는 빈 배열(`[]`)로 유지한다.
+- 실제 페이지 배경 적용은 `src/features/editor/utils/pageFactory.ts`의 `getTemplateBackground()`에서 `templateId -> preview.png`를 매핑한다.
+- 사이드바 템플릿 썸네일 배경은 `src/features/editor/sections/sidebar/content/TemplateContent.tsx`의 `getTemplatePreviewBackground()`에서 동일 매핑을 유지한다.
+- 바텀 페이지 썸네일은 `DesignPaper`에 `background={page.background}` 전달 방식으로 렌더하므로, 템플릿 배경은 페이지 데이터에만 정상 주입되면 자동 노출된다.
+
 ## 에디터 하단바 구현 지침
 
 - `@tanstack/react-query`는 서버 데이터 동기화 전용으로 사용하고, UI 가상 스크롤/오프셋 계산 문제 해결 용도로 사용하지 않는다.

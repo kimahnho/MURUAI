@@ -37,6 +37,15 @@ import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
 import { getPreviewMetrics } from "./previewMetrics";
+import fiveSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/five-space-writing-note/preview.png";
+import tenSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/ten-space-writing-note/preview.png";
+import lineNoteWideBg from "@/features/editor/templates/template_pdf/line-note-wide/preview.png";
+import lineNoteMediumBg from "@/features/editor/templates/template_pdf/line-note-medium/preview.png";
+import lineNoteNarrowBg from "@/features/editor/templates/template_pdf/line-note-narrow/preview.png";
+import emotionDiaryBg from "@/features/editor/templates/template_pdf/emotion-diary/preview.png";
+import pictureDiaryLineNoteBg from "@/features/editor/templates/template_pdf/picture-diary-line-note/preview.png";
+import dictationPracticeBg from "@/features/editor/templates/template_pdf/dictation-practice/preview.png";
+import yellowDiaryLinesBg from "@/features/editor/templates/template_pdf/yellow-diary-lines/preview.png";
 
 const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
@@ -52,13 +61,40 @@ const isNormalTemplate = (templateId: string) =>
 const isBasicTemplate = (templateId: string) =>
   isNormalTemplate(templateId) ||
   templateId === "visualSchedule" ||
-  templateId === "vocabularyLearningCard";
+  templateId === "vocabularyLearningCard" ||
+  templateId === "fiveSpaceWritingNote" ||
+  templateId === "tenSpaceWritingNote" ||
+  templateId === "lineNoteWide" ||
+  templateId === "lineNoteMedium" ||
+  templateId === "lineNoteNarrow" ||
+  templateId === "emotionDiary" ||
+  templateId === "pictureDiaryLineNote" ||
+  templateId === "dictationPractice" ||
+  templateId === "yellowDiaryLines";
 
 const sortBasicTemplates = (a: string, b: string) => {
   if (a === "visualSchedule" && b !== "visualSchedule") return -1;
   if (b === "visualSchedule" && a !== "visualSchedule") return 1;
   if (a === "vocabularyLearningCard" && b !== "vocabularyLearningCard") return -1;
   if (b === "vocabularyLearningCard" && a !== "vocabularyLearningCard") return 1;
+  if (a === "fiveSpaceWritingNote" && b !== "fiveSpaceWritingNote") return -1;
+  if (b === "fiveSpaceWritingNote" && a !== "fiveSpaceWritingNote") return 1;
+  if (a === "tenSpaceWritingNote" && b !== "tenSpaceWritingNote") return -1;
+  if (b === "tenSpaceWritingNote" && a !== "tenSpaceWritingNote") return 1;
+  if (a === "lineNoteWide" && b !== "lineNoteWide") return -1;
+  if (b === "lineNoteWide" && a !== "lineNoteWide") return 1;
+  if (a === "lineNoteMedium" && b !== "lineNoteMedium") return -1;
+  if (b === "lineNoteMedium" && a !== "lineNoteMedium") return 1;
+  if (a === "lineNoteNarrow" && b !== "lineNoteNarrow") return -1;
+  if (b === "lineNoteNarrow" && a !== "lineNoteNarrow") return 1;
+  if (a === "emotionDiary" && b !== "emotionDiary") return -1;
+  if (b === "emotionDiary" && a !== "emotionDiary") return 1;
+  if (a === "pictureDiaryLineNote" && b !== "pictureDiaryLineNote") return -1;
+  if (b === "pictureDiaryLineNote" && a !== "pictureDiaryLineNote") return 1;
+  if (a === "dictationPractice" && b !== "dictationPractice") return -1;
+  if (b === "dictationPractice" && a !== "dictationPractice") return 1;
+  if (a === "yellowDiaryLines" && b !== "yellowDiaryLines") return -1;
+  if (b === "yellowDiaryLines" && a !== "yellowDiaryLines") return 1;
   return sortNormalTemplates(a, b);
 };
 
@@ -88,6 +124,37 @@ const toPreviewElements = (template: Template): CanvasElement[] =>
   template.elements.map((element, index) =>
     addElementId(fitTemplateTextElement(element), `${template.id}-${index}`),
   );
+
+const getTemplatePreviewBackground = (templateId: TemplateId) => {
+  if (templateId === "fiveSpaceWritingNote") {
+    return { type: "image" as const, imageUrl: fiveSpaceWritingNoteBg };
+  }
+  if (templateId === "tenSpaceWritingNote") {
+    return { type: "image" as const, imageUrl: tenSpaceWritingNoteBg };
+  }
+  if (templateId === "lineNoteWide") {
+    return { type: "image" as const, imageUrl: lineNoteWideBg };
+  }
+  if (templateId === "lineNoteMedium") {
+    return { type: "image" as const, imageUrl: lineNoteMediumBg };
+  }
+  if (templateId === "lineNoteNarrow") {
+    return { type: "image" as const, imageUrl: lineNoteNarrowBg };
+  }
+  if (templateId === "emotionDiary") {
+    return { type: "image" as const, imageUrl: emotionDiaryBg };
+  }
+  if (templateId === "pictureDiaryLineNote") {
+    return { type: "image" as const, imageUrl: pictureDiaryLineNoteBg };
+  }
+  if (templateId === "dictationPractice") {
+    return { type: "image" as const, imageUrl: dictationPracticeBg };
+  }
+  if (templateId === "yellowDiaryLines") {
+    return { type: "image" as const, imageUrl: yellowDiaryLinesBg };
+  }
+  return undefined;
+};
 
 const parseNumberInRange = (
   value: string,
@@ -271,6 +338,9 @@ const TemplateCarousel = ({
                             pageId={`preview-${templateData.id}`}
                             orientation="vertical"
                             elements={toPreviewElements(templateData.template)}
+                            background={getTemplatePreviewBackground(
+                              templateData.id as TemplateId,
+                            )}
                             selectedIds={[]}
                             editingTextId={null}
                             readOnly
