@@ -75,8 +75,10 @@ const isBasicTemplate = (templateId: string) =>
 const sortBasicTemplates = (a: string, b: string) => {
   if (a === "visualSchedule" && b !== "visualSchedule") return -1;
   if (b === "visualSchedule" && a !== "visualSchedule") return 1;
-  if (a === "vocabularyLearningCard" && b !== "vocabularyLearningCard") return -1;
-  if (b === "vocabularyLearningCard" && a !== "vocabularyLearningCard") return 1;
+  if (a === "vocabularyLearningCard" && b !== "vocabularyLearningCard")
+    return -1;
+  if (b === "vocabularyLearningCard" && a !== "vocabularyLearningCard")
+    return 1;
   if (a === "fiveSpaceWritingNote" && b !== "fiveSpaceWritingNote") return -1;
   if (b === "fiveSpaceWritingNote" && a !== "fiveSpaceWritingNote") return 1;
   if (a === "tenSpaceWritingNote" && b !== "tenSpaceWritingNote") return -1;
