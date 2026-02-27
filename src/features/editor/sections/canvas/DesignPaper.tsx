@@ -469,6 +469,39 @@ const DesignPaper = ({
         // 스테이지 상대 좌표 캐시를 이동 중에도 계속 최신화한다.
         lastPointerRef.current = getPointerPosition(event);
       }}
+      onDragOver={(event) => {
+        if (readOnly) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(event) => {
+        if (readOnly || !onElementsChange) return;
+        event.preventDefault();
+        event.stopPropagation();
+        // 하위 요소(RoundBox 등)가 이미 드롭을 처리했으면 중복 삽입하지 않는다.
+        if (event.target !== event.currentTarget) return;
+        const imageUrl =
+          event.dataTransfer.getData("application/x-muru-image") ||
+          event.dataTransfer.getData("text/plain");
+        if (!imageUrl) return;
+        const scale = getContainerScale();
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const DEFAULT_SIZE = 200;
+        const dropX = (event.clientX - rect.left) / scale;
+        const dropY = (event.clientY - rect.top) / scale;
+        const newElement: CanvasElement = {
+          id: `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: "rect",
+          x: Math.round(dropX - DEFAULT_SIZE / 2),
+          y: Math.round(dropY - DEFAULT_SIZE / 2),
+          w: DEFAULT_SIZE,
+          h: DEFAULT_SIZE,
+          fill: imageUrl.startsWith("url(") ? imageUrl : `url(${imageUrl})`,
+          imageBox: { x: 0, y: 0, w: DEFAULT_SIZE, h: DEFAULT_SIZE },
+        };
+        onElementsChange([...elements, newElement]);
+      }}
       onContextMenu={openCanvasContextMenu}
     >
       {elements.map((element) => renderElement(element))}

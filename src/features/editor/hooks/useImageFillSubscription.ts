@@ -202,17 +202,21 @@ export const useImageFillSubscription = ({
               calculateCoverImageBox(element.w, element.h, state.width, state.height);
             const borderWidth =
               element.border?.enabled ? element.border.width : 0;
-            const nextImageBox =
-              borderWidth > 0 && (isAacCardElement(page.elements, element) || isEmotionInferenceCard(element))
-                ? {
-                    ...baseImageBox,
-                    x: Math.round(
-                      (Math.max(0, element.w - borderWidth * 2) -
-                        baseImageBox.w) /
-                        2
-                    ),
-                  }
-                : baseImageBox;
+            const isAacCard = isAacCardElement(page.elements, element);
+            const needsBorderCorrection =
+              borderWidth > 0 && (isAacCard || isEmotionInferenceCard(element));
+            const nextImageBox = needsBorderCorrection
+              ? {
+                  ...baseImageBox,
+                  x: Math.round(
+                    (Math.max(0, element.w - borderWidth * 2) -
+                      baseImageBox.w) /
+                      2
+                  ),
+                  // AAC 카드는 라벨 영역을 고려해 이미지를 위로 5px 올린다.
+                  y: isAacCard ? baseImageBox.y - 5 : baseImageBox.y,
+                }
+              : baseImageBox;
             const shouldClearPlaceholder =
               isEmotionSlotShape(element) &&
               typeof element.text === "string" &&
