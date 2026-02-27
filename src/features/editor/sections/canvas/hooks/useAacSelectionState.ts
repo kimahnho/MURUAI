@@ -230,7 +230,7 @@ export const useAacSelectionState = ({
               style: {
                 fontSize: 18,
                 fontWeight: "normal",
-                color: "#6B7280",
+                color: "#000000",
                 underline: false,
                 alignX: "center",
                 alignY: "middle",

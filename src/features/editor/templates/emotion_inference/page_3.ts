@@ -186,6 +186,7 @@ export const emotionInferencePage3: Template = {
           subType: "emotionInference" as const,
           tempId: cardTempId,
           labelId: labelTempId,
+          imageBox: { x: 0, y: 0, w: mmToPx(cardWidthMm), h: mmToPx(cardHeightMm) },
         },
         {
           type: "text" as const,

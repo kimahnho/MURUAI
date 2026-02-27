@@ -192,7 +192,9 @@ export const useImageFillSubscription = ({
             ) {
               return element;
             }
-            if (element.locked) return element;
+            if (element.locked) {
+              return element;
+            }
             hasChanges = true;
             // 이미지 박스가 없는 레거시 요소도 동일한 채우기 규칙을 적용해
             // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
@@ -200,17 +202,21 @@ export const useImageFillSubscription = ({
               calculateCoverImageBox(element.w, element.h, state.width, state.height);
             const borderWidth =
               element.border?.enabled ? element.border.width : 0;
-            const nextImageBox =
-              borderWidth > 0 && isAacCardElement(page.elements, element)
-                ? {
-                    ...baseImageBox,
-                    x: Math.round(
-                      (Math.max(0, element.w - borderWidth * 2) -
-                        baseImageBox.w) /
-                        2
-                    ),
-                  }
-                : baseImageBox;
+            const isAacCard = isAacCardElement(page.elements, element);
+            const needsBorderCorrection =
+              borderWidth > 0 && (isAacCard || isEmotionInferenceCard(element));
+            const nextImageBox = needsBorderCorrection
+              ? {
+                  ...baseImageBox,
+                  x: Math.round(
+                    (Math.max(0, element.w - borderWidth * 2) -
+                      baseImageBox.w) /
+                      2
+                  ),
+                  // AAC 카드는 라벨 영역을 고려해 이미지를 위로 5px 올린다.
+                  y: isAacCard ? baseImageBox.y - 5 : baseImageBox.y,
+                }
+              : baseImageBox;
             const shouldClearPlaceholder =
               isEmotionSlotShape(element) &&
               typeof element.text === "string" &&
@@ -223,7 +229,7 @@ export const useImageFillSubscription = ({
             };
           });
           if (labelUpdates.size === 0) {
-            return hasChanges ? { ...page, elements: nextElements } : page;
+            return hasChanges ? bumpPageRevision({ ...page, elements: nextElements }) : page;
           }
           const nextElementsWithLabels = nextElements.map((element) => {
             const nextLabel = labelUpdates.get(element.id);

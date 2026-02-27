@@ -12,7 +12,7 @@ export const isAacLabelElement = (
   element.type === "text" &&
   (element.style.fontSize === 14 || element.style.fontSize === 18) &&
   (element.style.fontWeight === "normal" || element.style.fontWeight === 400) &&
-  element.style.color === "#6B7280" &&
+  (element.style.color === "#6B7280" || element.style.color === "#000000") &&
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
 
