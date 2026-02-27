@@ -1,7 +1,7 @@
 /**
  * 요소 patch 적용 로직을 공통화해 단일/다중 요소 업데이트를 처리하는 훅.
  */
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type {
   CanvasElement,
   LineElement,
@@ -41,7 +41,7 @@ export const useElementPatchUpdater = ({
   onElementsChange,
 }: UseElementPatchUpdaterParams) => {
   const latestElementsRef = useRef(elements);
-  useEffect(() => {
+  useLayoutEffect(() => {
     latestElementsRef.current = elements;
   }, [elements]);
 

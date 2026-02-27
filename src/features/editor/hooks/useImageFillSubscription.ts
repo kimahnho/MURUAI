@@ -192,7 +192,9 @@ export const useImageFillSubscription = ({
             ) {
               return element;
             }
-            if (element.locked) return element;
+            if (element.locked) {
+              return element;
+            }
             hasChanges = true;
             // 이미지 박스가 없는 레거시 요소도 동일한 채우기 규칙을 적용해
             // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
@@ -201,7 +203,7 @@ export const useImageFillSubscription = ({
             const borderWidth =
               element.border?.enabled ? element.border.width : 0;
             const nextImageBox =
-              borderWidth > 0 && isAacCardElement(page.elements, element)
+              borderWidth > 0 && (isAacCardElement(page.elements, element) || isEmotionInferenceCard(element))
                 ? {
                     ...baseImageBox,
                     x: Math.round(
@@ -223,7 +225,7 @@ export const useImageFillSubscription = ({
             };
           });
           if (labelUpdates.size === 0) {
-            return hasChanges ? { ...page, elements: nextElements } : page;
+            return hasChanges ? bumpPageRevision({ ...page, elements: nextElements }) : page;
           }
           const nextElementsWithLabels = nextElements.map((element) => {
             const nextLabel = labelUpdates.get(element.id);
