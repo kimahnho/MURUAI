@@ -53,7 +53,8 @@ src/features/editor/sections/canvas/hooks/
 ## 주의사항
 
 1. **contentEditable + execCommand 기반** — Tiptap 등 에디터 프레임워크 미사용
-2. **selection 보존** — 툴바 클릭 시 편집 영역 포커스가 이동하므로 `savedRangeRef`로 선택 복원
-3. **stripStyleTags** — 전역 스타일 변경(비편집 모드) 시 richText 내 해당 인라인 태그를 제거해 이중 적용 방지
+2. **selection 보존** — 툴바 클릭 시 편집 영역 포커스가 이동하므로 `savedRangeRef`로 선택 복원. 굵게/밑줄/기울임꼴/취소선 버튼에는 `onMouseDown={(e) => e.preventDefault()}`를 추가해 contentEditable 포커스 이탈을 방지한다.
+3. **stripStyleTags** — 전역 스타일 변경(비편집 모드) 시 richText 내 해당 인라인 태그를 제거해 이중 적용 방지. `textDecorationLine`(편집 모드 인라인 적용 경로)과 `textDecoration`(shorthand) 두 속성 모두 처리해야 한다.
 4. **IME 조합** — `isComposingRef`로 한글 입력 중 키 이벤트 차단
 5. **surroundContents 제한** — 선택 범위가 여러 노드를 걸칠 때 실패할 수 있으므로 대안 처리 필요
+6. **selected(비편집) 상태 toolbar 클릭 가드** — React Portal로 렌더된 toolbar 버튼의 이벤트도 React 이벤트 시스템상 TextBox까지 버블링된다. `TextBox.onPointerDown`에서 `target.closest("#text-toolbar-root")`로 toolbar 클릭을 감지해 `startAction` 호출을 막아야 toolbar 버튼의 `onClick`이 정상 실행된다.

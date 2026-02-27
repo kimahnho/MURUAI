@@ -341,6 +341,9 @@ const TextToolBar = ({
       </label>
       <button
         type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={onToggleBold}
         className={`group relative flex h-7 w-7 items-center justify-center rounded border text-14-semibold ${
           isBold
@@ -356,6 +359,9 @@ const TextToolBar = ({
       </button>
       <button
         type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={onToggleUnderline}
         className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isUnderline
@@ -371,6 +377,9 @@ const TextToolBar = ({
       </button>
       <button
         type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={onToggleItalic}
         className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isItalic
@@ -386,6 +395,9 @@ const TextToolBar = ({
       </button>
       <button
         type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={onToggleStrikethrough}
         className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isStrikethrough

@@ -309,6 +309,13 @@ const TextBox = ({
           event.stopPropagation();
           return;
         }
+        // toolbar 버튼 클릭 시 드래그 세션 시작을 막아 onClick 이벤트가 정상 실행되게 한다.
+        const target = event.target as HTMLElement | null;
+        const isToolbarClick = Boolean(
+          target?.closest("#text-toolbar-root") ||
+            target?.closest("[data-textbox-toolbar]"),
+        );
+        if (isToolbarClick) return;
         didMoveRef.current = false;
         // [인터랙션 플로우] 이미 선택된 상태에서만 편집 진입 가능
         pendingEditRef.current =

@@ -71,15 +71,29 @@ export const stripStyleTags = (
           case "underline":
             if (tagName === "u") {
               shouldUnwrap = true;
-            } else if (el.style.textDecoration?.includes("underline")) {
-              el.style.textDecoration = el.style.textDecoration.replace("underline", "").trim();
+            } else {
+              // textDecorationLine(inline 적용 경로)과 textDecoration(shorthand) 모두 처리한다.
+              if (el.style.textDecorationLine?.includes("underline")) {
+                el.style.textDecorationLine = el.style.textDecorationLine.replace("underline", "").trim() || "none";
+                if (el.style.textDecorationLine === "none") el.style.textDecorationLine = "";
+              }
+              if (el.style.textDecoration?.includes("underline")) {
+                el.style.textDecoration = el.style.textDecoration.replace("underline", "").trim();
+              }
             }
             break;
           case "strikethrough":
             if (tagName === "s" || tagName === "strike" || tagName === "del") {
               shouldUnwrap = true;
-            } else if (el.style.textDecoration?.includes("line-through")) {
-              el.style.textDecoration = el.style.textDecoration.replace("line-through", "").trim();
+            } else {
+              // textDecorationLine(inline 적용 경로)과 textDecoration(shorthand) 모두 처리한다.
+              if (el.style.textDecorationLine?.includes("line-through")) {
+                el.style.textDecorationLine = el.style.textDecorationLine.replace("line-through", "").trim() || "none";
+                if (el.style.textDecorationLine === "none") el.style.textDecorationLine = "";
+              }
+              if (el.style.textDecoration?.includes("line-through")) {
+                el.style.textDecoration = el.style.textDecoration.replace("line-through", "").trim();
+              }
             }
             break;
           case "color":
