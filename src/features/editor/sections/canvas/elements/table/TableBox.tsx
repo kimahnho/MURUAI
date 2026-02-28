@@ -14,6 +14,8 @@ import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 const HANDLE_SIZE = 10;
 const HALF_HANDLE = HANDLE_SIZE / 2;
 const SELECTION_COLOR = "#5500ff";
+// 열/행 분리선 드래그 감지 영역 너비(px) — 히트 영역
+const DIVIDER_HIT = 6;
 
 type ResizeHandlePosition = {
   left?: number | string;
@@ -43,6 +45,26 @@ const getResizeCursor = (handle: ResizeHandle) => {
 
 const RESIZE_HANDLES: ResizeHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
+// colWidths 없으면 균등 분배, 있으면 비율 보정해 합이 w가 되도록 정규화
+const resolveColWidths = (cols: number, w: number, colWidths?: number[]): number[] => {
+  if (!colWidths || colWidths.length !== cols) {
+    return Array.from({ length: cols }, () => w / cols);
+  }
+  const sum = colWidths.reduce((a, b) => a + b, 0);
+  if (sum === 0) return Array.from({ length: cols }, () => w / cols);
+  return colWidths.map((cw) => (cw / sum) * w);
+};
+
+// rowHeights 없으면 균등 분배
+const resolveRowHeights = (rows: number, h: number, rowHeights?: number[]): number[] => {
+  if (!rowHeights || rowHeights.length !== rows) {
+    return Array.from({ length: rows }, () => h / rows);
+  }
+  const sum = rowHeights.reduce((a, b) => a + b, 0);
+  if (sum === 0) return Array.from({ length: rows }, () => h / rows);
+  return rowHeights.map((rh) => (rh / sum) * h);
+};
+
 interface TableBoxProps {
   element: TableElement;
   isSelected: boolean;
@@ -61,6 +83,8 @@ interface TableBoxProps {
   onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void;
   onCellTextChange?: (rowIndex: number, colIndex: number, text: string) => void;
+  onColWidthsChange?: (colWidths: number[]) => void;
+  onRowHeightsChange?: (rowHeights: number[]) => void;
 }
 
 export const TableBox = ({
@@ -74,6 +98,8 @@ export const TableBox = ({
   onSelectChange,
   onContextMenu,
   onCellTextChange,
+  onColWidthsChange,
+  onRowHeightsChange,
 }: TableBoxProps) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const rectRef = useRef<Rect>({
@@ -85,9 +111,12 @@ export const TableBox = ({
   rectRef.current = { x: element.x, y: element.y, width: element.w, height: element.h };
 
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
+  const [hoveredColDivider, setHoveredColDivider] = useState<number | null>(null);
+  const [hoveredRowDivider, setHoveredRowDivider] = useState<number | null>(null);
   const { startPointerDragSession } = usePointerDragSession();
 
-  const cellHeight = element.h / element.rows;
+  const colWidths = resolveColWidths(element.cols, element.w, element.colWidths);
+  const rowHeights = resolveRowHeights(element.rows, element.h, element.rowHeights);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -192,6 +221,96 @@ export const TableBox = ({
     });
   };
 
+  // 열 분리선(colIndex: 0 ~ cols-2) 드래그 — 인접한 두 열 너비를 조정
+  const handleColDividerPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    colIndex: number,
+  ) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const scale = getScale(boxRef.current);
+    const startWidths = [...colWidths];
+    const minWidth = 10;
+
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: {},
+      createMoveContext: (moveEvent) => {
+        const dx = (moveEvent.clientX - startX) / scale;
+        const leftNew = Math.max(minWidth, startWidths[colIndex] + dx);
+        const rightNew = Math.max(
+          minWidth,
+          startWidths[colIndex] + startWidths[colIndex + 1] - leftNew,
+        );
+        const actualLeft = startWidths[colIndex] + startWidths[colIndex + 1] - rightNew;
+        const next = [...startWidths];
+        next[colIndex] = actualLeft;
+        next[colIndex + 1] = rightNew;
+        return { distance: Math.abs(dx), context: { next } };
+      },
+      onStart: () => {},
+      onMove: ({ next }) => {
+        onColWidthsChange?.(next);
+      },
+      onEnd: () => {},
+    });
+  };
+
+  // 행 분리선(rowIndex: 0 ~ rows-2) 드래그 — 인접한 두 행 높이를 조정
+  const handleRowDividerPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    rowIndex: number,
+  ) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+
+    const startY = event.clientY;
+    const scale = getScale(boxRef.current);
+    const startHeights = [...rowHeights];
+    const minHeight = 10;
+
+    startPointerDragSession({
+      thresholdPx: 0,
+      startContext: {},
+      createMoveContext: (moveEvent) => {
+        const dy = (moveEvent.clientY - startY) / scale;
+        const topNew = Math.max(minHeight, startHeights[rowIndex] + dy);
+        const bottomNew = Math.max(
+          minHeight,
+          startHeights[rowIndex] + startHeights[rowIndex + 1] - topNew,
+        );
+        const actualTop = startHeights[rowIndex] + startHeights[rowIndex + 1] - bottomNew;
+        const next = [...startHeights];
+        next[rowIndex] = actualTop;
+        next[rowIndex + 1] = bottomNew;
+        return { distance: Math.abs(dy), context: { next } };
+      },
+      onStart: () => {},
+      onMove: ({ next }) => {
+        onRowHeightsChange?.(next);
+      },
+      onEnd: () => {},
+    });
+  };
+
+  // 열 분리선 x 위치 목록 (colIndex 0~cols-2 각각의 누적 너비)
+  const colDividerPositions: number[] = [];
+  let accW = 0;
+  for (let i = 0; i < element.cols - 1; i++) {
+    accW += colWidths[i];
+    colDividerPositions.push(accW);
+  }
+
+  // 행 분리선 y 위치 목록
+  const rowDividerPositions: number[] = [];
+  let accH = 0;
+  for (let i = 0; i < element.rows - 1; i++) {
+    accH += rowHeights[i];
+    rowDividerPositions.push(accH);
+  }
+
   return (
     <div
       ref={boxRef}
@@ -217,8 +336,8 @@ export const TableBox = ({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${element.cols}, 1fr)`,
-          gridTemplateRows: `repeat(${element.rows}, ${cellHeight}px)`,
+          gridTemplateColumns: colWidths.map((w) => `${w}px`).join(" "),
+          gridTemplateRows: rowHeights.map((h) => `${h}px`).join(" "),
           width: "100%",
           height: "100%",
           border: "1px solid #000000",
@@ -286,6 +405,77 @@ export const TableBox = ({
         )}
       </div>
 
+      {/* 열 분리선 드래그 핸들 (선택 상태이고 편집 중이 아닐 때) */}
+      {isSelected && selectionCount === 1 && !locked && !editingCell &&
+        colDividerPositions.map((xPos, i) => (
+          <div
+            key={`col-div-${i}`}
+            style={{
+              position: "absolute",
+              left: xPos - DIVIDER_HIT / 2,
+              top: 0,
+              width: DIVIDER_HIT,
+              height: element.h,
+              cursor: "col-resize",
+              zIndex: 10,
+              display: "flex",
+              alignItems: "stretch",
+              justifyContent: "center",
+            }}
+            onPointerDown={(event) => handleColDividerPointerDown(event, i)}
+            onPointerEnter={() => setHoveredColDivider(i)}
+            onPointerLeave={() => setHoveredColDivider(null)}
+          >
+            {/* hover 시 시각적 라인 */}
+            <div
+              style={{
+                width: hoveredColDivider === i ? 2 : 0,
+                height: "100%",
+                backgroundColor: "var(--primary)",
+                transition: "width 0.1s ease",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+        ))
+      }
+
+      {/* 행 분리선 드래그 핸들 (선택 상태이고 편집 중이 아닐 때) */}
+      {isSelected && selectionCount === 1 && !locked && !editingCell &&
+        rowDividerPositions.map((yPos, i) => (
+          <div
+            key={`row-div-${i}`}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: yPos - DIVIDER_HIT / 2,
+              width: element.w,
+              height: DIVIDER_HIT,
+              cursor: "row-resize",
+              zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "stretch",
+              justifyContent: "center",
+            }}
+            onPointerDown={(event) => handleRowDividerPointerDown(event, i)}
+            onPointerEnter={() => setHoveredRowDivider(i)}
+            onPointerLeave={() => setHoveredRowDivider(null)}
+          >
+            {/* hover 시 시각적 라인 */}
+            <div
+              style={{
+                width: "100%",
+                height: hoveredRowDivider === i ? 2 : 0,
+                backgroundColor: "var(--primary)",
+                transition: "height 0.1s ease",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+        ))
+      }
+
       {/* 리사이즈 핸들 (선택 상태이고 편집 중이 아닐 때) */}
       {isSelected && selectionCount === 1 && !locked && !editingCell && (
         <>
@@ -300,6 +490,7 @@ export const TableBox = ({
                 border: `1.5px solid ${SELECTION_COLOR}`,
                 borderRadius: 2,
                 cursor: getResizeCursor(handle),
+                zIndex: 20,
                 ...getHandlePosition(handle),
               }}
               onPointerDown={(event) => {

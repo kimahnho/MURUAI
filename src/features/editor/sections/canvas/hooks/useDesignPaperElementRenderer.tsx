@@ -469,6 +469,12 @@ export const useDesignPaperElementRenderer = ({
           );
           updateElement(element.id, { cells: newCells });
         }}
+        onColWidthsChange={(colWidths) => {
+          updateElement(element.id, { colWidths });
+        }}
+        onRowHeightsChange={(rowHeights) => {
+          updateElement(element.id, { rowHeights });
+        }}
         transformRect={(nextRect, context) =>
           transformElementRect(element.id, nextRect, context)
         }

@@ -6,10 +6,10 @@
 
 ```
 src/features/editor/sections/canvas/elements/table/
-  TableBox.tsx                       # 표 캔버스 컴포넌트 (렌더링 + 드래그/리사이즈 + 셀 편집)
+  TableBox.tsx                       # 표 캔버스 컴포넌트 (렌더링 + 드래그/리사이즈 + 셀 편집 + 열/행 분리선 리사이즈)
 
 src/features/editor/sections/sidebar/content/
-  TableContent.tsx                   # 표 속성 사이드바 패널 (행/열 +/- 편집)
+  TableContent.tsx                   # 표 속성 사이드바 패널 (행/열 +/- 편집, 간격 동일 버튼)
 
 src/features/editor/store/
   tableStore.ts                      # 선택된 표 요소 + updateTable 콜백 공유 스토어
@@ -47,6 +47,9 @@ export type TableElement = ElementBase & {
   rows: number;
   cols: number;
   cells: TableCell[][];  // cells[rowIndex][colIndex]
+  // undefined 이면 균등 분배 (CSS Grid 1fr 동작과 동일)
+  colWidths?: number[];   // 각 열 너비 (px, 합계 = w)
+  rowHeights?: number[];  // 각 행 높이 (px, 합계 = h)
 };
 ```
 
@@ -104,18 +107,48 @@ useEffect(() => {
 1. **`activeInteraction` 없는 초기 경로**: `"text" || "table"` 조건으로 `x/y` 업데이트
 2. **`activeInteraction` 있는 fallthrough 경로**: `"table"` 전용 분기에서 `x/y/w/h` 모두 `updateElement` 호출
 
-## 행/열 변경 규칙
+## 열/행 개별 크기 조절
 
-- 행 추가: `cells` 배열에 `cols` 길이의 빈 행(`{ text: "" }`) 추가
-- 행 삭제: `cells.slice(0, rows - 1)` (최솟값 1)
-- 열 추가: 각 행에 `{ text: "" }` 셀 추가
-- 열 삭제: 각 행에서 `row.slice(0, cols - 1)` (최솟값 1)
-- 행/열 변경 시 항상 `rows`/`cols` 숫자와 `cells` 배열을 함께 업데이트해야 함
+### colWidths / rowHeights 관리 규칙
+
+- `undefined` → 균등 분배 (TableBox 내 `resolveColWidths`/`resolveRowHeights` 헬퍼가 처리)
+- 분리선 드래그 시 `onColWidthsChange(colWidths)` / `onRowHeightsChange(rowHeights)` 콜백 → `updateElement` 호출
+- `gridTemplateColumns` / `gridTemplateRows`는 `repeat(n, 1fr)` 대신 실제 px 값 배열로 구성
+
+### 분리선 드래그 구현 (TableBox.tsx)
+
+- 히트 영역: 열/행 경계 좌우/상하 각 `DIVIDER_HIT(6px)`
+- 인접한 두 열(행)의 합계 크기는 유지하고 비율만 조정 (최솟값 10px)
+- hover 시 `var(--primary)` 2px 라인 표시 (0.1s transition), 선택 + 단일 + 비편집 상태에서만 노출
+- `zIndex`: 분리선 핸들 10, 리사이즈 핸들 20 (겹침 방지)
+
+### 행/열 변경 규칙 (colWidths/rowHeights 보존)
+
+행/열 추가·삭제 시 `colWidths`/`rowHeights`가 있으면 반드시 함께 업데이트해야 기존 간격이 유지된다.
+
+- **행 추가**: `rowHeights`가 있으면 기존 평균 높이를 새 항목으로 추가
+- **행 삭제**: `rowHeights`가 있으면 마지막 항목 제거
+- **열 추가**: `colWidths`가 있으면 기존 평균 너비를 새 항목으로 추가
+- **열 삭제**: `colWidths`가 있으면 마지막 항목 제거
+- `colWidths`/`rowHeights`가 `undefined`이면 추가·삭제 후에도 `undefined` 유지 (균등 분배 유지)
+
+```typescript
+// 예시: 열 추가 시 colWidths 보존
+const nextColWidths = colWidths
+  ? [...colWidths, colWidths.reduce((a, b) => a + b, 0) / colWidths.length]
+  : undefined;
+updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
+```
+
+### 간격 동일 버튼 (TableContent.tsx)
+
+- `colWidths`가 설정된 경우에만 **"열 간격 동일"** 버튼 표시 → `updateTable({ colWidths: undefined })`
+- `rowHeights`가 설정된 경우에만 **"행 간격 동일"** 버튼 표시 → `updateTable({ rowHeights: undefined })`
 
 ## 주의사항
 
-1. **TableBox는 `usePointerDragSession` 기반** — 드래그/리사이즈 모두 이 훅 사용
+1. **TableBox는 `usePointerDragSession` 기반** — 드래그/리사이즈/분리선 모두 이 훅 사용
 2. **셀 편집은 `contentEditable`** — 더블클릭 → `contentEditable` div, `Escape`/`Enter` → blur
-3. **리사이즈 핸들은 단일 선택 + 비편집 상태에서만 표시** — `isSelected && selectionCount === 1 && !editingCell`
-4. **`cellWidth` 변수 불필요** — CSS Grid `1fr` 컬럼으로 균등 분배하므로 별도 계산 불필요
-5. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
+3. **리사이즈·분리선 핸들은 단일 선택 + 비편집 상태에서만 표시** — `isSelected && selectionCount === 1 && !editingCell`
+4. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
+5. **행/열 추가·삭제 시 `colWidths`/`rowHeights` 반드시 함께 업데이트** — 누락 시 기존 간격이 균등으로 리셋됨
