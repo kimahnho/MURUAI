@@ -24,28 +24,49 @@ const TableContent = () => {
     return null;
   }
 
-  const { rows, cols, cells } = selectedTable;
+  const { rows, cols, cells, colWidths, rowHeights } = selectedTable;
 
   const addRow = () => {
     const newRow: TableCell[] = Array.from({ length: cols }, () => ({ text: "" }));
-    updateTable({ rows: rows + 1, cells: [...cells, newRow] });
+    // rowHeights가 있으면 새 행을 기존 평균 높이로 추가해 기존 행 간격을 유지한다.
+    const nextRowHeights = rowHeights
+      ? [...rowHeights, rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length]
+      : undefined;
+    updateTable({ rows: rows + 1, cells: [...cells, newRow], rowHeights: nextRowHeights });
   };
 
   const removeRow = () => {
     if (rows <= 1) return;
-    updateTable({ rows: rows - 1, cells: cells.slice(0, rows - 1) });
+    const nextRowHeights = rowHeights ? rowHeights.slice(0, rows - 1) : undefined;
+    updateTable({ rows: rows - 1, cells: cells.slice(0, rows - 1), rowHeights: nextRowHeights });
   };
 
   const addCol = () => {
     const newCells = cells.map((row) => [...row, { text: "" }]);
-    updateTable({ cols: cols + 1, cells: newCells });
+    // colWidths가 있으면 새 열을 기존 평균 너비로 추가해 기존 열 간격을 유지한다.
+    const nextColWidths = colWidths
+      ? [...colWidths, colWidths.reduce((a, b) => a + b, 0) / colWidths.length]
+      : undefined;
+    updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
   };
 
   const removeCol = () => {
     if (cols <= 1) return;
     const newCells = cells.map((row) => row.slice(0, cols - 1));
-    updateTable({ cols: cols - 1, cells: newCells });
+    const nextColWidths = colWidths ? colWidths.slice(0, cols - 1) : undefined;
+    updateTable({ cols: cols - 1, cells: newCells, colWidths: nextColWidths });
   };
+
+  // 행 높이를 균등하게 리셋
+  const equalizeRowHeights = () => {
+    updateTable({ rowHeights: undefined });
+  };
+
+  // 열 너비를 균등하게 리셋
+  const equalizeColWidths = () => {
+    updateTable({ colWidths: undefined });
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,6 +92,16 @@ const TableContent = () => {
             <Plus className="h-4 w-4" />
           </button>
         </div>
+        {/* 행 높이가 불균등한 경우에만 균등 리셋 버튼 표시 */}
+        {!!rowHeights && (
+          <button
+            type="button"
+            onClick={equalizeRowHeights}
+            className="w-full rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+          >
+            행 간격 동일
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -95,6 +126,16 @@ const TableContent = () => {
             <Plus className="h-4 w-4" />
           </button>
         </div>
+        {/* 열 너비가 불균등한 경우에만 균등 리셋 버튼 표시 */}
+        {!!colWidths && (
+          <button
+            type="button"
+            onClick={equalizeColWidths}
+            className="w-full rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+          >
+            열 간격 동일
+          </button>
+        )}
       </div>
     </div>
   );

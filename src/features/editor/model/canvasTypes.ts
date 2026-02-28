@@ -131,6 +131,9 @@ export type TableElement = ElementBase & {
   rows: number;
   cols: number;
   cells: TableCell[][];
+  // undefined 이면 균등 분배 (1fr × cols / 균등 행 높이)
+  colWidths?: number[];   // 각 열 너비 (px, 합계 = w)
+  rowHeights?: number[];  // 각 행 높이 (px, 합계 = h)
 };
 
 export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
