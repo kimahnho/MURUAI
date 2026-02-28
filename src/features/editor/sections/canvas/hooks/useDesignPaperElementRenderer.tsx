@@ -1,11 +1,13 @@
 /**
  * 캔버스 요소 타입별 렌더링 분기를 모아 DesignPaper의 요소 표시 흐름을 제공하는 훅.
  */
+import { useEffect, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type {
   CanvasElement,
   LineElement,
   ShapeElement,
+  TableElement,
   TextElement,
   ResizeHandle,
 } from "../../../model/canvasTypes";
@@ -26,7 +28,9 @@ import CircleBox from "../elements/circle/CircleBox";
 import Line from "../elements/line/Line";
 import RoundBox from "../elements/round_box/RoundBox";
 import TextBox from "../elements/text/TextBox";
+import TableBox from "../elements/table/TableBox";
 import { buildTextToolbarConfig } from "../utils/textToolbarConfig";
+import { useTableStore } from "../../../store/tableStore";
 
 type TextStylePatch = Partial<TextElement["style"]>;
 type TextElementPatch = Omit<Partial<TextElement>, "style"> & {
@@ -123,6 +127,30 @@ export const useDesignPaperElementRenderer = ({
   setEditingShapeTextId,
   mmToPx,
 }: UseDesignPaperElementRendererParams) => {
+  const setSelectedTable = useTableStore((s) => s.setSelectedTable);
+
+  // 선택된 표 요소를 tableStore와 사이드바에 동기화한다.
+  // selectedIds 또는 elements가 바뀔 때만 실행해 렌더 중 상태 업데이트를 방지한다.
+  const selectedTableElement = useMemo(() => {
+    // 단일/다중 선택 모두 허용: 선택된 요소 중 표 타입이 하나라도 있으면 반환
+    if (selectedIds.length !== 1) return null;
+    const el = elements.find((e) => e.id === selectedIds[0]);
+    return el?.type === "table" ? (el as TableElement) : null;
+  }, [selectedIds, elements]);
+
+  useEffect(() => {
+    if (selectedTableElement) {
+      // 표 선택 시 사이드바를 "표" 탭으로 전환하고 tableStore를 최신 데이터로 등록한다.
+      setSideBarMenu("table");
+      setSelectedTable(selectedTableElement, (patch) => {
+        updateElement(selectedTableElement.id, patch);
+      });
+    } else {
+      // 표 선택 해제 시 tableStore를 초기화한다. 사이드바는 TableContent의 useEffect가 닫는다.
+      setSelectedTable(null, null);
+    }
+  }, [selectedTableElement, setSideBarMenu, setSelectedTable, updateElement]);
+
   const instructionGuideText = "목표 어휘에 맞는 이미지를 삽입해보세요.";
   const defaultVocabularyLabel = "목표 어휘";
 
@@ -411,6 +439,43 @@ export const useDesignPaperElementRenderer = ({
     );
   };
 
+  const renderTableElement = (element: TableElement) => {
+    const isSelected = shouldShowIndividualBorder(element.id);
+    return (
+      <TableBox
+        key={element.id}
+        element={element}
+        isSelected={isSelected}
+        selectionCount={selectedIds.length}
+        locked={readOnly || !!element.locked}
+        onRectChange={(nextRect) => {
+          handleRectChange(element.id, nextRect);
+        }}
+        onDragStateChange={(isDragging, finalRect, context) => {
+          handleDragStateChange(element.id, isDragging, finalRect, context);
+        }}
+        onSelectChange={(selected, options) => {
+          // 사이드바 전환과 tableStore 동기화는 useEffect(selectedTableElement)에서 처리한다.
+          handleSelectChange(element.id, selected, options);
+        }}
+        onContextMenu={(event) => {
+          openContextMenu(event, element.id);
+        }}
+        onCellTextChange={(rowIndex, colIndex, text) => {
+          const newCells = element.cells.map((row, rIdx) =>
+            row.map((cell, cIdx) =>
+              rIdx === rowIndex && cIdx === colIndex ? { ...cell, text } : cell,
+            ),
+          );
+          updateElement(element.id, { cells: newCells });
+        }}
+        transformRect={(nextRect, context) =>
+          transformElementRect(element.id, nextRect, context)
+        }
+      />
+    );
+  };
+
   const renderElement = (element: CanvasElement) => {
     if (element.visible === false) return null;
     switch (element.type) {
@@ -423,6 +488,8 @@ export const useDesignPaperElementRenderer = ({
       case "line":
       case "arrow":
         return renderLineElement(element);
+      case "table":
+        return renderTableElement(element);
       default:
         return null;
     }

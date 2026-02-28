@@ -42,6 +42,7 @@ import {
   addShapeElement,
   addTextElement,
   addLineElement,
+  addTableElement,
 } from "../utils/pageFactory";
 import { type TemplateId } from "../templates/templateRegistry";
 
@@ -193,6 +194,7 @@ const MainSection = () => {
     addTextElement,
     addShapeElement,
     addLineElement,
+    addTableElement,
     addTemplatePage,
     addSelectedTemplatePages,
     addAacBoardPage,

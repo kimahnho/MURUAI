@@ -47,6 +47,14 @@ type AddLineElement = (args: {
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => string;
 
+type AddTableElement = (args: {
+  pageId: string;
+  rows: number;
+  cols: number;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => string;
+
 type AddTemplatePage = (args: {
   templateId: TemplateId;
   fallbackOrientation: "horizontal" | "vertical";
@@ -96,6 +104,7 @@ type EditorSubscriptionsParams = {
   addTextElement: AddTextElement;
   addShapeElement: AddShapeElement;
   addLineElement: AddLineElement;
+  addTableElement: AddTableElement;
   addTemplatePage: AddTemplatePage;
   addSelectedTemplatePages: AddSelectedTemplatePages;
   addAacBoardPage: AddAacBoardPage;
@@ -123,6 +132,7 @@ export const useEditorSubscriptions = ({
   addTextElement,
   addShapeElement,
   addLineElement,
+  addTableElement,
   addTemplatePage,
   addSelectedTemplatePages,
   addAacBoardPage,
@@ -177,6 +187,7 @@ export const useEditorSubscriptions = ({
     addTextElement,
     addShapeElement,
     addLineElement,
+    addTableElement,
   });
 
   useOrientationSubscription({

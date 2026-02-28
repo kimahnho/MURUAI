@@ -1,12 +1,14 @@
 /**
  * 사이드바 현재 메뉴에 맞는 요소 패널을 라우팅해 표시하는 컨테이너 컴포넌트.
  */
+import { useState } from "react";
 import {
   ArrowRight,
   Circle,
   Minus,
   RectangleHorizontal,
   Square,
+  Table2,
 } from "lucide-react";
 import { useElementStore } from "@/features/editor/store/elementStore";
 import type { ElementType } from "@/features/editor/model/canvasTypes";
@@ -26,15 +28,29 @@ const SHAPES: ShapeItem[] = [
   { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
 ];
 
-type ElementContentViewProps = {
-  shapes: ShapeItem[];
-  onSelectShape: (type: ElementType) => void;
-};
+const MIN_TABLE_SIZE = 1;
+const MAX_TABLE_SIZE = 20;
+const DEFAULT_TABLE_SIZE = 3;
 
-const ElementContentView = ({
-  shapes,
-  onSelectShape,
-}: ElementContentViewProps) => {
+const clampSize = (value: number) =>
+  Math.min(MAX_TABLE_SIZE, Math.max(MIN_TABLE_SIZE, value));
+
+const ElementContent = () => {
+  // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
+  const onSelectShape = useElementStore((s) => s.requestElement);
+  const requestTableElement = useElementStore((s) => s.requestTableElement);
+
+  const [showTablePopup, setShowTablePopup] = useState(false);
+  const [tableRows, setTableRows] = useState(DEFAULT_TABLE_SIZE);
+  const [tableCols, setTableCols] = useState(DEFAULT_TABLE_SIZE);
+
+  const handleTableConfirm = () => {
+    requestTableElement(tableRows, tableCols);
+    setShowTablePopup(false);
+    setTableRows(DEFAULT_TABLE_SIZE);
+    setTableCols(DEFAULT_TABLE_SIZE);
+  };
+
   return (
     <div className="flex flex-col w-full gap-6">
       <div className="flex items-center text-start">
@@ -50,7 +66,7 @@ const ElementContentView = ({
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {shapes.map((shape) => {
+          {SHAPES.map((shape) => {
             const Icon = shape.icon;
             return (
               <button
@@ -68,16 +84,107 @@ const ElementContentView = ({
           })}
         </div>
       </div>
+
+      <div className="flex flex-col w-full gap-3">
+        <div className="flex items-center">
+          <span className="flex text-title-16-semibold items-center">표</span>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => { setShowTablePopup((prev) => !prev); }}
+            className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group w-full"
+          >
+            <Table2 className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+            <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
+              표
+            </span>
+          </button>
+
+          {showTablePopup && (
+            <div className="absolute left-0 right-0 top-full mt-2 z-20 rounded-xl border border-black-25 bg-white-100 p-4 shadow-lg flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-14-regular text-black-70">행</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setTableRows((v) => clampSize(v - 1)); }}
+                    disabled={tableRows <= MIN_TABLE_SIZE}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-black-30 text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed text-14-semibold"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={tableRows}
+                    onChange={(e) => {
+                      const v = Number.parseInt(e.target.value, 10);
+                      if (!Number.isNaN(v)) setTableRows(clampSize(v));
+                    }}
+                    className="w-10 text-center rounded border border-black-30 py-1 text-14-regular text-black-90"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setTableRows((v) => clampSize(v + 1)); }}
+                    disabled={tableRows >= MAX_TABLE_SIZE}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-black-30 text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed text-14-semibold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-14-regular text-black-70">열</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setTableCols((v) => clampSize(v - 1)); }}
+                    disabled={tableCols <= MIN_TABLE_SIZE}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-black-30 text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed text-14-semibold"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={tableCols}
+                    onChange={(e) => {
+                      const v = Number.parseInt(e.target.value, 10);
+                      if (!Number.isNaN(v)) setTableCols(clampSize(v));
+                    }}
+                    className="w-10 text-center rounded border border-black-30 py-1 text-14-regular text-black-90"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setTableCols((v) => clampSize(v + 1)); }}
+                    disabled={tableCols >= MAX_TABLE_SIZE}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-black-30 text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed text-14-semibold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowTablePopup(false); }}
+                  className="flex-1 rounded border border-black-30 py-2 text-14-regular text-black-70 hover:bg-black-5"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTableConfirm}
+                  className="flex-1 rounded bg-primary py-2 text-14-regular text-white-100 hover:bg-primary/90"
+                >
+                  추가
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  );
-};
-
-const ElementContent = () => {
-  // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
-  const onSelectShape = useElementStore((s) => s.requestElement);
-
-  return (
-    <ElementContentView shapes={SHAPES} onSelectShape={onSelectShape} />
   );
 };
 

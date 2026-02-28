@@ -25,6 +25,7 @@ src/features/editor/
         TextContent.tsx             # 텍스트 삽입
         UploadContent.tsx           # 파일 업로드
         ShapeProperties.tsx         # 도형 속성 편집
+        TableContent.tsx            # 표 행/열 속성 패널 (표 선택 시에만 자동 노출)
         TextProperties.tsx          # 텍스트 속성 편집
         AacBoardModal.tsx           # AAC 의사소통 판 설정
         StorySequenceModal.tsx      # 이야기 장면 순서
@@ -58,6 +59,7 @@ src/features/editor/
         arrow/                      # 화살표 요소
         circle/                     # 원형 요소
         line/                       # 선 요소
+        table/                      # 표 요소
         round_box/                  # 사각형/둥근사각형 요소
         text/                       # 텍스트 요소
       hooks/                        # 캔버스 전용 훅
@@ -123,6 +125,8 @@ src/features/editor/
 ## 연관 지침
 
 - PDF 내보내기 전용 지침: `.claude/rules/pdf-export.md`
+- TextBox 요소 지침: `.claude/rules/textbox.md`
+- Table 요소 지침: `.claude/rules/table.md`
 
 ## 폴더 구조 원칙
 
@@ -170,7 +174,7 @@ onPointerUp={() => setFinalPosition(posRef.current)}
 ## 요소 타입
 
 ```typescript
-type CanvasElement = TextElement | ShapeElement | LineElement | ArrowElement;
+type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
 ```
 
 - 각 요소는 `id`, `type`, `position`, `size` 필수

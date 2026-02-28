@@ -15,6 +15,7 @@ export type SideBarMenu =
   | "font"
   | "upload"
   | "aac"
+  | "table"
   | null;
 
 interface SideBarStore {
