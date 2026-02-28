@@ -3,7 +3,7 @@
  */
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasDocument, Page } from "../model/pageTypes";
-import type { CanvasElement } from "../model/canvasTypes";
+import type { CanvasElement, TableCell } from "../model/canvasTypes";
 import fiveSpaceWritingNoteBg from "../templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "../templates/template_pdf/ten-space-writing-note/preview.png";
 import lineNoteWideBg from "../templates/template_pdf/line-note-wide/preview.png";
@@ -439,6 +439,54 @@ export const addLineElement = ({
       color: "#000000",
       width: 2,
     },
+  };
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === pageId
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
+        : page
+    )
+  );
+  return nextElement.id;
+};
+
+export const addTableElement = ({
+  pageId,
+  rows,
+  cols,
+  setPages,
+  getOrientation,
+}: {
+  pageId: string;
+  rows: number;
+  cols: number;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => {
+  const pageOrientation = getOrientation();
+  const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
+  const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
+  const w = pageWidth * 0.6;
+  const cellHeight = mmToPx(12);
+  const h = cellHeight * rows;
+  const x = (pageWidth - w) / 2;
+  const y = (pageHeight - h) / 2;
+  const cells: TableCell[][] = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ text: "" }))
+  );
+  const nextElement: CanvasElement = {
+    id: crypto.randomUUID(),
+    type: "table",
+    x,
+    y,
+    w,
+    h,
+    rows,
+    cols,
+    cells,
   };
   setPages((prevPages) =>
     prevPages.map((page) =>

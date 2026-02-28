@@ -37,6 +37,14 @@ type AddLineElement = (args: {
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => string;
 
+type AddTableElement = (args: {
+  pageId: string;
+  rows: number;
+  cols: number;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => string;
+
 type ElementSubscriptionParams = {
   pagesRef: ReadonlyRef<Page[]>;
   selectedPageIdRef: ReadonlyRef<string>;
@@ -46,6 +54,7 @@ type ElementSubscriptionParams = {
   addTextElement: AddTextElement;
   addShapeElement: AddShapeElement;
   addLineElement: AddLineElement;
+  addTableElement: AddTableElement;
 };
 
 export const useElementSubscription = ({
@@ -57,12 +66,14 @@ export const useElementSubscription = ({
   addTextElement,
   addShapeElement,
   addLineElement,
+  addTableElement,
 }: ElementSubscriptionParams) => {
   const createElementFromRequest = (
     requestedType: ReturnType<typeof useElementStore.getState>["requestedType"],
     activePageId: string,
     getOrientation: () => "horizontal" | "vertical" | null,
     requestedText?: TextPreset,
+    requestedTableConfig?: { rows: number; cols: number } | null,
   ) => {
     if (requestedType === "text") {
       return addTextElement({
@@ -98,6 +109,15 @@ export const useElementSubscription = ({
         getOrientation,
       });
     }
+    if (requestedType === "table" && requestedTableConfig) {
+      return addTableElement({
+        pageId: activePageId,
+        rows: requestedTableConfig.rows,
+        cols: requestedTableConfig.cols,
+        setPages,
+        getOrientation,
+      });
+    }
     return null;
   };
 
@@ -117,6 +137,7 @@ export const useElementSubscription = ({
         activePageId,
         getOrientation,
         state.requestedText ?? undefined,
+        state.requestedTableConfig,
       );
       if (!elementId) return;
       setSelectedIds([elementId]);
@@ -125,6 +146,7 @@ export const useElementSubscription = ({
     deps: [
       addLineElement,
       addShapeElement,
+      addTableElement,
       addTextElement,
       pagesRef,
       selectedPageIdRef,

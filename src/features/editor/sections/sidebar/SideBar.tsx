@@ -23,6 +23,7 @@ import FontContent from "./content/FontContent";
 import TemplateContent from "./content/TemplateContent";
 import DesignContent from "./content/DesignContent";
 import PageContent from "./content/PageContent";
+import TableContent from "./content/TableContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
 
 type MenuItemId = Exclude<SideBarMenu, null | "font">;
@@ -38,6 +39,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   font: "글꼴",
   upload: "업로드",
   aac: "AAC",
+  table: "표",
 };
 
 const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
@@ -67,6 +69,7 @@ const CONTENT_COMPONENTS: Record<
   font: FontContent,
   upload: UploadContent,
   aac: AACContent,
+  table: TableContent,
 };
 
 const SideBar = () => {

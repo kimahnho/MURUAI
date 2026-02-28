@@ -22,7 +22,8 @@ export type ElementType =
   | "roundRect"
   | "ellipse"
   | "line"
-  | "arrow";
+  | "arrow"
+  | "table";
 
 export type ElementBase = {
   id: string;
@@ -117,12 +118,28 @@ export type LineElement = ElementBase & {
   };
 };
 
-export type CanvasElement = TextElement | ShapeElement | LineElement;
+export type TableCell = {
+  text: string;
+};
+
+export type TableElement = ElementBase & {
+  type: "table";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rows: number;
+  cols: number;
+  cells: TableCell[][];
+};
+
+export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
 
 export type TemplateElement =
   | Omit<TextElement, "id">
   | Omit<ShapeElement, "id">
-  | Omit<LineElement, "id">;
+  | Omit<LineElement, "id">
+  | Omit<TableElement, "id">;
 
 export type Template = {
   id: string;
