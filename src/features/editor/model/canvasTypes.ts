@@ -118,8 +118,19 @@ export type LineElement = ElementBase & {
   };
 };
 
+export type TableCellStyle = {
+  fontSize: number;                      // 기본값 13
+  fontFamily?: string;
+  alignX: "left" | "center" | "right";  // 기본값 "center"
+  fontWeight?: "normal" | "bold" | number;
+  color?: string;                        // 기본값 "#000000"
+  italic?: boolean;
+  underline?: boolean;
+};
+
 export type TableCell = {
   text: string;
+  style?: TableCellStyle;  // 개별 셀 스타일 (없으면 element.cellStyle → 기본값 순으로 fallback)
 };
 
 export type TableElement = ElementBase & {
@@ -134,6 +145,7 @@ export type TableElement = ElementBase & {
   // undefined 이면 균등 분배 (1fr × cols / 균등 행 높이)
   colWidths?: number[];   // 각 열 너비 (px, 합계 = w)
   rowHeights?: number[];  // 각 행 높이 (px, 합계 = h)
+  cellStyle?: TableCellStyle;  // undefined이면 기본값(fontSize=13, alignX="center") 사용
 };
 
 export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;

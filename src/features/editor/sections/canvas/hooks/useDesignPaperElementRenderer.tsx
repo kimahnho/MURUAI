@@ -128,6 +128,7 @@ export const useDesignPaperElementRenderer = ({
   mmToPx,
 }: UseDesignPaperElementRendererParams) => {
   const setSelectedTable = useTableStore((s) => s.setSelectedTable);
+  const setSelectedCells = useTableStore((s) => s.setSelectedCells);
 
   // 선택된 표 요소를 tableStore와 사이드바에 동기화한다.
   // selectedIds 또는 elements가 바뀔 때만 실행해 렌더 중 상태 업데이트를 방지한다.
@@ -148,8 +149,9 @@ export const useDesignPaperElementRenderer = ({
     } else {
       // 표 선택 해제 시 tableStore를 초기화한다. 사이드바는 TableContent의 useEffect가 닫는다.
       setSelectedTable(null, null);
+      setSelectedCells([]);
     }
-  }, [selectedTableElement, setSideBarMenu, setSelectedTable, updateElement]);
+  }, [selectedTableElement, setSideBarMenu, setSelectedTable, setSelectedCells, updateElement]);
 
   const instructionGuideText = "목표 어휘에 맞는 이미지를 삽입해보세요.";
   const defaultVocabularyLabel = "목표 어휘";

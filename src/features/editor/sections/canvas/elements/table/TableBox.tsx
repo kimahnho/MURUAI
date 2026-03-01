@@ -2,6 +2,7 @@
  * 표 요소를 렌더링하고 선택/드래그/리사이즈 상호작용을 처리하는 컴포넌트.
  */
 import {
+  useEffect,
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
@@ -10,12 +11,16 @@ import {
 import type { TableElement, Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
 import { usePointerDragSession } from "../../hooks/usePointerDragSession";
+import { useTableStore } from "../../../../store/tableStore";
 
 const HANDLE_SIZE = 10;
 const HALF_HANDLE = HANDLE_SIZE / 2;
 const SELECTION_COLOR = "#5500ff";
 // 열/행 분리선 드래그 감지 영역 너비(px) — 히트 영역
 const DIVIDER_HIT = 6;
+// 행/열 헤더 버튼 크기 및 표와의 간격
+const HEADER_BTN_SIZE = 18;
+const HEADER_GAP = 4;
 
 type ResizeHandlePosition = {
   left?: number | string;
@@ -113,6 +118,24 @@ export const TableBox = ({
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
   const [hoveredColDivider, setHoveredColDivider] = useState<number | null>(null);
   const [hoveredRowDivider, setHoveredRowDivider] = useState<number | null>(null);
+  // 선택된 셀 목록 (로컬 + tableStore 동기화)
+  const [selectedCells, setSelectedCellsLocal] = useState<{ row: number; col: number }[]>([]);
+  const setSelectedCellsStore = useTableStore((s) => s.setSelectedCells);
+
+  const setSelectedCells = (cells: { row: number; col: number }[]) => {
+    setSelectedCellsLocal(cells);
+    setSelectedCellsStore(cells);
+  };
+
+  // 표 선택이 해제되면 셀 선택도 초기화한다.
+  useEffect(() => {
+    if (!isSelected) {
+      setSelectedCellsLocal([]);
+      setEditingCell(null);
+    }
+  }, [isSelected]);
+
+
   const { startPointerDragSession } = usePointerDragSession();
 
   const colWidths = resolveColWidths(element.cols, element.w, element.colWidths);
@@ -128,6 +151,10 @@ export const TableBox = ({
       onSelectChange?.(true, { additive: event.shiftKey });
       return;
     }
+
+    // 선택된 상태에서 표 배경(셀 아닌 곳) 클릭 시 셀 선택 해제
+    setSelectedCells([]);
+    setEditingCell(null);
 
     const startX = event.clientX;
     const startY = event.clientY;
@@ -311,6 +338,24 @@ export const TableBox = ({
     rowDividerPositions.push(accH);
   }
 
+  // 열 헤더 버튼 x 위치 (각 열 중앙)
+  const colHeaderPositions: number[] = [];
+  let accumW = 0;
+  for (let i = 0; i < element.cols; i++) {
+    colHeaderPositions.push(accumW + colWidths[i] / 2 - HEADER_BTN_SIZE / 2);
+    accumW += colWidths[i];
+  }
+
+  // 행 헤더 버튼 y 위치 (각 행 중앙)
+  const rowHeaderPositions: number[] = [];
+  let accumH = 0;
+  for (let i = 0; i < element.rows; i++) {
+    rowHeaderPositions.push(accumH + rowHeights[i] / 2 - HEADER_BTN_SIZE / 2);
+    accumH += rowHeights[i];
+  }
+
+  const showHeaders = isSelected && selectedCells.length > 0;
+
   return (
     <div
       ref={boxRef}
@@ -348,6 +393,32 @@ export const TableBox = ({
           row.map((cell, colIndex) => {
             const isEditingThis =
               editingCell?.row === rowIndex && editingCell?.col === colIndex;
+            const isCellSelected = selectedCells.some(
+              (c) => c.row === rowIndex && c.col === colIndex,
+            );
+            // 개별 셀 스타일 우선, 없으면 표 전체 cellStyle, 없으면 기본값
+            const cs = cell.style ?? element.cellStyle;
+            const cellFontSize = cs?.fontSize ?? 13;
+            const cellFontFamily = cs?.fontFamily;
+            const cellAlignX = cs?.alignX ?? "center";
+            const cellFontWeight = cs?.fontWeight;
+            const cellColor = cs?.color ?? "#000000";
+            const cellFontStyle = cs?.italic ? "italic" : "normal";
+            const cellTextDecoration = cs?.underline ? "underline" : "none";
+            const cellJustifyContent =
+              cellAlignX === "left" ? "flex-start" : cellAlignX === "right" ? "flex-end" : "center";
+            const sharedTextStyle = {
+              fontFamily: cellFontFamily,
+              fontSize: cellFontSize,
+              fontWeight: cellFontWeight,
+              color: cellColor,
+              fontStyle: cellFontStyle,
+              textDecoration: cellTextDecoration,
+              textAlign: cellAlignX as "left" | "center" | "right",
+              lineHeight: 1.4,
+              whiteSpace: "pre-wrap" as const,
+              wordBreak: "break-word" as const,
+            };
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -357,23 +428,44 @@ export const TableBox = ({
                   overflow: "hidden",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: cellJustifyContent,
                   padding: "2px 4px",
-                  fontSize: 13,
-                  lineHeight: 1.4,
                   boxSizing: "border-box",
                   minWidth: 0,
+                  cursor: isSelected && !locked ? "pointer" : "inherit",
+                  // 선택된 셀 하이라이트
+                  backgroundColor: isCellSelected ? "rgba(85, 0, 255, 0.08)" : undefined,
                 }}
-                onDoubleClick={(event) => {
-                  if (locked) return;
+                onPointerDown={(e) => {
+                  // 셀 클릭 시 표 div의 handlePointerDown(setSelectedCells 초기화)까지 버블링 방지
+                  if (isSelected && !locked) e.stopPropagation();
+                }}
+                onClick={(event) => {
+                  // 표가 선택된 상태에서 셀 클릭 → 즉시 편집 진입 + 셀 선택 동시 적용
+                  if (!isSelected || locked) return;
                   event.stopPropagation();
-                  setEditingCell({ row: rowIndex, col: colIndex });
+
+                  if (event.shiftKey && selectedCells.length > 0) {
+                    // Shift 클릭: 기존 선택에 추가 (편집 모드 진입하지 않음)
+                    setEditingCell(null);
+                    const alreadySelected = selectedCells.some(
+                      (c) => c.row === rowIndex && c.col === colIndex,
+                    );
+                    if (!alreadySelected) {
+                      setSelectedCells([...selectedCells, { row: rowIndex, col: colIndex }]);
+                    }
+                  } else {
+                    // 단일 셀 클릭 → 셀 선택 + 편집 진입 (하이라이트 유지)
+                    setSelectedCells([{ row: rowIndex, col: colIndex }]);
+                    setEditingCell({ row: rowIndex, col: colIndex });
+                  }
                 }}
               >
                 {isEditingThis ? (
                   <div
                     contentEditable
                     suppressContentEditableWarning
-                    style={{ outline: "none", width: "100%", minHeight: "1em" }}
+                    style={{ outline: "none", width: "100%", minHeight: "1em", ...sharedTextStyle }}
                     onPointerDown={(e) => e.stopPropagation()}
                     onBlur={(e) => {
                       const text = e.currentTarget.textContent ?? "";
@@ -395,7 +487,7 @@ export const TableBox = ({
                     {cell.text}
                   </div>
                 ) : (
-                  <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  <span style={sharedTextStyle}>
                     {cell.text}
                   </span>
                 )}
@@ -405,8 +497,8 @@ export const TableBox = ({
         )}
       </div>
 
-      {/* 열 분리선 드래그 핸들 (선택 상태이고 편집 중이 아닐 때) */}
-      {isSelected && selectionCount === 1 && !locked && !editingCell &&
+      {/* 열 분리선 드래그 핸들 (선택 상태일 때) */}
+      {isSelected && selectionCount === 1 && !locked &&
         colDividerPositions.map((xPos, i) => (
           <div
             key={`col-div-${i}`}
@@ -440,8 +532,8 @@ export const TableBox = ({
         ))
       }
 
-      {/* 행 분리선 드래그 핸들 (선택 상태이고 편집 중이 아닐 때) */}
-      {isSelected && selectionCount === 1 && !locked && !editingCell &&
+      {/* 행 분리선 드래그 핸들 (선택 상태일 때) */}
+      {isSelected && selectionCount === 1 && !locked &&
         rowDividerPositions.map((yPos, i) => (
           <div
             key={`row-div-${i}`}
@@ -476,8 +568,74 @@ export const TableBox = ({
         ))
       }
 
-      {/* 리사이즈 핸들 (선택 상태이고 편집 중이 아닐 때) */}
-      {isSelected && selectionCount === 1 && !locked && !editingCell && (
+      {/* 열 헤더 버튼: 선택된 셀의 열 인덱스에 해당하는 버튼만 표 상단 바깥에 표시 */}
+      {showHeaders && [...new Set(selectedCells.map((c) => c.col))].map((colIndex) => {
+        const btnLeft = colHeaderPositions[colIndex];
+        const isColSelected =
+          selectedCells.length === element.rows &&
+          selectedCells.every((c) => c.col === colIndex);
+        return (
+          <div
+            key={`col-hdr-${colIndex}`}
+            style={{
+              position: "absolute",
+              left: btnLeft,
+              top: -(HEADER_BTN_SIZE + HEADER_GAP),
+              width: HEADER_BTN_SIZE,
+              height: HEADER_BTN_SIZE,
+              backgroundColor: isColSelected ? "var(--primary)" : "#e8e0ff",
+              border: `1.5px solid var(--primary)`,
+              borderRadius: 3,
+              cursor: "pointer",
+              zIndex: 30,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              // 해당 열 전체 셀 선택
+              setSelectedCells(
+                Array.from({ length: element.rows }, (_, r) => ({ row: r, col: colIndex })),
+              );
+            }}
+          />
+        );
+      })}
+
+      {/* 행 헤더 버튼: 선택된 셀의 행 인덱스에 해당하는 버튼만 표 좌측 바깥에 표시 */}
+      {showHeaders && [...new Set(selectedCells.map((c) => c.row))].map((rowIndex) => {
+        const btnTop = rowHeaderPositions[rowIndex];
+        const isRowSelected =
+          selectedCells.length === element.cols &&
+          selectedCells.every((c) => c.row === rowIndex);
+        return (
+          <div
+            key={`row-hdr-${rowIndex}`}
+            style={{
+              position: "absolute",
+              top: btnTop,
+              left: -(HEADER_BTN_SIZE + HEADER_GAP),
+              width: HEADER_BTN_SIZE,
+              height: HEADER_BTN_SIZE,
+              backgroundColor: isRowSelected ? "var(--primary)" : "#e8e0ff",
+              border: `1.5px solid var(--primary)`,
+              borderRadius: 3,
+              cursor: "pointer",
+              zIndex: 30,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              // 해당 행 전체 셀 선택
+              setSelectedCells(
+                Array.from({ length: element.cols }, (_, c) => ({ row: rowIndex, col: c })),
+              );
+            }}
+          />
+        );
+      })}
+
+      {/* 리사이즈 핸들 (선택 상태일 때) */}
+      {isSelected && selectionCount === 1 && !locked && (
         <>
           {RESIZE_HANDLES.map((handle) => (
             <div
