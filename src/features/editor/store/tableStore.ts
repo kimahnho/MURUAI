@@ -11,6 +11,9 @@ interface TableStore {
   selectedTable: TableElement | null;
   updateTable: UpdateTableFn | null;
   setSelectedTable: (table: TableElement | null, update: UpdateTableFn | null) => void;
+  // 현재 선택된 셀 목록 (사이드바에서 개별 셀 스타일 적용에 사용)
+  selectedCells: { row: number; col: number }[];
+  setSelectedCells: (cells: { row: number; col: number }[]) => void;
 }
 
 export const useTableStore = create<TableStore>((set) => ({
@@ -18,5 +21,9 @@ export const useTableStore = create<TableStore>((set) => ({
   updateTable: null,
   setSelectedTable: (table, update) => {
     set({ selectedTable: table, updateTable: update });
+  },
+  selectedCells: [],
+  setSelectedCells: (cells) => {
+    set({ selectedCells: cells });
   },
 }));
