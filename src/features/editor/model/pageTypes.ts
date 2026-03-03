@@ -21,6 +21,8 @@ export interface PageNumbering {
   enabled: boolean;
   format: PageNumberFormat;
   position: PageNumberPosition;
+  // 넘버링을 시작할 페이지 위치 (기본값 1 = 첫 페이지부터)
+  startPage: number;
 }
 
 export interface Page {

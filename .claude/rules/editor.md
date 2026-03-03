@@ -180,6 +180,41 @@ type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
 - 각 요소는 `id`, `type`, `position`, `size` 필수
 - 요소별 컴포넌트: `sections/canvas/elements/`
 
+## 페이지 넘버링 구현 지침
+
+### 관련 파일
+- 타입: `src/features/editor/model/pageTypes.ts` — `PageNumbering` 인터페이스
+- 기본값/유틸: `src/features/editor/utils/pagePresentation.ts`
+- 스토어: `src/features/editor/store/pageSettingsStore.ts`
+- 스토어 구독: `src/features/editor/hooks/usePageSettingsSubscription.ts`
+- 렌더: `src/features/editor/sections/canvas/DesignPaper.tsx`
+- 설정 UI: `src/features/editor/sections/sidebar/content/PageContent.tsx`
+
+### PageNumbering 타입
+
+```typescript
+interface PageNumbering {
+  enabled: boolean;
+  format: PageNumberFormat;      // "number" | "dash" | "korean" | "english"
+  position: PageNumberPosition;  // "bottom-left" | "bottom-center" | "bottom-right"
+  startPage: number;             // 넘버링을 시작할 페이지 위치 (기본값 1)
+}
+```
+
+### startPage 동작 규칙
+- `startPage = 3` 설정 시: 1·2페이지는 번호 없음, 3페이지부터 `- 1 -`, `- 2 -`, `- 3 -` ...
+- 표시 번호 = `pageNumber - startPage + 1`
+- `pageNumber < startPage` 이면 번호 미표시
+- `numbering` 설정은 **전체 페이지에 일괄 적용** (`usePageSettingsSubscription`에서 `pages.map(...)`)
+- 배경(`background`)은 활성 페이지에만 적용됨 (넘버링과 다름)
+
+### cloneNumbering 규칙
+새 필드 추가 시 `pageSettingsStore.ts`의 `cloneNumbering` 함수에 반드시 추가해야 함.
+기존 저장 데이터 호환을 위해 `?? 기본값` 폴백 패턴 사용:
+```typescript
+startPage: numbering.startPage ?? 1,
+```
+
 ## 주의사항
 
 1. **DesignPaper 내부에서 store 직접 접근 최소화** - props로 전달받기
