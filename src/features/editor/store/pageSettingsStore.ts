@@ -30,6 +30,7 @@ const cloneNumbering = (numbering: PageNumbering): PageNumbering => ({
   enabled: numbering.enabled,
   format: numbering.format,
   position: numbering.position,
+  startPage: numbering.startPage ?? 1,
 });
 
 const cloneBackground = (background: PageBackground): PageBackground => {

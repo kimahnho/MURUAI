@@ -13,6 +13,7 @@ export const DEFAULT_PAGE_NUMBERING: PageNumbering = {
   enabled: false,
   format: "dash",
   position: "bottom-center",
+  startPage: 1,
 };
 
 export const resolvePageBackground = (
@@ -43,7 +44,7 @@ export const formatPageNumberLabel = (
 export const getPageNumberPositionStyle = (position: PageNumberPosition) => {
   const base = {
     position: "absolute" as const,
-    bottom: 12,
+    bottom: 16,
     pointerEvents: "none" as const,
     userSelect: "none" as const,
     zIndex: 20,

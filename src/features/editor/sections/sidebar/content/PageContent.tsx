@@ -331,6 +331,24 @@ const PageContent = () => {
             );
           })}
         </div>
+
+        {numbering.enabled && (
+          <div className="flex items-center gap-2">
+            <span className="text-13-regular text-black-70 shrink-0">시작 페이지</span>
+            <input
+              type="number"
+              min={1}
+              max={999}
+              value={numbering.startPage ?? 1}
+              onChange={(e) => {
+                const val = Math.max(1, Math.min(999, Number(e.target.value) || 1));
+                updateNumbering({ ...numbering, startPage: val });
+              }}
+              className="w-16 rounded-lg border border-black-25 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
+            />
+            <span className="text-13-regular text-black-50">페이지부터</span>
+          </div>
+        )}
       </section>
     </div>
   );

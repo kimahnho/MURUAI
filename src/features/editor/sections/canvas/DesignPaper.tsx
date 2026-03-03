@@ -552,13 +552,16 @@ const DesignPaper = ({
           getRotatedLocalAnchor={getRotatedLocalAnchor}
         />
       )}
-      {resolvedNumbering.enabled && (
+      {resolvedNumbering.enabled && pageNumber >= (resolvedNumbering.startPage ?? 1) && (
         <div
           style={getPageNumberPositionStyle(resolvedNumbering.position)}
           className="text-16-medium text-black-70"
           aria-hidden="true"
         >
-          {formatPageNumberLabel(pageNumber, resolvedNumbering.format)}
+          {formatPageNumberLabel(
+            pageNumber - (resolvedNumbering.startPage ?? 1) + 1,
+            resolvedNumbering.format,
+          )}
         </div>
       )}
     </div>
