@@ -84,7 +84,7 @@ src/features/editor/
         useSnapGuides.ts
 
     bottombar/                      # 하단 페이지바 섹션
-      BottomBar.tsx                 # 페이지 네비게이션
+      BottomBar.tsx                 # 페이지 네비게이션 (다중 선택, Ctrl+C/V 포함)
       hooks/
         useBottomBarDrag.ts         # 페이지 드래그 재정렬
         useBottomBarScroll.ts       # 선택 페이지 자동 스크롤

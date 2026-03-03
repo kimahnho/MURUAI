@@ -115,3 +115,15 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 - BottomBar 스크롤 경계 계산은 내부 추정값보다 실제 DOM(`scrollWidth`, `clientWidth`)을 기준으로 구현한다.
 - 페이지 선택 시 자동 스크롤은 "뷰포트 밖일 때만 최소 이동" 정책을 유지한다.
 - 페이지 추가 시 자동 이동은 새 선택 페이지를 기준으로 즉시 정렬하고, 연속 `smooth` 스크롤 충돌을 피한다.
+
+### 하단바 다중 페이지 선택 및 복사/붙여넣기
+
+- `selectedPageIds: string[]`를 BottomBar 로컬 state로 관리 (캔버스 활성 페이지 `selectedPageId`와 별도)
+- **Shift+클릭**: 앵커(`selectedPageId`)~클릭 페이지 범위를 `selectedPageIds`에 저장
+- **Cmd/Ctrl+클릭**: 개별 페이지 토글. 앵커 페이지(`selectedPageId`)는 제거 불가
+- **단일 클릭**: `onSelectPage` 호출 + `selectedPageIds` 초기화
+- `selectedPageId` 변경 시 `selectedPageIds` 자동 초기화 (useEffect)
+- **Ctrl+C**: `selectedPageIds`가 있으면 해당 배열을, 없으면 `[selectedPageId]`를 `sessionStorage.copiedPageIds`(JSON)에 저장
+- **Ctrl+V**: `handlePastePages(selectedPageId)` 호출 → `copiedPageIds` 배열을 읽어 대상 페이지 직후에 순서대로 삽입
+- `handlePastePages`는 `copiedPageIds` 우선, 없으면 `copiedPageId` 폴백 (`usePageActions.ts`)
+- **keydown 핸들러의 클로저 문제 주의**: `selectedPageIds`, `selectedPageId`, `pages`, `onSelectPage`, `onPastePages`는 별도 ref로 유지하고, keydown useEffect는 빈 dependency(`[]`)로 한 번만 등록해 최신 값은 ref에서 읽는다

@@ -149,12 +149,7 @@ export const TableBox = ({
 
     if (!isSelected) {
       onSelectChange?.(true, { additive: event.shiftKey });
-      return;
     }
-
-    // 선택된 상태에서 표 배경(셀 아닌 곳) 클릭 시 셀 선택 해제
-    setSelectedCells([]);
-    setEditingCell(null);
 
     const startX = event.clientX;
     const startY = event.clientY;
@@ -180,6 +175,9 @@ export const TableBox = ({
         return { distance, context: { nextRect: transformed } };
       },
       onStart: () => {
+        // 드래그 시작 시 셀 선택/편집 해제
+        setSelectedCells([]);
+        setEditingCell(null);
         onDragStateChange?.(true);
       },
       onMove: ({ nextRect }) => {
@@ -189,6 +187,9 @@ export const TableBox = ({
         if (moved) {
           onDragStateChange?.(false, rectRef.current, { type: "drag" });
         } else {
+          // 드래그 없이 클릭만 한 경우: 셀 아닌 곳 클릭이면 셀 선택 해제
+          setSelectedCells([]);
+          setEditingCell(null);
           onDragStateChange?.(false);
         }
       },
@@ -435,10 +436,6 @@ export const TableBox = ({
                   cursor: isSelected && !locked ? "pointer" : "inherit",
                   // 선택된 셀 하이라이트
                   backgroundColor: isCellSelected ? "rgba(85, 0, 255, 0.08)" : undefined,
-                }}
-                onPointerDown={(e) => {
-                  // 셀 클릭 시 표 div의 handlePointerDown(setSelectedCells 초기화)까지 버블링 방지
-                  if (isSelected && !locked) e.stopPropagation();
                 }}
                 onClick={(event) => {
                   // 표가 선택된 상태에서 셀 클릭 → 즉시 편집 진입 + 셀 선택 동시 적용

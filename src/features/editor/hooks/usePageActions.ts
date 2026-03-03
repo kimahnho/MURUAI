@@ -160,6 +160,50 @@ export const usePageActions = ({
     [pages, setActivePage, setPages],
   );
 
+  // 다중 페이지 복사(Ctrl+C) 후 붙여넣기(Ctrl+V) 처리.
+  // copiedPageIds 배열을 우선 읽고, 없으면 단일 copiedPageId로 폴백한다.
+  const handlePastePages = useCallback(
+    (targetPageId: string) => {
+      let copiedIds: string[] = [];
+      try {
+        const raw = sessionStorage.getItem("copiedPageIds");
+        if (raw) copiedIds = JSON.parse(raw) as string[];
+        if (copiedIds.length === 0) {
+          const single = sessionStorage.getItem("copiedPageId");
+          if (single) copiedIds = [single];
+        }
+      } catch {
+        copiedIds = [];
+      }
+      if (copiedIds.length === 0) return;
+
+      const targetIndex = pages.findIndex((p) => p.id === targetPageId);
+      if (targetIndex === -1) return;
+
+      const newPages = copiedIds
+        .map((id) => pages.find((p) => p.id === id))
+        .filter((p): p is Page => Boolean(p))
+        .map((sourcePage, i) => ({
+          id: `${Date.now()}-${i}`,
+          pageNumber: 0,
+          templateId: sourcePage.templateId,
+          orientation: sourcePage.orientation,
+          elements: cloneElementsWithNewIds(sourcePage.elements),
+          rev: 0 as const,
+        }));
+
+      if (newPages.length === 0) return;
+
+      const result = [...pages];
+      result.splice(targetIndex + 1, 0, ...newPages);
+      const reordered = result.map((p, i) => ({ ...p, pageNumber: i + 1 }));
+      setPages(reordered);
+      const last = newPages[newPages.length - 1];
+      setActivePage(last.id, last.orientation);
+    },
+    [pages, setActivePage, setPages],
+  );
+
   const handleDeletePage = useCallback(
     (pageId: string) => {
       mp.track("페이지 삭제");
@@ -289,6 +333,7 @@ export const usePageActions = ({
     handleDuplicatePage,
     handleCopyPage,
     handlePastePage,
+    handlePastePages,
     handleDeletePage,
     handleDeleteElements,
     handleClearPage,
