@@ -122,18 +122,25 @@ useEffect(() => {
 - hover 시 `var(--primary)` 2px 라인 표시 (0.1s transition), 선택 + 단일 + 비편집 상태에서만 노출
 - `zIndex`: 분리선 핸들 10, 리사이즈 핸들 20 (겹침 방지)
 
-### 행/열 변경 규칙 (colWidths/rowHeights 보존)
+### 행/열 변경 규칙 (colWidths/rowHeights 보존 + 표 크기 변경)
 
 행/열 추가·삭제 시 `colWidths`/`rowHeights`가 있으면 반드시 함께 업데이트해야 기존 간격이 유지된다.
 
-- **행 추가**: `rowHeights`가 있으면 기존 평균 높이를 새 항목으로 추가
-- **행 삭제**: `rowHeights`가 있으면 마지막 항목 제거
-- **열 추가**: `colWidths`가 있으면 기존 평균 너비를 새 항목으로 추가
-- **열 삭제**: `colWidths`가 있으면 마지막 항목 제거
+- **행 추가**: `rowHeights`가 있으면 기존 평균 높이를 새 항목으로 추가. **표 전체 `h`도 새 행 높이만큼 증가**
+- **행 삭제**: `rowHeights`가 있으면 마지막 항목 제거. **표 전체 `h`도 삭제된 행 높이만큼 감소**
+- **열 추가**: `colWidths`가 있으면 기존 평균 너비를 새 항목으로 추가. 표 전체 `w`는 변경하지 않음
+- **열 삭제**: `colWidths`가 있으면 마지막 항목 제거. 표 전체 `w`는 변경하지 않음
 - `colWidths`/`rowHeights`가 `undefined`이면 추가·삭제 후에도 `undefined` 유지 (균등 분배 유지)
 
 ```typescript
-// 예시: 열 추가 시 colWidths 보존
+// 행 추가: 표 높이도 함께 증가
+const newRowHeight = rowHeights
+  ? rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length
+  : selectedTable.h / rows;
+const nextRowHeights = rowHeights ? [...rowHeights, newRowHeight] : undefined;
+updateTable({ rows: rows + 1, cells: [...cells, newRow], rowHeights: nextRowHeights, h: selectedTable.h + newRowHeight });
+
+// 열 추가: 표 너비 변경 없음
 const nextColWidths = colWidths
   ? [...colWidths, colWidths.reduce((a, b) => a + b, 0) / colWidths.length]
   : undefined;
@@ -148,7 +155,7 @@ updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
 ## 주의사항
 
 1. **TableBox는 `usePointerDragSession` 기반** — 드래그/리사이즈/분리선 모두 이 훅 사용
-2. **셀 편집은 `contentEditable`** — 더블클릭 → `contentEditable` div, `Escape`/`Enter` → blur
-3. **리사이즈·분리선 핸들은 단일 선택 + 비편집 상태에서만 표시** — `isSelected && selectionCount === 1 && !editingCell`
+2. **셀 편집은 `contentEditable`** — 표 선택 후 셀 클릭 → 즉시 편집 진입 (하이라이트 유지). `Escape`/`Enter` → blur
+3. **리사이즈·분리선 핸들은 단일 선택 상태에서 표시** — `isSelected && selectionCount === 1` (편집 중에도 표시)
 4. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
 5. **행/열 추가·삭제 시 `colWidths`/`rowHeights` 반드시 함께 업데이트** — 누락 시 기존 간격이 균등으로 리셋됨

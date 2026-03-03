@@ -156,6 +156,7 @@ const MainSection = () => {
     handleDuplicatePage,
     handleCopyPage,
     handlePastePage,
+    handlePastePages,
     handleDeletePage,
     handleDeleteElements,
     handleClearPage,
@@ -379,6 +380,7 @@ const MainSection = () => {
           onSelectPage={handleSelectPage}
           onCopyPage={handleCopyPage}
           onPastePage={handlePastePage}
+          onPastePages={handlePastePages}
           onReorderPages={handleReorderPages}
           onDeletePage={handleDeletePage}
           onAddPageAtIndex={handleAddPageAtIndex}

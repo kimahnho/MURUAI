@@ -24,10 +24,10 @@ const TableContent = () => {
   const selectedCells = useTableStore((s) => s.selectedCells);
   const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
 
-  // 표 선택이 해제되면(selectedTable === null) "표" 사이드바 탭을 닫는다.
+  // 표 선택이 해제되면(selectedTable === null) "요소" 탭으로 전환한다.
   useEffect(() => {
     if (!selectedTable) {
-      setSideBarMenu(null);
+      setSideBarMenu("element");
     }
   }, [selectedTable, setSideBarMenu]);
 
@@ -112,17 +112,34 @@ const TableContent = () => {
 
   const addRow = () => {
     const newRow: TableCell[] = Array.from({ length: cols }, () => ({ text: "" }));
-    // rowHeights가 있으면 새 행을 기존 평균 높이로 추가해 기존 행 간격을 유지한다.
-    const nextRowHeights = rowHeights
-      ? [...rowHeights, rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length]
-      : undefined;
-    updateTable({ rows: rows + 1, cells: [...cells, newRow], rowHeights: nextRowHeights });
+    // 새 행 높이: rowHeights가 있으면 기존 평균, 없으면 균등 분배 기준(h / rows)
+    const newRowHeight = rowHeights
+      ? rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length
+      : selectedTable.h / rows;
+    const nextRowHeights = rowHeights ? [...rowHeights, newRowHeight] : undefined;
+    // 표 전체 높이도 새 행 높이만큼 증가
+    updateTable({
+      rows: rows + 1,
+      cells: [...cells, newRow],
+      rowHeights: nextRowHeights,
+      h: selectedTable.h + newRowHeight,
+    });
   };
 
   const removeRow = () => {
     if (rows <= 1) return;
+    // 삭제할 행 높이: rowHeights가 있으면 마지막 행 높이, 없으면 균등 분배 기준
+    const removedRowHeight = rowHeights
+      ? rowHeights[rows - 1]
+      : selectedTable.h / rows;
     const nextRowHeights = rowHeights ? rowHeights.slice(0, rows - 1) : undefined;
-    updateTable({ rows: rows - 1, cells: cells.slice(0, rows - 1), rowHeights: nextRowHeights });
+    // 표 전체 높이도 삭제된 행 높이만큼 감소
+    updateTable({
+      rows: rows - 1,
+      cells: cells.slice(0, rows - 1),
+      rowHeights: nextRowHeights,
+      h: selectedTable.h - removedRowHeight,
+    });
   };
 
   const addCol = () => {

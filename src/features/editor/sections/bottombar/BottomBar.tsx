@@ -74,9 +74,10 @@ const getContextMenuPosition = (
 type PageThumbnailProps = {
   page: Page;
   isSelected: boolean;
+  isDragging: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
-  onSelect: (pageId: string) => void;
+  onSelect: (pageId: string, shiftKey: boolean, metaKey: boolean) => void;
   onDuplicate?: (pageId: string) => void;
   onDelete: (pageId: string) => void;
   onMovePage?: (pageId: string, direction: "left" | "right") => void;
@@ -85,12 +86,14 @@ type PageThumbnailProps = {
     onDragStart: (event: ReactDragEvent<HTMLDivElement>) => void;
     onDragOver: (event: ReactDragEvent<HTMLDivElement>) => void;
     onDrop: (event: ReactDragEvent<HTMLDivElement>) => void;
+    onDragEnd: () => void;
   };
 };
 
 const PageThumbnail = ({
   page,
   isSelected,
+  isDragging,
   canMoveLeft,
   canMoveRight,
   onSelect,
@@ -102,37 +105,57 @@ const PageThumbnail = ({
 }: PageThumbnailProps) => {
   const { isHorizontal, pageSize, previewScale, scaledWidth, scaledHeight } =
     getPreviewMetrics(page.orientation);
+  // 드래그 ghost image를 썸네일 버튼 영역만으로 한정하기 위한 ref
+  const thumbRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div
       draggable
-      onDragStart={dragHandlers.onDragStart}
+      onDragStart={(event) => {
+        if (thumbRef.current) {
+          // button을 클론해 배경색만 제거하고 border/radius는 유지한 ghost image로 사용
+          const rect = thumbRef.current.getBoundingClientRect();
+          const clone = thumbRef.current.cloneNode(true) as HTMLElement;
+          clone.style.position = "fixed";
+          clone.style.top = "-9999px";
+          clone.style.left = "-9999px";
+          clone.style.width = `${rect.width}px`;
+          clone.style.height = `${rect.height}px`;
+          clone.style.background = "transparent";
+          document.body.appendChild(clone);
+          event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top);
+          // 다음 frame에서 제거 (setDragImage 캡처 완료 후)
+          requestAnimationFrame(() => { document.body.removeChild(clone); });
+        }
+        dragHandlers.onDragStart(event);
+      }}
       onDragOver={dragHandlers.onDragOver}
       onDrop={dragHandlers.onDrop}
+      onDragEnd={dragHandlers.onDragEnd}
       onContextMenu={onContextMenu}
       className="group flex shrink-0 flex-col items-center gap-1 cursor-move"
       style={{ width: `${isHorizontal ? PREVIEW_BOX.horizontal.width : PREVIEW_BOX.vertical.width}px` }}
     >
       <div className="flex items-center justify-center gap-1 h-5">
-        {canMoveLeft && (
+        {!isDragging && canMoveLeft && (
           <button
             onClick={(event) => {
               event.stopPropagation();
               onMovePage?.(page.id, "left");
             }}
-            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition hover:bg-black-20 group-hover:opacity-100 group-hover:pointer-events-auto"
             title="왼쪽으로 이동"
           >
             <ChevronLeft className="w-3 h-3 text-black-60" />
           </button>
         )}
-        {canMoveRight && (
+        {!isDragging && canMoveRight && (
           <button
             onClick={(event) => {
               event.stopPropagation();
               onMovePage?.(page.id, "right");
             }}
-            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition hover:bg-black-20 group-hover:opacity-100 group-hover:pointer-events-auto"
             title="오른쪽으로 이동"
           >
             <ChevronRight className="w-3 h-3 text-black-60" />
@@ -141,8 +164,9 @@ const PageThumbnail = ({
       </div>
       <div className="relative">
         <button
-          onClick={() => {
-            onSelect(page.id);
+          ref={thumbRef}
+          onClick={(e) => {
+            onSelect(page.id, e.shiftKey, e.metaKey || e.ctrlKey);
           }}
           className={`relative box-border flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden outline-none focus:outline-none focus:ring-0 ${
             isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
@@ -193,26 +217,30 @@ const PageThumbnail = ({
         </button>
       </div>
       <div className="flex items-center justify-center gap-1 h-5">
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onDuplicate?.(page.id);
-          }}
-          className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-20"
-          title="복제"
-        >
-          <Copy className="w-3 h-3 text-black-60" />
-        </button>
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete(page.id);
-          }}
-          className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-100 hover:text-white"
-          title="삭제"
-        >
-          <Trash2 className="w-3 h-3 text-black-60 hover:text-white" />
-        </button>
+        {!isDragging && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onDuplicate?.(page.id);
+            }}
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition hover:bg-black-20 group-hover:opacity-100 group-hover:pointer-events-auto"
+            title="복제"
+          >
+            <Copy className="w-3 h-3 text-black-60" />
+          </button>
+        )}
+        {!isDragging && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(page.id);
+            }}
+            className="flex items-center justify-center w-5 h-5 rounded bg-black-10 opacity-0 pointer-events-none transition hover:bg-red-100 hover:text-white group-hover:opacity-100 group-hover:pointer-events-auto"
+            title="삭제"
+          >
+            <Trash2 className="w-3 h-3 text-black-60 hover:text-white" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -221,22 +249,47 @@ const PageThumbnail = ({
 type PageInsertDividerProps = {
   isVisible: boolean;
   onAdd: () => void;
+  onDragOver?: (e: ReactDragEvent<HTMLDivElement>) => void;
+  onDrop?: (e: ReactDragEvent<HTMLDivElement>) => void;
 };
 
-const PageInsertDivider = ({ isVisible, onAdd }: PageInsertDividerProps) => {
-  if (!isVisible) return null;
+const PageInsertDivider = ({ isVisible, onAdd, onDragOver, onDrop }: PageInsertDividerProps) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // isVisible=false 이더라도 drag drop zone으로는 동작해야 하므로 null 반환하지 않음
   return (
-    <div className="group relative flex items-center shrink-0 h-full">
-      <div
-        className={`flex items-center justify-center h-full pb-5 transition-all ${"w-1 group-hover:w-8"}`}
-      >
-        <button
-          onClick={onAdd}
-          className="flex items-center justify-center w-6 h-6 rounded-full bg-primary opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-primary/90 cursor-pointer"
+    <div
+      className="group relative flex items-center shrink-0 h-full px-4 -mx-4"
+      onDragEnter={() => setIsDragOver(true)}
+      onDragLeave={() => setIsDragOver(false)}
+      onDragOver={onDragOver}
+      onDrop={(e) => {
+        setIsDragOver(false);
+        onDrop?.(e);
+      }}
+    >
+      {isVisible && (
+        <div
+          className={`flex items-center justify-center h-full pb-5 transition-all ${
+            isDragOver ? "w-1 bg-primary rounded" : "w-1 group-hover:w-8"
+          }`}
         >
-          <Plus className="w-4 h-4 text-white" />
-        </button>
-      </div>
+          {!isDragOver && (
+            <button
+              onClick={onAdd}
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-primary opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-primary/90 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-white" />
+            </button>
+          )}
+        </div>
+      )}
+      {/* isVisible=false(마지막 divider)일 때도 dragOver 시 파란 세로선 표시 */}
+      {!isVisible && isDragOver && (
+        <div className="w-1 h-full pb-5 flex items-center justify-center">
+          <div className="w-1 h-full bg-primary rounded" />
+        </div>
+      )}
     </div>
   );
 };
@@ -340,6 +393,7 @@ interface BottomBarProps {
   onSelectPage: (pageId: string) => void;
   onCopyPage: (pageId: string) => void;
   onPastePage: (pageId: string) => void;
+  onPastePages: (targetPageId: string) => void;
   onReorderPages: (pages: Page[]) => void;
   onDeletePage: (pageId: string) => void;
   onAddPageAtIndex?: (index: number) => void;
@@ -361,6 +415,8 @@ type BottomBarItem =
       key: string;
       width: number;
       insertIndex: number;
+      // true: targetPageId 앞에 삽입(첫 페이지 앞), false: targetPageId 뒤에 삽입
+      insertBefore: boolean;
     }
   | {
       type: "add";
@@ -375,6 +431,7 @@ const BottomBar = ({
   onSelectPage,
   onCopyPage,
   onPastePage,
+  onPastePages,
   onReorderPages,
   onDeletePage,
   onAddPageAtIndex,
@@ -382,6 +439,15 @@ const BottomBar = ({
   onDuplicatePage,
   onVisiblePageIdsChange,
 }: BottomBarProps) => {
+  // Shift+클릭으로 범위 선택된 페이지 ID 목록. 캔버스 활성 페이지(selectedPageId)와 별도로 관리.
+  const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
+  // 드래그 중에는 hover 버튼을 숨기기 위한 상태
+  const [isDragging, setIsDragging] = useState(false);
+  // keydown 핸들러의 클로저 문제를 피하기 위해 최신 값을 ref로 유지한다.
+  const selectedPageIdsRef = useRef<string[]>([]);
+  const selectedPageIdRef = useRef(selectedPageId);
+  useEffect(() => { selectedPageIdsRef.current = selectedPageIds; }, [selectedPageIds]);
+  useEffect(() => { selectedPageIdRef.current = selectedPageId; }, [selectedPageId]);
   const items = useMemo<BottomBarItem[]>(() => {
     const nextItems: BottomBarItem[] = [];
     // 페이지/삽입선/추가 버튼을 하나의 리스트 모델로 만들어 가상 스크롤 계산을 단순화한다.
@@ -390,6 +456,16 @@ const BottomBar = ({
         page.orientation === "horizontal"
           ? PREVIEW_BOX.horizontal.width
           : PREVIEW_BOX.vertical.width;
+      // 첫 페이지 앞에 drop zone divider 삽입 (+ 버튼 없음, insertBefore=true)
+      if (index === 0) {
+        nextItems.push({
+          type: "divider",
+          key: "divider-first",
+          width: DIVIDER_WIDTH_PX,
+          insertIndex: 0,
+          insertBefore: true,
+        });
+      }
       nextItems.push({
         type: "page",
         key: `page-${page.id}`,
@@ -397,14 +473,13 @@ const BottomBar = ({
         width,
         pageIndex: index,
       });
-      if (pages.length >= 2 && index < pages.length - 1) {
-        nextItems.push({
-          type: "divider",
-          key: `divider-${page.id}`,
-          width: DIVIDER_WIDTH_PX,
-          insertIndex: index + 1,
-        });
-      }
+      nextItems.push({
+        type: "divider",
+        key: `divider-${page.id}`,
+        width: DIVIDER_WIDTH_PX,
+        insertIndex: index + 1,
+        insertBefore: false,
+      });
     });
     nextItems.push({
       type: "add",
@@ -449,9 +524,11 @@ const BottomBar = ({
     itemWidths,
     isSelectedLastPage,
   });
-  const { createDragHandlers } = useBottomBarDrag({
+  const { createDragHandlers, handleDrop, handleDragOver } = useBottomBarDrag({
     pages,
+    selectedPageIds,
     onReorderPages,
+    onDragStateChange: setIsDragging,
   });
 
   const [contextMenu, setContextMenu] = useState<{
@@ -460,11 +537,43 @@ const BottomBar = ({
     y: number;
   } | null>(null);
 
+  // selectedPageId가 단일 클릭으로 바뀌면 다중 선택 해제
+  useEffect(() => {
+    setSelectedPageIds([]);
+  }, [selectedPageId]);
+
   const getCopiedPageId = () => {
     try {
       return sessionStorage.getItem("copiedPageId");
     } catch {
       return null;
+    }
+  };
+
+  // Shift+클릭: 앵커(selectedPageId)~클릭 페이지 범위 선택.
+  // Cmd/Ctrl+클릭: 개별 페이지 토글 추가/제거.
+  // 일반 클릭: 단일 선택.
+  const handlePageClick = (pageId: string, shiftKey: boolean, metaKey: boolean) => {
+    if (shiftKey && pages.length > 1) {
+      const anchorIndex = pages.findIndex((p) => p.id === selectedPageId);
+      const clickedIndex = pages.findIndex((p) => p.id === pageId);
+      const start = Math.min(anchorIndex, clickedIndex);
+      const end = Math.max(anchorIndex, clickedIndex);
+      setSelectedPageIds(pages.slice(start, end + 1).map((p) => p.id));
+    } else if (metaKey) {
+      // 앵커(selectedPageId)가 항상 선택에 포함되도록 기준을 유지
+      const base = selectedPageIds.length > 0 ? selectedPageIds : [selectedPageId];
+      if (base.includes(pageId)) {
+        // 앵커 페이지는 제거하지 않음
+        if (pageId !== selectedPageId) {
+          setSelectedPageIds(base.filter((id) => id !== pageId));
+        }
+      } else {
+        setSelectedPageIds([...base, pageId]);
+      }
+    } else {
+      onSelectPage(pageId);
+      setSelectedPageIds([]);
     }
   };
 
@@ -537,9 +646,16 @@ const BottomBar = ({
     };
   }, [items, itemOffsets, itemWidths, listRef, onVisiblePageIdsChange]);
 
+  // pages/onSelectPage/onPastePages는 ref로 유지해 핸들러 재등록 없이 최신 값을 참조한다.
+  const pagesRef = useRef(pages);
+  const onSelectPageRef = useRef(onSelectPage);
+  const onPastePagesRef = useRef(onPastePages);
+  useEffect(() => { pagesRef.current = pages; }, [pages]);
+  useEffect(() => { onSelectPageRef.current = onSelectPage; }, [onSelectPage]);
+  useEffect(() => { onPastePagesRef.current = onPastePages; }, [onPastePages]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       // 텍스트 입력 중이면 무시
       const target = event.target as HTMLElement;
       if (
@@ -549,21 +665,46 @@ const BottomBar = ({
       ) {
         return;
       }
-      const index = pages.findIndex((p) => p.id === selectedPageId);
+
+      const currentPages = pagesRef.current;
+      const currentSelectedPageId = selectedPageIdRef.current;
+      const currentSelectedPageIds = selectedPageIdsRef.current;
+
+      // Ctrl+C: 다중 선택이 있으면 해당 목록을, 없으면 현재 페이지 단독을 저장
+      if ((event.ctrlKey || event.metaKey) && event.key === "c") {
+        const ids = currentSelectedPageIds.length > 0 ? currentSelectedPageIds : [currentSelectedPageId];
+        try {
+          sessionStorage.setItem("copiedPageIds", JSON.stringify(ids));
+        } catch {
+          // 저장소 접근 실패는 무시
+        }
+        event.preventDefault();
+        return;
+      }
+
+      // Ctrl+V: 현재 페이지 직후에 복사된 페이지들 붙여넣기
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        event.preventDefault();
+        onPastePagesRef.current(currentSelectedPageId);
+        return;
+      }
+
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const index = currentPages.findIndex((p) => p.id === currentSelectedPageId);
       if (index < 0) return;
       if (event.key === "ArrowLeft" && index > 0) {
         event.preventDefault();
-        onSelectPage(pages[index - 1].id);
-      } else if (event.key === "ArrowRight" && index < pages.length - 1) {
+        onSelectPageRef.current(currentPages[index - 1].id);
+      } else if (event.key === "ArrowRight" && index < currentPages.length - 1) {
         event.preventDefault();
-        onSelectPage(pages[index + 1].id);
+        onSelectPageRef.current(currentPages[index + 1].id);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [pages, selectedPageId, onSelectPage]);
+  }, []);
 
   return (
     <div
@@ -587,10 +728,14 @@ const BottomBar = ({
               <div key={item.key}>
                 <PageThumbnail
                   page={item.page}
-                  isSelected={selectedPageId === item.page.id}
+                  isSelected={
+                    selectedPageId === item.page.id ||
+                    selectedPageIds.includes(item.page.id)
+                  }
+                  isDragging={isDragging}
                   canMoveLeft={index > 0}
                   canMoveRight={index < pages.length - 1}
-                  onSelect={onSelectPage}
+                  onSelect={handlePageClick}
                   onDuplicate={onDuplicatePage}
                   onDelete={onDeletePage}
                   onMovePage={onMovePage}
@@ -601,13 +746,27 @@ const BottomBar = ({
             );
           }
           if (item.type === "divider") {
+            // 첫 divider(insertBefore=true): 첫 페이지 앞에 삽입 → targetPageId = pages[0]
+            // 중간/마지막 divider(insertBefore=false): 앞 페이지 뒤에 삽입 → targetPageId = pages[insertIndex-1]
+            const targetPageId = item.insertBefore
+              ? pages[0]?.id
+              : pages[item.insertIndex - 1]?.id;
+            const isFirstDivider = item.insertBefore;
+            const isLastDivider = !item.insertBefore && item.insertIndex === pages.length;
+            const showAddButton = !isFirstDivider && !isLastDivider;
             return (
               <PageInsertDivider
                 key={item.key}
-                isVisible
+                isVisible={showAddButton}
                 onAdd={() => {
                   handleAddPageBetween(item.insertIndex);
                 }}
+                onDragOver={handleDragOver}
+                onDrop={
+                  targetPageId
+                    ? (e) => handleDrop(e, targetPageId, item.insertBefore)
+                    : undefined
+                }
               />
             );
           }
