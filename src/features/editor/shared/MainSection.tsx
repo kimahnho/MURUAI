@@ -297,6 +297,8 @@ const MainSection = () => {
   // --- elementPanelStore 동기화: 선택 요소 타입별 PanelData를 사이드바에 전달한다 ---
   const setPanelData = useElementPanelStore((s) => s.setPanelData);
   const setMoveLayer = useElementPanelStore((s) => s.setMoveLayer);
+  const setChangeAllMatchingColors = useElementPanelStore((s) => s.setChangeAllMatchingColors);
+  const setHasMatchingColors = useElementPanelStore((s) => s.setHasMatchingColors);
 
   const elementPanelData: PanelData = useMemo(() => {
     if (shapeToolbarData) {
@@ -451,6 +453,73 @@ const MainSection = () => {
     setMoveLayer(moveLayer);
     return () => setMoveLayer(null);
   }, [setPages, selectedPageId, setMoveLayer]);
+
+  // 같은 색상 모두 변경: 현재 페이지의 모든 요소에서 oldColor와 일치하는 색상을 newColor로 교체한다
+  useEffect(() => {
+    const changeAll = (oldColor: string, newColor: string) => {
+      const old = oldColor.toUpperCase();
+      const next = newColor.toUpperCase();
+      if (old === next) return;
+      setPages((prevPages) =>
+        updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+          elements.map((el) => {
+            if (el.locked) return el;
+            if (el.type === "text") {
+              if ((el.style.color ?? "#000000").toUpperCase() === old) {
+                return { ...el, style: { ...el.style, color: next } };
+              }
+              return el;
+            }
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+              const fill = (el.fill ?? "#FFFFFF").toUpperCase();
+              const isImage = fill.startsWith("URL(") || fill.startsWith("DATA:");
+              if (!isImage && fill === old) {
+                return { ...el, fill: next };
+              }
+              return el;
+            }
+            if (el.type === "line" || el.type === "arrow") {
+              if ((el.stroke?.color ?? "#000000").toUpperCase() === old) {
+                return { ...el, stroke: { ...el.stroke, color: next } };
+              }
+              return el;
+            }
+            return el;
+          }),
+        ),
+      );
+    };
+    setChangeAllMatchingColors(changeAll);
+    return () => setChangeAllMatchingColors(null);
+  }, [setPages, selectedPageId, setChangeAllMatchingColors]);
+
+  // 현재 페이지에서 선택된 요소를 제외하고 같은 색상을 사용하는 요소가 있는지 확인한다
+  useEffect(() => {
+    const getElementColor = (el: import("../model/canvasTypes").CanvasElement): string | null => {
+      if (el.locked) return null;
+      if (el.type === "text") return (el.style.color ?? "#000000").toUpperCase();
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+        const fill = (el.fill ?? "#FFFFFF").toUpperCase();
+        if (fill.startsWith("URL(") || fill.startsWith("DATA:")) return null;
+        return fill;
+      }
+      if (el.type === "line" || el.type === "arrow") return (el.stroke?.color ?? "#000000").toUpperCase();
+      return null;
+    };
+
+    const hasMatching = (color: string): boolean => {
+      const target = color.toUpperCase();
+      const activePage = pagesRef.current.find((p) => p.id === selectedPageIdRef.current);
+      if (!activePage) return false;
+      const currentSelectedIds = selectedIdsRef.current;
+      return activePage.elements.some((el) => {
+        if (currentSelectedIds.includes(el.id)) return false;
+        return getElementColor(el) === target;
+      });
+    };
+    setHasMatchingColors(hasMatching);
+    return () => setHasMatchingColors(null);
+  }, [setHasMatchingColors]);
 
   const { handleApplyTemplateToCurrent, handleApplyTemplateToNew } =
     useTemplateApplyActions({

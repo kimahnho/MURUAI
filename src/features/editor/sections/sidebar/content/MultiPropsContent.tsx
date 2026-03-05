@@ -12,6 +12,8 @@ type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 const MultiPropsContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
   const multiCallbacks = useElementPanelStore((s) => s.multiCallbacks);
+  const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
+  const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
   const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
 
@@ -50,7 +52,7 @@ const MultiPropsContent = () => {
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={multiColorValue} onChange={onMultiColorChange} />
+          <ColorPickerPopover value={multiColorValue} onChange={onMultiColorChange} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{multiColorValue}</span>
         </div>
       </div>

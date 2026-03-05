@@ -66,6 +66,8 @@ export const LineArrowPanelUI = ({
   updateElement: (id: string, patch: Record<string, unknown>) => void;
   moveLayer: ((elementId: string, direction: import("@/features/editor/utils/layerUtils").LayerDirection) => void) | null;
 }) => {
+  const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
+  const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
   const style = element.stroke.style ?? "solid";
 
   const widthInput = useNumberInput({ value: stroke.width, min: minWidth, max: maxWidth, onChange: (v) => updateLines((el) => ({ stroke: { ...el.stroke, width: v } })) });
@@ -107,7 +109,7 @@ export const LineArrowPanelUI = ({
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={stroke.color} onChange={(color) => updateLines((el) => ({ stroke: { ...el.stroke, color } }))} />
+          <ColorPickerPopover value={stroke.color} onChange={(color) => updateLines((el) => ({ stroke: { ...el.stroke, color } }))} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{stroke.color}</span>
         </div>
       </div>

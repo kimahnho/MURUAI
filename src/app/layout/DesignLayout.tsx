@@ -138,14 +138,14 @@ const DesignLayout = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <header className="shrink-0 flex w-full h-14 px-3 items-center justify-center border-b border-b-black-25">
+      <header className="shrink-0 flex w-full h-14 px-3 items-center justify-center border-b border-b-black-25 overflow-hidden">
         <div className="flex w-full h-12 items-center justify-between">
           {/* 좌측 */}
-          <div className="flex h-full items-center gap-2">
+          <div className="flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden">
             <button
               type="button"
               onClick={() => window.open("/", "_blank")}
-              className="flex h-full items-center justify-center px-3 cursor-pointer"
+              className="flex shrink-0 h-full items-center justify-center px-3 cursor-pointer"
               aria-label="홈으로 이동"
             >
               <Home className="h-8 w-8 text-primary" />
@@ -153,24 +153,24 @@ const DesignLayout = () => {
             <button
               type="button"
               onClick={() => navigate("/mydoc")}
-              className="flex h-full items-center justify-center px-3 cursor-pointer border-black-30 border-2 rounded-xl"
+              className="flex shrink-0 h-full items-center justify-center px-3 cursor-pointer border-black-30 border-2 rounded-xl"
               aria-label="MyDoc으로 이동"
             >
               <FolderOpen className="h-6 w-6 text-black-40" />
             </button>
 
-            <div className="flex px-3 h-full items-center justify-center">
+            <div className="flex min-w-0 shrink px-3 h-full items-center justify-center">
               <input
                 placeholder="제목을 입력해주세요"
                 value={docName}
                 onChange={(event) => {
                   setDocName(event.target.value);
                 }}
-                className="flex w-72 h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
+                className="flex w-72 min-w-0 shrink h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
               />
             </div>
 
-            <div className="flex h-full items-center justify-center gap-2 pr-3">
+            <div className="flex shrink-0 h-full items-center justify-center gap-2 pr-3">
               <button
                 type="button"
                 onClick={handleSave}
@@ -215,9 +215,9 @@ const DesignLayout = () => {
               )}
             </div>
 
-            <div className="h-8 w-px bg-black-25" />
+            <div className="shrink-0 h-8 w-px bg-black-25" />
 
-            <div className="flex h-full items-center justify-center gap-2">
+            <div className="flex shrink-0 h-full items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={canUndo ? requestUndo : undefined}
@@ -246,9 +246,9 @@ const DesignLayout = () => {
               </button>
             </div>
 
-            <div className="h-8 w-px bg-black-25" />
+            <div className="shrink-0 h-8 w-px bg-black-25" />
 
-            <div className="flex h-full items-center justify-center px-3">
+            <div className="flex shrink-0 h-full items-center justify-center px-3">
               <div className="flex h-10 rounded-xl bg-black-10 p-1 gap-1">
                 <button
                   type="button"
@@ -325,7 +325,7 @@ const DesignLayout = () => {
               </div>
             </div>
 
-            <div className="flex h-full items-center justify-center gap-2 px-3">
+            <div className="flex shrink-0 h-full items-center justify-center gap-2 px-3">
               <button
                 onClick={handleZoomOut}
                 disabled={zoom <= 10}
@@ -355,7 +355,7 @@ const DesignLayout = () => {
             </div>
           </div>
 
-          <div className="flex h-full items-center gap-3 pr-3">
+          <div className="flex h-full shrink-0 items-center gap-3 pr-3">
             <div className="flex h-full items-center justify-center">
               <button
                 type="button"

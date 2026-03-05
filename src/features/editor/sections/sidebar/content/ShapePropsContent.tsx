@@ -28,6 +28,8 @@ const ShapePropsContent = () => {
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
   const boxColorPickerRef = useRef<HTMLInputElement>(null);
   const addRecentColor = useRecentColorStore((s) => s.addRecentColor);
+  const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
+  const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
 
   const [widthInput, setWidthInput] = useState("");
   const [heightInput, setHeightInput] = useState("");
@@ -173,7 +175,7 @@ const ShapePropsContent = () => {
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">박스 색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={colorValue} onChange={(color) => updateElement(element.id, { fill: color })} />
+          <ColorPickerPopover value={colorValue} onChange={(color) => updateElement(element.id, { fill: color })} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{colorValue}</span>
           <button type="button" onClick={() => { void handleOpenEyeDropper(); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary" aria-label="색상 추출">
             <Pipette className="h-4 w-4" />

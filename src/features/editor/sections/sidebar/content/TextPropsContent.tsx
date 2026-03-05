@@ -59,6 +59,8 @@ const TextPropsContent = () => {
 
 // 편집 모드 패널: textEditingCallbacks를 사용한 인라인 스타일링
 const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType<typeof useElementPanelStore.getState>["textEditingCallbacks"]> }) => {
+  const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
+  const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
   const formatNumber = (value: number) => String(Math.round(value * 100) / 100);
   const clampLineHeight = (value: number) => Math.min(5, Math.max(0.5, value));
   const clampLetterSpacing = (value: number) => Math.min(20, Math.max(-10, value));
@@ -160,7 +162,7 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={cb.color} onChange={cb.onColorChange} />
+          <ColorPickerPopover value={cb.color} onChange={cb.onColorChange} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{cb.color}</span>
         </div>
       </div>
@@ -214,6 +216,8 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
 
 // 비편집 모드 패널: 요소 레벨 스타일 직접 변경
 const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["element"]; updateElement: (id: string, patch: Record<string, unknown>) => void }) => {
+  const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
+  const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
   const style = element.style;
   const fontFamily = style.fontFamily ?? "Pretendard";
   const color = style.color ?? "#000000";
@@ -238,7 +242,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={color} onChange={(c) => updateElement(element.id, { style: { ...style, color: c } })} />
+          <ColorPickerPopover value={color} onChange={(c) => updateElement(element.id, { style: { ...style, color: c } })} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{color}</span>
         </div>
       </div>

@@ -95,6 +95,8 @@ type UpdateElementFn = (id: string, patch: Record<string, unknown>) => void;
 type UpdateLinesFn = (
   updater: (el: LineElement) => Partial<LineElement>,
 ) => void;
+type ChangeAllMatchingColorsFn = (oldColor: string, newColor: string) => void;
+type HasMatchingColorsFn = (color: string) => boolean;
 
 export type LayerDirection = "forward" | "front" | "backward" | "back";
 type MoveLayerFn = (elementId: string, direction: LayerDirection) => void;
@@ -147,6 +149,8 @@ interface ElementPanelStore {
   updateElement: UpdateElementFn | null;
   updateLines: UpdateLinesFn | null;
   moveLayer: MoveLayerFn | null;
+  changeAllMatchingColors: ChangeAllMatchingColorsFn | null;
+  hasMatchingColors: HasMatchingColorsFn | null;
   textEditingCallbacks: TextEditingCallbacks | null;
   multiCallbacks: MultiCallbacks | null;
 
@@ -156,6 +160,8 @@ interface ElementPanelStore {
     updateLines?: UpdateLinesFn | null,
   ) => void;
   setMoveLayer: (fn: MoveLayerFn | null) => void;
+  setChangeAllMatchingColors: (fn: ChangeAllMatchingColorsFn | null) => void;
+  setHasMatchingColors: (fn: HasMatchingColorsFn | null) => void;
   setTextEditingCallbacks: (callbacks: TextEditingCallbacks | null) => void;
   setMultiCallbacks: (callbacks: MultiCallbacks | null) => void;
 }
@@ -165,6 +171,8 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   updateElement: null,
   updateLines: null,
   moveLayer: null,
+  changeAllMatchingColors: null,
+  hasMatchingColors: null,
   textEditingCallbacks: null,
   multiCallbacks: null,
 
@@ -173,6 +181,12 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   },
   setMoveLayer: (fn) => {
     set({ moveLayer: fn });
+  },
+  setChangeAllMatchingColors: (fn) => {
+    set({ changeAllMatchingColors: fn });
+  },
+  setHasMatchingColors: (fn) => {
+    set({ hasMatchingColors: fn });
   },
   setTextEditingCallbacks: (callbacks) => {
     set({ textEditingCallbacks: callbacks });
