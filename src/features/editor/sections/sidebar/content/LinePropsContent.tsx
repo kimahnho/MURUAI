@@ -18,7 +18,7 @@ const LinePropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "line") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 

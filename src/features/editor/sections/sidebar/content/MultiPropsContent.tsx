@@ -6,6 +6,7 @@ import { AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Ban } from "lucid
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
+import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -19,7 +20,7 @@ const MultiPropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "multi") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 
@@ -29,9 +30,7 @@ const MultiPropsContent = () => {
     multiColorValue,
     onMultiColorChange,
     hasMultiFontTargets,
-    onOpenFontPanel,
     multiFontFamily,
-    multiFontLabel,
     multiFontSizeInput,
     hasMultiBorderTargets,
     multiBorderEnabled,
@@ -60,16 +59,7 @@ const MultiPropsContent = () => {
       {/* 글꼴 */}
       {hasMultiFontTargets && (
         <>
-          <div className="flex flex-col gap-2">
-            <div className="text-14-semibold text-black-90">글꼴</div>
-            <button
-              type="button"
-              onClick={onOpenFontPanel}
-              className="flex items-center gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90 hover:border-primary"
-            >
-              <span style={{ fontFamily: multiFontFamily }}>{multiFontLabel}</span>
-            </button>
-          </div>
+          <InlineFontPicker fontFamily={multiFontFamily} />
 
           {/* 텍스트 크기 */}
           <div className="flex flex-col gap-2">

@@ -40,7 +40,7 @@ const ShapePropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "shape") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 

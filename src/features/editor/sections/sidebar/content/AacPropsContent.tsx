@@ -26,7 +26,7 @@ const AacPropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "aac") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 

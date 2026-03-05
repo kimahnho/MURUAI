@@ -37,6 +37,7 @@ import { useElementPanelStore } from "../store/elementPanelStore";
 import type { PanelData } from "../store/elementPanelStore";
 import { moveLayerByDirection } from "../utils/layerUtils";
 import { updateElementsByPageId } from "../utils/pageMutation";
+import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -299,6 +300,8 @@ const MainSection = () => {
   const setMoveLayer = useElementPanelStore((s) => s.setMoveLayer);
   const setChangeAllMatchingColors = useElementPanelStore((s) => s.setChangeAllMatchingColors);
   const setHasMatchingColors = useElementPanelStore((s) => s.setHasMatchingColors);
+  const setChangeAllMatchingFonts = useElementPanelStore((s) => s.setChangeAllMatchingFonts);
+  const setHasMatchingFonts = useElementPanelStore((s) => s.setHasMatchingFonts);
 
   const elementPanelData: PanelData = useMemo(() => {
     if (shapeToolbarData) {
@@ -520,6 +523,71 @@ const MainSection = () => {
     setHasMatchingColors(hasMatching);
     return () => setHasMatchingColors(null);
   }, [setHasMatchingColors]);
+
+  // 같은 글꼴 모두 변경: 현재 페이지의 모든 텍스트/도형 요소에서 oldFont와 일치하는 글꼴을 newFont로 교체한다
+  useEffect(() => {
+    const changeAllFonts = (oldFont: string, newFont: string) => {
+      if (oldFont === newFont) return;
+      setPages((prevPages) =>
+        updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+          elements.map((el) => {
+            if (el.locked) return el;
+            if (el.type === "text") {
+              const current = el.style.fontFamily ?? "Pretendard";
+              if (current === oldFont) {
+                const nextRichText = el.richText
+                  ? stripStyleTags(el.richText, "fontFamily")
+                  : el.richText;
+                return {
+                  ...el,
+                  style: { ...el.style, fontFamily: newFont },
+                  ...(nextRichText !== el.richText ? { richText: nextRichText } : {}),
+                };
+              }
+              return el;
+            }
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+              const current = el.textStyle?.fontFamily ?? "Pretendard";
+              if (current === oldFont) {
+                return {
+                  ...el,
+                  textStyle: { ...el.textStyle, fontFamily: newFont },
+                };
+              }
+              return el;
+            }
+            return el;
+          }),
+        ),
+      );
+    };
+    setChangeAllMatchingFonts(changeAllFonts);
+    return () => setChangeAllMatchingFonts(null);
+  }, [setPages, selectedPageId, setChangeAllMatchingFonts]);
+
+  // 현재 페이지에서 선택된 요소를 제외하고 같은 글꼴을 사용하는 요소가 있는지 확인한다
+  useEffect(() => {
+    const getElementFont = (el: import("../model/canvasTypes").CanvasElement): string | null => {
+      if (el.locked) return null;
+      if (el.type === "text") return el.style.fontFamily ?? "Pretendard";
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+        return el.textStyle?.fontFamily ?? "Pretendard";
+      }
+      return null;
+    };
+
+    const hasMatching = (font: string): boolean => {
+      const activePage = pagesRef.current.find((p) => p.id === selectedPageIdRef.current);
+      if (!activePage) return false;
+      const currentSelectedIds = selectedIdsRef.current;
+      return activePage.elements.some((el) => {
+        if (currentSelectedIds.includes(el.id)) return false;
+        return getElementFont(el) === font;
+      });
+    };
+    setHasMatchingFonts(hasMatching);
+    return () => setHasMatchingFonts(null);
+  }, [setHasMatchingFonts]);
 
   const { handleApplyTemplateToCurrent, handleApplyTemplateToNew } =
     useTemplateApplyActions({

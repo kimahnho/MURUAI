@@ -16,7 +16,7 @@ const ArrowPropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "arrow") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 

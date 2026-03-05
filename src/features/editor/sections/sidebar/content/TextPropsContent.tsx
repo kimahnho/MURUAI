@@ -10,6 +10,7 @@ import {
   AlignJustify,
   AlignStartHorizontal,
   Italic,
+  Pipette,
   Strikethrough,
   TextAlignCenter,
   TextAlignStart,
@@ -18,8 +19,15 @@ import {
 } from "lucide-react";
 import { useElementPanelStore, type TextPanelData } from "@/features/editor/store/elementPanelStore";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
+import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
+import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
 import LayerPanel from "./LayerPanel";
+
+
+type EyeDropperResult = { sRGBHex: string };
+type EyeDropperInstance = { open: () => Promise<EyeDropperResult> };
+type EyeDropperConstructor = new () => EyeDropperInstance;
 
 const TextPropsContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
@@ -30,7 +38,7 @@ const TextPropsContent = () => {
 
   useEffect(() => {
     if (!panelData || panelData.type !== "text") {
-      setSideBarMenu(null);
+      setSideBarMenu("template");
     }
   }, [panelData, setSideBarMenu]);
 
@@ -95,12 +103,7 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
   return (
     <>
       {/* 글꼴 */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">글꼴</div>
-        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={cb.onFontFamilyClick} className="flex items-center gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90 hover:border-primary">
-          <span style={{ fontFamily: cb.fontFamily }}>{cb.fontLabel}</span>
-        </button>
-      </div>
+      <InlineFontPicker fontFamily={cb.fontFamily} preventFocus />
 
       {/* 텍스트 크기 */}
       <div className="flex flex-col gap-2">
@@ -164,6 +167,7 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
         <div className="flex items-center gap-2">
           <ColorPickerPopover value={cb.color} onChange={cb.onColorChange} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{cb.color}</span>
+          <EyeDropperButton onPick={cb.onColorChange} />
         </div>
       </div>
 
@@ -224,18 +228,53 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   const align = style.alignX ?? "left";
   const alignY = style.alignY ?? "top";
 
+  const [fontSizeInput, setFontSizeInput] = useState(String(style.fontSize));
+  const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
+
+  const MIN_FONT_SIZE = 12;
+  const MAX_FONT_SIZE = 120;
+  const clampFontSize = (v: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, v));
+
+  const commitFontSize = () => {
+    const parsed = Number(fontSizeInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setFontSizeInput(String(style.fontSize));
+      return;
+    }
+    const clamped = clampFontSize(Math.round(parsed));
+    updateElement(element.id, { style: { ...style, fontSize: clamped } });
+    setFontSizeInput(String(clamped));
+  };
+
+  const handleFontSizeStep = (delta: number) => {
+    const next = clampFontSize(style.fontSize + delta);
+    updateElement(element.id, { style: { ...style, fontSize: next } });
+    setFontSizeInput(String(next));
+  };
+
   return (
     <>
-      {/* 글꼴 (정보만 표시) */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">글꼴</div>
-        <div className="px-3 py-2 rounded-lg border border-black-30 text-14-regular text-black-90" style={{ fontFamily }}>{fontFamily}</div>
-      </div>
+      {/* 글꼴 */}
+      <InlineFontPicker fontFamily={fontFamily} />
 
       {/* 텍스트 크기 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 크기</div>
-        <div className="text-14-regular text-black-90">{style.fontSize}px</div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => handleFontSizeStep(-1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary">-</button>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={isFontSizeEditing ? fontSizeInput : String(style.fontSize)}
+            onChange={(e) => setFontSizeInput(e.target.value.replace(/[^0-9]/g, ""))}
+            onFocus={(e) => { setFontSizeInput(String(style.fontSize)); setIsFontSizeEditing(true); e.target.select(); }}
+            onBlur={() => { if (isFontSizeEditing) { setIsFontSizeEditing(false); commitFontSize(); } }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitFontSize(); setIsFontSizeEditing(false); e.currentTarget.blur(); } }}
+            className="no-spinner flex-1 rounded-lg border border-black-30 px-3 py-2 text-center text-14-regular text-black-90"
+          />
+          <button type="button" onClick={() => handleFontSizeStep(1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary">+</button>
+        </div>
       </div>
 
       {/* 색상 */}
@@ -244,6 +283,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
         <div className="flex items-center gap-2">
           <ColorPickerPopover value={color} onChange={(c) => updateElement(element.id, { style: { ...style, color: c } })} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
           <span className="text-14-regular text-black-70 uppercase">{color}</span>
+          <EyeDropperButton onPick={(c) => updateElement(element.id, { style: { ...style, color: c } })} />
         </div>
       </div>
 
@@ -289,5 +329,34 @@ const StyleButton = ({ label, title, active, onClick }: { label: React.ReactNode
     {label}
   </button>
 );
+
+// 색상 추출(스포이드) 버튼
+const EyeDropperButton = ({ onPick }: { onPick: (color: string) => void }) => {
+  const addRecentColor = useRecentColorStore((s) => s.addRecentColor);
+
+  const handleClick = async () => {
+    const EyeDropperApi = (window as Window & { EyeDropper?: EyeDropperConstructor }).EyeDropper;
+    if (!EyeDropperApi) return;
+    try {
+      const eyeDropper = new EyeDropperApi();
+      const result = await eyeDropper.open();
+      const picked = result.sRGBHex.toUpperCase();
+      onPick(picked);
+      addRecentColor(picked);
+    } catch { /* 사용자 취소 */ }
+  };
+
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => { void handleClick(); }}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary"
+      aria-label="색상 추출"
+    >
+      <Pipette className="h-4 w-4" />
+    </button>
+  );
+};
 
 export default TextPropsContent;

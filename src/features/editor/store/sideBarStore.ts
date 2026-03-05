@@ -31,12 +31,12 @@ interface SideBarStore {
 }
 
 export const useSideBarStore = create<SideBarStore>((set) => ({
-  selectedMenu: null,
+  selectedMenu: "template",
   setSelectedMenu: (menu) => { set({ selectedMenu: menu }); },
   toggleMenu: (menu) =>
     { set((state) => {
-      const next = state.selectedMenu === menu ? null : menu;
-      if (next) mp.track("사이드바 열기", { panel: next });
-      return { selectedMenu: next };
+      if (state.selectedMenu === menu) return state;
+      mp.track("사이드바 열기", { panel: menu });
+      return { selectedMenu: menu };
     }); },
 }));

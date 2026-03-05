@@ -97,6 +97,8 @@ type UpdateLinesFn = (
 ) => void;
 type ChangeAllMatchingColorsFn = (oldColor: string, newColor: string) => void;
 type HasMatchingColorsFn = (color: string) => boolean;
+type ChangeAllMatchingFontsFn = (oldFont: string, newFont: string) => void;
+type HasMatchingFontsFn = (font: string) => boolean;
 
 export type LayerDirection = "forward" | "front" | "backward" | "back";
 type MoveLayerFn = (elementId: string, direction: LayerDirection) => void;
@@ -151,6 +153,8 @@ interface ElementPanelStore {
   moveLayer: MoveLayerFn | null;
   changeAllMatchingColors: ChangeAllMatchingColorsFn | null;
   hasMatchingColors: HasMatchingColorsFn | null;
+  changeAllMatchingFonts: ChangeAllMatchingFontsFn | null;
+  hasMatchingFonts: HasMatchingFontsFn | null;
   textEditingCallbacks: TextEditingCallbacks | null;
   multiCallbacks: MultiCallbacks | null;
 
@@ -162,6 +166,8 @@ interface ElementPanelStore {
   setMoveLayer: (fn: MoveLayerFn | null) => void;
   setChangeAllMatchingColors: (fn: ChangeAllMatchingColorsFn | null) => void;
   setHasMatchingColors: (fn: HasMatchingColorsFn | null) => void;
+  setChangeAllMatchingFonts: (fn: ChangeAllMatchingFontsFn | null) => void;
+  setHasMatchingFonts: (fn: HasMatchingFontsFn | null) => void;
   setTextEditingCallbacks: (callbacks: TextEditingCallbacks | null) => void;
   setMultiCallbacks: (callbacks: MultiCallbacks | null) => void;
 }
@@ -173,6 +179,8 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   moveLayer: null,
   changeAllMatchingColors: null,
   hasMatchingColors: null,
+  changeAllMatchingFonts: null,
+  hasMatchingFonts: null,
   textEditingCallbacks: null,
   multiCallbacks: null,
 
@@ -187,6 +195,12 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   },
   setHasMatchingColors: (fn) => {
     set({ hasMatchingColors: fn });
+  },
+  setChangeAllMatchingFonts: (fn) => {
+    set({ changeAllMatchingFonts: fn });
+  },
+  setHasMatchingFonts: (fn) => {
+    set({ hasMatchingFonts: fn });
   },
   setTextEditingCallbacks: (callbacks) => {
     set({ textEditingCallbacks: callbacks });
