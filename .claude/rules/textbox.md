@@ -1,3 +1,10 @@
+---
+paths:
+  - "src/features/editor/sections/canvas/elements/text/**"
+  - "src/features/editor/sections/canvas/utils/textToolbarConfig.ts"
+  - "src/features/editor/sections/canvas/hooks/useDesignPaperElementRenderer.tsx"
+---
+
 # TextBox (텍스트 박스 요소) 지침
 
 > 캔버스 위 텍스트 요소의 편집/렌더링/스타일 처리 규칙.
@@ -7,14 +14,13 @@
 ```
 src/features/editor/sections/canvas/elements/text/
   TextBox.tsx                        # 텍스트 박스 컴포넌트 (렌더링 + 편집)
-  TextToolBar.tsx                    # 상단 텍스트 편집 툴바
   textBoxTypes.ts                    # TextBoxProps, TextBoxToolbar 타입
   textBoxMeasure.ts                  # 텍스트 측정 유틸
   textContentUtils.ts                # HTML 정규화, stripStyleTags
   textSelection.ts                   # 단어 선택 유틸
   hooks/
     useTextBoxAutoResize.ts          # 텍스트 크기에 따른 박스 자동 리사이즈
-    useTextBoxEditingHandlers.ts     # 텍스트 입력/포맷/키보드 편집 이벤트
+    useTextBoxEditingHandlers.ts     # 텍스트 입력/포맷/키보드 편집 이벤트 + 사이드바 콜백 등록
     useTextBoxInteraction.ts         # 드래그/리사이즈/클릭 인터랙션
     useTextBoxSelectionEffect.ts     # 편집 진입 시 캐럿/선택 복원
 
@@ -23,6 +29,12 @@ src/features/editor/sections/canvas/utils/
 
 src/features/editor/sections/canvas/hooks/
   useDesignPaperElementRenderer.tsx   # 텍스트 요소 렌더링 분기 (renderTextElement)
+
+src/features/editor/sections/sidebar/content/
+  TextPropsContent.tsx               # 사이드바 텍스트 속성 패널 (편집/비편집 모드 분기)
+
+src/features/editor/store/
+  elementPanelStore.ts               # TextEditingCallbacks 타입 + setTextEditingCallbacks
 ```
 
 ## 텍스트 스타일 2계층 구조
@@ -50,11 +62,25 @@ src/features/editor/sections/canvas/hooks/
 - `document.execCommand` 대신 `<span style="font-size: Npx">` 래핑 방식 사용
 - 변경 후 `onTextChange`로 plainText + richText(innerHTML) 동기화
 
+## 사이드바 텍스트 속성 패널
+
+텍스트 편집 UI는 사이드바 패널(`TextPropsContent.tsx`)에서 제공된다. 기존 Portal 기반 `TextToolBar`는 삭제됨.
+
+### 콜백 등록 흐름
+1. `useTextBoxEditingHandlers`에서 편집 시작 시 `setTextEditingCallbacks(callbacks)` 호출
+2. `TextPropsContent`의 `EditingTextPanel`이 `textEditingCallbacks`를 구독해 인라인 스타일링 제공
+3. 편집 종료 시 `setTextEditingCallbacks(null)` 호출 → `StaticTextPanel`로 전환
+
+### 포커스 보존
+- `TextPropsContent` 루트 div에 `data-text-props-panel` 속성 필수
+- `isElementInToolbar()` 함수가 `[data-text-props-panel]`을 인식
+- 모든 포맷팅 버튼에 `onMouseDown={(e) => e.preventDefault()}` 필수
+
 ## 주의사항
 
 1. **contentEditable + execCommand 기반** — Tiptap 등 에디터 프레임워크 미사용
-2. **selection 보존** — 툴바 클릭 시 편집 영역 포커스가 이동하므로 `savedRangeRef`로 선택 복원. 굵게/밑줄/기울임꼴/취소선 버튼에는 `onMouseDown={(e) => e.preventDefault()}`를 추가해 contentEditable 포커스 이탈을 방지한다.
+2. **selection 보존** — 사이드바 패널 클릭 시 편집 영역 포커스가 이동하므로 `savedRangeRef`로 선택 복원. 굵게/밑줄/기울임꼴/취소선 버튼에는 `onMouseDown={(e) => e.preventDefault()}`를 추가해 contentEditable 포커스 이탈을 방지한다.
 3. **stripStyleTags** — 전역 스타일 변경(비편집 모드) 시 richText 내 해당 인라인 태그를 제거해 이중 적용 방지. `textDecorationLine`(편집 모드 인라인 적용 경로)과 `textDecoration`(shorthand) 두 속성 모두 처리해야 한다.
 4. **IME 조합** — `isComposingRef`로 한글 입력 중 키 이벤트 차단
 5. **surroundContents 제한** — 선택 범위가 여러 노드를 걸칠 때 실패할 수 있으므로 대안 처리 필요
-6. **selected(비편집) 상태 toolbar 클릭 가드** — React Portal로 렌더된 toolbar 버튼의 이벤트도 React 이벤트 시스템상 TextBox까지 버블링된다. `TextBox.onPointerDown`에서 `target.closest("#text-toolbar-root")`로 toolbar 클릭을 감지해 `startAction` 호출을 막아야 toolbar 버튼의 `onClick`이 정상 실행된다.
+6. **사이드바 패널 클릭 가드** — `TextBox.onPointerDown`에서 `target.closest("[data-text-props-panel]")`로 사이드바 패널 클릭을 감지해 `startAction` 호출을 막아야 사이드바 버튼의 `onClick`이 정상 실행된다.

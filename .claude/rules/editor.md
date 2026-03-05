@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/features/editor/**"
+  - "src/pages/editor/**"
+---
+
 # Editor (캔버스 디자인 에디터) 지침
 
 > 교육 자료를 만드는 캔버스 기반 편집기. Figma/Canva와 유사한 구조.
@@ -24,9 +30,14 @@ src/features/editor/
         TemplateContent.tsx         # 템플릿 갤러리
         TextContent.tsx             # 텍스트 삽입
         UploadContent.tsx           # 파일 업로드
-        ShapeProperties.tsx         # 도형 속성 편집
         TableContent.tsx            # 표 행/열 속성 패널 (표 선택 시에만 자동 노출)
-        TextProperties.tsx          # 텍스트 속성 편집
+        ShapePropsContent.tsx       # 도형 속성 패널 (도형 선택 시 자동 노출)
+        LinePropsContent.tsx        # 선 속성 패널 (선 선택 시 자동 노출)
+        ArrowPropsContent.tsx       # 화살표 속성 패널 (화살표 선택 시 자동 노출)
+        AacPropsContent.tsx         # AAC 속성 패널 (AAC 카드 선택 시 자동 노출)
+        TextPropsContent.tsx        # 텍스트 속성 패널 (텍스트 선택 시 자동 노출)
+        MultiPropsContent.tsx       # 다중 선택 속성 패널 (다중 선택 시 자동 노출)
+        LayerPanel.tsx              # 레이어 이동 버튼 (여러 Props 패널에서 공유)
         AacBoardModal.tsx           # AAC 의사소통 판 설정
         StorySequenceModal.tsx      # 이야기 장면 순서
         PreviewCanvas.tsx           # 프리뷰 캔버스
@@ -49,11 +60,8 @@ src/features/editor/
       DesignPaper.tsx               # A4 문서 렌더러 (핵심)
       DesignPaperContextMenu.tsx    # 우클릭 메뉴
       DesignPaperOverlays.tsx       # 선택 오버레이
-      ElementToolbars.tsx           # 요소별 툴바
-      MultiSelectionToolbar.tsx     # 다중 선택 툴바
       ShapeTransformBar.tsx         # 도형 회전/플립 + 크기 라벨
       RotationBadge.tsx             # 회전 중 각도 표시
-      AacToolBar.tsx                # AAC 툴바
       SmartGuideOverlay.tsx         # 스마트 가이드 오버레이
       elements/                     # 캔버스 요소 컴포넌트
         arrow/                      # 화살표 요소
@@ -113,11 +121,13 @@ src/features/editor/
     useTemplateApplyActions.ts      # 템플릿 적용 액션
     ...                             # 기타 페이지 레벨 훅
 
-  store/                            # Zustand 스토어 (변경 없음)
-  model/                            # 타입/도메인 모델 (변경 없음)
+  store/                            # Zustand 스토어
+    elementPanelStore.ts            # 선택 요소 속성 패널 데이터 + 콜백 (Table 제외)
+  model/                            # 타입/도메인 모델
   utils/                            # 유틸리티
     pageMutation.ts                 # updatePageById/updateElementsByPageId
     documentPersistence.ts          # buildPersistPayload/save 헬퍼
+    layerUtils.ts                   # moveLayerByDirection 레이어 이동 유틸
   templates/                        # 템플릿 정의 (변경 없음)
   constants/                        # 상수 정의 (변경 없음)
 ```
@@ -214,6 +224,53 @@ interface PageNumbering {
 ```typescript
 startPage: numbering.startPage ?? 1,
 ```
+
+## 요소 속성 사이드바 패널 (elementPanelStore 패턴)
+
+요소 선택 시 사이드바에 속성 편집 패널이 자동으로 열린다. Table은 기존 `tableStore` 패턴을 유지하고, 나머지 요소는 `elementPanelStore`를 사용한다.
+
+### 관련 파일
+- 스토어: `src/features/editor/store/elementPanelStore.ts`
+- 동기화: `src/features/editor/shared/MainSection.tsx` (useMemo + useEffect)
+- 패널 UI: `src/features/editor/sections/sidebar/content/*PropsContent.tsx`
+- 레이어 유틸: `src/features/editor/utils/layerUtils.ts`
+
+### elementPanelStore 동기화 패턴
+
+```typescript
+// MainSection.tsx 훅 본체
+// 선택 요소 타입에 따라 PanelData를 계산하고 사이드바를 자동 열기한다.
+const elementPanelData: PanelData = useMemo(() => {
+  if (shapeToolbarData) return { type: "shape", ... };
+  if (lineToolbarData) return { type: lineToolbarData.element.type, ... };
+  if (aacToolbarData) return { type: "aac", ... };
+  if (selectedIds.length === 1 && el?.type === "text") return { type: "text", ... };
+  if (isMultiColorSelection) return { type: "multi" };
+  return null;
+}, [...]);
+
+useEffect(() => {
+  if (elementPanelData) {
+    setSideBarMenu(`${elementPanelData.type}-props`);
+    setPanelData(elementPanelData, updateFn, updateLinesFn);
+  } else {
+    setPanelData(null, null, null);
+  }
+}, [elementPanelData, ...]);
+```
+
+### 핵심 규칙
+- 속성 패널 메뉴 키는 `"<type>-props"` 형식 (예: `"shape-props"`, `"text-props"`)
+- `MENU_ITEMS`에 등록하지 않음 — 좌측 아이콘 메뉴에 표시되지 않고 선택 시에만 자동 열림
+- 각 PropsContent는 `useEffect`에서 panelData가 null이면 `setSideBarMenu(null)`로 자동 닫기
+- 텍스트 편집 콜백은 `useTextBoxEditingHandlers`에서 `setTextEditingCallbacks`로 등록/해제
+- 다중 선택 콜백은 MainSection에서 `setMultiCallbacks`로 동기화
+- 레이어 이동은 `layerUtils.moveLayerByDirection` + `LayerPanel` 컴포넌트로 공유
+
+### 텍스트 패널 포커스 보존
+- 텍스트 속성 패널 루트 div에 `data-text-props-panel` 속성 필수
+- `isElementInToolbar()` 함수가 `[data-text-props-panel]`을 인식해 편집 세션 종료를 방지
+- 모든 포맷팅 버튼에 `onMouseDown={(e) => e.preventDefault()}` 추가해 contentEditable 포커스 유지
 
 ## 주의사항
 

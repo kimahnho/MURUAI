@@ -16,6 +16,12 @@ export type SideBarMenu =
   | "upload"
   | "aac"
   | "table"
+  | "shape-props"
+  | "line-props"
+  | "arrow-props"
+  | "text-props"
+  | "aac-props"
+  | "multi-props"
   | null;
 
 interface SideBarStore {

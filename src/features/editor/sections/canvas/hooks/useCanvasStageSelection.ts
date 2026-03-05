@@ -80,8 +80,8 @@ export const useCanvasStageSelection = ({
   const shouldStartSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return false;
     const target = event.target as HTMLElement;
-    // 텍스트 툴바 영역 클릭은 선택 로직을 시작하지 않음
-    if (target.closest("#text-toolbar-root")) return false;
+    // 텍스트 속성 패널 클릭은 선택 로직을 시작하지 않음
+    if (target.closest("[data-text-props-panel]")) return false;
     const pageRoot = target.closest("[data-page-id]");
     if (!pageRoot) return true;
     return target === pageRoot;

@@ -33,6 +33,10 @@ import { useCanvasViewport } from "../sections/canvas/hooks/useCanvasViewport";
 import { useEditorSubscriptions } from "../hooks/useEditorSubscriptions";
 import { usePageSwap } from "../hooks/usePageSwap";
 import { usePageSwapStore } from "../store/pageSwapStore";
+import { useElementPanelStore } from "../store/elementPanelStore";
+import type { PanelData } from "../store/elementPanelStore";
+import { moveLayerByDirection } from "../utils/layerUtils";
+import { updateElementsByPageId } from "../utils/pageMutation";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -47,8 +51,6 @@ import {
 import { type TemplateId } from "../templates/templateRegistry";
 
 const BottomBar = lazy(() => import("../sections/bottombar/BottomBar"));
-const MultiSelectionToolbar = lazy(() => import("../sections/canvas/MultiSelectionToolbar"));
-const ElementToolbars = lazy(() => import("../sections/canvas/ElementToolbars"));
 const TemplateChoiceDialog = lazy(() => import("@/features/editor/sections/sidebar/TemplateChoiceDialog"));
 
 export interface OutletContext {
@@ -292,6 +294,164 @@ const MainSection = () => {
     setFontPanel,
   });
 
+  // --- elementPanelStore 동기화: 선택 요소 타입별 PanelData를 사이드바에 전달한다 ---
+  const setPanelData = useElementPanelStore((s) => s.setPanelData);
+  const setMoveLayer = useElementPanelStore((s) => s.setMoveLayer);
+
+  const elementPanelData: PanelData = useMemo(() => {
+    if (shapeToolbarData) {
+      return {
+        type: "shape" as const,
+        element: shapeToolbarData.element,
+        rect: shapeToolbarData.rect,
+        radius: shapeToolbarData.radius,
+        minRadius: shapeToolbarData.minRadius,
+        maxRadius: shapeToolbarData.maxRadius,
+        colorValue: shapeToolbarData.colorValue,
+        borderEnabled: shapeToolbarData.borderEnabled,
+        borderColor: shapeToolbarData.borderColor,
+        borderWidth: shapeToolbarData.borderWidth,
+        borderStyle: shapeToolbarData.borderStyle,
+      };
+    }
+    if (lineToolbarData) {
+      return {
+        type: lineToolbarData.element.type as "line" | "arrow",
+        element: lineToolbarData.element,
+        stroke: lineToolbarData.stroke,
+        length: lineToolbarData.length,
+        angle: lineToolbarData.angle,
+      };
+    }
+    if (aacToolbarData) {
+      return {
+        type: "aac" as const,
+        elementId: aacToolbarData.elementId,
+        labelPosition: aacToolbarData.labelPosition,
+        cardCount: aacToolbarData.cardCount,
+      };
+    }
+    if (selectedIds.length === 1) {
+      const activePage = pages.find((p) => p.id === selectedPageId);
+      const el = activePage?.elements.find((e) => e.id === selectedIds[0]);
+      if (el?.type === "text") {
+        return {
+          type: "text" as const,
+          element: el,
+          isEditing: editingTextId === el.id,
+        };
+      }
+    }
+    if (isMultiColorSelection) {
+      return { type: "multi" as const };
+    }
+    return null;
+  }, [shapeToolbarData, lineToolbarData, aacToolbarData, selectedIds, pages, selectedPageId, editingTextId, isMultiColorSelection]);
+
+  // updateLines 콜백: 선택된 선/화살표 요소에 업데이트를 적용한다
+  const selectedIdsForLines = selectedIds;
+  const updateLinesForPanel = useMemo(() => {
+    if (!lineToolbarData) return null;
+    return (updater: (el: import("../model/canvasTypes").LineElement) => Partial<import("../model/canvasTypes").LineElement>) => {
+      setPages((prevPages) =>
+        updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+          elements.map((el) => {
+            if (
+              selectedIdsForLines.includes(el.id) &&
+              (el.type === "line" || el.type === "arrow") &&
+              !el.locked
+            ) {
+              return { ...el, ...updater(el as import("../model/canvasTypes").LineElement) };
+            }
+            return el;
+          }),
+        ),
+      );
+    };
+  }, [lineToolbarData, setPages, selectedPageId, selectedIdsForLines]);
+
+  // updateElement 콜백: 특정 요소에 패치를 적용한다
+  const updateElementForPanel = useMemo(() => {
+    return (id: string, patch: Record<string, unknown>) => {
+      setPages((prevPages) =>
+        updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+          elements.map((el) => (el.id === id ? { ...el, ...patch } : el)),
+        ),
+      );
+    };
+  }, [setPages, selectedPageId]);
+
+  // AAC 전용: labelPosition 변경은 카드/라벨 배치를 동기화하는 별도 로직이 필요하다
+  const updateElementForAac = useMemo(() => {
+    return (_id: string, patch: Record<string, unknown>) => {
+      if ("labelPosition" in patch) {
+        applyAacLabelPosition(patch.labelPosition as import("../utils/aacBoardUtils").AacLabelPosition);
+      }
+    };
+  }, [applyAacLabelPosition]);
+
+  useEffect(() => {
+    if (elementPanelData) {
+      const menuMap: Record<string, import("../store/sideBarStore").SideBarMenu> = {
+        shape: "shape-props",
+        line: "line-props",
+        arrow: "arrow-props",
+        text: "text-props",
+        aac: "aac-props",
+        multi: "multi-props",
+      };
+      setSideBarMenu(menuMap[elementPanelData.type] ?? null);
+      const updateFn = elementPanelData.type === "aac" ? updateElementForAac : updateElementForPanel;
+      setPanelData(elementPanelData, updateFn, updateLinesForPanel);
+    } else {
+      setPanelData(null, null, null);
+    }
+  }, [elementPanelData, setPanelData, setSideBarMenu, updateElementForPanel, updateElementForAac, updateLinesForPanel]);
+
+  // multiCallbacks 동기화: 다중 선택 시 사이드바에 필요한 콜백과 데이터를 전달한다
+  const setMultiCallbacks = useElementPanelStore((s) => s.setMultiCallbacks);
+  useEffect(() => {
+    if (isMultiColorSelection) {
+      setMultiCallbacks({
+        multiColorValue,
+        onMultiColorChange: handleMultiColorChange,
+        hasMultiFontTargets,
+        onOpenFontPanel: handleOpenFontPanel,
+        multiFontFamily,
+        multiFontLabel,
+        multiFontSizeInput,
+        hasMultiBorderTargets,
+        multiBorderEnabled,
+        multiBorderColor,
+        multiBorderWidth,
+        activeBorderStyle,
+        borderStyleOptions,
+        clampBorderWidth,
+        applyMultiBorderPatch,
+        canDistribute,
+        onDistributeHorizontal: distributeHorizontal,
+        onDistributeVertical: distributeVertical,
+      });
+    } else {
+      setMultiCallbacks(null);
+    }
+  }, [isMultiColorSelection, multiColorValue, handleMultiColorChange, hasMultiFontTargets, handleOpenFontPanel, multiFontFamily, multiFontLabel, multiFontSizeInput, hasMultiBorderTargets, multiBorderEnabled, multiBorderColor, multiBorderWidth, activeBorderStyle, borderStyleOptions, clampBorderWidth, applyMultiBorderPatch, canDistribute, distributeHorizontal, distributeVertical, setMultiCallbacks]);
+
+  // moveLayer 콜백 등록
+  useEffect(() => {
+    const moveLayer = (elementId: string, direction: import("../utils/layerUtils").LayerDirection) => {
+      setPages((prevPages) =>
+        updateElementsByPageId(prevPages, selectedPageId, (elements) => {
+          const index = elements.findIndex((el) => el.id === elementId);
+          if (index === -1) return elements;
+          return moveLayerByDirection(elements, index, direction);
+        }),
+      );
+    };
+    setMoveLayer(moveLayer);
+    return () => setMoveLayer(null);
+  }, [setPages, selectedPageId, setMoveLayer]);
+
   const { handleApplyTemplateToCurrent, handleApplyTemplateToNew } =
     useTemplateApplyActions({
       templateChoiceDialog,
@@ -317,43 +477,6 @@ const MainSection = () => {
 
   return (
     <div className="relative flex flex-col w-full h-full overflow-hidden bg-black-20">
-      <div
-        id="text-toolbar-root"
-        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none"
-      />
-      <Suspense fallback={null}>
-        <MultiSelectionToolbar
-          isVisible={isMultiColorSelection}
-          multiColorValue={multiColorValue}
-          onMultiColorChange={handleMultiColorChange}
-          hasMultiFontTargets={hasMultiFontTargets}
-          onOpenFontPanel={handleOpenFontPanel}
-          multiFontFamily={multiFontFamily}
-          multiFontLabel={multiFontLabel}
-          multiFontSizeInput={multiFontSizeInput}
-          hasMultiBorderTargets={hasMultiBorderTargets}
-          multiBorderEnabled={multiBorderEnabled}
-          multiBorderColor={multiBorderColor}
-          multiBorderWidth={multiBorderWidth}
-          activeBorderStyle={activeBorderStyle}
-          borderStyleOptions={borderStyleOptions}
-          clampBorderWidth={clampBorderWidth}
-          applyMultiBorderPatch={applyMultiBorderPatch}
-          canDistribute={canDistribute}
-          onDistributeHorizontal={distributeHorizontal}
-          onDistributeVertical={distributeVertical}
-        />
-        <ElementToolbars
-          shapeToolbarData={shapeToolbarData}
-          lineToolbarData={lineToolbarData}
-          aacToolbarData={aacToolbarData}
-          selectedIds={selectedIds}
-          selectedPageId={selectedPageId}
-          setPages={setPages}
-          onAacLabelPositionChange={applyAacLabelPosition}
-        />
-      </Suspense>
-
       <CanvasStage
         containerRef={containerRef}
         canvasRef={canvasRef}

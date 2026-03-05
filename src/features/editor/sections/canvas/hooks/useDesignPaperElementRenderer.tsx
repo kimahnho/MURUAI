@@ -157,9 +157,6 @@ export const useDesignPaperElementRenderer = ({
   const defaultVocabularyLabel = "목표 어휘";
 
   const renderTextElement = (element: TextElement) => {
-    // 단일 선택일 때만 텍스트 툴바를 노출해 다중 선택 조작과 충돌을 막는다.
-    const showToolbar =
-      selectedIds[0] === element.id && selectedIds.length === 1;
     const isEditing = editingTextId === element.id;
     const isEmotionSlotText = emotionSlotTextIds.has(element.id);
     const forceEditable = isEmotionSlotText && isEditing;
@@ -211,7 +208,6 @@ export const useDesignPaperElementRenderer = ({
         selectionCount={selectedIds.length}
         isEditing={isEditing}
         locked={locked}
-        showToolbar={showToolbar}
         widthMode={element.widthMode ?? "auto"}
         toolbar={buildTextToolbarConfig({
           element,

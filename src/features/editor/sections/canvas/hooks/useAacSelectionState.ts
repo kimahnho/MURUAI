@@ -350,6 +350,7 @@ export const useAacSelectionState = ({
 
   const aacToolbarData = hasAacCardSelection
     ? {
+        elementId: aacCardTargets[0].id,
         labelPosition: aacLabelPosition,
         cardCount: aacCardTargets.length,
       }

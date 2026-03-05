@@ -1,3 +1,13 @@
+---
+paths:
+  - "src/features/editor/utils/userMadeExport.ts"
+  - "src/features/editor/shared/ExportModal.tsx"
+  - "src/features/editor/shared/PdfPreviewContainer.tsx"
+  - "src/features/editor/store/pageSwapStore.ts"
+  - "src/features/editor/hooks/usePageSwap.ts"
+  - "src/app/layout/DesignLayout.tsx"
+---
+
 # PDF 변환 지침 (클라이언트 렌더링)
 
 > 현재 서비스는 서버 렌더링 없이 브라우저에서 PDF를 생성한다.

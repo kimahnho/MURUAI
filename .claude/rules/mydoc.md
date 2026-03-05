@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/features/mydoc/**"
+  - "src/pages/mydoc/**"
+---
+
 # MyDoc (내 보관함) 지침
 
 > 사용자가 만든 학습자료를 관리하는 페이지.

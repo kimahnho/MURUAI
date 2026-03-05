@@ -28,6 +28,7 @@ import {
 import { useTextFormattingCommands } from "./useTextFormattingCommands";
 import { useTextSelectionSession } from "./useTextSelectionSession";
 import { useToolbarFontSizeInput } from "./useToolbarFontSizeInput";
+import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 
 type UseTextBoxEditingHandlersProps = {
   editable: boolean;
@@ -532,6 +533,60 @@ export const useTextBoxEditingHandlers = ({
   const handleCompositionEnd = () => {
     isComposingRef.current = false;
   };
+
+  // 편집 시작/종료에 따라 사이드바 텍스트 패널에 인라인 편집 콜백을 등록/해제한다
+  const setTextEditingCallbacks = useElementPanelStore((s) => s.setTextEditingCallbacks);
+  useEffect(() => {
+    if (!isEditing || !toolbar) {
+      setTextEditingCallbacks(null);
+      return;
+    }
+    setTextEditingCallbacks({
+      onToggleBold: handleToggleBold,
+      onToggleUnderline: handleToggleUnderline,
+      onToggleItalic: handleToggleItalic,
+      onToggleStrikethrough: handleToggleStrikethrough,
+      onColorChange: handleColorChange,
+      onFontSizeStep: handleFontSizeStep,
+      onFontSizeInputChange: fontSizeInputState.onChange,
+      onFontSizeInputCommit: fontSizeInputState.onCommit,
+      onFontSizeInputCancel: fontSizeInputState.onCancel,
+      onFontSizeInputFocus: () => {
+        fontSizeInputStartedInEditingRef.current = isEditing;
+        handleToolbarInputFocus();
+        fontSizeInputState.onFocus();
+      },
+      onFontSizeInputBlur: () => {
+        fontSizeInputStartedInEditingRef.current = false;
+      },
+      onToolbarInputFocus: handleToolbarInputFocus,
+      onToolbarInputBlur: handleToolbarInputBlur,
+      onLineHeightChange: toolbar.onLineHeightChange,
+      onLetterSpacingChange: toolbar.onLetterSpacingChange,
+      onAlignChange: toolbar.onAlignChange,
+      onAlignYChange: toolbar.onAlignYChange,
+      onFontFamilyClick: toolbar.onFontFamilyClick,
+      fontSizeDisplay: fontSizeUiState.displayValue,
+      fontSizeInputValue: fontSizeInputState.value,
+      isFontSizeMixed: fontSizeUiState.isMixed,
+      isFontSizeInputDirty: fontSizeInputState.isDirty,
+      fontSize: toolbar.fontSize,
+      minFontSize: toolbar.minFontSize,
+      maxFontSize: toolbar.maxFontSize,
+      fontFamily: toolbar.fontFamily,
+      fontLabel: toolbar.fontLabel,
+      lineHeight: toolbar.lineHeight,
+      letterSpacing: toolbar.letterSpacing,
+      color: toolbar.color,
+      isBold: toolbar.isBold,
+      isUnderline: toolbar.isUnderline,
+      isItalic: toolbar.isItalic,
+      isStrikethrough: toolbar.isStrikethrough,
+      align: toolbar.align,
+      alignY: toolbar.alignY,
+    });
+    return () => setTextEditingCallbacks(null);
+  });
 
   return {
     beginEditing,

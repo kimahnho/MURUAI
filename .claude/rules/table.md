@@ -1,3 +1,11 @@
+---
+paths:
+  - "src/features/editor/sections/canvas/elements/table/**"
+  - "src/features/editor/sections/sidebar/content/TableContent.tsx"
+  - "src/features/editor/store/tableStore.ts"
+  - "src/features/editor/sections/canvas/hooks/useDesignPaperElementRenderer.tsx"
+---
+
 # Table (표 요소) 지침
 
 > 캔버스 위 표(Table) 요소의 생성/렌더링/사이드바 연동 규칙.
