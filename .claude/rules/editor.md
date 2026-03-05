@@ -123,6 +123,7 @@ src/features/editor/
 
   store/                            # Zustand 스토어
     elementPanelStore.ts            # 선택 요소 속성 패널 데이터 + 콜백 (Table 제외)
+    recentColorStore.ts             # 최근 사용한 색상 (세션 동안 최대 5개)
   model/                            # 타입/도메인 모델
   utils/                            # 유틸리티
     pageMutation.ts                 # updatePageById/updateElementsByPageId

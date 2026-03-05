@@ -9,6 +9,7 @@ import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { useImageUploadToCloudinary } from "../hooks/useImageUploadToCloudinary";
 import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
+import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import LayerPanel from "./LayerPanel";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
@@ -26,6 +27,7 @@ const ShapePropsContent = () => {
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
   const boxColorPickerRef = useRef<HTMLInputElement>(null);
+  const addRecentColor = useRecentColorStore((s) => s.addRecentColor);
 
   const [widthInput, setWidthInput] = useState("");
   const [heightInput, setHeightInput] = useState("");
@@ -81,7 +83,9 @@ const ShapePropsContent = () => {
       try {
         const eyeDropper = new EyeDropperApi();
         const result = await eyeDropper.open();
-        updateElement(element.id, { fill: result.sRGBHex.toUpperCase() });
+        const picked = result.sRGBHex.toUpperCase();
+        updateElement(element.id, { fill: picked });
+        addRecentColor(picked);
         return;
       } catch { /* 사용자 취소 */ }
     }
@@ -174,7 +178,7 @@ const ShapePropsContent = () => {
           <button type="button" onClick={() => { void handleOpenEyeDropper(); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary" aria-label="색상 추출">
             <Pipette className="h-4 w-4" />
           </button>
-          <input ref={boxColorPickerRef} type="color" value={colorValue} onChange={(e) => updateElement(element.id, { fill: e.target.value.toUpperCase() })} className="sr-only" tabIndex={-1} aria-hidden />
+          <input ref={boxColorPickerRef} type="color" value={colorValue} onChange={(e) => { const c = e.target.value.toUpperCase(); updateElement(element.id, { fill: c }); addRecentColor(c); }} className="sr-only" tabIndex={-1} aria-hidden />
         </div>
       </div>
 
