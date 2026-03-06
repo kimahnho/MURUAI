@@ -88,6 +88,7 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 ## 환경 변수
 
 필수 Supabase 환경 변수 (`VITE_` 접두사 필요):
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
@@ -127,3 +128,13 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 - **Ctrl+V**: `handlePastePages(selectedPageId)` 호출 → `copiedPageIds` 배열을 읽어 대상 페이지 직후에 순서대로 삽입
 - `handlePastePages`는 `copiedPageIds` 우선, 없으면 `copiedPageId` 폴백 (`usePageActions.ts`)
 - **keydown 핸들러의 클로저 문제 주의**: `selectedPageIds`, `selectedPageId`, `pages`, `onSelectPage`, `onPastePages`는 별도 ref로 유지하고, keydown useEffect는 빈 dependency(`[]`)로 한 번만 등록해 최신 값은 ref에서 읽는다
+
+## 사이드바 메뉴 구조 지침
+
+- 메뉴 항목: `SideBarMenu` 타입 (`src/features/editor/store/sideBarStore.ts`)
+- 클릭 가능한 탭 목록: `MENU_ITEMS` (SideBar.tsx) — props 패널(`shape-props` 등)과 `font`는 포함하지 않음
+- 새 탭 추가 시 `SideBarMenu` 타입, `MENU_LABELS`, `MENU_ITEMS`, `CONTENT_COMPONENTS` 4곳 동시 수정 필요
+- **감정/AAC 탭**: `"emotion-aac"` 단일 키로 통합, `EmotionAACContent.tsx`에서 내부 탭 전환
+  - `EmotionAACContent` 내 상위 탭: 언더라인 방식 (`border-b-2 border-primary`)
+  - `EmotionContent` 내 하위 탭: 배경 채움 방식 (`bg-black-10 rounded-lg`) — 두 탭 스타일이 달라야 시각적으로 구분됨
+- 요소 선택 시 자동 열리는 props 패널(`shape-props`, `line-props`, `arrow-props`, `text-props`, `aac-props`, `multi-props`, `table`)은 `MENU_ITEMS`에 없음

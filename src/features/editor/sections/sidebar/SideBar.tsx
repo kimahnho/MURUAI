@@ -10,12 +10,10 @@ import {
   Image,
   Type,
   Upload,
-  Grid2X2Icon,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import UploadContent from "./content/UploadContent";
-import AACContent from "./content/AACContent";
-import EmotionContent from "./content/EmotionContent";
+import EmotionAACContent from "./content/EmotionAACContent";
 import ElementContent from "./content/ElementContent";
 import ImageLibraryContent from "./content/ImageLibraryContent";
 import TextContent from "./content/TextContent";
@@ -38,13 +36,12 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
   page: "페이지",
   template: "템플릿",
-  emotion: "감정",
+  "emotion-aac": "감정/AAC",
   element: "요소",
   image: "이미지",
   text: "텍스트",
   font: "글꼴",
   upload: "업로드",
-  aac: "AAC",
   table: "표",
   "shape-props": "도형",
   "line-props": "선",
@@ -58,12 +55,11 @@ const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "design", icon: PenTool },
   { id: "page", icon: FileText },
   { id: "template", icon: Layout },
-  { id: "emotion", icon: Smile },
+  { id: "emotion-aac", icon: Smile },
   { id: "element", icon: Box },
   { id: "image", icon: Image },
   { id: "text", icon: Type },
   { id: "upload", icon: Upload },
-  { id: "aac", icon: Grid2X2Icon },
 ];
 
 // 메뉴 id와 콘텐츠 컴포넌트를 1:1 매핑해 토글 로직을 단순화하고, 메뉴 확장 시 분기 누락을 줄인다.
@@ -74,13 +70,12 @@ const CONTENT_COMPONENTS: Record<
   design: DesignContent,
   page: PageContent,
   template: TemplateContent,
-  emotion: EmotionContent,
+  "emotion-aac": EmotionAACContent,
   element: ElementContent,
   image: ImageLibraryContent,
   text: TextContent,
   font: FontContent,
   upload: UploadContent,
-  aac: AACContent,
   table: TableContent,
   "shape-props": ShapePropsContent,
   "line-props": LinePropsContent,
