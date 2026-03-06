@@ -12,6 +12,7 @@ import type { CanvasElement } from "../../../model/canvasTypes";
 import { isEmotionSlotShape } from "../../../utils/designPaperUtils";
 import { isAacCardElement, isEmotionInferenceCard } from "../../../utils/imageFillUtils";
 import type { ContextMenuState } from "../DesignPaperContextMenu";
+import type { SideBarMenu } from "../../../store/sideBarStore";
 
 interface UseDesignPaperSelectionContextMenuParams {
   readOnly: boolean;
@@ -27,7 +28,7 @@ interface UseDesignPaperSelectionContextMenuParams {
   onEditingTextIdChange?: (id: string | null) => void;
   setEditingImageId: (id: string | null) => void;
   setEditingShapeTextId: (id: string | null) => void;
-  setSideBarMenu: (menu: "emotion" | "aac") => void;
+  setSideBarMenu: (menu: SideBarMenu) => void;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
   getContainerScale: () => number;
 }
@@ -81,9 +82,9 @@ export const useDesignPaperSelectionContextMenu = ({
         isEmotionSlotShape(selectedElement) ||
         isEmotionInferenceCard(selectedElement)
       ) {
-        setSideBarMenu("emotion");
+        setSideBarMenu("emotion-aac");
       } else if (isAacCardElement(elements, selectedElement)) {
-        setSideBarMenu("aac");
+        setSideBarMenu("emotion-aac");
       }
       if (editingImageId && editingImageId !== elementId) {
         setEditingImageId(null);

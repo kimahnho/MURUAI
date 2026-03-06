@@ -2,7 +2,10 @@
 paths:
   - "src/features/editor/sections/canvas/elements/text/**"
   - "src/features/editor/sections/canvas/utils/textToolbarConfig.ts"
+  - "src/features/editor/sections/canvas/utils/textResizePatch.ts"
   - "src/features/editor/sections/canvas/hooks/useDesignPaperElementRenderer.tsx"
+  - "src/features/editor/sections/sidebar/content/TextPropsContent.tsx"
+  - "src/features/editor/shared/MainSection.tsx"
 ---
 
 # TextBox (텍스트 박스 요소) 지침
@@ -26,6 +29,7 @@ src/features/editor/sections/canvas/elements/text/
 
 src/features/editor/sections/canvas/utils/
   textToolbarConfig.ts               # 요소 레벨 툴바 설정 빌더 (buildTextToolbarConfig)
+  textResizePatch.ts                 # 드래그 리사이즈 결과를 TextElement patch로 변환
 
 src/features/editor/sections/canvas/hooks/
   useDesignPaperElementRenderer.tsx   # 텍스트 요소 렌더링 분기 (renderTextElement)
@@ -75,6 +79,44 @@ src/features/editor/store/
 - `TextPropsContent` 루트 div에 `data-text-props-panel` 속성 필수
 - `isElementInToolbar()` 함수가 `[data-text-props-panel]`을 인식
 - 모든 포맷팅 버튼에 `onMouseDown={(e) => e.preventDefault()}` 필수
+
+## 폰트 크기 변경 시 박스 크기 동기화
+
+### userResizedWidth 플래그
+- `TextElement`에 `userResizedWidth?: boolean` 필드 존재
+- **측면 핸들(e/w) 드래그** → `userResizedWidth = true` 설정, `widthMode = "fixed"`
+- **코너 핸들(nw/ne/sw/se) 드래그** → `userResizedWidth = false` 설정 (폰트 크기 스케일)
+- **소스**: `textResizePatch.ts`의 `buildTextResizePatch()`
+
+### 폰트 크기 변경 시 너비 계산 공식
+```typescript
+// ✅ 올바른 방식 — fontSize 비율로 너비 비례 변경
+const scale = element.style.fontSize > 0 ? newFontSize / currentFontSize : 1;
+newW = Math.round(element.w * scale);
+
+// ❌ 금지 — w/h 비율 사용 (element.h는 lineHeight 불일치로 부정확)
+newW = newH * (element.w / element.h);
+```
+- `userResizedWidth = true` → 너비 고정(`w: element.w`), 높이만 변경
+- `userResizedWidth = false` → 위 공식으로 너비 비례 변경
+- 양쪽 모두 `widthMode: "fixed"` 유지
+
+### updateElement 두 경로 — style deep merge
+- **인라인 툴바** (`buildTextToolbarConfig` → `useElementPatchUpdater.updateElement`): style 자동 deep merge
+- **사이드바** (`TextPropsContent` → `MainSection.updateElementForPanel`): 기본 shallow merge이므로 text 요소에 한해 명시적 deep merge 필수
+  ```typescript
+  // MainSection.updateElementForPanel 내부
+  if (el.type === "text" && patch.style) {
+    return { ...el, ...patch, style: { ...el.style, ...(patch.style as object) } };
+  }
+  ```
+
+### useTextBoxAutoResize — contentKey vs styleSignature 분리
+- `contentKey` (text/richText/isEditing 해시) 변경 → 항상 autoResize 실행
+- `styleSignature` (fontSize/fontWeight 등 스타일) 변경 → style-only로 분류, autoResize skip
+  - `userResizedWidth = true`면 skip하지 않고 `lastEmittedRectRef = null` (높이 재측정 허용)
+- `shouldMeasureHeight = isMultiLine || wasMultiLineRef || userResizedWidth`
+  - `userResizedWidth`인 경우 항상 DOM 높이 재측정 (박스 밖으로 텍스트 벗어남 방지)
 
 ## 주의사항
 

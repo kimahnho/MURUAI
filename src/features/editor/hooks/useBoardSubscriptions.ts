@@ -55,7 +55,7 @@ export const useBoardSubscriptions = ({
         setPages,
       });
       setActivePage(newPage.id, newPage.orientation);
-      setSideBarMenu("aac");
+      setSideBarMenu("emotion-aac");
       if (newPage.firstElementId) {
         setSelectedIds([newPage.firstElementId]);
         setEditingTextId(null);

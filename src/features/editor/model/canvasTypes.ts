@@ -43,6 +43,7 @@ export type TextElement = ElementBase & {
   text: string;
   richText?: string;
   widthMode?: "auto" | "fixed" | "element";
+  userResizedWidth?: boolean;
   lockHeight?: boolean;
   style: {
     fontSize: number;

@@ -375,12 +375,23 @@ const MainSection = () => {
     };
   }, [lineToolbarData, setPages, selectedPageId, selectedIdsForLines]);
 
-  // updateElement 콜백: 특정 요소에 패치를 적용한다
+  // updateElement 콜백: 특정 요소에 패치를 적용한다.
+  // text 요소의 style은 얕은 병합으로 유실되지 않도록 깊은 병합을 수행한다.
   const updateElementForPanel = useMemo(() => {
     return (id: string, patch: Record<string, unknown>) => {
       setPages((prevPages) =>
         updateElementsByPageId(prevPages, selectedPageId, (elements) =>
-          elements.map((el) => (el.id === id ? { ...el, ...patch } : el)),
+          elements.map((el) => {
+            if (el.id !== id) return el;
+            if (el.type === "text" && patch.style && typeof patch.style === "object") {
+              return {
+                ...el,
+                ...patch,
+                style: { ...el.style, ...(patch.style as object) },
+              };
+            }
+            return { ...el, ...patch };
+          }),
         ),
       );
     };

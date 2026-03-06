@@ -36,9 +36,11 @@ export const buildTextResizePatch = ({
   };
   if (hasWidthHandle) {
     patch.widthMode = "fixed";
+    patch.userResizedWidth = true;
   }
   if (shouldScaleFont) {
     patch.style = { fontSize: nextFontSize };
+    patch.userResizedWidth = false;
   }
   return patch;
 };
