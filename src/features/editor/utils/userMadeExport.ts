@@ -123,7 +123,6 @@ const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 type DevicePerformanceTier = "low" | "mid" | "high";
-const LOW_TIER_EXPORT_Y_OFFSET_PX = -10;
 
 const getDevicePerformanceTier = (): DevicePerformanceTier => {
   if (typeof navigator === "undefined") return "mid";
@@ -154,44 +153,6 @@ const getAdaptiveCaptureScale = ({
   return clampNumber(Math.min(requested, maxByTier, areaLimited), 1, 3);
 };
 
-const buildScaleFallbacks = (baseScale: number) => {
-  const levels = [baseScale, Math.max(1, baseScale * 0.82), 1];
-  return Array.from(new Set(levels.map((value) => Number(value.toFixed(2)))));
-};
-
-const normalizePdfElementCapturePosition = (
-  page: HTMLElement,
-  tier: DevicePerformanceTier,
-) => {
-  if (tier !== "low") {
-    return () => {};
-  }
-  const designPaper = page.querySelector<HTMLElement>("[data-page-id]");
-  if (!designPaper) {
-    return () => {};
-  }
-  const candidates = Array.from(designPaper.children).filter((child) => {
-    if (!(child instanceof HTMLElement)) return false;
-    // 페이지 번호/오버레이가 아닌 캔버스 요소만 보정한다.
-    return child.style.position === "absolute";
-  }) as HTMLElement[];
-  const prevStyles = candidates.map((node) => ({
-    node,
-    transform: node.style.transform,
-  }));
-  candidates.forEach((node) => {
-    const base = node.style.transform?.trim();
-    node.style.transform = base
-      ? `${base} translateY(${LOW_TIER_EXPORT_Y_OFFSET_PX}px)`
-      : `translateY(${LOW_TIER_EXPORT_Y_OFFSET_PX}px)`;
-  });
-  return () => {
-    prevStyles.forEach(({ node, transform }) => {
-      node.style.transform = transform;
-    });
-  };
-};
-
 export const generatePdfFromDomPages = async ({
   quality = 2,
   pageIds,
@@ -207,8 +168,8 @@ export const generatePdfFromDomPages = async ({
     "pdf.generate.total",
     async () => {
       const deviceTier = getDevicePerformanceTier();
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import("html2canvas"),
+      const [htmlToImage, { default: jsPDF }] = await Promise.all([
+        import("html-to-image"),
         import("jspdf"),
       ]);
       const pages = Array.from(
@@ -267,70 +228,6 @@ export const generatePdfFromDomPages = async ({
           }),
         );
 
-      // html2canvas 1.x가 flex align-items를 잘못 렌더해 텍스트가 아래로 밀리는 문제를 우회한다.
-      // 원본 DOM의 flex를 !important 인라인 스타일로 block으로 덮어쓰고,
-      // 수직 정렬은 padding-top으로 재현한 뒤 캡처 후 복원한다.
-      const normalizePdfTextLayout = (root: HTMLElement) => {
-        const restores: Array<() => void> = [];
-        const boxes = Array.from(
-          root.querySelectorAll<HTMLElement>('[data-textbox="true"]'),
-        );
-        boxes.forEach((box) => {
-          const content = box.querySelector<HTMLElement>(
-            '[data-textbox-content="true"]',
-          );
-          if (!content) return;
-          const boxH = box.offsetHeight;
-          const contentH = content.offsetHeight;
-          const classes = box.className;
-          const isAlignCenter = classes.includes("items-center");
-          const isAlignEnd = classes.includes("items-end");
-          let paddingTop = 0;
-          if (isAlignCenter) {
-            paddingTop = Math.max(0, (boxH - contentH) / 2);
-          } else if (isAlignEnd) {
-            paddingTop = Math.max(0, boxH - contentH);
-          }
-          // 이전 style attribute 전체를 저장해 캡처 후 완벽 복원한다.
-          const prevBoxStyleAttr = box.getAttribute("style") ?? "";
-          const isClipped = box.style.overflow === "hidden";
-          const currentTop = parseFloat(box.style.top) || 0;
-          if (isClipped) {
-            // AAC 라벨 등 overflow: hidden 박스는 소폭 Y 보정 + overflow 해제로 잘림 방지
-            box.style.setProperty("top", `${currentTop - 6}px`, "important");
-            box.style.setProperty("overflow", "visible", "important");
-          } else {
-            box.style.setProperty("top", `${currentTop - 12}px`, "important");
-            // !important로 Tailwind flex 클래스를 확실히 무효화한다.
-            box.style.setProperty("display", "block", "important");
-            box.style.setProperty("align-items", "unset", "important");
-            box.style.setProperty("justify-content", "unset", "important");
-            box.style.setProperty(
-              "padding-top",
-              `${Math.round(paddingTop * 100) / 100}px`,
-              "important",
-            );
-          }
-          // measure div 숨기기
-          const measureDiv = box.querySelector<HTMLElement>(
-            '[aria-hidden="true"]',
-          );
-          const prevMeasureStyleAttr = measureDiv?.getAttribute("style") ?? "";
-          if (measureDiv) {
-            measureDiv.style.setProperty("display", "none", "important");
-          }
-          restores.push(() => {
-            box.setAttribute("style", prevBoxStyleAttr);
-            if (measureDiv) {
-              measureDiv.setAttribute("style", prevMeasureStyleAttr);
-            }
-          });
-        });
-        return () => {
-          restores.forEach((fn) => fn());
-        };
-      };
-
       await waitForFonts();
       await waitForNextFrame();
       await waitForNextFrame();
@@ -374,63 +271,33 @@ export const generatePdfFromDomPages = async ({
           width,
           height,
         });
-        const scaleFallbacks = buildScaleFallbacks(adaptiveScale);
 
         await waitForImages(page);
         await waitForNextFrame();
 
-        const restoreElementOffset = normalizePdfElementCapturePosition(
-          page,
-          deviceTier,
+        // html-to-image는 브라우저 엔진이 직접 SVG foreignObject로 렌더하므로
+        // flex/폰트 레이아웃 보정 없이 에디터와 동일한 결과를 얻는다.
+        const dataUrl = await measurePerf(
+          "pdf.render.page",
+          () =>
+            htmlToImage.toJpeg(page, {
+              pixelRatio: adaptiveScale,
+              backgroundColor: "#ffffff",
+              skipFonts: false,
+              fetchRequestInit: { cache: "force-cache" },
+            }),
+          {
+            index: i + 1,
+            total: pages.length,
+            width,
+            height,
+            requestedQuality: quality,
+            adaptiveScale,
+            deviceTier,
+          },
         );
-        const restoreTextLayout = normalizePdfTextLayout(page);
-        await waitForNextFrame();
-        let canvas: HTMLCanvasElement;
-        let usedScale = adaptiveScale;
-        try {
-          let renderError: unknown = null;
-          let renderedCanvas: HTMLCanvasElement | null = null;
-          for (const scale of scaleFallbacks) {
-            if (signal?.aborted) {
-              throw new DOMException("PDF generation aborted", "AbortError");
-            }
-            try {
-              const attemptCanvas = await measurePerf(
-                "pdf.render.page",
-                () =>
-                  html2canvas(page, {
-                    scale,
-                    useCORS: true,
-                    backgroundColor: "#ffffff",
-                    imageTimeout: 0,
-                    logging: false,
-                  }),
-                {
-                  index: i + 1,
-                  total: pages.length,
-                  width,
-                  height,
-                  requestedQuality: quality,
-                  adaptiveScale,
-                  attemptScale: scale,
-                },
-              );
-              usedScale = scale;
-              renderedCanvas = attemptCanvas;
-              break;
-            } catch (error) {
-              renderError = error;
-            }
-          }
-          if (!renderedCanvas) {
-            throw renderError ?? new Error("Failed to render page canvas");
-          }
-          canvas = renderedCanvas;
-        } finally {
-          restoreTextLayout();
-          restoreElementOffset();
-        }
-        const props = pdf.getImageProperties(canvas);
+
+        const props = pdf.getImageProperties(dataUrl);
 
         let w = pdfW;
         let h = (props.height * w) / props.width;
@@ -444,9 +311,7 @@ export const generatePdfFromDomPages = async ({
         if (i > 0) {
           pdf.addPage([pdfW, pdfH], pdfW > pdfH ? "landscape" : "portrait");
         }
-        pdf.addImage(canvas, "JPEG", x, y, w, h, undefined, "FAST");
-        canvas.width = 0;
-        canvas.height = 0;
+        pdf.addImage(dataUrl, "JPEG", x, y, w, h, undefined, "FAST");
         if (i % 2 === 1) {
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 0);
@@ -457,7 +322,6 @@ export const generatePdfFromDomPages = async ({
           total: pages.length,
           requestedQuality: quality,
           adaptiveScale,
-          usedScale,
           deviceTier,
         });
         onProgress?.({ current: i + 1, total: pages.length });

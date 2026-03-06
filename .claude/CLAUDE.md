@@ -99,6 +99,16 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 - TanStack Query로 서버 상태 관리
 - Lucide React 아이콘 사용
 
+## PDF 출력 구현 지침
+
+- 라이브러리: `html-to-image` (html2canvas 사용 금지 — flex/폰트 레이아웃 오차 발생)
+- 파일: `src/features/editor/utils/userMadeExport.ts`
+- 렌더 함수: `htmlToImage.toJpeg(page, { pixelRatio, backgroundColor, skipFonts: false, fetchRequestInit })`
+- html-to-image는 브라우저 엔진이 직접 SVG foreignObject로 렌더해 에디터 화면과 동일한 결과를 냄
+- **금지**: `normalizePdfTextLayout`, `normalizePdfElementCapturePosition`, `buildScaleFallbacks` 같은 DOM 보정 코드 재도입
+- **유지 필수**: `waitForFonts`, `waitForImages`, `waitForNextFrame`, `getAdaptiveCaptureScale` — 렌더 안정화에 필요
+- vite.config.ts `manualChunks.pdf`: `["html-to-image", "jspdf"]`
+
 ## 템플릿 PDF 자산 관리 지침
 
 - 경로: `src/features/editor/templates/template_pdf/<template-slug>/`

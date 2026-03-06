@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          pdf: ["html2canvas", "jspdf"],
+          pdf: ["html-to-image", "jspdf"],
           vendor: ["react", "react-dom", "react-router-dom"],
           supabase: ["@supabase/supabase-js"],
         },
