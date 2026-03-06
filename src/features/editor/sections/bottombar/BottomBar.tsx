@@ -2,8 +2,10 @@
  * 페이지 썸네일 목록과 페이지 추가/정렬 액션을 제공하는 하단 바 컴포넌트.
  */
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clipboard,
   Copy,
   Plus,
@@ -443,6 +445,18 @@ const BottomBar = ({
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   // 드래그 중에는 hover 버튼을 숨기기 위한 상태
   const [isDragging, setIsDragging] = useState(false);
+  // 하단 페이지 바 접기/펼치기 상태 (sessionStorage로 세션 유지)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try { return sessionStorage.getItem("bottomBarCollapsed") === "true"; }
+    catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try { sessionStorage.setItem("bottomBarCollapsed", String(next)); } catch {}
+      return next;
+    });
+  };
   // keydown 핸들러의 클로저 문제를 피하기 위해 최신 값을 ref로 유지한다.
   const selectedPageIdsRef = useRef<string[]>([]);
   const selectedPageIdRef = useRef(selectedPageId);
@@ -709,7 +723,7 @@ const BottomBar = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex shrink-0 w-full h-40 bg-white border-t border-black-25 items-center px-4"
+      className={`relative flex shrink-0 w-full bg-white border-t border-black-25 items-center px-4 ${isCollapsed ? "h-8" : "h-40"}`}
       onPointerDown={() => {
         setContextMenu(null);
       }}
@@ -717,62 +731,72 @@ const BottomBar = ({
         event.preventDefault();
       }}
     >
-      <div
-        ref={listRef}
-        className="flex flex-1 h-full items-center gap-2 overflow-x-auto overflow-y-hidden"
+      {/* 하단 바 접기/펼치기 토글 버튼 */}
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center w-12 h-5 bg-white border border-black-25 border-b-0 rounded-t-md text-black-50 hover:text-black-90 z-10"
       >
-        {items.map((item) => {
-          if (item.type === "page") {
-            const index = item.pageIndex;
-            return (
-              <div key={item.key}>
-                <PageThumbnail
-                  page={item.page}
-                  isSelected={
-                    selectedPageId === item.page.id ||
-                    selectedPageIds.includes(item.page.id)
+        {isCollapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+      {!isCollapsed && (
+        <div
+          ref={listRef}
+          className="flex flex-1 h-full items-center gap-2 overflow-x-auto overflow-y-hidden"
+        >
+          {items.map((item) => {
+            if (item.type === "page") {
+              const index = item.pageIndex;
+              return (
+                <div key={item.key}>
+                  <PageThumbnail
+                    page={item.page}
+                    isSelected={
+                      selectedPageId === item.page.id ||
+                      selectedPageIds.includes(item.page.id)
+                    }
+                    isDragging={isDragging}
+                    canMoveLeft={index > 0}
+                    canMoveRight={index < pages.length - 1}
+                    onSelect={handlePageClick}
+                    onDuplicate={onDuplicatePage}
+                    onDelete={onDeletePage}
+                    onMovePage={onMovePage}
+                    onContextMenu={handlePageContextMenu(item.page.id)}
+                    dragHandlers={createDragHandlers(item.page.id)}
+                  />
+                </div>
+              );
+            }
+            if (item.type === "divider") {
+              // 첫 divider(insertBefore=true): 첫 페이지 앞에 삽입 → targetPageId = pages[0]
+              // 중간/마지막 divider(insertBefore=false): 앞 페이지 뒤에 삽입 → targetPageId = pages[insertIndex-1]
+              const targetPageId = item.insertBefore
+                ? pages[0]?.id
+                : pages[item.insertIndex - 1]?.id;
+              const isFirstDivider = item.insertBefore;
+              const isLastDivider = !item.insertBefore && item.insertIndex === pages.length;
+              const showAddButton = !isFirstDivider && !isLastDivider;
+              return (
+                <PageInsertDivider
+                  key={item.key}
+                  isVisible={showAddButton}
+                  onAdd={() => {
+                    handleAddPageBetween(item.insertIndex);
+                  }}
+                  onDragOver={handleDragOver}
+                  onDrop={
+                    targetPageId
+                      ? (e) => handleDrop(e, targetPageId, item.insertBefore)
+                      : undefined
                   }
-                  isDragging={isDragging}
-                  canMoveLeft={index > 0}
-                  canMoveRight={index < pages.length - 1}
-                  onSelect={handlePageClick}
-                  onDuplicate={onDuplicatePage}
-                  onDelete={onDeletePage}
-                  onMovePage={onMovePage}
-                  onContextMenu={handlePageContextMenu(item.page.id)}
-                  dragHandlers={createDragHandlers(item.page.id)}
                 />
-              </div>
-            );
-          }
-          if (item.type === "divider") {
-            // 첫 divider(insertBefore=true): 첫 페이지 앞에 삽입 → targetPageId = pages[0]
-            // 중간/마지막 divider(insertBefore=false): 앞 페이지 뒤에 삽입 → targetPageId = pages[insertIndex-1]
-            const targetPageId = item.insertBefore
-              ? pages[0]?.id
-              : pages[item.insertIndex - 1]?.id;
-            const isFirstDivider = item.insertBefore;
-            const isLastDivider = !item.insertBefore && item.insertIndex === pages.length;
-            const showAddButton = !isFirstDivider && !isLastDivider;
-            return (
-              <PageInsertDivider
-                key={item.key}
-                isVisible={showAddButton}
-                onAdd={() => {
-                  handleAddPageBetween(item.insertIndex);
-                }}
-                onDragOver={handleDragOver}
-                onDrop={
-                  targetPageId
-                    ? (e) => handleDrop(e, targetPageId, item.insertBefore)
-                    : undefined
-                }
-              />
-            );
-          }
-          return <AddPageButton key={item.key} onAdd={onAddPage} />;
-        })}
-      </div>
+              );
+            }
+            return <AddPageButton key={item.key} onAdd={onAddPage} />;
+          })}
+        </div>
+      )}
       <PageContextMenu
         contextMenu={contextMenu}
         onCopyPage={onCopyPage}
