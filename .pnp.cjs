@@ -48,7 +48,7 @@ const RAW_RUNTIME_STATE =
           ["eslint-plugin-react-hooks", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.0.1"],\
           ["eslint-plugin-react-refresh", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.4.26"],\
           ["globals", "npm:16.5.0"],\
-          ["html2canvas", "npm:1.4.1"],\
+          ["html-to-image", "npm:1.11.13"],\
           ["jspdf", "npm:4.0.0"],\
           ["lucide-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.562.0"],\
           ["mixpanel-browser", "npm:2.74.0"],\
@@ -4159,6 +4159,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["html-to-image", [\
+      ["npm:1.11.13", {\
+        "packageLocation": "../../../.yarn/berry/cache/html-to-image-npm-1.11.13-86e990604f-10c0.zip/node_modules/html-to-image/",\
+        "packageDependencies": [\
+          ["html-to-image", "npm:1.11.13"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["html2canvas", [\
       ["npm:1.4.1", {\
         "packageLocation": "../../../.yarn/berry/cache/html2canvas-npm-1.4.1-fa13983145-10c0.zip/node_modules/html2canvas/",\
@@ -4981,7 +4990,7 @@ const RAW_RUNTIME_STATE =
           ["eslint-plugin-react-hooks", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.0.1"],\
           ["eslint-plugin-react-refresh", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.4.26"],\
           ["globals", "npm:16.5.0"],\
-          ["html2canvas", "npm:1.4.1"],\
+          ["html-to-image", "npm:1.11.13"],\
           ["jspdf", "npm:4.0.0"],\
           ["lucide-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:0.562.0"],\
           ["mixpanel-browser", "npm:2.74.0"],\
