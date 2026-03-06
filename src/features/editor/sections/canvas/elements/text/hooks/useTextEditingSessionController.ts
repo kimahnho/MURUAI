@@ -20,8 +20,8 @@ const TOOLBAR_BLUR_GUARD_MS = 120;
 
 const isElementInToolbar = (element: HTMLElement | null): boolean =>
   Boolean(
-    element?.closest("#text-toolbar-root") ||
-      element?.closest("[data-textbox-toolbar]")
+    element?.closest("[data-textbox-toolbar]") ||
+      element?.closest("[data-text-props-panel]")
   );
 
 export const useTextEditingSessionController = ({

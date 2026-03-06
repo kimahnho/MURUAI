@@ -441,8 +441,8 @@ const DesignPaper = ({
           const container = containerRef.current;
           const target = event.target as HTMLElement | null;
           const isToolbarTarget = Boolean(
-            target?.closest("#text-toolbar-root") ||
-              target?.closest("[data-textbox-toolbar]"),
+            target?.closest("[data-textbox-toolbar]") ||
+              target?.closest("[data-text-props-panel]"),
           );
           if (container && !isEditableTarget(event.target) && !isToolbarTarget) {
             container.focus();
@@ -455,8 +455,8 @@ const DesignPaper = ({
         if (!readOnly) {
           const target = event.target as HTMLElement | null;
           const isToolbarTarget = Boolean(
-            target?.closest("#text-toolbar-root") ||
-              target?.closest("[data-textbox-toolbar]"),
+            target?.closest("[data-textbox-toolbar]") ||
+              target?.closest("[data-text-props-panel]"),
           );
           if (!isEditableTarget(event.target) && !isToolbarTarget) {
             containerRef.current?.focus();

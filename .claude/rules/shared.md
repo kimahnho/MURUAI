@@ -1,3 +1,8 @@
+---
+paths:
+  - "src/shared/**"
+---
+
 # Shared (공용 모듈) 지침
 
 > 모든 feature에서 사용하는 공용 코드. **feature를 import하면 안 됨**.

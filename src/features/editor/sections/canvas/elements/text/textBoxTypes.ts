@@ -72,7 +72,6 @@ export interface TextBoxProps {
   locked?: boolean;
   clipOverflow?: boolean;
   widthMode?: "auto" | "fixed" | "element";
-  showToolbar?: boolean;
   toolbar?: TextBoxToolbar;
   onTextChange?: (text: string, richText?: string) => void;
   onRectChange?: (rect: Rect) => void;

@@ -24,9 +24,15 @@ import TemplateContent from "./content/TemplateContent";
 import DesignContent from "./content/DesignContent";
 import PageContent from "./content/PageContent";
 import TableContent from "./content/TableContent";
+import ShapePropsContent from "./content/ShapePropsContent";
+import LinePropsContent from "./content/LinePropsContent";
+import ArrowPropsContent from "./content/ArrowPropsContent";
+import AacPropsContent from "./content/AacPropsContent";
+import MultiPropsContent from "./content/MultiPropsContent";
+import TextPropsContent from "./content/TextPropsContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "multi-props">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
@@ -40,6 +46,12 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   upload: "업로드",
   aac: "AAC",
   table: "표",
+  "shape-props": "도형",
+  "line-props": "선",
+  "arrow-props": "화살표",
+  "text-props": "텍스트",
+  "aac-props": "AAC",
+  "multi-props": "다중 선택",
 };
 
 const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
@@ -70,6 +82,12 @@ const CONTENT_COMPONENTS: Record<
   upload: UploadContent,
   aac: AACContent,
   table: TableContent,
+  "shape-props": ShapePropsContent,
+  "line-props": LinePropsContent,
+  "arrow-props": ArrowPropsContent,
+  "text-props": TextPropsContent,
+  "aac-props": AacPropsContent,
+  "multi-props": MultiPropsContent,
 };
 
 const SideBar = () => {

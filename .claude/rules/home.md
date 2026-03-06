@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/features/home/**"
+  - "src/pages/home/**"
+---
+
 # Home (홈 페이지) 지침
 
 > 학습자/그룹 관리 및 주간 수업 계획표를 보여주는 대시보드.

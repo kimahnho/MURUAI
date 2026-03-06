@@ -2,9 +2,7 @@
  * 텍스트 요소 본문 렌더링과 편집 진입/선택 상태를 처리하는 컴포넌트.
  */
 import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import type { ResizeHandle } from "../../../../model/canvasTypes";
-import TextToolBar from "./TextToolBar";
 import { isTextEmpty } from "./textContentUtils";
 import { selectWordAtPoint } from "./textSelection";
 import type { TextBoxProps } from "./textBoxTypes";
@@ -31,7 +29,6 @@ const TextBox = ({
   locked = false,
   clipOverflow = false,
   widthMode = "auto",
-  showToolbar = true,
   toolbar,
   onTextChange,
   onRectChange,
@@ -55,10 +52,6 @@ const TextBox = ({
   const wasEditingRef = useRef(false);
   const isComposingRef = useRef(false);
   const isResizingRef = useRef(false);
-  const toolbarPortal =
-    typeof document !== "undefined"
-      ? document.getElementById("text-toolbar-root")
-      : null;
   const styleSignature = [
     textStyle?.fontSize,
     textStyle?.fontWeight,
@@ -149,17 +142,6 @@ const TextBox = ({
     handlePaste,
     handleCompositionStart,
     handleCompositionEnd,
-    handleToggleBold,
-    handleToggleUnderline,
-    handleToggleItalic,
-    handleToggleStrikethrough,
-    handleColorChange,
-    handleFontSizeStep,
-    handleToolbarPointerDown,
-    handleToolbarInputFocus,
-    handleToolbarInputBlur,
-    fontSizeUiState,
-    fontSizeInput,
   } = useTextBoxEditingHandlers({
     editable,
     locked,
@@ -249,55 +231,6 @@ const TextBox = ({
   const showHandles = showChrome && !locked && isSelected && selectionCount <= 1;
   // 텍스트가 박스 폭을 초과하면 줄바꿈
   const contentWhiteSpace = "pre-wrap";
-  const toolbarCard = toolbar ? (
-    <div
-      data-textbox-toolbar="true"
-      className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-      onPointerDownCapture={() => {
-        handleToolbarPointerDown();
-      }}
-    >
-      <TextToolBar
-        isVisible
-        minFontSize={toolbar.minFontSize}
-        maxFontSize={toolbar.maxFontSize}
-        fontSize={toolbar.fontSize}
-        fontSizeDisplay={fontSizeUiState.displayValue}
-        isFontSizeMixed={fontSizeUiState.isMixed}
-        fontFamily={toolbar.fontFamily}
-        fontLabel={toolbar.fontLabel}
-        lineHeight={toolbar.lineHeight}
-        letterSpacing={toolbar.letterSpacing}
-        color={toolbar.color}
-        isBold={toolbar.isBold}
-        isUnderline={toolbar.isUnderline}
-        isItalic={toolbar.isItalic}
-        isStrikethrough={toolbar.isStrikethrough}
-        align={toolbar.align}
-        alignY={toolbar.alignY}
-        onFontSizeStep={handleFontSizeStep}
-        fontSizeInputValue={fontSizeInput.value}
-        isFontSizeInputDirty={fontSizeInput.isDirty}
-        onFontSizeInputChange={fontSizeInput.onChange}
-        onFontSizeInputCommit={fontSizeInput.onCommit}
-        onFontSizeInputCancel={fontSizeInput.onCancel}
-        onFontSizeInputFocus={fontSizeInput.onFocus}
-        onFontSizeInputBlur={fontSizeInput.onBlur}
-        onToolbarInputFocus={handleToolbarInputFocus}
-        onToolbarInputBlur={handleToolbarInputBlur}
-        onLineHeightChange={toolbar.onLineHeightChange}
-        onLetterSpacingChange={toolbar.onLetterSpacingChange}
-        onColorChange={handleColorChange}
-        onFontFamilyClick={toolbar.onFontFamilyClick}
-        onToggleBold={handleToggleBold}
-        onToggleUnderline={handleToggleUnderline}
-        onToggleItalic={handleToggleItalic}
-        onToggleStrikethrough={handleToggleStrikethrough}
-        onAlignChange={toolbar.onAlignChange}
-        onAlignYChange={toolbar.onAlignYChange}
-      />
-    </div>
-  ) : null;
 
   return (
     <div
@@ -309,11 +242,11 @@ const TextBox = ({
           event.stopPropagation();
           return;
         }
-        // toolbar 버튼 클릭 시 드래그 세션 시작을 막아 onClick 이벤트가 정상 실행되게 한다.
+        // 사이드바 텍스트 패널 클릭 시 드래그 세션 시작을 막아 onClick 이벤트가 정상 실행되게 한다.
         const target = event.target as HTMLElement | null;
         const isToolbarClick = Boolean(
-          target?.closest("#text-toolbar-root") ||
-            target?.closest("[data-textbox-toolbar]"),
+          target?.closest("[data-textbox-toolbar]") ||
+            target?.closest("[data-text-props-panel]"),
         );
         if (isToolbarClick) return;
         didMoveRef.current = false;
@@ -445,14 +378,6 @@ const TextBox = ({
           가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}
         </div>
       )}
-      {editable &&
-        toolbar &&
-        isSelected &&
-        !locked &&
-        showToolbar &&
-        (toolbarPortal && toolbarCard
-          ? createPortal(toolbarCard, toolbarPortal)
-          : toolbarCard)}
       <div
         ref={measureRef}
         aria-hidden

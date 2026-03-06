@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/features/admin/**"
+  - "src/pages/admin/**"
+---
+
 # Admin (관리자 대시보드) 지침
 
 > 서비스 지표를 확인하는 관리자 전용 페이지.
