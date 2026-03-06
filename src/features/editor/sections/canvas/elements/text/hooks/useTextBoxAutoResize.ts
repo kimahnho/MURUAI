@@ -13,6 +13,7 @@ import { computeTextBoxSize } from "../textBoxMeasure";
 type UseTextBoxAutoResizeProps = {
   isEditing: boolean;
   widthMode: "auto" | "fixed" | "element";
+  userResizedWidth?: boolean;
   minWidth: number;
   minHeight: number;
   textAlign: "left" | "center" | "right" | "justify";
@@ -31,6 +32,7 @@ type UseTextBoxAutoResizeProps = {
 export const useTextBoxAutoResize = ({
   isEditing,
   widthMode,
+  userResizedWidth,
   minWidth,
   minHeight,
   textAlign,
@@ -50,6 +52,8 @@ export const useTextBoxAutoResize = ({
   const wasMultiLineRef = useRef(false);
   const lastEmittedRectRef = useRef<Rect | null>(null);
   const lastMeasureKeyRef = useRef("");
+  // 콘텐츠(text/richText)가 변경된 경우에만 true — 스타일/widthMode 단독 변경은 false
+  const lastContentKeyRef = useRef("");
   const onRectChangeRef = useRef(onRectChange);
 
   useEffect(() => {
@@ -67,11 +71,25 @@ export const useTextBoxAutoResize = ({
     if (!onRectChangeRef.current) return;
     if (isResizingRef.current) return;
     const measureKey = `${widthMode}|${styleSignature}|${isEditing ? 1 : 0}|${text}|${richText ?? ""}`;
+    // 텍스트 콘텐츠 변경 여부를 스타일과 분리해서 추적한다.
+    const contentKey = `${isEditing ? 1 : 0}|${text}|${richText ?? ""}`;
     if (lastMeasureKeyRef.current !== measureKey) {
       lastMeasureKeyRef.current = measureKey;
-      lastEmittedRectRef.current = null;
       hasReachedBoundaryRef.current = false;
       wasMultiLineRef.current = false;
+      const contentChanged = lastContentKeyRef.current !== contentKey;
+      lastContentKeyRef.current = contentKey;
+      if (contentChanged) {
+        // 텍스트 내용이 바뀐 경우: autoResize가 정상적으로 높이를 재조정하도록 허용한다.
+        lastEmittedRectRef.current = null;
+      } else if (userResizedWidth) {
+        // 너비가 사용자에 의해 고정된 경우: 폰트 크기 변경 시 autoResize가 높이를 재계산하도록 허용한다.
+        lastEmittedRectRef.current = null;
+      } else {
+        // 스타일(폰트 크기 등)이나 widthMode만 바뀐 경우: 외부에서 명시적으로 설정한
+        // 박스 크기를 autoResize가 덮어쓰지 않도록 현재 rect를 기준으로 설정한다.
+        lastEmittedRectRef.current = rect;
+      }
     }
     const measure = measureRef.current;
     if (!measure) return;
@@ -269,7 +287,8 @@ export const useTextBoxAutoResize = ({
     } else {
       const singleLineWidth = getSingleLineWidth();
       const isMultiLine = singleLineWidth > rectWidth || hasLineBreaks;
-      const shouldMeasureHeight = isMultiLine || wasMultiLineRef.current;
+      // userResizedWidth인 경우 너비가 고정되고 높이만 조정하므로 항상 높이를 재계산한다.
+      const shouldMeasureHeight = isMultiLine || wasMultiLineRef.current || userResizedWidth;
       if (!shouldMeasureHeight) {
         wasMultiLineRef.current = isMultiLine;
         return;
@@ -296,6 +315,7 @@ export const useTextBoxAutoResize = ({
   }, [
     isEditing,
     widthMode,
+    userResizedWidth,
     minHeight,
     minWidth,
     rectWidth,

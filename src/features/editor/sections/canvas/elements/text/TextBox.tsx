@@ -29,6 +29,7 @@ const TextBox = ({
   locked = false,
   clipOverflow = false,
   widthMode = "auto",
+  userResizedWidth,
   toolbar,
   onTextChange,
   onRectChange,
@@ -89,6 +90,7 @@ const TextBox = ({
   useTextBoxAutoResize({
     isEditing,
     widthMode,
+    userResizedWidth,
     minWidth,
     minHeight,
     textAlign,

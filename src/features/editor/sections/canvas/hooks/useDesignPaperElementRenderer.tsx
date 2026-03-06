@@ -209,6 +209,7 @@ export const useDesignPaperElementRenderer = ({
         isEditing={isEditing}
         locked={locked}
         widthMode={element.widthMode ?? "auto"}
+        userResizedWidth={element.userResizedWidth}
         toolbar={buildTextToolbarConfig({
           element,
           fontWeight,

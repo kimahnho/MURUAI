@@ -23,6 +23,10 @@ type TextToolbarConfigParams = {
     patch: {
       style?: Partial<TextElement["style"]>;
       richText?: string;
+      w?: number;
+      h?: number;
+      widthMode?: TextElement["widthMode"];
+      userResizedWidth?: boolean;
     },
   ) => void;
 };
@@ -65,16 +69,41 @@ export const buildTextToolbarConfig = ({
     });
   },
   onFontSizeChange: (value: number) => {
+    const clamped = clampFontSize(value);
+    const newH = Math.round(clamped * lineHeight);
+    // 사용자가 사이드 핸들로 너비를 직접 변경한 경우 너비를 고정하고 높이는 예상값으로 초기 설정한다.
+    // autoResize가 실제 DOM 측정으로 높이를 보정한다.
+    const widthPatch = element.userResizedWidth
+      ? { w: element.w, h: newH }
+      : (() => {
+          // w/h 비율이 아닌 fontSize 비율로 너비를 계산한다.
+          // element.h는 측정 lineHeight와 실제 lineHeight 불일치로 실제 비율과 다를 수 있기 때문이다.
+          const scale = element.style.fontSize > 0 ? clamped / element.style.fontSize : 1;
+          return { w: Math.round(element.w * scale), h: newH };
+        })();
     updateElement(element.id, {
-      style: { fontSize: clampFontSize(value) },
+      style: { fontSize: clamped },
       // 전역 폰트 크기 변경 시 기존 인라인 font-size를 제거해 원복/우선순위 충돌을 방지한다.
       richText: element.richText
         ? stripStyleTags(element.richText, "fontSize")
         : undefined,
+      ...widthPatch,
+      // auto/element/미지정 모드인 경우 fixed로 전환해 autoResize가 박스 크기를 덮어쓰지 않도록 한다.
+      widthMode: "fixed",
     });
   },
   onFontSizeStep: (delta: number) => {
     const nextBaseFontSize = clampFontSize(element.style.fontSize + delta);
+    const newH = Math.round(nextBaseFontSize * lineHeight);
+    // 사용자가 사이드 핸들로 너비를 직접 변경한 경우 너비를 고정하고 높이는 예상값으로 초기 설정한다.
+    // autoResize가 실제 DOM 측정으로 높이를 보정한다.
+    const widthPatch = element.userResizedWidth
+      ? { w: element.w, h: newH }
+      : (() => {
+          // w/h 비율이 아닌 fontSize 비율로 너비를 계산한다.
+          const scale = element.style.fontSize > 0 ? nextBaseFontSize / element.style.fontSize : 1;
+          return { w: Math.round(element.w * scale), h: newH };
+        })();
     updateElement(element.id, {
       style: {
         fontSize: nextBaseFontSize,
@@ -86,6 +115,9 @@ export const buildTextToolbarConfig = ({
             clamp: clampFontSize,
           })
         : undefined,
+      ...widthPatch,
+      // auto/element/미지정 모드인 경우 fixed로 전환해 autoResize가 박스 크기를 덮어쓰지 않도록 한다.
+      widthMode: "fixed",
     });
   },
   onLineHeightChange: (value: number) => {

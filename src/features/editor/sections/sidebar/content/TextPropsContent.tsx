@@ -18,6 +18,7 @@ import {
   Underline,
 } from "lucide-react";
 import { useElementPanelStore, type TextPanelData } from "@/features/editor/store/elementPanelStore";
+import { DEFAULT_LINE_HEIGHT } from "@/features/editor/sections/canvas/elements/text/textContentUtils";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -235,6 +236,21 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   const MAX_FONT_SIZE = 120;
   const clampFontSize = (v: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, v));
 
+  // fontSize 비율로 너비를 계산하고 lineHeight로 높이를 계산한다.
+  // element.h는 측정 lineHeight와 실제 lineHeight 불일치로 실제 비율과 다를 수 있으므로
+  // w/h 비율 대신 fontSize 배율을 기준으로 한다.
+  // 사용자가 사이드 핸들로 너비를 직접 변경한 경우 너비를 고정하고 높이는 예상값으로 초기 설정 후 autoResize가 보정한다.
+  const calcNewRect = (newFontSize: number) => {
+    const lh = style.lineHeight ?? DEFAULT_LINE_HEIGHT;
+    const newH = Math.round(newFontSize * lh);
+    if (element.userResizedWidth) {
+      return { w: element.w, h: newH };
+    }
+    const scale = style.fontSize > 0 ? newFontSize / style.fontSize : 1;
+    const newW = Math.round(element.w * scale);
+    return { w: newW, h: newH };
+  };
+
   const commitFontSize = () => {
     const parsed = Number(fontSizeInput);
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -242,13 +258,15 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
       return;
     }
     const clamped = clampFontSize(Math.round(parsed));
-    updateElement(element.id, { style: { ...style, fontSize: clamped } });
+    const { w, h } = calcNewRect(clamped);
+    updateElement(element.id, { style: { ...style, fontSize: clamped }, w, h, widthMode: "fixed" });
     setFontSizeInput(String(clamped));
   };
 
   const handleFontSizeStep = (delta: number) => {
     const next = clampFontSize(style.fontSize + delta);
-    updateElement(element.id, { style: { ...style, fontSize: next } });
+    const { w, h } = calcNewRect(next);
+    updateElement(element.id, { style: { ...style, fontSize: next }, w, h, widthMode: "fixed" });
     setFontSizeInput(String(next));
   };
 
