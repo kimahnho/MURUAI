@@ -1,14 +1,13 @@
 /**
  * AAC 요소 선택 시 사이드바에 표시되는 속성 편집 패널.
  */
-import { useEffect, type MouseEvent } from "react";
+import { type MouseEvent } from "react";
 import {
   AlignVerticalJustifyStart,
   AlignVerticalJustifyEnd,
   EyeOff,
 } from "lucide-react";
 import { useElementPanelStore, type AacPanelData } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import type { AacLabelPosition } from "@/features/editor/utils/aacBoardUtils";
 import LayerPanel from "./LayerPanel";
 
@@ -22,13 +21,6 @@ const AacPropsContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "aac") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "aac" || !updateElement) return null;
 
@@ -42,7 +34,7 @@ const AacPropsContent = () => {
   };
 
   return (
-    <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
+    <div className="flex flex-col w-full gap-4">
       {/* 텍스트 위치 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">텍스트 위치</div>

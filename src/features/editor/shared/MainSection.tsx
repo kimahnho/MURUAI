@@ -304,6 +304,16 @@ const MainSection = () => {
   const setHasMatchingFonts = useElementPanelStore((s) => s.setHasMatchingFonts);
 
   const elementPanelData: PanelData = useMemo(() => {
+    // AAC 카드를 shape보다 먼저 확인해 shape-props 패널 대신 emotion-aac 탭이 열리도록 한다.
+    if (aacToolbarData) {
+      return {
+        type: "aac" as const,
+        elementId: aacToolbarData.elementId,
+        labelPosition: aacToolbarData.labelPosition,
+        cardCount: aacToolbarData.cardCount,
+        hasImage: aacToolbarData.hasImage,
+      };
+    }
     if (shapeToolbarData) {
       return {
         type: "shape" as const,
@@ -326,14 +336,6 @@ const MainSection = () => {
         stroke: lineToolbarData.stroke,
         length: lineToolbarData.length,
         angle: lineToolbarData.angle,
-      };
-    }
-    if (aacToolbarData) {
-      return {
-        type: "aac" as const,
-        elementId: aacToolbarData.elementId,
-        labelPosition: aacToolbarData.labelPosition,
-        cardCount: aacToolbarData.cardCount,
       };
     }
     if (selectedIds.length === 1) {
@@ -413,7 +415,7 @@ const MainSection = () => {
         line: "line-props",
         arrow: "arrow-props",
         text: "text-props",
-        aac: "aac-props",
+        aac: "emotion-aac",
         multi: "multi-props",
       };
       setSideBarMenu(menuMap[elementPanelData.type] ?? null);

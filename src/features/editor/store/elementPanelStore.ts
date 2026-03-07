@@ -47,6 +47,7 @@ export type AacPanelData = {
   elementId: string;
   labelPosition: AacLabelPosition;
   cardCount: number;
+  hasImage: boolean;
 };
 
 export type MultiCallbacks = {
