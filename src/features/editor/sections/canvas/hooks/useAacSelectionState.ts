@@ -353,6 +353,10 @@ export const useAacSelectionState = ({
         elementId: aacCardTargets[0].id,
         labelPosition: aacLabelPosition,
         cardCount: aacCardTargets.length,
+        // fill이 URL 또는 data URI인 경우 이미지가 삽입된 상태로 판단한다.
+        hasImage:
+          aacCardTargets[0].fill.startsWith("url(") ||
+          aacCardTargets[0].fill.startsWith("data:"),
       }
     : null;
 

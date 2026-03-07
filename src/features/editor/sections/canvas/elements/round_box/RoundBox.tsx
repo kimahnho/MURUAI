@@ -229,6 +229,8 @@ const RoundBox = ({
   const showOutline = !locked && (isHovered || isActive);
   const selectionColor = "var(--primary)";
   const borderStyle = border?.style ?? "solid";
+  // border 두께만큼 내부 div의 좌표계 원점이 밀리는 것을 상쇄하기 위한 오프셋
+  const bw = border?.enabled ? (border.width ?? 0) : 0;
   const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
 
   const showTransformToolbar =
@@ -411,15 +413,20 @@ const RoundBox = ({
         border: border?.enabled
           ? `${border.width}px ${borderStyle} ${border.color}`
           : "none",
+        overflow: "hidden",
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}
     >
       <div
-        className={`absolute inset-0 flex items-center justify-center ${
+        className={`absolute flex items-center justify-center ${
           showImageOverflow ? "overflow-visible" : "overflow-hidden"
         }`}
         style={{
+          top: -bw,
+          left: -bw,
+          right: -bw,
+          bottom: -bw,
           borderRadius,
           ...backgroundStyle,
         }}

@@ -1,14 +1,25 @@
 /**
  * 감정 이미지와 AAC 카드를 탭으로 전환해 제공하는 통합 패널 컴포넌트.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EmotionContent from "./EmotionContent";
 import AACContent from "./AACContent";
+import AacPropsContent from "./AacPropsContent";
+import { useElementPanelStore, type AacPanelData } from "@/features/editor/store/elementPanelStore";
 
 type Tab = "emotion" | "aac";
 
 const EmotionAACContent = () => {
   const [activeTab, setActiveTab] = useState<Tab>("emotion");
+  const panelData = useElementPanelStore((s) => s.panelData);
+  const isAacSelected = panelData?.type === "aac";
+  // 이미지가 삽입된 카드를 선택한 경우에만 카드 설정을 표시한다.
+  const aacHasImage = isAacSelected && (panelData as AacPanelData).hasImage;
+
+  // AAC 카드 선택 시 AAC 탭으로 자동 전환
+  useEffect(() => {
+    if (isAacSelected) setActiveTab("aac");
+  }, [isAacSelected]);
 
   return (
     <div className="flex flex-col h-full">
@@ -40,7 +51,18 @@ const EmotionAACContent = () => {
 
       {/* 콘텐츠 영역 */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        {activeTab === "emotion" ? <EmotionContent /> : <AACContent />}
+        {activeTab === "emotion" ? (
+          <EmotionContent />
+        ) : (
+          <div className="flex flex-col">
+            {/* 이미지가 삽입된 카드 선택 시 카드 설정만 표시, 미삽입 시 이미지 삽입 목록 표시 */}
+            {aacHasImage ? (
+              <AacPropsContent />
+            ) : (
+              <AACContent />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
