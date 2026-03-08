@@ -46,20 +46,8 @@ export const useBottomBarScroll = ({
     if (pagesLength > prevCount && isSelectedLastPage) {
       const scroller = listRef.current;
       if (scroller) {
-        const edgePadding = 16;
-        const targetOffset =
-          selectedItemIndex != null
-            ? Math.max(
-                0,
-                (itemOffsets[selectedItemIndex] ?? 0) +
-                  (itemWidths[selectedItemIndex] ?? 0) -
-                  scroller.clientWidth +
-                  edgePadding,
-              )
-            : addButtonIndex != null
-              ? itemOffsets[addButtonIndex] ?? 0
-              : 0;
-        scrollToOffset(targetOffset, "auto");
+        // 페이지 추가 시 맨 끝(추가 버튼 포함)까지 스크롤해 추가 버튼을 노출한다.
+        scrollToOffset(scroller.scrollWidth, "auto");
       }
     }
     prevPageCountRef.current = pagesLength;

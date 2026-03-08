@@ -521,11 +521,6 @@ const BottomBar = ({
     return index >= 0 ? index : null;
   }, [items, selectedPageId]);
 
-  const addButtonIndex = useMemo(() => {
-    const index = items.findIndex((item) => item.type === "add");
-    return index >= 0 ? index : null;
-  }, [items]);
-
   const isSelectedLastPage =
     pages.length > 0 && pages[pages.length - 1]?.id === selectedPageId;
 
@@ -533,7 +528,7 @@ const BottomBar = ({
     pagesLength: pages.length,
     selectedPageId,
     selectedItemIndex,
-    addButtonIndex,
+    addButtonIndex: null,
     itemOffsets,
     itemWidths,
     isSelectedLastPage,

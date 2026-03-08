@@ -144,7 +144,7 @@ requestHydration() → setPdfPreviewActive(true) → waitForHydration()
 - `@tanstack/react-query`는 서버 데이터 동기화 전용으로 사용하고, UI 가상 스크롤/오프셋 계산 문제 해결 용도로 사용하지 않는다.
 - BottomBar 스크롤 경계 계산은 내부 추정값보다 실제 DOM(`scrollWidth`, `clientWidth`)을 기준으로 구현한다.
 - 페이지 선택 시 자동 스크롤은 "뷰포트 밖일 때만 최소 이동" 정책을 유지한다.
-- 페이지 추가 시 자동 이동은 새 선택 페이지를 기준으로 즉시 정렬하고, 연속 `smooth` 스크롤 충돌을 피한다.
+- 페이지 추가 시 자동 이동은 `scrollToOffset(scroller.scrollWidth)`로 맨 끝까지 스크롤해 추가 버튼을 노출한다 (`useBottomBarScroll.ts` 참고). 마지막 페이지 기준으로만 스크롤하면 추가 버튼이 잘려 보이므로 반드시 `scrollWidth`(전체 너비)를 사용한다.
 
 ### 하단바 다중 페이지 선택 및 복사/붙여넣기
 
