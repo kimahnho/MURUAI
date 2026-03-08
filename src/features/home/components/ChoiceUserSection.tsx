@@ -101,6 +101,8 @@ const ChoiceUserSection = () => {
   const showCarousel = lessonType === "individual" && students.length > 4;
   const showGroupCarousel = lessonType === "group" && groups.length > 4;
 
+  if (!isAuthenticated) return null;
+
   return (
     <section className="flex flex-col w-full px-10 gap-10">
       <div className="flex flex-col w-full gap-10 items-center justify-center">

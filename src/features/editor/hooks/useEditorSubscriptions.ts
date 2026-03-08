@@ -16,6 +16,8 @@ import { useTemplateSubscription } from "./useTemplateSubscription";
 import { useBoardSubscriptions } from "./useBoardSubscriptions";
 import { useTemplateNotifications } from "./useTemplateNotifications";
 import { usePageSettingsSubscription } from "./usePageSettingsSubscription";
+import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { useTemplateStore } from "../store/templateStore";
 
 type TextPreset = {
   text: string;
@@ -211,6 +213,25 @@ export const useEditorSubscriptions = ({
     selectedPageId,
     selectedPageIdRef,
     setPages,
+  });
+
+  // AI 스토리라인 페이지 삽입 요청을 감지해 현재 페이지 목록 끝에 추가한다.
+  useStoreSubscription({
+    subscribe: useTemplateStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.insertPagesRequest !== null &&
+      state.insertPagesRequest !== prevState.insertPagesRequest,
+    onChange: (state) => {
+      if (!state.insertPagesRequest) return;
+      const { pages: newPages } = state.insertPagesRequest;
+      setPages((prev) => {
+        const combined = [...prev, ...newPages];
+        return combined.map((p, i) => ({ ...p, pageNumber: i + 1 }));
+      });
+      recordHistory("AI 스토리라인 생성");
+      useTemplateStore.getState().clearInsertPagesRequest();
+    },
+    deps: [setPages, recordHistory],
   });
 
   return { showEmotionInferenceToast };

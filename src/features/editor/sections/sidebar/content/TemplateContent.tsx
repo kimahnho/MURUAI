@@ -36,6 +36,11 @@ import {
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
+import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
+import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
+import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStoryPages";
+import { useTemplateStore } from "@/features/editor/store/templateStore";
+import { useToastStore } from "@/features/editor/store/toastStore";
 import { getPreviewMetrics } from "./previewMetrics";
 import fiveSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/ten-space-writing-note/preview.png";
@@ -236,13 +241,17 @@ const TemplateCarousel = ({
   icon,
   iconColor,
   templates,
+  onEmotionInferenceClick,
 }: {
   title: string;
   icon: LucideIcon;
   iconColor?: string;
   templates: { id: string; title: string }[];
+  onEmotionInferenceClick?: () => void;
 }) => {
-  const { handleTemplateClick: onTemplateClick } = useTemplateContentState();
+  const { handleTemplateClick: onTemplateClick } = useTemplateContentState({
+    onEmotionInferenceClick,
+  });
   const [pageIndex, setPageIndex] = useState(0);
   const itemsPerPage = 4;
   const totalPages = Math.max(1, Math.ceil(templates.length / itemsPerPage));
@@ -391,6 +400,9 @@ const TemplateContent = () => {
   >("vertical");
   const [aacLabelPosition, setAacLabelPosition] =
     useState<AacLabelPosition>("bottom");
+  const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] =
+    useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyCount, setStoryCount] = useState(4);
   const [storyDirection, setStoryDirection] =
@@ -403,6 +415,7 @@ const TemplateContent = () => {
     requestAacBoard,
     requestStoryBoard,
     previewTemplate,
+    openPreview,
     closePreview,
     requestTemplate,
   } = useTemplateContentState();
@@ -541,6 +554,7 @@ const TemplateContent = () => {
           icon={BadgeCheck}
           iconColor="text-blue-500"
           templates={POPULAR_TEMPLATES}
+          onEmotionInferenceClick={() => setIsEmotionChoiceModalOpen(true)}
         />
         <TemplateCarousel
           title="기본 템플릿"
@@ -592,6 +606,33 @@ const TemplateContent = () => {
         onSelectRatio={setStoryRatio}
         onSelectOrientation={setStoryOrientation}
         onApply={handleApplyStoryBoard}
+      />
+
+      <EmotionInferenceChoiceModal
+        isOpen={isEmotionChoiceModalOpen}
+        isGenerating={isAiGenerating}
+        onClose={() => {
+          if (!isAiGenerating) setIsEmotionChoiceModalOpen(false);
+        }}
+        onSelectTemplate={() => {
+          setIsEmotionChoiceModalOpen(false);
+          openPreview("emotionInference");
+        }}
+        onSelectAi={async (topic) => {
+          setIsAiGenerating(true);
+          try {
+            const stories = await generateEmotionStory(topic);
+            const pages = buildEmotionStoryPages(stories);
+            useTemplateStore.getState().requestInsertPages(pages);
+            setIsEmotionChoiceModalOpen(false);
+          } catch {
+            useToastStore
+              .getState()
+              .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");
+          } finally {
+            setIsAiGenerating(false);
+          }
+        }}
       />
 
       {previewTemplate && previewTemplateData && (

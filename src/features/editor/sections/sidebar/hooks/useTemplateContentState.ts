@@ -10,7 +10,9 @@ import {
   type TemplateId,
 } from "@/features/editor/templates/templateRegistry";
 
-export const useTemplateContentState = () => {
+export const useTemplateContentState = ({
+  onEmotionInferenceClick,
+}: { onEmotionInferenceClick?: () => void } = {}) => {
   const requestTemplate = useTemplateStore((state) => state.requestTemplate);
   const requestAacBoard = useAacBoardStore((state) => state.requestBoard);
   const requestStoryBoard = useStoryBoardStore((state) => state.requestBoard);
@@ -24,6 +26,13 @@ export const useTemplateContentState = () => {
       template_id: templateId,
       template_name: templateDefinition.label,
     });
+
+    // 감정 추론 활동은 선택 모달을 먼저 띄운다.
+    if (templateId === "emotionInference" && onEmotionInferenceClick) {
+      onEmotionInferenceClick();
+      return;
+    }
+
     const hasMultiplePages =
       "pages" in templateDefinition &&
       templateDefinition.pages &&

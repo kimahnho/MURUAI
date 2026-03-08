@@ -158,6 +158,15 @@ requestHydration() → setPdfPreviewActive(true) → waitForHydration()
 - `handlePastePages`는 `copiedPageIds` 우선, 없으면 `copiedPageId` 폴백 (`usePageActions.ts`)
 - **keydown 핸들러의 클로저 문제 주의**: `selectedPageIds`, `selectedPageId`, `pages`, `onSelectPage`, `onPastePages`는 별도 ref로 유지하고, keydown useEffect는 빈 dependency(`[]`)로 한 번만 등록해 최신 값은 ref에서 읽는다
 
+## AI 생성 페이지 빌드 지침
+
+- AI 생성 페이지는 `buildEmotionStoryPages.ts` 패턴을 따른다: 고정 템플릿 페이지 + AI 텍스트 주입 페이지
+- `instantiateTemplate` → `fitTemplateTextElement`가 플레이스홀더 텍스트 기준으로 `w/h/x`를 자동 조정한다.
+  AI 문장으로 교체 시 반드시 `w/x`를 원래 템플릿 값으로 명시 복원해야 한다.
+- AI 주입 텍스트 요소는 `widthMode: "fixed"` 사용 — `"auto"`는 BottomBar 썸네일(`readOnly=true`)에서 autoResize가 차단되어 초기 `w`(플레이스홀더 기준)로 고정됨
+- 초기 `h`는 **1줄 높이**(`fontSize × lineHeight`)로 설정 — `fixed` 모드에서 1줄이면 `shouldMeasureHeight=false`로 스킵되므로 정확한 값; 2줄 이상은 실제 페이지에서 autoResize가 보정
+- 썸네일은 항상 초기 `h` 고정, 실제 페이지는 autoResize가 보정하는 구조를 유지한다
+
 ## 사이드바 메뉴 구조 지침
 
 - 메뉴 항목: `SideBarMenu` 타입 (`src/features/editor/store/sideBarStore.ts`)

@@ -32,7 +32,7 @@ const FirstCommentSection = () => {
   };
 
   return (
-    <section className="flex flex-col w-full px-10 py-25">
+    <section className="flex flex-col w-full px-10 pt-25">
       <div className="flex flex-col w-full gap-10 items-center justify-center">
         <div className="flex flex-col items-center justify-center">
           <span className="flex text-headline-42-bold items-center justify-center text-center">
