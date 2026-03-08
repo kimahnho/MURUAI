@@ -26,7 +26,7 @@ const FontContentView = ({
   onSelectFont,
   onSelectWeight,
 }: FontContentViewProps) => (
-  <div className="flex flex-col w-full h-full gap-4">
+  <div className="flex flex-col w-full h-full gap-4" data-text-props-panel>
     <div className="text-14-regular text-black-70">
       글꼴을 선택하면 선택된 텍스트에 적용됩니다.
     </div>
@@ -46,6 +46,7 @@ const FontContentView = ({
                 <button
                   type="button"
                   onClick={() => { onToggleExpand(font.id); }}
+                  onMouseDown={(e) => e.preventDefault()}
                   // 확장 토글은 같은 폰트 패밀리의 굵기 프리셋 목록만 열고 닫는다.
                   className="mt-1 flex h-5 w-5 items-center justify-center text-black-60"
                   aria-label={`${font.label} 굵기 펼치기`}
@@ -55,6 +56,7 @@ const FontContentView = ({
                 <button
                   type="button"
                   onClick={() => { onSelectFont(font.family); }}
+                  onMouseDown={(e) => e.preventDefault()}
                   // 패밀리 선택은 현재 weight를 유지한 채 family만 바꾸는 경로로 연결된다.
                   className="flex flex-1 flex-col items-start gap-1 text-left"
                 >
@@ -84,6 +86,7 @@ const FontContentView = ({
                           key={weight.value}
                           type="button"
                           onClick={() => { onSelectWeight(font.family, weight.value); }}
+                          onMouseDown={(e) => e.preventDefault()}
                           className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-2 text-14-regular transition ${
                             isActive
                               ? "bg-primary/10 text-primary"

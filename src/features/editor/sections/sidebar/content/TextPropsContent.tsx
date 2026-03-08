@@ -20,6 +20,7 @@ import {
 import { useElementPanelStore, type TextPanelData } from "@/features/editor/store/elementPanelStore";
 import { DEFAULT_LINE_HEIGHT } from "@/features/editor/sections/canvas/elements/text/textContentUtils";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
+import { detectMixedFontFamilyInRichText } from "@/features/editor/sections/canvas/elements/text/textContentUtils";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
@@ -104,7 +105,7 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
   return (
     <>
       {/* 글꼴 */}
-      <InlineFontPicker fontFamily={cb.fontFamily} preventFocus />
+      <InlineFontPicker fontFamily={cb.fontFamily} preventFocus isMixed={cb.isFontFamilyMixed} />
 
       {/* 텍스트 크기 */}
       <div className="flex flex-col gap-2">
@@ -225,6 +226,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
   const style = element.style;
   const fontFamily = style.fontFamily ?? "Pretendard";
+  const isFontFamilyMixed = detectMixedFontFamilyInRichText(element.richText, fontFamily);
   const color = style.color ?? "#000000";
   const align = style.alignX ?? "left";
   const alignY = style.alignY ?? "top";
@@ -273,7 +275,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   return (
     <>
       {/* 글꼴 */}
-      <InlineFontPicker fontFamily={fontFamily} />
+      <InlineFontPicker fontFamily={fontFamily} isMixed={isFontFamilyMixed} />
 
       {/* 텍스트 크기 */}
       <div className="flex flex-col gap-2">

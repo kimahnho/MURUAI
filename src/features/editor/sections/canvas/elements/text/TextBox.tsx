@@ -335,7 +335,7 @@ const TextBox = ({
             event.stopPropagation();
           }}
           // 편집 모드에서 텍스트 선택을 보장한다.
-          className={`w-full select-text outline-none no-text-underline textbox-force-font-family ${textClassName}`}
+          className={`w-full select-text outline-none no-text-underline ${textClassName}`}
           style={{
             ...textStyle,
             textAlign,
@@ -349,7 +349,7 @@ const TextBox = ({
       ) : (
         <div
           data-textbox-content="true"
-          className={`block w-full pointer-events-none textbox-force-font-family ${textClassName}`}
+          className={`block w-full pointer-events-none ${textClassName}`}
           style={{
             ...textStyle,
             textAlign,

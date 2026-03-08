@@ -37,8 +37,8 @@ export const useImageUploadToCloudinary = () => {
         return null;
       }
 
-      if (!["image/jpeg", "image/png"].includes(file.type)) {
-        showToast("JPG 또는 PNG 파일만 업로드할 수 있어요.");
+      if (!["image/jpeg", "image/png", "image/svg+xml"].includes(file.type)) {
+        showToast("JPG, PNG 또는 SVG 파일만 업로드할 수 있어요.");
         return null;
       }
 

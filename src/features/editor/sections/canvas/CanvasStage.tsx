@@ -7,6 +7,7 @@ import type { Page } from "../../model/pageTypes";
 import DesignPaper from "./DesignPaper";
 import type { DesignPaperStageActions } from "../../model/stageActions";
 import { useCanvasStageSelection } from "./hooks/useCanvasStageSelection";
+import { useCanvasFileDrop } from "../../hooks/useCanvasFileDrop";
 
 type CanvasStageProps = {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -47,6 +48,11 @@ const CanvasStage = ({
 }: CanvasStageProps) => {
   // Stage 액션 ref를 통해 DesignPaper 내부 동작(선택 계산/좌표 조회)을 스테이지 선택 훅과 연결한다.
   const stageActionsRef = useRef<DesignPaperStageActions | null>(null);
+  const { handleFileDrop } = useCanvasFileDrop(
+    onElementsChange,
+    () => selectedPage?.elements ?? [],
+  );
+
   const {
     selectionRect,
     previewSelectedIds,
@@ -127,6 +133,7 @@ const CanvasStage = ({
                 onSelectedIdsChange={onSelectedIdsChange}
                 onEditingTextIdChange={onEditingTextIdChange}
                 onElementsChange={onElementsChange}
+                onFileDropOnCanvas={handleFileDrop}
               />
             )}
           </div>

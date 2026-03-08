@@ -37,8 +37,10 @@ import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
+import type { EmotionImageStyle } from "./EmotionInferenceChoiceModal";
 import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
 import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStoryPages";
+import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageMap";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { getPreviewMetrics } from "./previewMetrics";
@@ -618,11 +620,14 @@ const TemplateContent = () => {
           setIsEmotionChoiceModalOpen(false);
           openPreview("emotionInference");
         }}
-        onSelectAi={async (topic) => {
+        onSelectAi={async (topic: string, imageStyle: EmotionImageStyle) => {
           setIsAiGenerating(true);
           try {
-            const stories = await generateEmotionStory(topic);
-            const pages = buildEmotionStoryPages(stories);
+            // DB에서 감정 이미지를 먼저 조회해 사용 가능한 라벨 목록을 확보한다.
+            const emotionImageMap = await fetchEmotionImageMap(imageStyle);
+            const availableLabels = [...emotionImageMap.keys()];
+            const stories = await generateEmotionStory(topic, availableLabels);
+            const pages = buildEmotionStoryPages(stories, emotionImageMap);
             useTemplateStore.getState().requestInsertPages(pages);
             setIsEmotionChoiceModalOpen(false);
           } catch {

@@ -225,3 +225,110 @@ export const resolveFontSizeUiStateFromRange = ({
   const [size] = Array.from(sizes);
   return { resolvedSize: size, isMixed: false, displayValue: String(size) };
 };
+
+// 선택 범위 내 fontFamily 혼합 여부를 계산한다.
+const resolveComputedFontFamily = (node: Node, fallback: string): string => {
+  const element =
+    node.nodeType === Node.ELEMENT_NODE
+      ? (node as HTMLElement)
+      : node.parentElement;
+  if (!element) return fallback;
+  const computed = window.getComputedStyle(element).fontFamily;
+  return computed || fallback;
+};
+
+// 동일 시스템 폰트도 브라우저에 따라 따옴표 포함/미포함 차이가 있으므로 정규화한다.
+const normalizeFontFamily = (ff: string): string =>
+  ff.replace(/["']/g, "").split(",")[0].trim().toLowerCase();
+
+export type FontFamilyUiState = {
+  fontFamily: string;
+  isMixed: boolean;
+};
+
+// collapsed 커서에서 왼쪽 문자가 속한 노드를 반환한다.
+// offset > 0이면 같은 텍스트 노드, offset === 0이면 직전 텍스트 노드를 탐색한다.
+const resolveLeftCharNode = (container: Node, offset: number): Node | null => {
+  if (container.nodeType === Node.TEXT_NODE && offset > 0) {
+    return container;
+  }
+
+  // offset === 0이거나 element 노드인 경우 — 직전 텍스트 노드를 찾는다
+  const findPrevTextNode = (node: Node): Text | null => {
+    let current: Node | null = node;
+    while (current) {
+      // 이전 형제부터 탐색
+      let sibling = current.previousSibling;
+      while (sibling) {
+        const last = findLastTextNode(sibling);
+        if (last) return last;
+        sibling = sibling.previousSibling;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  };
+
+  const findLastTextNode = (node: Node): Text | null => {
+    if (node.nodeType === Node.TEXT_NODE && (node as Text).length > 0) {
+      return node as Text;
+    }
+    for (let i = node.childNodes.length - 1; i >= 0; i--) {
+      const found = findLastTextNode(node.childNodes[i]);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  // element 노드이고 offset > 0이면, offset 위치 직전 자식에서 마지막 텍스트 노드를 찾는다
+  if (container.nodeType === Node.ELEMENT_NODE && offset > 0) {
+    const child = container.childNodes[offset - 1];
+    if (child) {
+      const last = findLastTextNode(child);
+      if (last) return last;
+    }
+  }
+
+  return findPrevTextNode(container);
+};
+
+export const resolveFontFamilyFromRange = ({
+  range,
+  fallback,
+}: {
+  range: Range;
+  fallback: string;
+}): FontFamilyUiState => {
+  if (range.collapsed) {
+    // 커서 왼쪽 문자의 폰트를 우선 사용한다
+    const leftNode = resolveLeftCharNode(range.startContainer, range.startOffset);
+    const targetNode = leftNode ?? range.startContainer;
+    const raw = resolveComputedFontFamily(targetNode, fallback);
+    return { fontFamily: raw, isMixed: false };
+  }
+
+  const families = new Set<string>();
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_TEXT,
+  );
+  let current = walker.nextNode();
+  while (current) {
+    const text = current as Text;
+    if (text.textContent && text.textContent.length > 0 && range.intersectsNode(text)) {
+      families.add(normalizeFontFamily(resolveComputedFontFamily(text, fallback)));
+    }
+    current = walker.nextNode();
+  }
+
+  if (families.size === 0) {
+    return { fontFamily: fallback, isMixed: false };
+  }
+  if (families.size > 1) {
+    return { fontFamily: fallback, isMixed: true };
+  }
+  const [family] = Array.from(families);
+  // 정규화된 값에서 원본 fontFamily를 복원한다 — computed style에서 가져온 값을 사용
+  const raw = resolveComputedFontFamily(range.startContainer, fallback);
+  return { fontFamily: normalizeFontFamily(raw) === family ? raw : fallback, isMixed: false };
+};

@@ -1,15 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ChevronLeft,
-  Copy,
-  Folder,
-  LayoutGrid,
-  List,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { ChevronLeft, Copy, Folder, Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import BaseModal from "@/shared/ui/BaseModal";
@@ -54,6 +45,11 @@ type SimpleTarget = {
   name: string;
 };
 
+const PAGE_WIDTH_PX = 210 * 3.7795;
+const PAGE_HEIGHT_PX = 297 * 3.7795;
+const PREVIEW_SCALE = 0.18;
+const SKELETON_COUNT = 5;
+
 const formatDate = (value: string | null) => {
   if (!value) return "";
   const date = new Date(value);
@@ -78,16 +74,44 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
   return null;
 };
 
+// 필터 칩: 학습자/그룹별 문서 필터링
+interface FilterChipProps {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const FilterChip = ({ label, isActive, onClick }: FilterChipProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`shrink-0 rounded-full px-4 py-2 text-14-semibold transition cursor-pointer ${
+      isActive
+        ? "bg-primary text-white-100"
+        : "bg-black-5 text-black-70 hover:bg-black-10"
+    }`}
+  >
+    {label}
+  </button>
+);
+
+const SkeletonCard = () => (
+  <div className="flex flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm">
+    <div className="aspect-3/4 w-full animate-pulse rounded-xl bg-black-10" />
+    <div className="flex flex-col gap-1">
+      <div className="h-5 w-3/4 animate-pulse rounded bg-black-10" />
+      <div className="h-4 w-1/2 animate-pulse rounded bg-black-10" />
+    </div>
+  </div>
+);
+
 const MyDocPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuthStore();
   const [docs, setDocs] = useState<DocItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingTargets, setIsLoadingTargets] = useState(true);
   const [students, setStudents] = useState<SimpleTarget[]>([]);
   const [groups, setGroups] = useState<SimpleTarget[]>([]);
-  const [currentChildPage, setCurrentChildPage] = useState(0);
-  const [currentGroupPage, setCurrentGroupPage] = useState(0);
   const [selectedTarget, setSelectedTarget] = useState<DocTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,45 +128,59 @@ const MyDocPage = () => {
   }, [isAuthLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    const loadDocs = async () => {
-      if (isAuthLoading) {
-        setIsLoading(true);
-        setIsLoadingTargets(true);
-        return;
-      }
-      if (!isAuthenticated) {
-        setDocs([]);
-        setIsLoading(false);
-        setIsLoadingTargets(false);
-        return;
-      }
+    if (isAuthLoading) {
       setIsLoading(true);
-      setIsLoadingTargets(true);
+      return;
+    }
+    if (!isAuthenticated) {
+      setDocs([]);
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDocs = async () => {
+      setIsLoading(true);
       setErrorMessage(null);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (cancelled) return;
       if (!user) {
         setDocs([]);
         setIsLoading(false);
-        setIsLoadingTargets(false);
         return;
       }
+
       const [docsResult, targetsResult, studentsResult, groupsResult] =
         await Promise.all([
           supabase
             .from("user_made_n")
             .select("id,name,created_at,canvas_data")
             .eq("user_id", user.id)
+            .is("deleted_at", null)
             .order("created_at", { ascending: false }),
           supabase
             .from("user_made_targets_n")
             .select(
               "user_made_id,child_id,group_id,students_n(id,name),groups_n(id,name)",
-            ),
-          supabase.from("students_n").select("id,name").eq("user_id", user.id),
-          supabase.from("groups_n").select("id,name").eq("owner_id", user.id),
+            )
+            .is("deleted_at", null),
+          supabase
+            .from("students_n")
+            .select("id,name")
+            .eq("user_id", user.id)
+            .is("deleted_at", null),
+          supabase
+            .from("groups_n")
+            .select("id,name")
+            .eq("owner_id", user.id)
+            .is("deleted_at", null),
         ]);
+
+      if (cancelled) return;
 
       if (studentsResult.error) {
         setErrorMessage("학습자 목록을 불러오지 못했어요.");
@@ -153,7 +191,6 @@ const MyDocPage = () => {
 
       setStudents((studentsResult.data as SimpleTarget[] | null) ?? []);
       setGroups((groupsResult.data as SimpleTarget[] | null) ?? []);
-      setIsLoadingTargets(false);
 
       if (docsResult.error) {
         setErrorMessage("학습자료를 불러오지 못했어요.");
@@ -161,6 +198,7 @@ const MyDocPage = () => {
         setIsLoading(false);
         return;
       }
+
       const nextDocs = (docsResult.data as UserMadeRow[] | null) ?? [];
       if (nextDocs.length === 0) {
         setDocs([]);
@@ -169,9 +207,7 @@ const MyDocPage = () => {
       }
 
       const targetRows = targetsResult.data as TargetRow[] | null;
-      const targetsError = targetsResult.error;
-
-      if (targetsError) {
+      if (targetsResult.error) {
         setErrorMessage("등록 대상을 불러오지 못했어요.");
       }
 
@@ -224,26 +260,11 @@ const MyDocPage = () => {
       setIsLoading(false);
     };
 
-    loadDocs();
+    void loadDocs();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, isAuthLoading]);
-
-  const registeredChildren = students;
-  const registeredGroups = groups;
-  const itemsPerPage = 5;
-  const totalChildPages = Math.ceil(registeredChildren.length / itemsPerPage);
-  const totalGroupPages = Math.ceil(registeredGroups.length / itemsPerPage);
-  const safeChildPage =
-    totalChildPages === 0 ? 0 : Math.min(currentChildPage, totalChildPages - 1);
-  const safeGroupPage =
-    totalGroupPages === 0 ? 0 : Math.min(currentGroupPage, totalGroupPages - 1);
-  const currentChildren = registeredChildren.slice(
-    safeChildPage * itemsPerPage,
-    (safeChildPage + 1) * itemsPerPage,
-  );
-  const currentGroups = registeredGroups.slice(
-    safeGroupPage * itemsPerPage,
-    (safeGroupPage + 1) * itemsPerPage,
-  );
 
   const filteredDocs = (() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -267,7 +288,7 @@ const MyDocPage = () => {
       )
     : filteredDocs;
 
-  const getInitial = (value: string) => value.trim().slice(0, 1) || "?";
+  // 소프트 삭제 처리
   const handleDeleteDoc = async (docId: string) => {
     const confirmed = window.confirm("학습자료를 삭제할까요?");
     if (!confirmed) return;
@@ -278,9 +299,10 @@ const MyDocPage = () => {
       setErrorMessage("로그인이 필요해요.");
       return;
     }
+    const now = new Date().toISOString();
     const { error: targetError } = await supabase
       .from("user_made_targets_n")
-      .delete()
+      .update({ deleted_at: now })
       .eq("user_made_id", docId);
     if (targetError) {
       setErrorMessage("학습자료를 삭제하지 못했어요.");
@@ -288,7 +310,7 @@ const MyDocPage = () => {
     }
     const { error } = await supabase
       .from("user_made_n")
-      .delete()
+      .update({ deleted_at: now })
       .eq("id", docId);
     if (error) {
       setErrorMessage("학습자료를 삭제하지 못했어요.");
@@ -296,6 +318,7 @@ const MyDocPage = () => {
     }
     setDocs((prev) => prev.filter((doc) => doc.id !== docId));
   };
+
   const handleDuplicateDoc = async (doc: DocItem) => {
     const {
       data: { user },
@@ -347,6 +370,7 @@ const MyDocPage = () => {
     ]);
     return true;
   };
+
   const handleConfirmDuplicate = async () => {
     if (!pendingDuplicateDoc || isDuplicating) return;
     setIsDuplicating(true);
@@ -357,9 +381,12 @@ const MyDocPage = () => {
     }
   };
 
+  const hasFilters = students.length > 0 || groups.length > 0;
+
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="flex w-full items-center justify-between px-10 pt-8 pb-4">
+      {/* 헤더: 뒤로가기 + 제목 + 검색 + 새 자료 버튼 */}
+      <header className="flex w-full items-center justify-between px-10 pt-8 pb-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -388,9 +415,7 @@ const MyDocPage = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
             <input
               value={searchTerm}
-              onChange={(event) => {
-                setSearchTerm(event.target.value);
-              }}
+              onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="내 보관함 검색"
               className="h-11 w-full rounded-xl border border-black-20 bg-black-5 pl-10 pr-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
             />
@@ -408,278 +433,141 @@ const MyDocPage = () => {
         >
           <Plus className="h-4 w-4" />새 자료 만들기
         </button>
-      </div>
+      </header>
 
-      <div className="flex w-full flex-1 flex-col gap-8 overflow-y-auto px-10 py-8">
-        <section className="flex flex-col gap-5">
-          <div className="flex items-center gap-2">
-            <span className="text-title-16-semibold text-black-100">
-              등록된 학습자
-            </span>
+      {/* 스크롤 콘텐츠 */}
+      <div className="flex w-full flex-1 flex-col gap-10 overflow-y-auto px-10 pb-20">
+        {/* 필터 칩 바: 학습자/그룹별 필터링 */}
+        {hasFilters && (
+          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <FilterChip
+              label="전체"
+              isActive={selectedTarget === null}
+              onClick={() => setSelectedTarget(null)}
+            />
+            {students.map((s) => (
+              <FilterChip
+                key={`child-${s.id}`}
+                label={`아동: ${s.name}`}
+                isActive={
+                  selectedTarget?.type === "child" &&
+                  selectedTarget.id === s.id
+                }
+                onClick={() =>
+                  setSelectedTarget((prev) =>
+                    prev?.type === "child" && prev.id === s.id
+                      ? null
+                      : { type: "child", id: s.id, name: s.name },
+                  )
+                }
+              />
+            ))}
+            {groups.map((g) => (
+              <FilterChip
+                key={`group-${g.id}`}
+                label={`그룹: ${g.name}`}
+                isActive={
+                  selectedTarget?.type === "group" &&
+                  selectedTarget.id === g.id
+                }
+                onClick={() =>
+                  setSelectedTarget((prev) =>
+                    prev?.type === "group" && prev.id === g.id
+                      ? null
+                      : { type: "group", id: g.id, name: g.name },
+                  )
+                }
+              />
+            ))}
           </div>
-          {isLoadingTargets ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-10">
-              <span className="text-14-regular text-black-50">
-                학습자 목록을 불러오는 중입니다.
-              </span>
-            </div>
-          ) : registeredChildren.length === 0 ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-10">
-              <span className="text-14-regular text-black-50">
-                등록된 학습자가 없습니다.
-              </span>
-            </div>
-          ) : (
-            <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {currentChildren.map((target) => (
-                <div
-                  key={`child-${target.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setSelectedTarget((prev) =>
-                      prev?.type === "child" && prev.id === target.id
-                        ? null
-                        : { type: "child", id: target.id, name: target.name },
-                    );
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelectedTarget((prev) =>
-                        prev?.type === "child" && prev.id === target.id
-                          ? null
-                          : { type: "child", id: target.id, name: target.name },
-                      );
-                    }
-                  }}
-                  className={`flex h-36 flex-col items-center gap-3 rounded-2xl border bg-white-100 px-6 py-5 text-center shadow-sm transition ${
-                    selectedTarget?.type === "child" &&
-                    selectedTarget.id === target.id
-                      ? "border-primary ring-1 ring-primary/30"
-                      : "border-black-10 hover:border-black-20"
-                  }`}
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-16-semibold text-white-100">
-                    {getInitial(target.name)}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-14-semibold text-black-90">
-                      {target.name}
-                    </span>
-                    <span className="text-12-regular text-black-50">
-                      개별 학습자
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex min-h-4 items-center justify-center gap-2">
-            {totalChildPages > 1 &&
-              Array.from({ length: totalChildPages }).map((_, index) => (
-                <button
-                  key={`child-page-${index}`}
-                  onClick={() => {
-                    setCurrentChildPage(index);
-                  }}
-                  className={`h-2 w-2 rounded-full transition-all ${
-                    index === safeChildPage
-                      ? "w-6 bg-primary"
-                      : "bg-black-30 hover:bg-black-40"
-                  }`}
-                  aria-label={`${index + 1}페이지로 이동`}
-                />
-              ))}
-          </div>
+        )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-title-16-semibold text-black-100">
-              등록된 그룹
-            </span>
+        {errorMessage && (
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-14-regular text-red-600">
+            {errorMessage}
           </div>
-          {isLoadingTargets ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-10">
-              <span className="text-14-regular text-black-50">
-                그룹 목록을 불러오는 중입니다.
-              </span>
-            </div>
-          ) : registeredGroups.length === 0 ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-10">
-              <span className="text-14-regular text-black-50">
-                등록된 그룹이 없습니다.
-              </span>
-            </div>
-          ) : (
-            <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {currentGroups.map((target) => (
-                <div
-                  key={`group-${target.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setSelectedTarget((prev) =>
-                      prev?.type === "group" && prev.id === target.id
-                        ? null
-                        : { type: "group", id: target.id, name: target.name },
-                    );
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelectedTarget((prev) =>
-                        prev?.type === "group" && prev.id === target.id
-                          ? null
-                          : { type: "group", id: target.id, name: target.name },
-                      );
-                    }
-                  }}
-                  className={`flex h-36 flex-col items-center gap-3 rounded-2xl border bg-white-100 px-6 py-5 text-center shadow-sm transition ${
-                    selectedTarget?.type === "group" &&
-                    selectedTarget.id === target.id
-                      ? "border-primary ring-1 ring-primary/30"
-                      : "border-black-10 hover:border-black-20"
-                  }`}
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-16-semibold text-white-100">
-                    {getInitial(target.name)}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-14-semibold text-black-90">
-                      {target.name}
-                    </span>
-                    <span className="text-12-regular text-black-50">
-                      그룹 수업
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex min-h-4 items-center justify-center gap-2">
-            {totalGroupPages > 1 &&
-              Array.from({ length: totalGroupPages }).map((_, index) => (
-                <button
-                  key={`group-page-${index}`}
-                  onClick={() => {
-                    setCurrentGroupPage(index);
-                  }}
-                  className={`h-2 w-2 rounded-full transition-all ${
-                    index === safeGroupPage
-                      ? "w-6 bg-primary"
-                      : "bg-black-30 hover:bg-black-40"
-                  }`}
-                  aria-label={`${index + 1}페이지로 이동`}
-                />
-              ))}
-          </div>
-        </section>
+        )}
 
-        <div className="h-px w-full bg-black-10" />
-
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-title-16-semibold text-black-100">
-                등록된 학습자료
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-black-50">
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-20 bg-white-100"
-                aria-label="그리드 보기"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-20 bg-white-100"
-                aria-label="리스트 보기"
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {errorMessage && (
-            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-14-regular text-red-600">
-              {errorMessage}
-            </div>
-          )}
+        {/* 문서 그리드 섹션 */}
+        <section className="flex flex-col gap-6">
+          <span className="text-title-22-semibold text-black-90">
+            {selectedTarget
+              ? `${selectedTarget.name}의 학습자료`
+              : "전체 학습자료"}
+          </span>
 
           {isLoading ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
-              <span className="text-14-regular text-black-50">
-                학습자료를 불러오는 중입니다.
-              </span>
+            <div className="grid w-full grid-cols-5 gap-5">
+              {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : visibleDocs.length === 0 ? (
             <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
               <div className="flex flex-col items-center gap-3">
                 <span className="text-14-regular text-black-50">
-                  등록된 학습자료가 없습니다.
+                  {searchTerm.trim()
+                    ? "검색 결과가 없습니다."
+                    : "등록된 학습자료가 없습니다."}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void createAndOpenDocument({
-                      onError: () => setErrorMessage("새 학습자료를 만들지 못했어요."),
-                    });
-                  }}
-                  disabled={isCreatingDoc}
-                  className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary/5"
-                >
-                  학습자료 만들어보기
-                </button>
+                {!searchTerm.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void createAndOpenDocument({
+                        onError: () =>
+                          setErrorMessage("새 학습자료를 만들지 못했어요."),
+                      });
+                    }}
+                    disabled={isCreatingDoc}
+                    className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary/5"
+                  >
+                    학습자료 만들어보기
+                  </button>
+                )}
               </div>
             </div>
           ) : (
-            <div className="grid w-full grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid w-full grid-cols-5 gap-5">
+              {/* 새 자료 만들기 카드 */}
               <button
                 type="button"
                 onClick={() => {
                   void createAndOpenDocument({
-                    onError: () => setErrorMessage("새 학습자료를 만들지 못했어요."),
+                    onError: () =>
+                      setErrorMessage("새 학습자료를 만들지 못했어요."),
                   });
                 }}
                 disabled={isCreatingDoc}
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-black-30 bg-white-100 px-6 py-12 text-black-50 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-black-20 bg-white-100 p-3 text-black-50 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black-10">
-                  <Plus className="h-5 w-5" />
+                <div className="flex aspect-3/4 w-full items-center justify-center rounded-xl">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black-5">
+                    <Plus className="h-6 w-6" />
+                  </div>
                 </div>
                 <span className="text-14-semibold">새 자료 만들기</span>
               </button>
+
+              {/* 문서 카드 */}
               {visibleDocs.map((doc) => {
                 const previewPage = doc.canvasData?.pages?.[0];
-                const pageWidthPx = 210 * 3.7795;
-                const pageHeightPx = 297 * 3.7795;
-
-                // orientation 값 검증
                 const rawOrientation = previewPage?.orientation;
-                const previewOrientation =
+                const orientation =
                   rawOrientation === "horizontal" ||
                   rawOrientation === "vertical"
                     ? rawOrientation
                     : "vertical";
-
-                const previewBaseWidth =
-                  previewOrientation === "horizontal"
-                    ? pageHeightPx
-                    : pageWidthPx;
-                const previewBaseHeight =
-                  previewOrientation === "horizontal"
-                    ? pageWidthPx
-                    : pageHeightPx;
-                const previewScale = 0.18;
-                const previewScaledWidth = previewBaseWidth * previewScale;
-                const previewScaledHeight = previewBaseHeight * previewScale;
-
-                // elements 검증
-                const previewElements = Array.isArray(previewPage?.elements)
+                const baseW =
+                  orientation === "horizontal" ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
+                const baseH =
+                  orientation === "horizontal" ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
+                const scaledW = baseW * PREVIEW_SCALE;
+                const scaledH = baseH * PREVIEW_SCALE;
+                const elements = Array.isArray(previewPage?.elements)
                   ? previewPage.elements
                   : [];
+
                 return (
                   <div
                     key={doc.id}
@@ -692,10 +580,11 @@ const MyDocPage = () => {
                         navigate(`/${doc.id}/edit`);
                       }
                     }}
-                    className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 text-left shadow-sm transition hover:border-primary hover:shadow-md"
+                    className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm transition hover:border-primary hover:shadow-md"
                   >
+                    {/* 미리보기 + 액션 버튼 */}
                     <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
-                      <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+                      <div className="absolute right-2 top-2 z-10 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={(event) => {
@@ -711,7 +600,7 @@ const MyDocPage = () => {
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleDeleteDoc(doc.id);
+                            void handleDeleteDoc(doc.id);
                           }}
                           className="flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-red-200 hover:text-red-500"
                           aria-label="학습자료 삭제"
@@ -723,24 +612,24 @@ const MyDocPage = () => {
                         <div
                           className="absolute left-1/2 top-1/2"
                           style={{
-                            width: `${previewScaledWidth}px`,
-                            height: `${previewScaledHeight}px`,
+                            width: `${scaledW}px`,
+                            height: `${scaledH}px`,
                             transform: "translate(-50%, -50%)",
                           }}
                         >
                           <div
                             style={{
-                              width: `${previewBaseWidth}px`,
-                              height: `${previewBaseHeight}px`,
-                              transform: `scale(${previewScale})`,
+                              width: `${baseW}px`,
+                              height: `${baseH}px`,
+                              transform: `scale(${PREVIEW_SCALE})`,
                               transformOrigin: "top left",
                               pointerEvents: "none",
                             }}
                           >
                             <DesignPaper
                               pageId={`mydoc-${doc.id}`}
-                              orientation={previewOrientation}
-                              elements={previewElements}
+                              orientation={orientation}
+                              elements={elements}
                               selectedIds={[]}
                               editingTextId={null}
                               readOnly
@@ -753,25 +642,31 @@ const MyDocPage = () => {
                         </div>
                       )}
                     </div>
+
+                    {/* 문서 정보 */}
                     <div className="flex flex-col gap-1">
-                      <span className="text-14-semibold text-black-90">
+                      <span className="truncate text-14-semibold text-black-90">
                         {doc.name || "제목 없음"}
                       </span>
                       <span className="text-12-regular text-black-50">
                         {formatDate(doc.created_at)}
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {doc.targets.map((target) => (
-                        <span
-                          key={`${target.type}-${target.id}`}
-                          className="rounded-full bg-black-10 px-2 py-1 text-12-regular text-black-70"
-                        >
-                          {target.type === "child" ? "아동" : "그룹"}:{" "}
-                          {target.name}
-                        </span>
-                      ))}
-                    </div>
+
+                    {/* 대상 태그 */}
+                    {doc.targets.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {doc.targets.map((target) => (
+                          <span
+                            key={`${target.type}-${target.id}`}
+                            className="rounded-full bg-black-5 px-2 py-0.5 text-12-regular text-black-60"
+                          >
+                            {target.type === "child" ? "아동" : "그룹"}:{" "}
+                            {target.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -779,6 +674,8 @@ const MyDocPage = () => {
           )}
         </section>
       </div>
+
+      {/* 복제 확인 모달 */}
       <BaseModal
         isOpen={Boolean(pendingDuplicateDoc)}
         onClose={() => {
@@ -809,7 +706,7 @@ const MyDocPage = () => {
               disabled={isDuplicating}
               className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
                 isDuplicating
-                  ? "bg-black-40 cursor-not-allowed"
+                  ? "cursor-not-allowed bg-black-40"
                   : "bg-primary hover:bg-primary/90"
               }`}
             >

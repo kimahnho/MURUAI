@@ -57,10 +57,6 @@ input[type="color"].color-input::-moz-color-swatch {
 
 /* TypoGraphy */
 @layer utilities {
-  .textbox-force-font-family * {
-    font-family: inherit !important;
-  }
-
   /* Headline */
   .text-headline-42-bold {
     font-size: 42px;

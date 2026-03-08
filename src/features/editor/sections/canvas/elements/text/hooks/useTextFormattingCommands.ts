@@ -90,6 +90,7 @@ export const useTextFormattingCommands = ({
     | { type: "setFontSize"; size: number }
     | { type: "setFontSizeStep"; delta: number }
     | { type: "setColor"; color: string }
+    | { type: "setFontFamily"; family: string }
     | { type: "toggleBold" }
     | { type: "toggleItalic" }
     | { type: "toggleUnderline" }
@@ -118,6 +119,9 @@ export const useTextFormattingCommands = ({
       }
       if (command.type === "setColor") {
         nextPending.color = command.color;
+      }
+      if (command.type === "setFontFamily") {
+        nextPending.fontFamily = command.family;
       }
       if (command.type === "toggleBold") {
         const current = nextPending.fontWeight ?? (isBoldAtNode(range.startContainer) ? "bold" : "normal");
@@ -281,6 +285,8 @@ export const useTextFormattingCommands = ({
     },
     applyColor: (color: string) =>
       applyCommandToSelection({ type: "setColor", color }),
+    applyFontFamily: (family: string) =>
+      applyCommandToSelection({ type: "setFontFamily", family }),
     toggleBold: () => applyCommandToSelection({ type: "toggleBold" }),
     toggleItalic: () => applyCommandToSelection({ type: "toggleItalic" }),
     toggleUnderline: () => applyCommandToSelection({ type: "toggleUnderline" }),

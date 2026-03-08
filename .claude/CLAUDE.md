@@ -167,6 +167,17 @@ requestHydration() → setPdfPreviewActive(true) → waitForHydration()
 - 초기 `h`는 **1줄 높이**(`fontSize × lineHeight`)로 설정 — `fixed` 모드에서 1줄이면 `shouldMeasureHeight=false`로 스킵되므로 정확한 값; 2줄 이상은 실제 페이지에서 autoResize가 보정
 - 썸네일은 항상 초기 `h` 고정, 실제 페이지는 autoResize가 보정하는 구조를 유지한다
 
+## 캔버스 파일 드래그 앤 드롭 지침
+
+- OS 파일 탐색기에서 JPG/PNG/SVG 파일을 캔버스에 직접 드래그 앤 드롭하면 이미지 요소 생성
+- 지원 파일: `image/jpeg`, `image/png`, `image/svg+xml` (`useImageUploadToCloudinary.ts`와 동일)
+- 흐름: 로컬 프리뷰 즉시 표시(`URL.createObjectURL`) → 백그라운드 Cloudinary 업로드 → `fill` URL 교체 → 실패 시 요소 제거 + `revokeObjectURL`
+- `DesignPaper.tsx`의 `onDrop`에서 사이드바 드래그(`application/x-muru-image`)와 OS 파일 드롭(`dataTransfer.files`)을 분기 처리
+- 파일 드롭 로직은 `useCanvasFileDrop` 훅(`src/features/editor/hooks/useCanvasFileDrop.ts`)에서 처리 — `DesignPaper`에는 `onFileDropOnCanvas` prop으로 전달
+- `getElements` 콜백 패턴: 비동기 업로드 완료 시점에 최신 elements를 참조하기 위해 사용
+- 이미지 크기: 원본 비율 유지, 최대 300px
+- 업로드 완료 시 `triggerRefetch()`로 사이드바 업로드 목록 동기화
+
 ## 사이드바 메뉴 구조 지침
 
 - 메뉴 항목: `SideBarMenu` 타입 (`src/features/editor/store/sideBarStore.ts`)

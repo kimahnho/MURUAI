@@ -8,6 +8,7 @@ import type { ShapeElement } from "../model/canvasTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { bumpPageRevision } from "../utils/pageRevision";
 import {
+  calculateCoverImageBox,
   findLabelElementId,
   getNextAacCardId,
   getNextEmotionCardId,
@@ -19,44 +20,6 @@ import {
 import { isEmotionSlotShape } from "../utils/designPaperUtils";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 import { updatePageById } from "../utils/pageMutation";
-
-/**
- * "채우기(cover)" 방식으로 imageBox 계산
- * 이미지 비율을 유지하면서 요소를 완전히 채움 (잘림 발생 가능)
- */
-const calculateCoverImageBox = (
-  elementW: number,
-  elementH: number,
-  imageW: number | undefined,
-  imageH: number | undefined
-): { x: number; y: number; w: number; h: number } => {
-  // 이미지 크기가 없으면 요소 크기 그대로 사용
-  if (!imageW || !imageH) {
-    return { x: 0, y: 0, w: elementW, h: elementH };
-  }
-
-  const elementRatio = elementW / elementH;
-  const imageRatio = imageW / imageH;
-
-  let boxW: number;
-  let boxH: number;
-
-  if (imageRatio > elementRatio) {
-    // 이미지가 더 넓음 - 높이를 맞추고 좌우 잘림
-    boxH = elementH;
-    boxW = elementH * imageRatio;
-  } else {
-    // 이미지가 더 높음 - 너비를 맞추고 상하 잘림
-    boxW = elementW;
-    boxH = elementW / imageRatio;
-  }
-
-  // 중앙 정렬
-  const x = (elementW - boxW) / 2;
-  const y = (elementH - boxH) / 2;
-
-  return { x, y, w: boxW, h: boxH };
-};
 
 type ImageFillSubscriptionParams = {
   pagesRef: ReadonlyRef<Page[]>;
