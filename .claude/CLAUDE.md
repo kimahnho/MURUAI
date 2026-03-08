@@ -109,6 +109,25 @@ React Compiler(babel-plugin-react-compiler)를 사용합니다. 불필요한 `us
 - **유지 필수**: `waitForFonts`, `waitForImages`, `waitForNextFrame`, `getAdaptiveCaptureScale` — 렌더 안정화에 필요
 - vite.config.ts `manualChunks.pdf`: `["html-to-image", "jspdf"]`
 
+### preparePdfPages() 순서 — 반드시 준수
+
+에디터는 LRU 기반 페이지 스왑(가상 스크롤)으로 현재 페이지 주변 ~8개만 메모리에 유지하고 나머지는 IndexedDB에 스왑 아웃한다. PDF 출력 시 모든 페이지를 복원해야 하므로 아래 순서를 지켜야 한다.
+
+**올바른 순서** (`src/app/layout/DesignLayout.tsx` `preparePdfPages()`):
+```
+1. setPdfPreviewActive(true) + setIsPdfPreviewActive(true)   ← 먼저 pdfPreviewActive 설정
+2. RAF × 2 대기                                              ← React 렌더 완료 → requiredPageIds가 전체 페이지로 확장
+3. requestHydration()                                        ← 이 시점에 requiredPageIds = 모든 페이지
+4. waitForHydration(requestId)                               ← 모든 페이지 IndexedDB 복원 완료 대기
+5. RAF × 2 대기                                              ← 레이아웃 안정화
+```
+
+**금지 패턴** (레이스 컨디션 발생):
+```
+requestHydration() → setPdfPreviewActive(true) → waitForHydration()
+```
+이 순서로 하면 `requiredPageIds`가 아직 "현재 페이지 주변 8개"인 상태에서 `loadMissing()`이 실행되어 "로드할 페이지 없음"으로 판단, `hydrationReady`를 즉시 호출해 스왑된 페이지들이 흰색으로 출력된다.
+
 ## 템플릿 PDF 자산 관리 지침
 
 - 경로: `src/features/editor/templates/template_pdf/<template-slug>/`

@@ -118,10 +118,25 @@ const DesignLayout = () => {
   };
 
   const preparePdfPages = async () => {
-    const requestId = usePageSwapStore.getState().requestHydration();
+    // pdfPreviewActive를 먼저 true로 설정해 React가 렌더하고
+    // usePageSwap의 requiredPageIds가 모든 페이지를 포함하도록 만든다.
     setIsPdfPreviewActive(true);
     usePageSwapStore.getState().setPdfPreviewActive(true);
+
+    // React 렌더 사이클이 완료되어 requiredPageIds가 전체 페이지로 확장될 때까지 대기한다.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+
+    // requiredPageIds가 모든 페이지를 포함한 상태에서 hydration을 요청한다.
+    const requestId = usePageSwapStore.getState().requestHydration();
     await waitForHydration(requestId);
+
+    // 레이아웃 안정화를 위한 추가 RAF
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
