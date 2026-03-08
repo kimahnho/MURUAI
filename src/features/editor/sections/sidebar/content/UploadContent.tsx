@@ -69,7 +69,7 @@ const UploadContentView = ({
     <input
       ref={inputRef}
       type="file"
-      accept=".jpg,.jpeg,.png"
+      accept=".jpg,.jpeg,.png,.svg"
       className="hidden"
       onChange={onFileChange}
     />

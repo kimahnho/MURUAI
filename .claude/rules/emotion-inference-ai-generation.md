@@ -14,7 +14,7 @@
 | 1 | `emotion_inference/page_1.ts` | 표지 (감정 선택 카드 4개) | 없음 — 고정 |
 | 2 | `emotion_inference/page_2.ts` | 목차 | 없음 — 고정 |
 | 3 | `emotion_inference/page_3.ts` | 치료목표 + 감정 어휘 | 없음 — 고정 |
-| 4 | `emotion_inference/page_4.ts` | **본문 (스토리 1장)** | 제목 + "아이는 __________" 텍스트 |
+| 4 | `emotion_inference/page_4.ts` | **본문 (스토리 1장)** | 제목 + 추론 문장 + 감정 카드 3개(이미지+라벨) |
 
 ### page_4 핵심 요소 (AI가 채울 대상)
 
@@ -86,101 +86,66 @@ import { emotionInferencePage3 } from "@/features/editor/templates/emotion_infer
 import { emotionInferencePage4 } from "@/features/editor/templates/emotion_inference/page_4";
 import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
 
-type StoryItem = { title: string; sentence: string };
+type StoryItem = { title: string; sentence: string; emotions: [string, string, string] };
 
-const buildAiStoryPages = (stories: StoryItem[]): Page[] => {
-  // 고정 3페이지
-  const fixedPages: Page[] = [
-    emotionInferencePage1,
-    emotionInferencePage2,
-    emotionInferencePage3,
-  ].map((template) => ({
-    id: crypto.randomUUID(),
-    pageNumber: 0,
-    templateId: "emotionInference",
-    orientation: "vertical" as const,
-    elements: withLogoCanvasElements(instantiateTemplate(template)),
-    rev: 0,
-  }));
-
-  // AI 스토리 10장
-  const storyPages: Page[] = stories.map(({ title, sentence }) => {
-    const elements = withLogoCanvasElements(
-      instantiateTemplate(emotionInferencePage4)
-    );
-    // 제목과 "아이는 ___" 텍스트를 AI 생성 내용으로 교체한다.
-    const patched = elements.map((el) => {
-      if (el.type === "text" && el.text === "제목을 입력하세요") {
-        return { ...el, text: title };
-      }
-      if (el.type === "text" && el.text === "아이는 __________") {
-        return { ...el, text: sentence };
-      }
-      return el;
-    });
-    return {
-      id: crypto.randomUUID(),
-      pageNumber: 0,
-      templateId: "emotionInference",
-      orientation: "vertical" as const,
-      elements: patched,
-      rev: 0,
-    };
-  });
-
-  const allPages = [...fixedPages, ...storyPages];
-  return allPages.map((page, index) => ({ ...page, pageNumber: index + 1 }));
-};
+// buildEmotionStoryPages(stories, emotionImageMap)로 호출
+// emotionImageMap: Map<string, string> — 감정 라벨 → 이미지 URL
+// patchStoryElements에서 제목, 추론 문장, 감정 카드 이미지, 감정 라벨 텍스트를 모두 패치
 ```
 
 ## AI 호출 방식
 
 ### 엔드포인트
 
-Gemini API를 프록시하는 Supabase Edge Function 또는 직접 호출.
-현재 프로젝트에 AI 이미지 생성 경로(`ai_generated_images`)가 있으나 텍스트 생성 경로는 미구현 상태.
+Gemini API(`gemini-2.5-flash`)를 `@google/genai` SDK로 직접 호출.
+구현 위치: `src/features/editor/ai/generateEmotionStory.ts`
 
-**권장 구현 위치**: `src/features/editor/ai/generateEmotionStory.ts` (신규)
+### 호출 시그니처
+
+```typescript
+generateEmotionStory(topic: string, availableLabels: string[]): Promise<StoryItem[]>
+```
+
+- `availableLabels`: DB(`emotion_photo`)에서 조회한 감정 라벨 목록. AI가 이 목록에서만 감정을 선택하도록 프롬프트에 주입.
+- 호출 체인: `fetchEmotionImageMap(style)` → `availableLabels = [...map.keys()]` → `generateEmotionStory(topic, availableLabels)`
 
 ### 프롬프트 설계
 
 ```typescript
-const buildPrompt = (topic: string) => `
+const buildPrompt = (topic: string, availableLabels: string[]) => `
 당신은 언어치료 전문가입니다.
-주제: "${topic}"
 
-감정 추론 활동을 위한 짧은 이야기 10개를 JSON 배열로 생성해주세요.
-각 이야기는 아래 형식을 따릅니다:
+[사용 가능한 감정 라벨 — 반드시 이 목록에서만 선택]
+${availableLabels.join(", ")}
+
+[참고 예시]
+${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
+
+주제 "${topic}"에 맞는 감정 추론 활동용 짧은 이야기 10개:
 - title: 이야기 제목 (10자 이내)
-- sentence: "아이는 [상황 설명]" 형식의 문장 (30자 이내, "아이는 "으로 시작)
+- sentence: "친구는 [이유/감정 상황]" 형식 (30자 이내, "친구는 "으로 시작)
+- emotions: 감정 선택지 3개 배열 (위 감정 라벨 목록에서만 선택)
 
-JSON만 출력하세요 (설명 없음):
-[
-  { "title": "...", "sentence": "아이는 ..." },
-  ...
-]
+JSON만 출력:
+[{ "title": "...", "sentence": "친구는 ...", "emotions": ["...", "...", "..."] }, ...]
 `;
 ```
 
 ### 응답 파싱
 
 ```typescript
-type StoryItem = { title: string; sentence: string };
-
 const parseStoryResponse = (raw: string): StoryItem[] => {
-  // JSON 블록 추출 (markdown 코드펜스 대응)
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error("JSON 파싱 실패");
+  if (!jsonMatch) throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.");
   const parsed = JSON.parse(jsonMatch[0]) as unknown[];
-  return parsed
-    .filter(
-      (item): item is StoryItem =>
-        typeof item === "object" &&
-        item !== null &&
-        "title" in item &&
-        "sentence" in item
-    )
-    .slice(0, 10);
+  const valid = parsed.filter((item): item is StoryItem => {
+    // title, sentence: string 검증
+    // emotions: 문자열 3개 이상 배열 검증
+  });
+  return valid.slice(0, 10).map((item) => ({
+    ...item,
+    emotions: [item.emotions[0], item.emotions[1], item.emotions[2]],
+  }));
 };
 ```
 
@@ -206,6 +171,47 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 모든 페이지 생성 시 `withLogoCanvasElements()`로 감싸야 로고 요소가 포함된다.
 (`pageFactory.ts`의 모든 페이지 생성 경로 동일 적용)
 
+## 감정 이미지 자동 채우기
+
+### 호출 체인 (TemplateContent.tsx)
+
+```
+onSelectAi(topic, imageStyle)
+  → fetchEmotionImageMap(imageStyle)       // DB에서 감정 라벨 → 이미지 URL 맵
+  → availableLabels = [...map.keys()]      // AI에 전달할 감정 목록 추출
+  → generateEmotionStory(topic, labels)    // AI가 emotions 포함 StoryItem[] 반환
+  → buildEmotionStoryPages(stories, map)   // 이미지 자동 채우기 포함 13페이지 빌드
+  → requestInsertPages(pages)
+```
+
+### 이미지 스타일 선택
+
+```typescript
+type EmotionImageStyle = "photo-boy" | "photo-girl";
+```
+
+- `EmotionInferenceChoiceModal`의 AI 주제 입력 화면에 라디오 버튼 2개
+- `fetchEmotionImageMap(style)`: `emotion_photo` 테이블에서 `category = "boy" | "girl"` 필터
+
+### patchStoryElements 패치 대상
+
+1. **제목**: `text === "제목을 입력하세요"` → `story.title`
+2. **추론 문장**: `text === "아이는 __________"` → `story.sentence` (widthMode: "fixed", w/x 명시 복원)
+3. **감정 카드 3개**: `subType === "emotionInference"` 셰이프를 x좌표 순 정렬 → `emotions[0,1,2]` 매칭 → `fill: url(imageUrl)` + `imageBox`
+4. **감정 라벨 3개**: 카드의 `labelId`로 연결된 텍스트 요소 → `"(감정)"` → 감정 이름
+
+### 타입 안전성 주의
+
+`CanvasElement`는 discriminated union이므로 감정 카드 필터링 시 반드시 타입 가드 사용:
+
+```typescript
+const emotionCards = elements.filter(
+  (el): el is ShapeElement =>
+    (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") &&
+    el.subType === "emotionInference",
+).sort((a, b) => a.x - b.x);
+```
+
 ## 관련 파일 경로
 
 | 역할 | 경로 |
@@ -215,14 +221,11 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 | 인스턴스화 | `src/features/editor/templates/instantiateTemplate.ts` |
 | 페이지 팩토리 | `src/features/editor/utils/pageFactory.ts` |
 | 로고 요소 | `src/features/editor/utils/logoElement.ts` |
-| 선택 모달 (신규) | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` |
-| AI 생성 함수 (신규) | `src/features/editor/ai/generateEmotionStory.ts` |
+| 선택 모달 | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` |
+| AI 생성 함수 | `src/features/editor/ai/generateEmotionStory.ts` |
+| 페이지 빌더 | `src/features/editor/utils/buildEmotionStoryPages.ts` |
+| 감정 이미지 조회 | `src/features/editor/utils/fetchEmotionImageMap.ts` |
+| 이미지 채우기 유틸 | `src/features/editor/utils/imageFillUtils.ts` |
+| 진입점 (호출 체인) | `src/features/editor/sections/sidebar/content/TemplateContent.tsx` |
 | Page 타입 | `src/features/editor/model/pageTypes.ts` |
 | CanvasElement 타입 | `src/features/editor/model/canvasTypes.ts` |
-
-## 구현 순서 (권장)
-
-1. `generateEmotionStory.ts` — AI 호출 + 파싱 함수
-2. `buildAiStoryPages()` — Page 배열 빌더 (위 패턴 참고)
-3. `EmotionInferenceChoiceModal` → `onSelectAi` 콜백에서 위 두 함수 호출 + `setPages` 주입
-4. `recordHistory` 연결 — DesignPage 또는 MainSection에서 ref로 전달

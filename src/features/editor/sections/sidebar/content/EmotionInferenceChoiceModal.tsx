@@ -5,13 +5,23 @@
 import { useState } from "react";
 import { Brain, FileText, X } from "lucide-react";
 
+export type EmotionImageStyle = "photo-boy" | "photo-girl";
+
 interface EmotionInferenceChoiceModalProps {
   isOpen: boolean;
   isGenerating?: boolean;
   onClose: () => void;
   onSelectTemplate: () => void;
-  onSelectAi: (topic: string) => void;
+  onSelectAi: (topic: string, imageStyle: EmotionImageStyle) => void;
 }
+
+const IMAGE_STYLE_OPTIONS: Array<{
+  id: EmotionImageStyle;
+  label: string;
+}> = [
+  { id: "photo-boy", label: "사진 (남아)" },
+  { id: "photo-girl", label: "사진 (여아)" },
+];
 
 const EmotionInferenceChoiceModal = ({
   isOpen,
@@ -22,6 +32,7 @@ const EmotionInferenceChoiceModal = ({
 }: EmotionInferenceChoiceModalProps) => {
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [topic, setTopic] = useState("");
+  const [imageStyle, setImageStyle] = useState<EmotionImageStyle>("photo-boy");
 
   if (!isOpen) return null;
 
@@ -32,7 +43,7 @@ const EmotionInferenceChoiceModal = ({
   };
 
   const handleAiConfirm = () => {
-    onSelectAi(topic);
+    onSelectAi(topic, imageStyle);
   };
 
   return (
@@ -122,6 +133,29 @@ const EmotionInferenceChoiceModal = ({
                 className="w-full rounded-xl border border-black-20 px-4 py-3 text-14-regular text-black-90 placeholder:text-black-30 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/10"
                 autoFocus
               />
+            </div>
+
+            {/* 감정 이미지 스타일 선택 */}
+            <div>
+              <span className="block text-14-semibold text-black-80 mb-2">
+                감정 이미지 스타일
+              </span>
+              <div className="flex gap-2">
+                {IMAGE_STYLE_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setImageStyle(option.id)}
+                    className={`flex-1 rounded-lg border py-2 text-13-semibold transition ${
+                      imageStyle === option.id
+                        ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
+                        : "border-black-20 bg-white text-black-60 hover:bg-black-5"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-2">

@@ -159,6 +159,35 @@ export const isEmotionInferenceCard = (
   );
 };
 
+/**
+ * "채우기(cover)" 방식으로 imageBox 계산.
+ * 이미지 비율을 유지하면서 요소를 완전히 채운다 (잘림 발생 가능).
+ */
+export const calculateCoverImageBox = (
+  elementW: number,
+  elementH: number,
+  imageW: number | undefined,
+  imageH: number | undefined,
+): { x: number; y: number; w: number; h: number } => {
+  if (!imageW || !imageH) {
+    return { x: 0, y: 0, w: elementW, h: elementH };
+  }
+  const elementRatio = elementW / elementH;
+  const imageRatio = imageW / imageH;
+  let boxW: number;
+  let boxH: number;
+  if (imageRatio > elementRatio) {
+    boxH = elementH;
+    boxW = elementH * imageRatio;
+  } else {
+    boxW = elementW;
+    boxH = elementW / imageRatio;
+  }
+  const x = (elementW - boxW) / 2;
+  const y = (elementH - boxH) / 2;
+  return { x, y, w: boxW, h: boxH };
+};
+
 export const getNextEmotionCardId = (
   elements: CanvasElement[],
   currentId: string,

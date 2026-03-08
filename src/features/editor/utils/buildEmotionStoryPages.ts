@@ -3,10 +3,11 @@
  * 고정 3페이지(표지/목차/치료목표) + AI 텍스트가 주입된 4페이지 형식 10장으로 구성된다.
  */
 import type { Page } from "../model/pageTypes";
-import type { CanvasElement } from "../model/canvasTypes";
+import type { CanvasElement, ShapeElement } from "../model/canvasTypes";
 import type { StoryItem } from "../ai/generateEmotionStory";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import { withLogoCanvasElements } from "./logoElement";
+import { calculateCoverImageBox } from "./imageFillUtils";
 import { emotionInferencePage1 } from "../templates/emotion_inference/page_1";
 import { emotionInferencePage2 } from "../templates/emotion_inference/page_2";
 import { emotionInferencePage3 } from "../templates/emotion_inference/page_3";
@@ -14,23 +15,44 @@ import { emotionInferencePage4 } from "../templates/emotion_inference/page_4";
 
 const TITLE_PLACEHOLDER = "제목을 입력하세요";
 const SENTENCE_PLACEHOLDER = "아이는 __________";
+const LABEL_PLACEHOLDER = "(감정)";
+
+// 감정 사진 기본 크기 (사이드바 삽입 시 사용하는 크기와 동일)
+const EMOTION_IMAGE_SIZE = { width: 200, height: 260 };
 
 const patchStoryElements = (
   elements: CanvasElement[],
   story: StoryItem,
-): CanvasElement[] =>
-  elements.map((el) => {
+  emotionImageMap: Map<string, string>,
+): CanvasElement[] => {
+  // 감정 카드를 x 좌표 순으로 정렬해 왼→오른 순서로 emotions[0,1,2]에 매칭
+  const emotionCards = elements.filter(
+    (el): el is ShapeElement =>
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") &&
+      el.subType === "emotionInference",
+  ).sort((a, b) => a.x - b.x);
+
+  // 카드 id → 감정 이름 매핑 (라벨 업데이트용)
+  const cardEmotionMap = new Map<string, string>();
+  // 라벨 id → 감정 이름 매핑
+  const labelEmotionMap = new Map<string, string>();
+
+  emotionCards.forEach((card, index) => {
+    const emotion = story.emotions[index];
+    if (!emotion) return;
+    cardEmotionMap.set(card.id, emotion);
+    if (card.labelId) {
+      labelEmotionMap.set(card.labelId, emotion);
+    }
+  });
+
+  return elements.map((el) => {
+    // 제목 패치
     if (el.type === "text" && el.text === TITLE_PLACEHOLDER) {
       return { ...el, text: story.title };
     }
+    // 추론 문장 패치
     if (el.type === "text" && el.text === SENTENCE_PLACEHOLDER) {
-      // fitTemplateTextElement가 플레이스홀더 기준으로 w/h를 좁게 계산해두므로,
-      // 실제 AI 문장으로 교체할 때 w를 page_4 pillWidthMm(160mm≈605px)으로 복원한다.
-      // h는 1줄 높이(fontSize:35 × lineHeight:1.3 ≈ 46px)로 설정한다.
-      // fixed 모드에서 1줄이면 shouldMeasureHeight=false로 스킵되므로 1줄 높이가 정확한 초기값이다.
-      // 2줄 이상 문장은 autoResize가 h를 늘려 보정한다. 썸네일은 readOnly라 초기값으로 고정된다.
-      // 190mm = A4(210mm) - 좌우 여백 각 10mm
-      // pillXmm = (210 - 190) / 2 = 10mm
       const pillXPx = Math.round(10 * 3.7795);
       const pillWidthPx = Math.round(190 * 3.7795);
       return {
@@ -43,10 +65,52 @@ const patchStoryElements = (
         h: 46,
       };
     }
+    // 감정 카드에 이미지 채우기 (cardEmotionMap에는 shape 요소 id만 있다)
+    const cardEmotion = cardEmotionMap.get(el.id);
+    if (
+      cardEmotion &&
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse")
+    ) {
+      const imageUrl = emotionImageMap.get(cardEmotion);
+      if (imageUrl) {
+        const imageBox = calculateCoverImageBox(
+          el.w,
+          el.h,
+          EMOTION_IMAGE_SIZE.width,
+          EMOTION_IMAGE_SIZE.height,
+        );
+        const borderWidth = el.border?.enabled ? el.border.width : 0;
+        const correctedImageBox = borderWidth > 0
+          ? {
+              ...imageBox,
+              x: Math.round(
+                (Math.max(0, el.w - borderWidth * 2) - imageBox.w) / 2,
+              ),
+            }
+          : imageBox;
+        return {
+          ...el,
+          fill: `url(${imageUrl})`,
+          imageBox: correctedImageBox,
+          text: "",
+        };
+      }
+    }
+    // 감정 라벨 텍스트 업데이트
+    const labelEmotion = labelEmotionMap.get(el.id);
+    if (labelEmotion && el.type === "text" && el.text === LABEL_PLACEHOLDER) {
+      return { ...el, text: labelEmotion };
+    }
     return el;
   });
+};
 
-export const buildEmotionStoryPages = (stories: StoryItem[]): Page[] => {
+export const buildEmotionStoryPages = (
+  stories: StoryItem[],
+  emotionImageMap?: Map<string, string>,
+): Page[] => {
+  const imageMap = emotionImageMap ?? new Map<string, string>();
+
   // 고정 3페이지 (표지, 목차, 치료목표)
   const fixedTemplates = [
     emotionInferencePage1,
@@ -73,7 +137,7 @@ export const buildEmotionStoryPages = (stories: StoryItem[]): Page[] => {
       pageNumber: 0,
       templateId: "emotionInference" as const,
       orientation: "vertical" as const,
-      elements: patchStoryElements(baseElements, story),
+      elements: patchStoryElements(baseElements, story, imageMap),
       rev: 0,
     };
   });

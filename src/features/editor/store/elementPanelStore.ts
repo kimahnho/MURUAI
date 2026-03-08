@@ -125,6 +125,7 @@ export type TextEditingCallbacks = {
   onAlignChange: (value: "left" | "center" | "right" | "justify") => void;
   onAlignYChange: (value: "top" | "middle" | "bottom") => void;
   onFontFamilyClick: () => void;
+  onFontFamilyChange: (family: string, weight: number) => void;
   fontSizeDisplay: string;
   fontSizeInputValue: string;
   isFontSizeMixed: boolean;
@@ -134,6 +135,7 @@ export type TextEditingCallbacks = {
   maxFontSize: number;
   fontFamily: string;
   fontLabel: string;
+  isFontFamilyMixed: boolean;
   lineHeight: number;
   letterSpacing: number;
   color: string;

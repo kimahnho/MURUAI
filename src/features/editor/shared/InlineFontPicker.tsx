@@ -16,13 +16,16 @@ interface InlineFontPickerProps {
   fontFamily: string;
   /** contentEditable 포커스 보존이 필요한 경우 true */
   preventFocus?: boolean;
+  /** 선택 범위에 혼합 폰트가 있으면 true */
+  isMixed?: boolean;
 }
 
-const InlineFontPicker = ({ fontFamily, preventFocus }: InlineFontPickerProps) => {
+const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPickerProps) => {
   const applyFont = useFontStore((s) => s.applyFont);
   const fontWeight = useFontStore((s) => s.panelFontWeight);
   const changeAllMatchingFonts = useElementPanelStore((s) => s.changeAllMatchingFonts);
   const hasMatchingFonts = useElementPanelStore((s) => s.hasMatchingFonts);
+  const textEditingCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
 
   const [isOpen, setIsOpen] = useState(false);
   const [expandedFontIds, setExpandedFontIds] = useState<string[]>([]);
@@ -47,11 +50,23 @@ const InlineFontPicker = ({ fontFamily, preventFocus }: InlineFontPickerProps) =
     const nextWeight = availableWeights.includes(fontWeight)
       ? fontWeight
       : (font.weights[0]?.value ?? 400);
-    applyFont({ fontFamily: font.family, fontWeight: nextWeight });
+
+    // 편집 중이면 선택 범위에만 인라인 적용하고, 아니면 요소 전체에 적용
+    if (textEditingCallbacks) {
+      textEditingCallbacks.onFontFamilyChange(font.family, nextWeight);
+      useFontStore.getState().setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
+    } else {
+      applyFont({ fontFamily: font.family, fontWeight: nextWeight });
+    }
   };
 
   const handleSelectWeight = (family: string, weight: number) => {
-    applyFont({ fontFamily: family, fontWeight: weight });
+    if (textEditingCallbacks) {
+      textEditingCallbacks.onFontFamilyChange(family, weight);
+      useFontStore.getState().setPanelFont({ fontFamily: family, fontWeight: weight });
+    } else {
+      applyFont({ fontFamily: family, fontWeight: weight });
+    }
   };
 
   const toggleExpand = (fontId: string) => {
@@ -77,7 +92,7 @@ const InlineFontPicker = ({ fontFamily, preventFocus }: InlineFontPickerProps) =
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex items-center justify-between gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90 hover:border-primary"
       >
-        <span style={{ fontFamily }}>{fontLabel}</span>
+        <span style={isMixed ? undefined : { fontFamily }}>{isMixed ? "--" : fontLabel}</span>
         {isOpen ? <ChevronUp className="h-4 w-4 text-black-50" /> : <ChevronDown className="h-4 w-4 text-black-50" />}
       </button>
 

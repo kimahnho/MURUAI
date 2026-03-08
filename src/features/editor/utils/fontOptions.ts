@@ -205,6 +205,15 @@ export const getFontLabel = (family: string) => {
   return match?.label ?? family;
 };
 
+// computed fontFamily 값(따옴표·쉼표 포함 가능)을 FONT_OPTIONS.family 키로 변환한다.
+export const matchFontFamily = (computed: string): string => {
+  const normalized = computed.replace(/["']/g, "").split(",")[0].trim();
+  const match = FONT_OPTIONS.find(
+    (font) => font.family.toLowerCase() === normalized.toLowerCase(),
+  );
+  return match?.family ?? normalized;
+};
+
 export const normalizeFontWeight = (
   value: number | "normal" | "bold" | undefined,
 ) => {

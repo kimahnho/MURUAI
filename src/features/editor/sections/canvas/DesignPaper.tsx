@@ -85,6 +85,7 @@ interface DesignPaperProps {
   readOnly?: boolean;
   className?: string;
   showShadow?: boolean;
+  onFileDropOnCanvas?: (file: File, x: number, y: number) => void;
 }
 
 const MM_TO_PX = 3.7795;
@@ -113,6 +114,7 @@ const DesignPaper = ({
   readOnly = false,
   className,
   showShadow = false,
+  onFileDropOnCanvas,
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
@@ -481,27 +483,42 @@ const DesignPaper = ({
         event.stopPropagation();
         // 하위 요소(RoundBox 등)가 이미 드롭을 처리했으면 중복 삽입하지 않는다.
         if (event.target !== event.currentTarget) return;
+
+        // 1. 사이드바 이미지 드래그 경로
         const imageUrl =
           event.dataTransfer.getData("application/x-muru-image") ||
           event.dataTransfer.getData("text/plain");
-        if (!imageUrl) return;
-        const scale = getContainerScale();
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const DEFAULT_SIZE = 200;
-        const dropX = (event.clientX - rect.left) / scale;
-        const dropY = (event.clientY - rect.top) / scale;
-        const newElement: CanvasElement = {
-          id: `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          type: "rect",
-          x: Math.round(dropX - DEFAULT_SIZE / 2),
-          y: Math.round(dropY - DEFAULT_SIZE / 2),
-          w: DEFAULT_SIZE,
-          h: DEFAULT_SIZE,
-          fill: imageUrl.startsWith("url(") ? imageUrl : `url(${imageUrl})`,
-          imageBox: { x: 0, y: 0, w: DEFAULT_SIZE, h: DEFAULT_SIZE },
-        };
-        onElementsChange([...elements, newElement]);
+        if (imageUrl) {
+          const scale = getContainerScale();
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          const DEFAULT_SIZE = 200;
+          const dropX = (event.clientX - rect.left) / scale;
+          const dropY = (event.clientY - rect.top) / scale;
+          const newElement: CanvasElement = {
+            id: `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            type: "rect",
+            x: Math.round(dropX - DEFAULT_SIZE / 2),
+            y: Math.round(dropY - DEFAULT_SIZE / 2),
+            w: DEFAULT_SIZE,
+            h: DEFAULT_SIZE,
+            fill: imageUrl.startsWith("url(") ? imageUrl : `url(${imageUrl})`,
+            imageBox: { x: 0, y: 0, w: DEFAULT_SIZE, h: DEFAULT_SIZE },
+          };
+          onElementsChange([...elements, newElement]);
+          return;
+        }
+
+        // 2. OS 파일 드롭 경로
+        const file = event.dataTransfer.files?.[0];
+        if (file && onFileDropOnCanvas) {
+          const scale = getContainerScale();
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          const dropX = (event.clientX - rect.left) / scale;
+          const dropY = (event.clientY - rect.top) / scale;
+          onFileDropOnCanvas(file, dropX, dropY);
+        }
       }}
       onContextMenu={openCanvasContextMenu}
     >

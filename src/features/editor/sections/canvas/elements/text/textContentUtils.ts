@@ -485,6 +485,7 @@ export type PendingInlineStyle = {
   fontStyle?: "italic" | "normal";
   underline?: boolean;
   strikethrough?: boolean;
+  fontFamily?: string;
 };
 
 export type RichTextCommand =
@@ -499,7 +500,8 @@ export type RichTextCommand =
   | { type: "toggleBold" }
   | { type: "toggleItalic" }
   | { type: "toggleUnderline" }
-  | { type: "toggleStrikethrough" };
+  | { type: "toggleStrikethrough" }
+  | { type: "setFontFamily"; family: string };
 
 export const hasPendingInlineStyle = (pending: PendingInlineStyle) =>
   pending.fontSize != null ||
@@ -507,7 +509,8 @@ export const hasPendingInlineStyle = (pending: PendingInlineStyle) =>
   pending.fontWeight != null ||
   pending.fontStyle != null ||
   pending.underline != null ||
-  pending.strikethrough != null;
+  pending.strikethrough != null ||
+  pending.fontFamily != null;
 
 const applyPendingPatch = (target: HTMLElement, pending: PendingInlineStyle) => {
   if (pending.fontSize != null) {
@@ -521,6 +524,9 @@ const applyPendingPatch = (target: HTMLElement, pending: PendingInlineStyle) => 
   }
   if (pending.fontStyle != null) {
     target.style.fontStyle = pending.fontStyle;
+  }
+  if (pending.fontFamily != null) {
+    target.style.fontFamily = pending.fontFamily;
   }
 
   const shouldTouchDecoration =
@@ -614,6 +620,16 @@ export const applyRichTextCommandInPlace = ({
     });
   }
 
+  if (command.type === "setFontFamily") {
+    return applyStylePatchInPlace({
+      range,
+      editable,
+      patcher: ({ target }) => {
+        target.style.fontFamily = command.family;
+      },
+    });
+  }
+
   if (command.type === "setColor") {
     return applyStylePatchInPlace({
       range,
@@ -673,4 +689,49 @@ export const applyRichTextCommandInPlace = ({
   }
 
   return null;
+};
+
+// richText HTML 내 인라인 fontFamily 혼합 여부를 판정한다.
+export const detectMixedFontFamilyInRichText = (
+  richText: string | undefined,
+  fallback: string,
+): boolean => {
+  if (
+    !richText ||
+    typeof window === "undefined" ||
+    typeof DOMParser === "undefined"
+  ) {
+    return false;
+  }
+
+  const normalize = (ff: string): string =>
+    ff.replace(/["']/g, "").split(",")[0].trim().toLowerCase();
+
+  const resolveFF = (node: Node): string => {
+    let current: Node | null = node;
+    while (current) {
+      if (current.nodeType === Node.ELEMENT_NODE) {
+        const el = current as HTMLElement;
+        if (el.style.fontFamily) {
+          return el.style.fontFamily;
+        }
+      }
+      current = current.parentNode;
+    }
+    return fallback;
+  };
+
+  const doc = new DOMParser().parseFromString(richText, "text/html");
+  const families = new Set<string>();
+  const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  while (current) {
+    const textNode = current as Text;
+    if (textNode.textContent && textNode.textContent.trim().length > 0) {
+      families.add(normalize(resolveFF(textNode)));
+      if (families.size > 1) return true;
+    }
+    current = walker.nextNode();
+  }
+  return false;
 };

@@ -4,11 +4,14 @@
 import { useState } from "react";
 import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
+import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 
 export const useFontContentState = () => {
   const panelFontFamily = useFontStore((state) => state.panelFontFamily);
   const panelFontWeight = useFontStore((state) => state.panelFontWeight);
   const applyFont = useFontStore((state) => state.applyFont);
+  const setPanelFont = useFontStore((state) => state.setPanelFont);
+  const textEditingCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
   const selectedFont =
     FONT_OPTIONS.find((font) => font.family === panelFontFamily) ??
     FONT_OPTIONS[0];
@@ -28,8 +31,14 @@ export const useFontContentState = () => {
     const nextWeight = availableWeights.includes(panelFontWeight)
       ? panelFontWeight
       : (font.weights[0]?.value ?? 400);
-    // applyFont가 패널 값과 실제 적용 요청을 함께 갱신하므로 단일 업데이트만 발생시킨다.
-    applyFont({ fontFamily: font.family, fontWeight: nextWeight });
+
+    // 편집 중이면 선택 범위에만 인라인 적용
+    if (textEditingCallbacks) {
+      textEditingCallbacks.onFontFamilyChange(font.family, nextWeight);
+      setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
+    } else {
+      applyFont({ fontFamily: font.family, fontWeight: nextWeight });
+    }
     setExpandedFontIds((prev) =>
       prev.includes(font.id) ? prev : [...prev, font.id],
     );
@@ -37,7 +46,12 @@ export const useFontContentState = () => {
   };
 
   const handleWeightSelect = (family: string, weight: number) => {
-    applyFont({ fontFamily: family, fontWeight: weight });
+    if (textEditingCallbacks) {
+      textEditingCallbacks.onFontFamilyChange(family, weight);
+      setPanelFont({ fontFamily: family, fontWeight: weight });
+    } else {
+      applyFont({ fontFamily: family, fontWeight: weight });
+    }
     const font = FONT_OPTIONS.find((item) => item.family === family);
     if (font) {
       setExpandedFontIds((prev) =>

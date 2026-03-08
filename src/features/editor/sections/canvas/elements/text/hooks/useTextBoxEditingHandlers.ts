@@ -23,12 +23,15 @@ import {
 import type { TextBoxProps } from "../textBoxTypes";
 import {
   resolveFontSizeUiStateFromRange,
+  resolveFontFamilyFromRange,
   type FontSizeUiState,
+  type FontFamilyUiState,
 } from "../textSelectionSession";
 import { useTextFormattingCommands } from "./useTextFormattingCommands";
 import { useTextSelectionSession } from "./useTextSelectionSession";
 import { useToolbarFontSizeInput } from "./useToolbarFontSizeInput";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
+import { getFontLabel, matchFontFamily } from "@/features/editor/utils/fontOptions";
 
 type UseTextBoxEditingHandlersProps = {
   editable: boolean;
@@ -140,6 +143,90 @@ const resolveWholeContentFontSizeUiState = ({
   });
 };
 
+// 노드에서 가장 가까운 인라인 font-family를 읽는다.
+const resolveInlineFontFamily = (node: Node, fallback: string): string => {
+  let current: Node | null = node;
+  while (current) {
+    if (current.nodeType === Node.ELEMENT_NODE) {
+      const el = current as HTMLElement;
+      if (el.style.fontFamily) {
+        return el.style.fontFamily;
+      }
+    }
+    current = current.parentNode;
+  }
+  return fallback;
+};
+
+const normalizeFontFamilyKey = (ff: string): string =>
+  ff.replace(/["']/g, "").split(",")[0].trim().toLowerCase();
+
+const resolveFontFamilyUiStateFromRichText = ({
+  richText,
+  fallback,
+}: {
+  richText?: string;
+  fallback: string;
+}): FontFamilyUiState => {
+  if (
+    !richText ||
+    typeof window === "undefined" ||
+    typeof DOMParser === "undefined"
+  ) {
+    return { fontFamily: fallback, isMixed: false };
+  }
+
+  const doc = new DOMParser().parseFromString(richText, "text/html");
+  const families = new Set<string>();
+  const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  while (current) {
+    const textNode = current as Text;
+    if (textNode.textContent && textNode.textContent.trim().length > 0) {
+      families.add(normalizeFontFamilyKey(resolveInlineFontFamily(textNode, fallback)));
+      if (families.size > 1) {
+        return { fontFamily: fallback, isMixed: true };
+      }
+    }
+    current = walker.nextNode();
+  }
+
+  if (families.size === 1) {
+    const [family] = Array.from(families);
+    // 원본 fontFamily 값을 복원한다
+    const raw = resolveInlineFontFamily(
+      doc.body.querySelector("*") ?? doc.body,
+      fallback,
+    );
+    return {
+      fontFamily: normalizeFontFamilyKey(raw) === family ? raw : fallback,
+      isMixed: false,
+    };
+  }
+
+  return { fontFamily: fallback, isMixed: false };
+};
+
+const resolveWholeContentFontFamilyUiState = ({
+  isEditing,
+  editableRef,
+  richText,
+  fallback,
+}: {
+  isEditing: boolean;
+  editableRef: RefObject<HTMLDivElement | null>;
+  richText?: string;
+  fallback: string;
+}): FontFamilyUiState => {
+  const sourceRichText = isEditing
+    ? (editableRef.current?.innerHTML ?? richText)
+    : richText;
+  return resolveFontFamilyUiStateFromRichText({
+    richText: sourceRichText,
+    fallback,
+  });
+};
+
 const hasLiveExpandedSelectionInEditable = (
   editable: HTMLDivElement | null,
 ): boolean => {
@@ -176,6 +263,12 @@ export const useTextBoxEditingHandlers = ({
       ),
     });
 
+  const fallbackFontFamily = toolbar?.fontFamily ?? "Pretendard";
+  const [fontFamilyUiState, setFontFamilyUiState] = useState<FontFamilyUiState>({
+    fontFamily: fallbackFontFamily,
+    isMixed: false,
+  });
+
   const fontSizeInputStartedInEditingRef = useRef(false);
   const lastResolvedFontSizeRef = useRef(
     clampFontSize(toolbar?.fontSize ?? FALLBACK_FONT_SIZE, toolbar),
@@ -202,6 +295,14 @@ export const useTextBoxEditingHandlers = ({
       });
       lastResolvedFontSizeRef.current = next.resolvedSize;
       setFontSizeUiState(next);
+
+      const nextFF = resolveWholeContentFontFamilyUiState({
+        isEditing,
+        editableRef,
+        richText,
+        fallback: fallbackFontFamily,
+      });
+      setFontFamilyUiState(nextFF);
       return;
     }
 
@@ -230,6 +331,19 @@ export const useTextBoxEditingHandlers = ({
 
     lastResolvedFontSizeRef.current = next.resolvedSize;
     setFontSizeUiState(next);
+
+    const nextFF = normalized
+      ? resolveFontFamilyFromRange({
+          range: normalized.range,
+          fallback: fallbackFontFamily,
+        })
+      : resolveWholeContentFontFamilyUiState({
+          isEditing,
+          editableRef,
+          richText,
+          fallback: fallbackFontFamily,
+        });
+    setFontFamilyUiState(nextFF);
   };
 
   const syncFontSizeUiStateRef = useRef(syncFontSizeUiState);
@@ -418,6 +532,11 @@ export const useTextBoxEditingHandlers = ({
     toolbar?.onColorChange(color);
   };
 
+  // 편집 중 폰트 패널에서 폰트 선택 시 인라인 적용
+  const handleFontFamilyChange = (family: string, _weight: number) => {
+    formattingCommands.applyFontFamily(family);
+  };
+
   const insertPlainText = (value: string) => {
     const normalized = selectionSession.getSelectionRange();
     if (!normalized) return;
@@ -566,6 +685,7 @@ export const useTextBoxEditingHandlers = ({
       onAlignChange: toolbar.onAlignChange,
       onAlignYChange: toolbar.onAlignYChange,
       onFontFamilyClick: toolbar.onFontFamilyClick,
+      onFontFamilyChange: handleFontFamilyChange,
       fontSizeDisplay: fontSizeUiState.displayValue,
       fontSizeInputValue: fontSizeInputState.value,
       isFontSizeMixed: fontSizeUiState.isMixed,
@@ -573,8 +693,9 @@ export const useTextBoxEditingHandlers = ({
       fontSize: toolbar.fontSize,
       minFontSize: toolbar.minFontSize,
       maxFontSize: toolbar.maxFontSize,
-      fontFamily: toolbar.fontFamily,
-      fontLabel: toolbar.fontLabel,
+      fontFamily: fontFamilyUiState.isMixed ? toolbar.fontFamily : matchFontFamily(fontFamilyUiState.fontFamily),
+      fontLabel: fontFamilyUiState.isMixed ? "--" : getFontLabel(matchFontFamily(fontFamilyUiState.fontFamily)),
+      isFontFamilyMixed: fontFamilyUiState.isMixed,
       lineHeight: toolbar.lineHeight,
       letterSpacing: toolbar.letterSpacing,
       color: toolbar.color,

@@ -54,13 +54,15 @@ const EmotionAACContent = () => {
         {activeTab === "emotion" ? (
           <EmotionContent />
         ) : (
-          <div className="flex flex-col">
-            {/* 이미지가 삽입된 카드 선택 시 카드 설정만 표시, 미삽입 시 이미지 삽입 목록 표시 */}
-            {aacHasImage ? (
-              <AacPropsContent />
-            ) : (
-              <AACContent />
+          <div className="flex flex-col gap-4">
+            {/* 이미지가 삽입된 카드 선택 시 카드 설정 + 이미지 목록을 함께 표시 */}
+            {aacHasImage && (
+              <>
+                <AacPropsContent />
+                <div className="border-t border-black-25" />
+              </>
             )}
+            <AACContent />
           </div>
         )}
       </div>
