@@ -7,6 +7,7 @@ import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { mp } from "@/shared/utils/mixpanel";
+import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import {
   type ImageStyle,
   type StyleOption,
@@ -43,18 +44,6 @@ const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env
   .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
-const sanitizeGoogleApiKey = (value: string | undefined): string | undefined => {
-  if (!value) return undefined;
-
-  // Normalize copy/paste artifacts and surrounding quotes from dashboard inputs.
-  const normalized = value
-    .normalize("NFKC")
-    .replace(/[\uFEFF\u200B-\u200D\u2060]/g, "")
-    .trim();
-  const sanitized = normalized.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
-  return sanitized.length > 0 ? sanitized : undefined;
-};
-
 const hasNonIso88591CodePoint = (value: string): boolean => {
   for (const ch of value) {
     if (ch.codePointAt(0)! > 0xff) return true;
@@ -62,7 +51,7 @@ const hasNonIso88591CodePoint = (value: string): boolean => {
   return false;
 };
 
-const GOOGLE_API_KEY = sanitizeGoogleApiKey(RAW_GOOGLE_API_KEY);
+const GOOGLE_API_KEY = sanitizeEnvKey(RAW_GOOGLE_API_KEY);
 
 const collectNonIso88591Meta = (value: string): string => {
   const issues: string[] = [];

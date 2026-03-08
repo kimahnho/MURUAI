@@ -1,5 +1,9 @@
 import mixpanel from "mixpanel-browser";
 
+let initialized = false;
+
+export const isMixpanelInitialized = () => initialized;
+
 export const initMixpanel = () => {
   const token = import.meta.env.VITE_MIXPANEL_TOKEN;
 
@@ -16,4 +20,6 @@ export const initMixpanel = () => {
     persistence: "localStorage",
     record_sessions_percent: isProd ? 30 : 0,
   });
+
+  initialized = true;
 };

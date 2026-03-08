@@ -46,8 +46,8 @@ const cardsStartYmm = questionYmm + 12;
 const labelHeightMm = 8;
 const labelYmm = cardsStartYmm + cardHeightMm + 6;
 
-const pillWidthMm = 140;
-const pillHeightMm = 18;
+const pillWidthMm = 160;
+const pillHeightMm = 14;
 const pillXmm = (pageWidthMm - pillWidthMm) / 2;
 const pillTextYmm = labelYmm + labelHeightMm + 6;
 const pillYmm = pillTextYmm + pillHeightMm + 4;
@@ -199,6 +199,7 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(pillWidthMm),
       h: mmToPx(pillHeightMm),
       text: "아이는 __________",
+      widthMode: "auto" as const,
       style: {
         fontSize: 35,
         fontWeight: "normal",

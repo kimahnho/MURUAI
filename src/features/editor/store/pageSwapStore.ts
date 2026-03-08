@@ -71,6 +71,9 @@ export const usePageSwapStore = create<PageSwapState>((set, get) => ({
     ),
 }));
 
+// 조건 미충족 시 구독이 영원히 유지되는 것을 방지하기 위한 안전 타임아웃
+const HYDRATION_TIMEOUT_MS = 10_000;
+
 export const waitForForceHydrate = (requestId: number) =>
   new Promise<void>((resolve) => {
     const current = usePageSwapStore.getState().forceHydrateReadyId;
@@ -78,9 +81,13 @@ export const waitForForceHydrate = (requestId: number) =>
       resolve();
       return;
     }
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve();
+    }, HYDRATION_TIMEOUT_MS);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
-      // 준비 완료 id가 요청 id 이상이 되는 순간 대기 해제한다.
       if (state.forceHydrateReadyId >= requestId) {
+        clearTimeout(timer);
         unsubscribe();
         resolve();
       }
@@ -94,8 +101,13 @@ export const waitForHydration = (requestId: number) =>
       resolve();
       return;
     }
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve();
+    }, HYDRATION_TIMEOUT_MS);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
       if (state.hydrationReadyId >= requestId) {
+        clearTimeout(timer);
         unsubscribe();
         resolve();
       }

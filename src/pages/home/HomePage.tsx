@@ -1,26 +1,25 @@
 import ChoiceUserSection from "@/features/home/components/ChoiceUserSection";
 import FirstCommentSection from "@/features/home/components/FirstCommentSection";
-import CalendarSection from "@/features/home/components/CalendarSection";
+import RecentDocumentsSection from "@/features/home/components/RecentDocumentsSection";
 import AddUserModal from "@/features/home/components/AddUserModal";
 import AddGroupModal from "@/features/home/components/AddGroupModal";
 import EditUserModal from "@/features/home/components/EditUserModal";
 import EditGroupModal from "@/features/home/components/EditGroupModal";
-import AddScheduleModal from "@/features/home/components/AddScheduleModal";
 import AuthModal from "@/shared/ui/AuthModal";
 
 const HomePage = () => {
   return (
     <>
       <div className="flex w-full px-10">
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full gap-10 pb-20">
           {/* 상단 코멘트 영역 */}
           <FirstCommentSection />
 
-          {/* 학습자 선택 영역 */}
-          <ChoiceUserSection />
+          {/* 최근 작업한 학습자료 */}
+          <RecentDocumentsSection />
 
-          {/* 주간 수업 계획표 영역 */}
-          <CalendarSection />
+          {/* 개별 아동 / 그룹 수업 선택 영역 */}
+          <ChoiceUserSection />
         </div>
       </div>
 
@@ -28,7 +27,6 @@ const HomePage = () => {
       <AddGroupModal />
       <EditUserModal />
       <EditGroupModal />
-      <AddScheduleModal />
       <AuthModal />
     </>
   );

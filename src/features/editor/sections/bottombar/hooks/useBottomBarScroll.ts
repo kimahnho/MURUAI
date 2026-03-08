@@ -42,24 +42,23 @@ export const useBottomBarScroll = ({
 
   useEffect(() => {
     const prevCount = prevPageCountRef.current;
-    // 페이지가 추가되고 마지막 페이지가 선택된 경우에만 우측 끝까지 이동해 신규 페이지를 즉시 노출한다.
-    if (pagesLength > prevCount && isSelectedLastPage) {
+    if (pagesLength > prevCount) {
       const scroller = listRef.current;
       if (scroller) {
-        const edgePadding = 16;
-        const targetOffset =
-          selectedItemIndex != null
-            ? Math.max(
-                0,
-                (itemOffsets[selectedItemIndex] ?? 0) +
-                  (itemWidths[selectedItemIndex] ?? 0) -
-                  scroller.clientWidth +
-                  edgePadding,
-              )
-            : addButtonIndex != null
-              ? itemOffsets[addButtonIndex] ?? 0
-              : 0;
-        scrollToOffset(targetOffset, "auto");
+        if (isSelectedLastPage) {
+          // 맨 끝에 추가된 경우: 추가 버튼까지 보이도록 맨 끝으로 스크롤한다.
+          scrollToOffset(scroller.scrollWidth, "auto");
+        } else if (selectedItemIndex != null) {
+          // 중간에 삽입된 경우: 새 페이지가 뷰포트에 들어오도록 최소 이동한다.
+          const edgePadding = 16;
+          const itemRight =
+            (itemOffsets[selectedItemIndex] ?? 0) +
+            (itemWidths[selectedItemIndex] ?? 0);
+          scrollToOffset(
+            itemRight - scroller.clientWidth + edgePadding,
+            "auto",
+          );
+        }
       }
     }
     prevPageCountRef.current = pagesLength;
