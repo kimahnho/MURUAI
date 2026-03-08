@@ -1,75 +1,75 @@
-# React + TypeScript + Vite
+# MuruAI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+캔버스 기반 교육 자료 제작 에디터. Figma/Canva와 유사한 디자인 에디터로, 언어치료 및 특수교육 현장에서 사용하는 교안을 제작합니다.
 
-Currently, two official plugins are available:
+## 기술 스택
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **프레임워크**: React 19 + TypeScript
+- **빌드**: Vite + React Compiler (babel-plugin-react-compiler)
+- **상태 관리**: Zustand (selector 기반 구독)
+- **서버 상태**: TanStack Query
+- **백엔드**: Supabase (Auth, Database, Storage, Edge Functions)
+- **스타일링**: Tailwind CSS v4
+- **PDF 출력**: html-to-image + jsPDF
+- **모니터링**: Sentry, Mixpanel, Vercel Analytics
 
-## React Compiler
+## 시작하기
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### 환경 변수
 
-Note: This will impact Vite dev & build performances.
+`.env` 파일을 생성하고 필수 변수를 설정합니다.
 
-## Expanding the ESLint configuration
+```bash
+# 필수
+VITE_SUPABASE_URL=<supabase-project-url>
+VITE_SUPABASE_PUBLISHABLE_KEY=<supabase-anon-key>
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 선택
+VITE_SENTRY_DSN=<sentry-dsn>
+VITE_SENTRY_AUTH_TOKEN=<sentry-auth-token>
+VITE_MIXPANEL_TOKEN=<mixpanel-token>
+VITE_GOOGLE_AI_API_KEY=<google-ai-api-key>
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 설치 및 실행
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+yarn install
+yarn dev
 ```
+
+## 주요 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `yarn dev` | 개발 서버 시작 |
+| `yarn build` | TypeScript 검사 + Vite 프로덕션 빌드 |
+| `yarn typecheck` | TypeScript 타입 검사만 (tsc -b --noEmit) |
+| `yarn lint` | ESLint + TypeScript 검사 |
+| `yarn preview` | 프로덕션 빌드 미리보기 |
+
+## 프로젝트 구조
+
+```
+src/
+  app/              # 엔트리, 라우팅, 레이아웃, 전역 Provider
+  shared/           # 공용 유틸·UI·훅 (features를 import하지 않음)
+  features/
+    editor/         # 핵심 디자인 에디터
+      hooks/        # 에디터 전용 훅
+      model/        # 타입 정의
+      store/        # Zustand 스토어
+      sections/     # 캔버스, 사이드바, 하단바
+      templates/    # 템플릿 정의 및 PDF 자산
+      utils/        # 에디터 유틸리티
+      ai/           # AI 기능 (스토리 생성, 이미지 생성)
+    home/           # 홈 페이지
+    admin/          # 관리자 대시보드
+  pages/            # 라우트 레벨 페이지
+```
+
+### 의존성 규칙
+
+- `shared/` → `features/` import 금지
+- `features/A` → `features/B` 직접 import 금지
+- 경로 별칭: `@/` → `src/`
