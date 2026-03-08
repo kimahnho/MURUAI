@@ -2,27 +2,16 @@
  * Gemini를 사용해 감정 추론 활동용 스토리 텍스트 10개를 생성하는 모듈.
  */
 import { GoogleGenAI } from "@google/genai";
+import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 
 export type StoryItem = {
   title: string;
   sentence: string;
 };
 
-const RAW_GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
-  | string
-  | undefined;
-
-const sanitizeKey = (value: string | undefined): string | undefined => {
-  if (!value) return undefined;
-  const normalized = value
-    .normalize("NFKC")
-    .replace(/[\uFEFF\u200B-\u200D\u2060]/g, "")
-    .trim();
-  const sanitized = normalized.replace(/^["'""'']+|["'""'']+$/g, "").trim();
-  return sanitized.length > 0 ? sanitized : undefined;
-};
-
-const GOOGLE_API_KEY = sanitizeKey(RAW_GOOGLE_API_KEY);
+const GOOGLE_API_KEY = sanitizeEnvKey(
+  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+);
 
 const MOCK_FEW_SHOT_EXAMPLES: StoryItem[] = [
   { title: "생일 파티", sentence: "아이는 친구들이 깜짝 생일 파티를 열어줬어요." },

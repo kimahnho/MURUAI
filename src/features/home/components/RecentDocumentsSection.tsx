@@ -54,11 +54,14 @@ const RecentDocumentsSection = () => {
       return;
     }
 
+    let cancelled = false;
+
     const fetchRecentDocs = async () => {
       setIsLoading(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (cancelled) return;
       if (!user) {
         setDocs([]);
         setIsLoading(false);
@@ -72,6 +75,8 @@ const RecentDocumentsSection = () => {
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(5);
+
+      if (cancelled) return;
 
       if (error) {
         console.error("최근 학습자료 조회 실패", error);
@@ -97,6 +102,8 @@ const RecentDocumentsSection = () => {
     };
 
     void fetchRecentDocs();
+
+    return () => { cancelled = true; };
   }, [isAuthenticated]);
 
   if (!isAuthenticated) return null;

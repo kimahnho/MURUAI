@@ -347,7 +347,10 @@ export const downloadBlob = (blob: Blob, fileName: string): void => {
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  try {
+    link.click();
+  } finally {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 };

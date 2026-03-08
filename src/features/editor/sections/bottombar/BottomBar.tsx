@@ -109,6 +109,17 @@ const PageThumbnail = ({
     getPreviewMetrics(page.orientation);
   // 드래그 ghost image를 썸네일 버튼 영역만으로 한정하기 위한 ref
   const thumbRef = useRef<HTMLButtonElement>(null);
+  const ghostRef = useRef<HTMLElement | null>(null);
+
+  // 언마운트 시 잔류 ghost clone 제거
+  useEffect(() => {
+    return () => {
+      if (ghostRef.current?.parentNode) {
+        ghostRef.current.parentNode.removeChild(ghostRef.current);
+        ghostRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -125,9 +136,15 @@ const PageThumbnail = ({
           clone.style.height = `${rect.height}px`;
           clone.style.background = "transparent";
           document.body.appendChild(clone);
+          ghostRef.current = clone;
           event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top);
           // 다음 frame에서 제거 (setDragImage 캡처 완료 후)
-          requestAnimationFrame(() => { document.body.removeChild(clone); });
+          requestAnimationFrame(() => {
+            if (ghostRef.current?.parentNode) {
+              ghostRef.current.parentNode.removeChild(ghostRef.current);
+              ghostRef.current = null;
+            }
+          });
         }
         dragHandlers.onDragStart(event);
       }}
