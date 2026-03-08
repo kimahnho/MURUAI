@@ -93,6 +93,15 @@ export const useImageFillSubscription = ({
         baseSelectedIds.some((id) => {
           const element = activePage.elements.find((item) => item.id === id);
           if (!element) return false;
+          // imageSlot은 어휘 카드의 이미지 삽입 박스로 직접 채울 수 있다.
+          if (
+            (element.type === "rect" ||
+              element.type === "roundRect" ||
+              element.type === "ellipse") &&
+            (element as { subType?: string }).subType === "imageSlot"
+          ) {
+            return true;
+          }
           return (
             isEmotionInferenceCard(element) ||
             isEmotionSlotShape(element) ||
@@ -218,9 +227,12 @@ export const useImageFillSubscription = ({
                 }
               : baseImageBox;
             const shouldClearPlaceholder =
-              isEmotionSlotShape(element) &&
-              typeof element.text === "string" &&
-              element.text.trim() === "감정을 선택해주세요";
+              (isEmotionSlotShape(element) &&
+                typeof element.text === "string" &&
+                element.text.trim() === "감정을 선택해주세요") ||
+              ((element as { subType?: string }).subType === "imageSlot" &&
+                typeof element.text === "string" &&
+                element.text.trim().length > 0);
             return {
               ...element,
               fill: normalizedUrl,

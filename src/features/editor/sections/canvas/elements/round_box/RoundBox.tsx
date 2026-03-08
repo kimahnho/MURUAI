@@ -229,8 +229,8 @@ const RoundBox = ({
   const showOutline = !locked && (isHovered || isActive);
   const selectionColor = "var(--primary)";
   const borderStyle = border?.style ?? "solid";
-  // border 두께만큼 내부 div의 좌표계 원점이 밀리는 것을 상쇄하기 위한 오프셋
-  const bw = border?.enabled ? (border.width ?? 0) : 0;
+  // 이미지 편집 모드에서는 border를 제거하므로 오프셋도 0으로 처리한다.
+  const bw = !isImageEditing && border?.enabled ? (border.width ?? 0) : 0;
   const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
 
   const showTransformToolbar =
@@ -410,10 +410,13 @@ const RoundBox = ({
         touchAction: "none",
         pointerEvents: selectable ? "auto" : "none",
         outlineColor: showOutline ? selectionColor : "transparent",
-        border: border?.enabled
-          ? `${border.width}px ${borderStyle} ${border.color}`
-          : "none",
-        overflow: "hidden",
+        // 이미지 편집 모드에서는 border를 제거해 clip 없이 이미지가 프레임 밖으로 보이도록 한다.
+        border: isImageEditing
+          ? "none"
+          : border?.enabled
+            ? `${border.width}px ${borderStyle} ${border.color}`
+            : "none",
+        overflow: isImageEditing ? "visible" : "hidden",
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}

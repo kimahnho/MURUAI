@@ -83,6 +83,11 @@ export const useDesignPaperSelectionContextMenu = ({
         isEmotionInferenceCard(selectedElement)
       ) {
         setSideBarMenu("emotion-aac");
+      } else if (
+        (selectedElement as { subType?: string }).subType === "imageSlot"
+      ) {
+        // 이미지 삽입 슬롯 선택 시 이미지 탭으로 자동 전환한다.
+        setSideBarMenu("image");
       } else if (isAacCardElement(elements, selectedElement)) {
         setSideBarMenu("emotion-aac");
       }

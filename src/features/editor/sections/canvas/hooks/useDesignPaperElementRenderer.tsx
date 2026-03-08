@@ -313,6 +313,7 @@ export const useDesignPaperElementRenderer = ({
     return (
       <ShapeComponent
         key={element.id}
+        className={isImageEditing ? "z-20" : ""}
         rect={rect}
         minWidth={1}
         minHeight={1}
