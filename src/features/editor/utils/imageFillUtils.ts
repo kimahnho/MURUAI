@@ -82,10 +82,11 @@ export const isAacCardElement = (
   ) {
     return false;
   }
-  // 감정 카드는 AAC 판별에서 제외한다.
+  // 감정 카드와 이미지 슬롯은 AAC 판별에서 제외한다.
   if (
     element.subType === "emotionSlot" ||
-    element.subType === "emotionInference"
+    element.subType === "emotionInference" ||
+    element.subType === "imageSlot"
   ) {
     return false;
   }

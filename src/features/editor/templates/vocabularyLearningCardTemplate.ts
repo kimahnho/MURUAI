@@ -76,6 +76,7 @@ export const vocabularyLearningCardTemplate: Template = {
       return [
         {
           type: "roundRect" as const,
+          subType: "imageSlot" as const,
           x: mmToPx(x),
           y: mmToPx(y),
           w: mmToPx(cardWidthMm),

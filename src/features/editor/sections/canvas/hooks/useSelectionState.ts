@@ -206,10 +206,11 @@ export const useSelectionState = ({
     ) {
       return null;
     }
-    // 감정카드는 shape-props 패널이 아닌 emotion-aac 탭에서 감정 이미지를 선택하는 워크플로를 사용한다.
+    // 감정카드와 이미지 슬롯은 shape-props 패널 대신 전용 탭에서 처리한다.
     if (
       selectedElement.subType === "emotionSlot" ||
-      selectedElement.subType === "emotionInference"
+      selectedElement.subType === "emotionInference" ||
+      selectedElement.subType === "imageSlot"
     ) {
       return null;
     }

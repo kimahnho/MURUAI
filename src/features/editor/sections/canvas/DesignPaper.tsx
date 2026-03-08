@@ -12,6 +12,7 @@ import {
 } from "react";
 import type {
   CanvasElement,
+  ShapeElement,
 } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import {
@@ -420,9 +421,9 @@ const DesignPaper = ({
     <div
       ref={containerRef}
       tabIndex={readOnly ? undefined : 0}
-      className={`relative overflow-hidden bg-white shrink-0 outline-none transition-all ${
-        showShadow ? "shadow-lg" : ""
-      } ${className ?? ""} ${
+      className={`relative bg-white shrink-0 outline-none transition-all ${
+        editingImageId ? "overflow-visible" : "overflow-hidden"
+      } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
       style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle }}
@@ -505,6 +506,26 @@ const DesignPaper = ({
       onContextMenu={openCanvasContextMenu}
     >
       {elements.map((element) => renderElement(element))}
+      {/* 이미지 크롭 편집 모드: 모든 요소(z-index 없음) 위에 딤(z-10)을 올려 전체를 어둡게 처리한다.
+          편집 중인 요소는 z-20으로 딤 위에 노출되어 해당 도형만 밝게 보인다. */}
+      {editingImageId && (() => {
+        const el = elements.find((e) => e.id === editingImageId);
+        if (!el || (el.type !== "rect" && el.type !== "roundRect" && el.type !== "ellipse")) return null;
+        const shape = el as ShapeElement;
+        return (
+          <div
+            className="absolute pointer-events-none z-10"
+            style={{
+              left: shape.x,
+              top: shape.y,
+              width: shape.w,
+              height: shape.h,
+              borderRadius: shape.type === "ellipse" ? "50%" : (shape.radius ?? 0),
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)",
+            }}
+          />
+        );
+      })()}
       <SelectionRectOverlay selectionRect={selectionRect} />
       <SingleShapeTransformOverlay
         selectedIds={selectedIds}
