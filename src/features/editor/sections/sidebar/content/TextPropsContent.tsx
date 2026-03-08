@@ -305,6 +305,17 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
         </div>
       </div>
 
+      {/* 스타일 */}
+      <div className="flex flex-col gap-2">
+        <div className="text-14-semibold text-black-90">스타일</div>
+        <div className="flex gap-1">
+          <StyleButton label="B" title="굵게" active={style.fontWeight === "bold"} onClick={() => updateElement(element.id, { style: { ...style, fontWeight: style.fontWeight === "bold" ? "normal" : "bold" } })} />
+          <StyleButton label={<Underline className="h-4 w-4" />} title="밑줄" active={!!style.underline} onClick={() => updateElement(element.id, { style: { ...style, underline: !style.underline } })} />
+          <StyleButton label={<Italic className="h-4 w-4" />} title="기울임꼴" active={!!style.italic} onClick={() => updateElement(element.id, { style: { ...style, italic: !style.italic } })} />
+          <StyleButton label={<Strikethrough className="h-4 w-4" />} title="취소선" active={!!style.strikethrough} onClick={() => updateElement(element.id, { style: { ...style, strikethrough: !style.strikethrough } })} />
+        </div>
+      </div>
+
       {/* 정렬 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">정렬</div>

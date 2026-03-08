@@ -735,9 +735,9 @@ const BottomBar = ({
       <button
         type="button"
         onClick={toggleCollapsed}
-        className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center w-12 h-5 bg-white border border-black-25 border-b-0 rounded-t-md text-black-50 hover:text-black-90 z-10"
+        className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center w-12 h-5 bg-white border border-black-25 border-b-0 rounded-t-md text-black-90 hover:text-black z-10"
       >
-        {isCollapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {isCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
       </button>
       {!isCollapsed && (
         <div
