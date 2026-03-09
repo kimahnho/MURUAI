@@ -216,7 +216,7 @@ export const addAacBoardPage = ({
   config: AacBoardConfig;
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
-  const newPageId = Date.now().toString();
+  const newPageId = crypto.randomUUID();
   const aacElements = buildAacBoardElements(config);
 
   const idMap = new Map<string, string>();
@@ -281,7 +281,7 @@ export const addStoryBoardPage = ({
   config: StorySequenceConfig;
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
-  const newPageId = Date.now().toString();
+  const newPageId = crypto.randomUUID();
   const elementsWithLogo = withLogoTemplateElements(
     buildStorySequenceElements(config)
   ).map((element) => ({

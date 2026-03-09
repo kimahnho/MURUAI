@@ -87,7 +87,13 @@ const parseResponse = (raw: string, itemsMap: Map<string, TextItem>): SpellCheck
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];
 
-  const parsed = JSON.parse(jsonMatch[0]) as unknown[];
+  let parsed: unknown[];
+  try {
+    parsed = JSON.parse(jsonMatch[0]) as unknown[];
+  } catch {
+    console.error("[checkSpelling] AI 응답 JSON 파싱 실패:", jsonMatch[0]);
+    return [];
+  }
   if (!Array.isArray(parsed)) return [];
 
   return parsed

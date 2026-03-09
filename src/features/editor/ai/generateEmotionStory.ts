@@ -36,8 +36,12 @@ const buildFewShotBlock = (examples: FewShotExample[]): string =>
     )
     .join("\n");
 
-const buildPrompt = (topic: string, availableLabels: string[]) =>
-  `당신은 언어치료 전문가입니다.
+const sanitizeTopic = (topic: string): string =>
+  topic.slice(0, 100).replace(/[\n\r"\\]/g, " ").trim();
+
+const buildPrompt = (topic: string, availableLabels: string[]) => {
+  const safeTopic = sanitizeTopic(topic);
+  return `당신은 언어치료 전문가입니다.
 
 [사용 가능한 감정 라벨 — 반드시 이 목록에서만 선택]
 ${availableLabels.join(", ")}
@@ -45,7 +49,7 @@ ${availableLabels.join(", ")}
 [참고 예시 — 아래 스타일을 따라 작성할 것]
 ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
 
-위 예시처럼, 주제 "${topic}"에 맞는 감정 추론 활동용 짧은 이야기 10개를 새로 만들어주세요.
+위 예시처럼, 주제 "${safeTopic}"에 맞는 감정 추론 활동용 짧은 이야기 10개를 새로 만들어주세요.
 각 이야기는 다음 형식을 따릅니다:
 - title: 이야기 제목 (10자 이내)
 - sentence: "친구는 [이유/감정 상황]" 형식의 문장 (30자 이내, 반드시 "친구는 "으로 시작)
@@ -56,6 +60,7 @@ JSON만 출력하세요 (설명, 마크다운 없음):
   { "title": "...", "sentence": "친구는 ...", "emotions": ["...", "...", "..."] },
   ...
 ]`;
+};
 
 const parseStoryResponse = (raw: string): StoryItem[] => {
   const jsonMatch = raw.match(/\[[\s\S]*\]/);

@@ -66,11 +66,9 @@ interface UnifiedHistoryState {
   clear: () => void;
 }
 
-const clonePages = (pages: Page[]): Page[] => {
-  return JSON.parse(JSON.stringify(pages));
-};
+const clonePages = (pages: Page[]): Page[] => structuredClone(pages);
 
-const clonePage = (page: Page): Page => JSON.parse(JSON.stringify(page));
+const clonePage = (page: Page): Page => structuredClone(page);
 
 const HISTORY_MERGE_WINDOW_MS = 500;
 const MAX_HISTORY_ENTRIES = 50;

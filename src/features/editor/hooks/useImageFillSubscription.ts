@@ -123,6 +123,7 @@ export const useImageFillSubscription = ({
       setPages((prevPages) =>
         updatePageById(prevPages, activePageId, (page) => {
           let hasChanges = false;
+          const selectedIdSet = new Set(activeSelectedIds);
           const labelUpdates = new Map<string, string>();
           if (labelText) {
             page.elements.forEach((element) => {
@@ -130,7 +131,7 @@ export const useImageFillSubscription = ({
                 (element.type === "rect" ||
                   element.type === "roundRect" ||
                   element.type === "ellipse") &&
-                activeSelectedIds.includes(element.id)
+                selectedIdSet.has(element.id)
               ) {
                 if (element.labelId) {
                   labelUpdates.set(element.labelId, labelText);
@@ -156,7 +157,7 @@ export const useImageFillSubscription = ({
             });
           }
           const nextElements = page.elements.map((element) => {
-            if (!activeSelectedIds.includes(element.id)) return element;
+            if (!selectedIdSet.has(element.id)) return element;
             if (
               element.type !== "rect" &&
               element.type !== "roundRect" &&

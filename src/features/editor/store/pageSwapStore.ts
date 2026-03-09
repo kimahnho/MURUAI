@@ -81,15 +81,22 @@ export const waitForForceHydrate = (requestId: number) =>
       resolve();
       return;
     }
-    const timer = setTimeout(() => {
+    let settled = false;
+    let timedOut = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       unsubscribe();
+      if (timedOut) {
+        console.warn(`[pageSwapStore] waitForForceHydrate timed out (requestId=${requestId})`);
+      }
       resolve();
-    }, HYDRATION_TIMEOUT_MS);
+    };
+    const timer = setTimeout(() => { timedOut = true; settle(); }, HYDRATION_TIMEOUT_MS);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
       if (state.forceHydrateReadyId >= requestId) {
-        clearTimeout(timer);
-        unsubscribe();
-        resolve();
+        settle();
       }
     });
   });
@@ -101,15 +108,22 @@ export const waitForHydration = (requestId: number) =>
       resolve();
       return;
     }
-    const timer = setTimeout(() => {
+    let settled = false;
+    let timedOut = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       unsubscribe();
+      if (timedOut) {
+        console.warn(`[pageSwapStore] waitForHydration timed out (requestId=${requestId})`);
+      }
       resolve();
-    }, HYDRATION_TIMEOUT_MS);
+    };
+    const timer = setTimeout(() => { timedOut = true; settle(); }, HYDRATION_TIMEOUT_MS);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
       if (state.hydrationReadyId >= requestId) {
-        clearTimeout(timer);
-        unsubscribe();
-        resolve();
+        settle();
       }
     });
   });

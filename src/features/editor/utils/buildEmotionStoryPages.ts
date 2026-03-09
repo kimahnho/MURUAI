@@ -72,6 +72,9 @@ const patchStoryElements = (
       (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse")
     ) {
       const imageUrl = emotionImageMap.get(cardEmotion);
+      if (!imageUrl) {
+        console.warn(`[buildEmotionStoryPages] 감정 이미지 누락: "${cardEmotion}"`);
+      }
       if (imageUrl) {
         const imageBox = calculateCoverImageBox(
           el.w,

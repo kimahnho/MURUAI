@@ -118,22 +118,17 @@ export const TableBox = ({
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
   const [hoveredColDivider, setHoveredColDivider] = useState<number | null>(null);
   const [hoveredRowDivider, setHoveredRowDivider] = useState<number | null>(null);
-  // 선택된 셀 목록 (로컬 + tableStore 동기화)
-  const [selectedCells, setSelectedCellsLocal] = useState<{ row: number; col: number }[]>([]);
-  const setSelectedCellsStore = useTableStore((s) => s.setSelectedCells);
-
-  const setSelectedCells = (cells: { row: number; col: number }[]) => {
-    setSelectedCellsLocal(cells);
-    setSelectedCellsStore(cells);
-  };
+  // tableStore를 단일 진실 공급원으로 사용
+  const selectedCells = useTableStore((s) => s.selectedCells);
+  const setSelectedCells = useTableStore((s) => s.setSelectedCells);
 
   // 표 선택이 해제되면 셀 선택도 초기화한다.
   useEffect(() => {
     if (!isSelected) {
-      setSelectedCellsLocal([]);
+      setSelectedCells([]);
       setEditingCell(null);
     }
-  }, [isSelected]);
+  }, [isSelected, setSelectedCells]);
 
 
   const { startPointerDragSession } = usePointerDragSession();

@@ -12,6 +12,11 @@ export const computeScaledImageBox = (
     return { x: 0, y: 0, w: newWidth, h: newHeight };
   }
 
+  // w 또는 h가 0이면 비율 계산이 불가능하므로 기본 이미지 박스를 반환한다.
+  if (oldImageBox.w === 0 || oldImageBox.h === 0 || newHeight === 0 || newWidth === 0) {
+    return { x: 0, y: 0, w: newWidth, h: newHeight };
+  }
+
   const imageAspectRatio = oldImageBox.w / oldImageBox.h;
   const newElementAspectRatio = newWidth / newHeight;
 
