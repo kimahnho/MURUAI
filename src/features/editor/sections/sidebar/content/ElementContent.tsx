@@ -9,6 +9,7 @@ import {
   Minus,
   RectangleHorizontal,
   Square,
+  SquareUser,
   Table2,
 } from "lucide-react";
 import { useElementStore } from "@/features/editor/store/elementStore";
@@ -28,6 +29,7 @@ const SHAPES: ShapeItem[] = [
   { id: 4, name: "모자이크", icon: Grid3x3, type: "mosaic" },
   { id: 5, name: "선", icon: Minus, type: "line" },
   { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
+  { id: 7, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
 ];
 
 const MIN_TABLE_SIZE = 1;

@@ -170,10 +170,10 @@ const DesignLayout = () => {
             <button
               type="button"
               onClick={() => navigate("/mydoc")}
-              className="flex shrink-0 h-full items-center justify-center px-3 cursor-pointer border-black-30 border-2 rounded-xl"
+              className="flex shrink-0 h-full items-center justify-center px-3 cursor-pointer hover:bg-black-10 rounded-xl transition"
               aria-label="MyDoc으로 이동"
             >
-              <FolderOpen className="h-6 w-6 text-black-40" />
+              <FolderOpen className="h-6 w-6 text-black-70" />
             </button>
 
             <div className="flex min-w-0 shrink px-3 h-full items-center justify-center">

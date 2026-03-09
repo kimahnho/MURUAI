@@ -1,7 +1,7 @@
 /**
  * 이미지 채우기 대상 판별과 AAC 연동 보조 유틸을 제공하는 모듈.
  */
-import type { CanvasElement } from "../model/canvasTypes";
+import type { AacCardElement, CanvasElement } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -68,6 +68,10 @@ export const findLabelElementId = (
   return bestId;
 };
 
+export const isAacCardV2Element = (
+  element: CanvasElement,
+): element is AacCardElement => element.type === "aacCard";
+
 export const isAacCardElement = (
   elements: CanvasElement[],
   element: CanvasElement,
@@ -121,6 +125,27 @@ export const getNextAacCardId = (
   const aacCards = elements.filter((element) =>
     isAacCardElement(elements, element),
   );
+  if (aacCards.length === 0) return null;
+  const orderedCards = [...aacCards].sort((a, b) => {
+    const xDiff = a.x - b.x;
+    if (Math.abs(xDiff) > colTolerance) {
+      return xDiff;
+    }
+    return a.y - b.y;
+  });
+  const currentIndex = orderedCards.findIndex(
+    (element) => element.id === currentId,
+  );
+  if (currentIndex < 0) return null;
+  return orderedCards[currentIndex + 1]?.id ?? null;
+};
+
+export const getNextAacCardV2Id = (
+  elements: CanvasElement[],
+  currentId: string,
+) => {
+  const colTolerance = mmToPx(2);
+  const aacCards = elements.filter(isAacCardV2Element);
   if (aacCards.length === 0) return null;
   const orderedCards = [...aacCards].sort((a, b) => {
     const xDiff = a.x - b.x;

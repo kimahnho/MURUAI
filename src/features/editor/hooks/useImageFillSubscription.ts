@@ -11,8 +11,10 @@ import {
   calculateCoverImageBox,
   findLabelElementId,
   getNextAacCardId,
+  getNextAacCardV2Id,
   getNextEmotionCardId,
   isAacCardElement,
+  isAacCardV2Element,
   isAacLabelElement,
   isEmotionInferenceCard,
   isEmotionLabelElement,
@@ -67,6 +69,7 @@ export const useImageFillSubscription = ({
             return true;
           }
           return (
+            isAacCardV2Element(element) ||
             isEmotionInferenceCard(element) ||
             isEmotionSlotShape(element) ||
             isAacCardElement(activePage.elements, element)
@@ -160,6 +163,19 @@ export const useImageFillSubscription = ({
           }
           const nextElements = page.elements.map((element) => {
             if (!selectedIdSet.has(element.id)) return element;
+            // aacCard(v2) 복합 요소: 이미지 + 라벨을 한 요소 안에서 처리
+            if (element.type === "aacCard") {
+              if (element.locked) return element;
+              hasChanges = true;
+              const baseImageBox = element.imageBox ??
+                calculateCoverImageBox(element.w, element.h, state.width, state.height);
+              return {
+                ...element,
+                fill: normalizedUrl,
+                imageBox: baseImageBox,
+                ...(labelText ? { label: { ...element.label, text: labelText } } : {}),
+              };
+            }
             if (
               element.type !== "rect" &&
               element.type !== "roundRect" &&
@@ -244,6 +260,7 @@ export const useImageFillSubscription = ({
             activeTemplateId === "emotionInference" ||
             activeTemplateId === "emotionWorksheet";
           const isAacTemplate = activeTemplateId === "aacBoard";
+          const isAacV2Template = activeTemplateId === "aacBoardV2";
 
           if (isEmotionTemplate && isEmotionInferenceCard(selectedElement)) {
             const nextEmotionId = getNextEmotionCardId(
@@ -252,6 +269,18 @@ export const useImageFillSubscription = ({
             );
             if (nextEmotionId) {
               setSelectedIds([nextEmotionId]);
+              setEditingTextId(null);
+            }
+          } else if (
+            isAacV2Template &&
+            isAacCardV2Element(selectedElement)
+          ) {
+            const nextAacId = getNextAacCardV2Id(
+              activePage.elements,
+              selectedId
+            );
+            if (nextAacId) {
+              setSelectedIds([nextAacId]);
               setEditingTextId(null);
             }
           } else if (

@@ -8,19 +8,21 @@ import {
   RotateCcw,
   RotateCw,
 } from "lucide-react";
-import type { ShapeElement } from "../../model/canvasTypes";
+import type { AacCardElement, ShapeElement } from "../../model/canvasTypes";
 import type { Rect } from "../../utils/designPaperUtils";
 
+type TransformableElement = ShapeElement | AacCardElement;
+
 interface ShapeTransformBarProps {
-  element: ShapeElement;
+  element: TransformableElement;
   rect: Rect;
   isRotating: boolean;
   editingImageId: string | null;
   editingShapeTextId: string | null;
-  updateElement: (id: string, updates: Partial<ShapeElement>) => void;
+  updateElement: (id: string, updates: Partial<TransformableElement>) => void;
   startShapeRotation: (
     event: ReactPointerEvent<HTMLButtonElement>,
-    element: ShapeElement,
+    element: TransformableElement,
     rect: Rect,
   ) => void;
   getBottomCenterAnchor: (

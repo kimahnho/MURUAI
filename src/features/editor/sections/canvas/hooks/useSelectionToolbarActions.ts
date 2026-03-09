@@ -51,7 +51,8 @@ export const useSelectionToolbarActions = ({
             el.type === "rect" ||
             el.type === "roundRect" ||
             el.type === "ellipse" ||
-            el.type === "mosaic"
+            el.type === "mosaic" ||
+            el.type === "aacCard"
           ) {
             return {
               ...el,

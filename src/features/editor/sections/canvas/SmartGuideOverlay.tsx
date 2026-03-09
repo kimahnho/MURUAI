@@ -17,10 +17,10 @@ const SmartGuideOverlay = ({ guides }: SmartGuideOverlayProps) => {
             key={guide.id}
             style={{
               position: "absolute",
-              left: isVertical ? guide.position : 0,
-              top: isVertical ? 0 : guide.position,
-              width: isVertical ? 1 : "100%",
-              height: isVertical ? "100%" : 1,
+              left: isVertical ? guide.position : guide.start,
+              top: isVertical ? guide.start : guide.position,
+              width: isVertical ? 1 : guide.end - guide.start,
+              height: isVertical ? guide.end - guide.start : 1,
               backgroundColor: "#ff0000",
               zIndex: 20,
               pointerEvents: "none",

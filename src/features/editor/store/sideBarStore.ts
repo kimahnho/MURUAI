@@ -20,6 +20,7 @@ export type SideBarMenu =
   | "arrow-props"
   | "text-props"
   | "aac-props"
+  | "aacCard-props"
   | "multi-props"
   | null;
 

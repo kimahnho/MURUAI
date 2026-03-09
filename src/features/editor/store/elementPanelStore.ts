@@ -4,6 +4,7 @@
  */
 import { create } from "zustand";
 import type {
+  AacCardElement,
   LineElement,
   ShapeElement,
   TextElement,
@@ -50,6 +51,12 @@ export type AacPanelData = {
   hasImage: boolean;
 };
 
+export type AacCardV2PanelData = {
+  type: "aacCardV2";
+  element: AacCardElement;
+  hasImage: boolean;
+};
+
 export type MultiCallbacks = {
   multiColorValue: string;
   onMultiColorChange: (color: string) => void;
@@ -87,6 +94,7 @@ export type PanelData =
   | LinePanelData
   | TextPanelData
   | AacPanelData
+  | AacCardV2PanelData
   | MultiPanelData
   | null;
 

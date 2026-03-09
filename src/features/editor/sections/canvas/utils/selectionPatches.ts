@@ -46,6 +46,15 @@ export const applySelectedFontSize = (
       },
     };
   }
+  if (element.type === "aacCard") {
+    return {
+      ...element,
+      label: {
+        ...element.label,
+        style: { ...element.label.style, fontSize: nextSize },
+      },
+    };
+  }
   return element;
 };
 
@@ -66,7 +75,8 @@ export const applySelectedBorderPatch = (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
     element.type !== "ellipse" &&
-    element.type !== "mosaic"
+    element.type !== "mosaic" &&
+    element.type !== "aacCard"
   ) {
     return element;
   }

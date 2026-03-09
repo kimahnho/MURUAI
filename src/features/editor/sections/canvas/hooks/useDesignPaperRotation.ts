@@ -2,7 +2,7 @@
  * 요소 회전 입력을 처리해 회전 각도 계산과 패치 반영을 수행하는 훅.
  */
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { ShapeElement } from "../../../model/canvasTypes";
+import type { AacCardElement, ShapeElement } from "../../../model/canvasTypes";
 import type { Rect } from "../../../utils/designPaperUtils";
 import { usePointerDragSession } from "./usePointerDragSession";
 
@@ -44,7 +44,7 @@ export const useDesignPaperRotation = ({
 
   const startShapeRotation = (
     event: ReactPointerEvent<HTMLButtonElement>,
-    element: ShapeElement,
+    element: ShapeElement | AacCardElement,
     rect: Rect,
   ) => {
     if (readOnly || element.locked) return;

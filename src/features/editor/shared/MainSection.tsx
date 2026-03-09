@@ -316,7 +316,20 @@ const MainSection = () => {
   const setHasMatchingFonts = useElementPanelStore((s) => s.setHasMatchingFonts);
 
   const elementPanelData: PanelData = useMemo(() => {
-    // AAC 카드를 shape보다 먼저 확인해 shape-props 패널 대신 emotion-aac 탭이 열리도록 한다.
+    // aacCard(v2) 복합 요소는 전용 패널에서 이미지 검색 + 박스 스타일을 한 곳에서 편집한다.
+    if (selectedIds.length === 1) {
+      const activePage = pages.find((p) => p.id === selectedPageId);
+      const el = activePage?.elements.find((e) => e.id === selectedIds[0]);
+      if (el?.type === "aacCard") {
+        const hasImage = el.fill.startsWith("url(") || el.fill.startsWith("data:");
+        return {
+          type: "aacCardV2" as const,
+          element: el,
+          hasImage,
+        };
+      }
+    }
+    // AAC 카드(레거시)를 shape보다 먼저 확인해 shape-props 패널 대신 emotion-aac 탭이 열리도록 한다.
     if (aacToolbarData) {
       return {
         type: "aac" as const,
@@ -404,6 +417,21 @@ const MainSection = () => {
                 style: { ...el.style, ...(patch.style as object) },
               };
             }
+            // aacCard 복합 요소: label 내부의 style은 깊은 병합으로 유실을 방지한다
+            if (el.type === "aacCard" && patch.label && typeof patch.label === "object") {
+              const labelPatch = patch.label as Record<string, unknown>;
+              return {
+                ...el,
+                ...patch,
+                label: {
+                  ...el.label,
+                  ...labelPatch,
+                  style: labelPatch.style
+                    ? { ...el.label.style, ...(labelPatch.style as object) }
+                    : el.label.style,
+                },
+              };
+            }
             return { ...el, ...patch };
           }),
         ),
@@ -428,6 +456,7 @@ const MainSection = () => {
         arrow: "arrow-props",
         text: "text-props",
         aac: "emotion-aac",
+        aacCardV2: "aacCard-props",
         multi: "multi-props",
       };
       setSideBarMenu(menuMap[elementPanelData.type] ?? null);
@@ -498,7 +527,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "aacCard") {
               const fill = (el.fill ?? "#FFFFFF").toUpperCase();
               const isImage = fill.startsWith("URL(") || fill.startsWith("DATA:");
               if (!isImage && fill === old) {
@@ -526,7 +555,7 @@ const MainSection = () => {
     const getElementColor = (el: import("../model/canvasTypes").CanvasElement): string | null => {
       if (el.locked) return null;
       if (el.type === "text") return (el.style.color ?? "#000000").toUpperCase();
-      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "aacCard") {
         const fill = (el.fill ?? "#FFFFFF").toUpperCase();
         if (fill.startsWith("URL(") || fill.startsWith("DATA:")) return null;
         return fill;
@@ -581,6 +610,16 @@ const MainSection = () => {
               }
               return el;
             }
+            if (el.type === "aacCard") {
+              const current = el.label.style.fontFamily ?? "Pretendard";
+              if (current === oldFont) {
+                return {
+                  ...el,
+                  label: { ...el.label, style: { ...el.label.style, fontFamily: newFont } },
+                };
+              }
+              return el;
+            }
             return el;
           }),
         ),
@@ -597,6 +636,9 @@ const MainSection = () => {
       if (el.type === "text") return el.style.fontFamily ?? "Pretendard";
       if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
         return el.textStyle?.fontFamily ?? "Pretendard";
+      }
+      if (el.type === "aacCard") {
+        return el.label.style.fontFamily ?? "Pretendard";
       }
       return null;
     };

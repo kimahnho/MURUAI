@@ -46,6 +46,7 @@ export const isImageFillElement = (element: {
   (element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
-    element.type === "mosaic") &&
+    element.type === "mosaic" ||
+    element.type === "aacCard") &&
   !!element.fill &&
   (element.fill.startsWith("url(") || element.fill.startsWith("data:"));

@@ -48,6 +48,7 @@ const ShapePropsContent = () => {
 
   const data = panelData as ShapePanelData;
   const { element, rect, radius, minRadius, maxRadius, colorValue, borderEnabled, borderColor, borderWidth, borderStyle } = data;
+  const isImageFill = element.fill.startsWith("url(") || element.fill.startsWith("data:");
 
   const clampRadius = (value: number) => Math.min(maxRadius, Math.max(minRadius, value));
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
@@ -204,15 +205,17 @@ const ShapePropsContent = () => {
         </div>
       </div>
 
-      {/* 이미지 */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">이미지</div>
-        <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed" aria-disabled={isUploading}>
-          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          <span className="text-14-regular">이미지 업로드</span>
-          <input type="file" accept="image/jpeg,image/png" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-        </label>
-      </div>
+      {/* 이미지 — 이미 이미지가 채워진 도형에서는 숨긴다 */}
+      {!isImageFill && (
+        <div className="flex flex-col gap-2">
+          <div className="text-14-semibold text-black-90">이미지</div>
+          <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed" aria-disabled={isUploading}>
+            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            <span className="text-14-regular">이미지 업로드</span>
+            <input type="file" accept="image/jpeg,image/png" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+          </label>
+        </div>
+      )}
 
       {/* 테두리 */}
       <div className="flex flex-col gap-2">
