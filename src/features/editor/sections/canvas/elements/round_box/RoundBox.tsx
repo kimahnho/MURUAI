@@ -416,7 +416,7 @@ const RoundBox = ({
           : border?.enabled
             ? `${border.width}px ${borderStyle} ${border.color}`
             : "none",
-        overflow: isImageEditing ? "visible" : "hidden",
+        overflow: "visible",
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}
