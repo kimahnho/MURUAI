@@ -40,7 +40,7 @@
 }
 
 @layer base {
-  * {
+  :root {
     font-family: "Pretendard";
   }
 }
