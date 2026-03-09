@@ -33,7 +33,7 @@ export const usePageActions = ({
   const handleAddPage = useCallback(() => {
     const newPageNumber = pages.length + 1;
     const newPage: Page = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       pageNumber: newPageNumber,
       templateId: null,
       elements: withLogoCanvasElements([]),
@@ -48,7 +48,7 @@ export const usePageActions = ({
   const handleAddPageAtIndex = useCallback(
     (index: number) => {
       const newPage: Page = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         pageNumber: index + 1,
         templateId: null,
         elements: withLogoCanvasElements([]),
@@ -95,7 +95,7 @@ export const usePageActions = ({
 
       const pageIndex = pages.findIndex((page) => page.id === pageId);
       const newPage: Page = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         pageNumber: pageIndex + 2,
         templateId: pageToDuplicate.templateId,
         orientation: pageToDuplicate.orientation,
@@ -140,7 +140,7 @@ export const usePageActions = ({
       const targetIndex = pages.findIndex((page) => page.id === targetPageId);
       if (targetIndex === -1) return;
       const newPage: Page = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         pageNumber: targetIndex + 2,
         templateId: sourcePage.templateId,
         orientation: sourcePage.orientation,
@@ -183,8 +183,8 @@ export const usePageActions = ({
       const newPages = copiedIds
         .map((id) => pages.find((p) => p.id === id))
         .filter((p): p is Page => Boolean(p))
-        .map((sourcePage, i) => ({
-          id: `${Date.now()}-${i}`,
+        .map((sourcePage) => ({
+          id: crypto.randomUUID(),
           pageNumber: 0,
           templateId: sourcePage.templateId,
           orientation: sourcePage.orientation,

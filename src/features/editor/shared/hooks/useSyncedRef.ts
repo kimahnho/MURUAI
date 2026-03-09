@@ -9,5 +9,5 @@ export const useSyncedRef = <T>(
 ) => {
   useLayoutEffect(() => {
     ref.current = value;
-  }, [ref, value]);
+  }, [value]);
 };

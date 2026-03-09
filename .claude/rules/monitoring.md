@@ -80,6 +80,7 @@ mixpanel.track("이벤트명");
 | `{label} 템플릿 클릭` | `useTemplateContentState.ts` | `template_id`, `template_name` |
 | `AI 이미지 생성` | `useAiImageGeneration.ts` | `style`, `prompt_length` |
 | `이미지 업로드` | `useImageUploadToCloudinary.ts` | `file_type` |
+| `맞춤법 검사` | `ExportModal.tsx` | `correction_count` |
 
 ### 새 이벤트 추가 시
 

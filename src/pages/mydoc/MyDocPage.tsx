@@ -311,7 +311,8 @@ const MyDocPage = () => {
     const { error } = await supabase
       .from("user_made_n")
       .update({ deleted_at: now })
-      .eq("id", docId);
+      .eq("id", docId)
+      .eq("user_id", user.id);
     if (error) {
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;

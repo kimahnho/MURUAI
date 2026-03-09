@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // 2. 내부 모듈 (@/ 경로)
-import { supabase } from '@/shared/supabase/supabase';
+import { supabase } from '@/shared/api/supabase';
 import { useEditorStore } from '@/features/editor/store/...';
 
 // 3. 상대 경로

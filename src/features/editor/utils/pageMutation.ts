@@ -33,7 +33,8 @@ export const updateElementsByPageId = (
   pageId: string,
   updater: (elements: CanvasElement[]) => CanvasElement[],
 ): Page[] =>
-  updatePageById(pages, pageId, (page) => ({
-    ...page,
-    elements: updater(page.elements),
-  }));
+  updatePageById(pages, pageId, (page) => {
+    const nextElements = updater(page.elements);
+    if (nextElements === page.elements) return page;
+    return { ...page, elements: nextElements };
+  });

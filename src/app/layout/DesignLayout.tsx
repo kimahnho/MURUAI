@@ -55,6 +55,8 @@ const DesignLayout = () => {
     setRetryAutoSave,
     setManualSave,
     retryAutoSave,
+    registerSpellCheckApplier,
+    applySpellCorrections,
   } = useDocumentSave({ docId, docName });
 
   const {
@@ -421,6 +423,7 @@ const DesignLayout = () => {
             setAutoSaveState,
             setRetryAutoSave,
             setManualSave,
+            registerSpellCheckApplier,
           }}
         />
       </main>
@@ -443,6 +446,7 @@ const DesignLayout = () => {
             preparePdfPages={preparePdfPages}
             cleanupPdfPages={cleanupPdfPages}
             onPdfExportStateChange={setPdfExporting}
+            onApplySpellCorrections={applySpellCorrections}
           />
         </Suspense>
       )}

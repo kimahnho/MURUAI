@@ -19,7 +19,7 @@ paths:
 2. `DesignLayout.preparePdfPages`가 실행된다.
 3. 페이지 스왑 저장소(`pageSwapStore`)에 hydration 요청을 보내 모든 페이지를 복원한다.
 4. 숨김 렌더 컨테이너(`PdfPreviewContainer`)에 각 페이지를 `.pdf-page` DOM으로 렌더한다.
-5. `generatePdfFromDomPages`가 `.pdf-page`를 순회하며 `html2canvas`로 캡처한다.
+5. `generatePdfFromDomPages`가 `.pdf-page`를 순회하며 `html-to-image`(`htmlToImage.toJpeg`)로 캡처한다.
 6. 페이지별 캡처 이미지를 `jsPDF`에 추가해 최종 PDF Blob을 만든다.
 7. Blob을 파일로 다운로드한다.
 
@@ -32,13 +32,32 @@ paths:
 - `src/features/editor/shared/ExportModal.tsx`
   - 내보내기 실행/진행률/취소 UI
 - `src/features/editor/utils/userMadeExport.ts`
-  - `generatePdfFromDomPages` (html2canvas + jsPDF)
+  - `generatePdfFromDomPages` (html-to-image + jsPDF)
 - `src/features/editor/store/pageSwapStore.ts`
   - PDF 중 스왑/하이드레이션 제어 상태
 - `src/features/editor/hooks/usePageSwap.ts`
   - 페이지 스왑 인/아웃 수행
 - `src/features/editor/hooks/useAutoSave.ts`
   - PDF 생성 중 자동 저장 일시 중지
+
+## preparePdfPages() 순서 — 반드시 준수
+
+에디터는 LRU 기반 페이지 스왑(가상 스크롤)으로 현재 페이지 주변 ~8개만 메모리에 유지하고 나머지는 IndexedDB에 스왑 아웃한다. PDF 출력 시 모든 페이지를 복원해야 하므로 아래 순서를 지켜야 한다.
+
+**올바른 순서** (`src/app/layout/DesignLayout.tsx` `preparePdfPages()`):
+```
+1. setPdfPreviewActive(true) + setIsPdfPreviewActive(true)   ← 먼저 pdfPreviewActive 설정
+2. RAF × 2 대기                                              ← React 렌더 완료 → requiredPageIds가 전체 페이지로 확장
+3. requestHydration()                                        ← 이 시점에 requiredPageIds = 모든 페이지
+4. waitForHydration(requestId)                               ← 모든 페이지 IndexedDB 복원 완료 대기
+5. RAF × 2 대기                                              ← 레이아웃 안정화
+```
+
+**금지 패턴** (레이스 컨디션 발생):
+```
+requestHydration() → setPdfPreviewActive(true) → waitForHydration()
+```
+이 순서로 하면 `requiredPageIds`가 아직 "현재 페이지 주변 8개"인 상태에서 `loadMissing()`이 실행되어 "로드할 페이지 없음"으로 판단, `hydrationReady`를 즉시 호출해 스왑된 페이지들이 흰색으로 출력된다.
 
 ## 3. 현재 적용된 최적화 (시행 중)
 
@@ -58,7 +77,7 @@ paths:
 
 ### 3.4 최근 보정 사항 (저사양/기기차 대응)
 - `PdfPreviewContainer`를 극단적 음수 좌표(`-999999px`)에 두지 않고, 동일 좌표계(0,0) + `opacity: 0`로 렌더.
-- `html2canvas` 호출에서 강제 크롭 파라미터(`width/height/windowWidth/windowHeight/x/y/scrollX/scrollY`)를 제거.
+- `html-to-image` 호출에서 강제 크롭 파라미터를 제거.
 - 이미지 절대 좌표를 강제 정수화하던 보정 로직을 제거(잘림/위치 오차 가능성 감소).
 
 ## 4. 저사양 기기 우선 운영 원칙

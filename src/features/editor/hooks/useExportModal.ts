@@ -37,8 +37,8 @@ export const useExportModal = () => {
     try {
       // 학생/그룹 목록은 독립 실패가 가능하므로 병렬 조회 후 개별 토스트로 오류를 안내한다.
       const [studentsResult, groupsResult] = await Promise.all([
-        supabase.from("students_n").select("id,name").is("deleted_at", null),
-        supabase.from("groups_n").select("id,name").is("deleted_at", null),
+        supabase.from("students_n").select("id,name").eq("user_id", user.id).is("deleted_at", null),
+        supabase.from("groups_n").select("id,name").eq("owner_id", user.id).is("deleted_at", null),
       ]);
 
       if (studentsResult.error) {

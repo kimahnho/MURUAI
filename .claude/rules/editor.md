@@ -365,3 +365,37 @@ useEffect(() => {
 4. **readOnly prop 사용 시** - 미리보기 용도로 이벤트 핸들러 비활성화
 5. **수동 pointer listener 추가 지양** - 신규 로직은 `usePointerDragSession` 기반으로 구현
 6. **페이지 갱신 일관성 유지** - `updatePageById`/`updateElementsByPageId` 사용으로 `bumpPageRevision` 누락 방지
+
+## 템플릿 PDF 자산 관리
+
+- 경로: `src/features/editor/templates/template_pdf/<template-slug>/`
+- 각 템플릿 폴더에는 아래 두 파일을 유지한다.
+  - `template.pdf`: 원본 템플릿 PDF
+  - `preview.png`: 에디터/썸네일에서 사용하는 배경 이미지(고해상도 권장)
+- 템플릿이 "배경만" 필요한 경우 템플릿 TS 파일(`src/features/editor/templates/*.ts`)의 `elements`는 빈 배열(`[]`)로 유지한다.
+- 실제 페이지 배경 적용은 `src/features/editor/utils/pageFactory.ts`의 `getTemplateBackground()`에서 `templateId -> preview.png`를 매핑한다.
+- 사이드바 템플릿 썸네일 배경은 `src/features/editor/sections/sidebar/content/TemplateContent.tsx`의 `getTemplatePreviewBackground()`에서 동일 매핑을 유지한다.
+- 바텀 페이지 썸네일은 `DesignPaper`에 `background={page.background}` 전달 방식으로 렌더하므로, 템플릿 배경은 페이지 데이터에만 정상 주입되면 자동 노출된다.
+
+## 하단바 다중 페이지 선택 및 복사/붙여넣기
+
+- `selectedPageIds: string[]`를 BottomBar 로컬 state로 관리 (캔버스 활성 페이지 `selectedPageId`와 별도)
+- **Shift+클릭**: 앵커(`selectedPageId`)~클릭 페이지 범위를 `selectedPageIds`에 저장
+- **Cmd/Ctrl+클릭**: 개별 페이지 토글. 앵커 페이지(`selectedPageId`)는 제거 불가
+- **단일 클릭**: `onSelectPage` 호출 + `selectedPageIds` 초기화
+- `selectedPageId` 변경 시 `selectedPageIds` 자동 초기화 (useEffect)
+- **Ctrl+C**: `selectedPageIds`가 있으면 해당 배열을, 없으면 `[selectedPageId]`를 `sessionStorage.copiedPageIds`(JSON)에 저장
+- **Ctrl+V**: `handlePastePages(selectedPageId)` 호출 → `copiedPageIds` 배열을 읽어 대상 페이지 직후에 순서대로 삽입
+- `handlePastePages`는 `copiedPageIds` 우선, 없으면 `copiedPageId` 폴백 (`usePageActions.ts`)
+- **keydown 핸들러의 클로저 문제 주의**: `selectedPageIds`, `selectedPageId`, `pages`, `onSelectPage`, `onPastePages`는 별도 ref로 유지하고, keydown useEffect는 빈 dependency(`[]`)로 한 번만 등록해 최신 값은 ref에서 읽는다
+
+## 캔버스 파일 드래그 앤 드롭
+
+- OS 파일 탐색기에서 JPG/PNG/SVG 파일을 캔버스에 직접 드래그 앤 드롭하면 이미지 요소 생성
+- 지원 파일: `image/jpeg`, `image/png`, `image/svg+xml` (`useImageUploadToCloudinary.ts`와 동일)
+- 흐름: 로컬 프리뷰 즉시 표시(`URL.createObjectURL`) → 백그라운드 Cloudinary 업로드 → `fill` URL 교체 → 실패 시 요소 제거 + `revokeObjectURL`
+- `DesignPaper.tsx`의 `onDrop`에서 사이드바 드래그(`application/x-muru-image`)와 OS 파일 드롭(`dataTransfer.files`)을 분기 처리
+- 파일 드롭 로직은 `useCanvasFileDrop` 훅(`src/features/editor/hooks/useCanvasFileDrop.ts`)에서 처리 — `DesignPaper`에는 `onFileDropOnCanvas` prop으로 전달
+- `getElements` 콜백 패턴: 비동기 업로드 완료 시점에 최신 elements를 참조하기 위해 사용
+- 이미지 크기: 원본 비율 유지, 최대 300px
+- 업로드 완료 시 `triggerRefetch()`로 사이드바 업로드 목록 동기화

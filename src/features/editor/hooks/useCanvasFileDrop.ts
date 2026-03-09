@@ -2,6 +2,7 @@
  * OS 파일 탐색기에서 캔버스로 드래그 앤 드롭된 이미지 파일을 업로드하고 요소로 삽입하는 훅.
  * 로컬 프리뷰를 즉시 표시하고, 백그라운드 업로드 완료 후 Cloudinary URL로 교체한다.
  */
+import { useEffect, useRef } from "react";
 import type { CanvasElement } from "../model/canvasTypes";
 import { useImageUploadToCloudinary } from "../sections/sidebar/hooks/useImageUploadToCloudinary";
 import { useToastStore } from "../store/toastStore";
@@ -28,6 +29,13 @@ export const useCanvasFileDrop = (
   const { uploadImage } = useImageUploadToCloudinary();
   const showToast = useToastStore((s) => s.showToast);
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleFileDrop = async (file: File, dropX: number, dropY: number) => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -74,6 +82,9 @@ export const useCanvasFileDrop = (
     // 백그라운드 업로드 → 완료 후 로컬 URL을 Cloudinary URL로 교체
     const cloudinaryUrl = await uploadImage(file);
     URL.revokeObjectURL(localUrl);
+
+    // 언마운트 후 비동기 완료 시 state 업데이트를 방지한다.
+    if (!mountedRef.current) return;
 
     if (!cloudinaryUrl) {
       // 업로드 실패 시 프리뷰 요소 제거

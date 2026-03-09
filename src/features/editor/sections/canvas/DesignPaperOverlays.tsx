@@ -57,21 +57,27 @@ export const GroupSelectionOverlay = ({
 }: GroupSelectionOverlayProps) => {
   if (!isGroupedSelection || readOnly) return null;
 
-  const groupRects = selectedIds
-    .map((id) => {
-      const element = elements.find((el) => el.id === id);
-      if (!element) return null;
-      return getRectFromElement(element);
-    })
-    .filter((rect): rect is Rect => Boolean(rect));
+  // element Map 인덱싱 + 단일 패스 바운딩 박스로 O(n×m) → O(n+m) 최적화
+  const elementMap = new Map(elements.map((el) => [el.id, el]));
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let rectCount = 0;
 
-  if (groupRects.length === 0) return null;
+  for (const id of selectedIds) {
+    const element = elementMap.get(id);
+    if (!element) continue;
+    const rect = getRectFromElement(element);
+    if (!rect) continue;
+    rectCount++;
+    if (rect.x < minX) minX = rect.x;
+    if (rect.y < minY) minY = rect.y;
+    if (rect.x + rect.width > maxX) maxX = rect.x + rect.width;
+    if (rect.y + rect.height > maxY) maxY = rect.y + rect.height;
+  }
 
-  // 선택 요소 전체 경계로 가상 그룹 박스를 만들어 그룹 이동/리사이즈의 기준 좌표로 사용한다.
-  const minX = Math.min(...groupRects.map((r) => r.x));
-  const minY = Math.min(...groupRects.map((r) => r.y));
-  const maxX = Math.max(...groupRects.map((r) => r.x + r.width));
-  const maxY = Math.max(...groupRects.map((r) => r.y + r.height));
+  if (rectCount === 0) return null;
 
   const groupBoundingBox = {
     x: minX,

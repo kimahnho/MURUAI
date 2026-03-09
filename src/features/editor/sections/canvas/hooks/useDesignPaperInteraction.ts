@@ -452,7 +452,8 @@ export const useDesignPaperInteraction = ({
         isEmotionSlotShape(targetElement) &&
         (context?.type === "drag" || context?.type === "resize")
       ) {
-        applyEmotionSlotRectUpdate(elementId, finalRect);
+        // handleRectChange에서 이동/리사이즈 중 이미 실시간 업데이트가 적용되므로
+        // 종료 시점에서는 중복 호출하지 않고 정리만 수행한다.
         activeInteractionRef.current = null;
         setActivePreview(null);
         smartGuides.clear();
