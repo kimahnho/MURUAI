@@ -37,7 +37,8 @@ export const isEmotionSlotShape = (
 ): element is ShapeElement =>
   (element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse") &&
+    element.type === "ellipse" ||
+    element.type === "mosaic") &&
   (element.subType === "emotionSlot" ||
     element.subType === "emotionInference" ||
     (element.subType === undefined &&

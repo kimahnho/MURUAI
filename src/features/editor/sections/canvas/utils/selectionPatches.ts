@@ -35,7 +35,8 @@ export const applySelectedFontSize = (
   if (
     element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse"
+    element.type === "ellipse" ||
+    element.type === "mosaic"
   ) {
     return {
       ...element,
@@ -64,7 +65,8 @@ export const applySelectedBorderPatch = (
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
-    element.type !== "ellipse"
+    element.type !== "ellipse" &&
+    element.type !== "mosaic"
   ) {
     return element;
   }

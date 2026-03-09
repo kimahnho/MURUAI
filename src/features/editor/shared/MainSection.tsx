@@ -498,7 +498,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
               const fill = (el.fill ?? "#FFFFFF").toUpperCase();
               const isImage = fill.startsWith("URL(") || fill.startsWith("DATA:");
               if (!isImage && fill === old) {
@@ -526,7 +526,7 @@ const MainSection = () => {
     const getElementColor = (el: import("../model/canvasTypes").CanvasElement): string | null => {
       if (el.locked) return null;
       if (el.type === "text") return (el.style.color ?? "#000000").toUpperCase();
-      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
         const fill = (el.fill ?? "#FFFFFF").toUpperCase();
         if (fill.startsWith("URL(") || fill.startsWith("DATA:")) return null;
         return fill;
@@ -571,7 +571,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
               const current = el.textStyle?.fontFamily ?? "Pretendard";
               if (current === oldFont) {
                 return {
@@ -595,7 +595,7 @@ const MainSection = () => {
     const getElementFont = (el: import("../model/canvasTypes").CanvasElement): string | null => {
       if (el.locked) return null;
       if (el.type === "text") return el.style.fontFamily ?? "Pretendard";
-      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") {
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
         return el.textStyle?.fontFamily ?? "Pretendard";
       }
       return null;

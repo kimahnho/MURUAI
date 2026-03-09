@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   ArrowRight,
   Circle,
+  Grid3x3,
   Minus,
   RectangleHorizontal,
   Square,
@@ -24,6 +25,7 @@ const SHAPES: ShapeItem[] = [
   { id: 1, name: "사각형", icon: Square, type: "rect" },
   { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
   { id: 3, name: "원", icon: Circle, type: "ellipse" },
+  { id: 4, name: "모자이크", icon: Grid3x3, type: "mosaic" },
   { id: 5, name: "선", icon: Minus, type: "line" },
   { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
 ];

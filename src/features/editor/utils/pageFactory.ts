@@ -310,7 +310,7 @@ export const addShapeElement = ({
   getOrientation,
 }: {
   pageId: string;
-  elementType: "rect" | "roundRect" | "ellipse";
+  elementType: "rect" | "roundRect" | "ellipse" | "mosaic";
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => {
@@ -329,6 +329,7 @@ export const addShapeElement = ({
     h: size,
     fill: "#b7c3ff",
     radius: elementType === "roundRect" ? mmToPx(8) : 0,
+    ...(elementType === "mosaic" ? { mosaicLevel: 8 } : {}),
     border: {
       enabled: false,
       color: "#000000",

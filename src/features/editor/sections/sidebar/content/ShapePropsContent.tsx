@@ -149,6 +149,26 @@ const ShapePropsContent = () => {
         </div>
       </div>
 
+      {/* 모자이크 강도 */}
+      {element.type === "mosaic" && (
+        <div className="flex flex-col gap-2">
+          <div className="text-14-semibold text-black-90">모자이크 강도</div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={1}
+              max={20}
+              value={element.mosaicLevel ?? 8}
+              onChange={(e) => updateElement(element.id, { mosaicLevel: Number(e.target.value) })}
+              className="flex-1"
+            />
+            <span className="w-8 text-center text-14-regular text-black-70">
+              {element.mosaicLevel ?? 8}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 모서리 (ellipse 제외) */}
       {element.type !== "ellipse" && (
         <div className="flex flex-col gap-2">

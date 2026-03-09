@@ -50,7 +50,8 @@ export const useSelectionToolbarActions = ({
           if (
             el.type === "rect" ||
             el.type === "roundRect" ||
-            el.type === "ellipse"
+            el.type === "ellipse" ||
+            el.type === "mosaic"
           ) {
             return {
               ...el,

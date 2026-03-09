@@ -56,7 +56,8 @@ const SingleShapeTransformOverlay = ({
     element.locked ||
     (element.type !== "rect" &&
       element.type !== "roundRect" &&
-      element.type !== "ellipse")
+      element.type !== "ellipse" &&
+      element.type !== "mosaic")
   ) {
     return null;
   }

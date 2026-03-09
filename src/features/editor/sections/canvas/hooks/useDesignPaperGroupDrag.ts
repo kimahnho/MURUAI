@@ -166,7 +166,8 @@ export const useDesignPaperGroupDrag = ({
         if (
           element.type !== "rect" &&
           element.type !== "roundRect" &&
-          element.type !== "ellipse"
+          element.type !== "ellipse" &&
+          element.type !== "mosaic"
         ) {
           return;
         }

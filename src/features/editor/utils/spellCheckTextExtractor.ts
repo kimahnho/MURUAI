@@ -38,7 +38,7 @@ const extractFromElement = (
       });
     });
   } else if (
-    (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") &&
+    (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") &&
     el.text?.trim()
   ) {
     items.push({ elementId: el.id, pageId, pageNumber, field: "text", text: el.text });

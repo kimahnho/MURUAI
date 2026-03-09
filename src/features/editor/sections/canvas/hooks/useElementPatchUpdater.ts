@@ -86,7 +86,8 @@ export const useElementPatchUpdater = ({
     if (
       (element.type === "rect" ||
         element.type === "roundRect" ||
-        element.type === "ellipse") &&
+        element.type === "ellipse" ||
+        element.type === "mosaic") &&
       "border" in patch
     ) {
       // 도형 border는 기본값이 누락될 수 있어 base를 먼저 보정한 뒤 patch를 덮어쓴다.
