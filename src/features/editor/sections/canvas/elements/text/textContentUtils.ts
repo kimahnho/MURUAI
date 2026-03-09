@@ -108,9 +108,11 @@ export const stripStyleTags = (
             if (tagName === "font" && el.hasAttribute("face")) {
               el.removeAttribute("face");
             }
-            if (el.style.font || el.style.fontFamily) {
-              // font shorthand가 남아 있어도 최종 font-family는 상위 스타일을 따르도록 강제한다.
-              el.style.fontFamily = "inherit";
+            if (el.style.font) {
+              el.style.font = "";
+            }
+            if (el.style.fontFamily) {
+              el.style.fontFamily = "";
             }
             break;
           case "fontSize":
