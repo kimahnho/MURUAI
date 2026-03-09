@@ -92,6 +92,7 @@ interface RoundBoxProps {
   onRotateCCW?: () => void;
   onRotationChange?: (angle: number) => void;
   showInlineMetrics?: boolean;
+  backgroundColor?: string;
 }
 
 const RoundBox = ({
@@ -133,6 +134,7 @@ const RoundBox = ({
   onRotateCCW,
   onRotationChange,
   showInlineMetrics = true,
+  backgroundColor,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
@@ -229,8 +231,6 @@ const RoundBox = ({
   const showOutline = !locked && (isHovered || isActive);
   const selectionColor = "var(--primary)";
   const borderStyle = border?.style ?? "solid";
-  // 이미지 편집 모드에서는 border를 제거하므로 오프셋도 0으로 처리한다.
-  const bw = !isImageEditing && border?.enabled ? (border.width ?? 0) : 0;
   const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
 
   const showTransformToolbar =
@@ -302,7 +302,7 @@ const RoundBox = ({
     return transforms.length > 0 ? transforms.join(" ") : undefined;
   })();
   const backgroundStyle: CSSProperties = isImageFill
-    ? {}
+    ? (backgroundColor ? { backgroundColor } : {})
     : { backgroundColor: fill };
   const imageSrc = isImageFill
     ? fill.startsWith("url(")
@@ -426,10 +426,10 @@ const RoundBox = ({
           showImageOverflow ? "overflow-visible" : "overflow-hidden"
         }`}
         style={{
-          top: -bw,
-          left: -bw,
-          right: -bw,
-          bottom: -bw,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           borderRadius,
           ...backgroundStyle,
         }}

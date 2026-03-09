@@ -24,7 +24,8 @@ export type ElementType =
   | "mosaic"
   | "line"
   | "arrow"
-  | "table";
+  | "table"
+  | "aacCard";
 
 export type ElementBase = {
   id: string;
@@ -151,13 +152,54 @@ export type TableElement = ElementBase & {
   cellStyle?: TableCellStyle;  // undefined이면 기본값(fontSize=13, alignX="center") 사용
 };
 
-export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
+export type AacCardLabelStyle = {
+  fontSize: number;
+  fontWeight: "normal" | "bold";
+  fontFamily?: string;
+  color: string;
+};
+
+export type AacCardElement = ElementBase & {
+  type: "aacCard";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill: string;
+  backgroundColor?: string;
+  imageBox?: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+  radius?: number;
+  border?: {
+    enabled: boolean;
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted" | "double";
+  };
+  label: {
+    text: string;
+    position: "top" | "bottom" | "none";
+    style: AacCardLabelStyle;
+  };
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+};
+
+export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement;
 
 export type TemplateElement =
   | Omit<TextElement, "id">
   | Omit<ShapeElement, "id">
   | Omit<LineElement, "id">
-  | Omit<TableElement, "id">;
+  | Omit<TableElement, "id">
+  | Omit<AacCardElement, "id">;
 
 export type Template = {
   id: string;

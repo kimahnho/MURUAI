@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useNumberInput } from "../../../shared/hooks/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";
 import type {
+  AacCardElement,
   CanvasElement,
   ShapeElement,
   TextElement,
@@ -47,12 +48,13 @@ export const useSelectionState = ({
 
   const isColorTarget = (
     element: CanvasElement,
-  ): element is TextElement | ShapeElement =>
+  ): element is TextElement | ShapeElement | AacCardElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
-    element.type === "mosaic";
+    element.type === "mosaic" ||
+    element.type === "aacCard";
   const isMultiColorSelection =
     selectedElements.length > 1 && selectedElements.every(isColorTarget);
   // 다중 선택 UI는 잠금 요소가 섞일 수 있어 "수정 가능한 첫 요소"를 대표값으로 사용한다.
@@ -71,32 +73,40 @@ export const useSelectionState = ({
 
   const isFontTarget = (
     element: CanvasElement,
-  ): element is TextElement | ShapeElement =>
+  ): element is TextElement | ShapeElement | AacCardElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
-    element.type === "mosaic";
+    element.type === "mosaic" ||
+    element.type === "aacCard";
   const multiFontTargets = isMultiColorSelection
     ? selectedElements.filter(isFontTarget)
     : [];
   const multiFontSource =
     multiFontTargets.length > 0 ? getUnlockedOrFirst(multiFontTargets) : null;
   const hasMultiFontTargets = multiFontTargets.length > 0;
-  const multiFontFamily =
-    multiFontSource && multiFontSource.type === "text"
-      ? (multiFontSource.style.fontFamily ?? "Pretendard")
-      : (multiFontSource?.textStyle?.fontFamily ?? "Pretendard");
+  const getMultiFontFamily = (): string => {
+    if (!multiFontSource) return "Pretendard";
+    if (multiFontSource.type === "text") return multiFontSource.style.fontFamily ?? "Pretendard";
+    if (multiFontSource.type === "aacCard") return multiFontSource.label.style.fontFamily ?? "Pretendard";
+    return multiFontSource.textStyle?.fontFamily ?? "Pretendard";
+  };
+  const multiFontFamily = getMultiFontFamily();
   const multiFontLabel = getFontLabel(multiFontFamily);
   const multiFontWeight = multiFontSource
     ? multiFontSource.type === "text"
       ? normalizeFontWeight(multiFontSource.style.fontWeight)
-      : normalizeFontWeight(multiFontSource.textStyle?.fontWeight)
+      : multiFontSource.type === "aacCard"
+        ? normalizeFontWeight(multiFontSource.label.style.fontWeight)
+        : normalizeFontWeight(multiFontSource.textStyle?.fontWeight)
     : 400;
   const multiFontSize =
     multiFontSource && multiFontSource.type === "text"
       ? multiFontSource.style.fontSize
-      : (multiFontSource?.textStyle?.fontSize ?? 16);
+      : multiFontSource && multiFontSource.type === "aacCard"
+        ? multiFontSource.label.style.fontSize
+        : (multiFontSource?.textStyle?.fontSize ?? 16);
   const minMultiFontSize = 12;
   const maxMultiFontSize = 120;
   const applyMultiFontSize = (value: number) => {
@@ -119,11 +129,12 @@ export const useSelectionState = ({
     onChange: applyMultiFontSize,
   });
 
-  const isBorderTarget = (element: CanvasElement): element is ShapeElement =>
+  const isBorderTarget = (element: CanvasElement): element is ShapeElement | AacCardElement =>
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
-    element.type === "mosaic";
+    element.type === "mosaic" ||
+    element.type === "aacCard";
   const multiBorderTargets = isMultiColorSelection
     ? selectedElements.filter(isBorderTarget)
     : [];

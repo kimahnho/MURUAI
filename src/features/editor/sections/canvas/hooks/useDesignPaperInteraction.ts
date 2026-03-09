@@ -173,7 +173,8 @@ export const useDesignPaperInteraction = ({
         (targetElement.type === "rect" ||
           targetElement.type === "roundRect" ||
           targetElement.type === "ellipse" ||
-          targetElement.type === "mosaic")
+          targetElement.type === "mosaic" ||
+          targetElement.type === "aacCard")
       ) {
         const isSameShapeRect =
           Math.abs(nextRect.x - targetElement.x) <= RECT_TOLERANCE &&

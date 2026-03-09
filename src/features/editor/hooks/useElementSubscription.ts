@@ -6,6 +6,7 @@ import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { addAacCardElement } from "../utils/pageFactory";
 
 type TextPreset = {
   text: string;
@@ -106,6 +107,13 @@ export const useElementSubscription = ({
       return addLineElement({
         pageId: activePageId,
         elementType: requestedType,
+        setPages,
+        getOrientation,
+      });
+    }
+    if (requestedType === "aacCard") {
+      return addAacCardElement({
+        pageId: activePageId,
         setPages,
         getOrientation,
       });

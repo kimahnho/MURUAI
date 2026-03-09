@@ -1,7 +1,7 @@
 /**
  * AAC 카드/라벨 레이아웃 생성과 위치 계산 유틸을 제공하는 모듈.
  */
-import type { TemplateElement } from "../model/canvasTypes";
+import type { AacCardElement, TemplateElement } from "../model/canvasTypes";
 
 export type AacLabelPosition = "top" | "bottom" | "none";
 
@@ -155,6 +155,115 @@ export const buildAacBoardElements = ({
       }
 
       cellIndex += 1;
+    }
+  }
+
+  return elements;
+};
+
+/**
+ * V2: 이미지 + 라벨을 하나의 복합 요소로 생성하는 AAC 보드 빌더.
+ * 기존 buildAacBoardElements는 레거시 호환용으로 유지한다.
+ */
+export const buildAacBoardElementsV2 = ({
+  rows,
+  columns,
+  orientation,
+  labelPosition,
+}: AacBoardConfig): Omit<AacCardElement, "id">[] => {
+  const pageWidthMm = orientation === "horizontal" ? 297 : 210;
+  const pageHeightMm = orientation === "horizontal" ? 210 : 297;
+  const paddingTopMm = 18;
+  const paddingBottomMm = 12;
+  const paddingHorizontalMm = 12;
+  const gapMm = 6;
+  const contentWidthMm = pageWidthMm - paddingHorizontalMm * 2;
+  const contentHeightMm = pageHeightMm - paddingTopMm - paddingBottomMm;
+
+  const fixedBoxSizePx = 150;
+  const boxInset = snapPx(mmToPx(1));
+  const cellSizePx = fixedBoxSizePx + boxInset * 2;
+  const cellWidthMm = cellSizePx / MM_TO_PX;
+  const cellHeightMm = cellSizePx / MM_TO_PX;
+
+  const totalGridWidthMm = columns * cellWidthMm + gapMm * (columns - 1);
+  const totalGridHeightMm = rows * cellHeightMm + gapMm * (rows - 1);
+
+  const startXMm =
+    paddingHorizontalMm + (contentWidthMm - totalGridWidthMm) / 2;
+  const startYMm = paddingTopMm + (contentHeightMm - totalGridHeightMm) / 2;
+  const labelGap = snapPx(mmToPx(2));
+  const imagePadding = snapPx(mmToPx(0));
+  const maxLabelHeightMm = 12;
+
+  const elements: Omit<AacCardElement, "id">[] = [];
+
+  for (let col = 0; col < columns; col += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      const cellX = snapPx(mmToPx(startXMm + col * (cellWidthMm + gapMm)));
+      const cellY = snapPx(mmToPx(startYMm + row * (cellHeightMm + gapMm)));
+      const cellWidth = snapPx(mmToPx(cellWidthMm));
+      const cellHeight = snapPx(mmToPx(cellHeightMm));
+      const boxWidth = clampPx(cellWidth - boxInset * 2);
+      const boxHeight = clampPx(cellHeight - boxInset * 2);
+      const boxX = snapPx(cellX + (cellWidth - boxWidth) / 2);
+      const boxY = snapPx(cellY + (cellHeight - boxHeight) / 2);
+      const maxLabelHeight = snapPx(mmToPx(maxLabelHeightMm));
+      const labelHeight =
+        labelPosition === "none"
+          ? 0
+          : clampPx(Math.min(maxLabelHeight, Math.max(0, boxHeight * 0.22)));
+      const labelAreaHeight =
+        labelPosition === "none" ? 0 : labelHeight + labelGap;
+      const imageAreaX = boxX + imagePadding;
+      const imageAreaWidth = Math.max(1, boxWidth - imagePadding * 2);
+      const imageAreaY =
+        boxY + imagePadding + (labelPosition === "top" ? labelAreaHeight : 0);
+      const imageAreaHeight = Math.max(
+        1,
+        boxHeight - imagePadding * 2 - labelAreaHeight,
+      );
+      const imageBoxSize = clampPx(
+        Math.min(imageAreaWidth, imageAreaHeight) * 1.5,
+      );
+      const imageRelX = snapPx(
+        imageAreaX - boxX + (imageAreaWidth - imageBoxSize) / 2,
+      );
+      const imageOffsetY = snapPx(mmToPx(2));
+      const imageRelY = snapPx(
+        imageAreaY - boxY + (imageAreaHeight - imageBoxSize) / 2 + imageOffsetY,
+      );
+
+      elements.push({
+        type: "aacCard",
+        x: boxX,
+        y: boxY,
+        w: boxWidth,
+        h: boxHeight,
+        fill: "#ffffff",
+        radius: 0,
+        imageBox: {
+          x: imageRelX,
+          y: imageRelY,
+          w: imageBoxSize,
+          h: imageBoxSize,
+        },
+        border: {
+          enabled: true,
+          color: "#000000",
+          width: 2,
+          style: "solid",
+        },
+        label: {
+          text: "단어",
+          position: labelPosition,
+          style: {
+            fontSize: 18,
+            fontWeight: "normal",
+            color: "#000000",
+          },
+        },
+      });
     }
   }
 

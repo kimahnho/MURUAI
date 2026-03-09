@@ -26,11 +26,13 @@ import ShapePropsContent from "./content/ShapePropsContent";
 import LinePropsContent from "./content/LinePropsContent";
 import ArrowPropsContent from "./content/ArrowPropsContent";
 import AacPropsContent from "./content/AacPropsContent";
+import AacCardPropsContent from "./content/AacCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
+import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "multi-props">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "multi-props">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
@@ -48,6 +50,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   "arrow-props": "화살표",
   "text-props": "텍스트",
   "aac-props": "AAC",
+  "aacCard-props": "AAC 카드",
   "multi-props": "다중 선택",
 };
 
@@ -82,20 +85,40 @@ const CONTENT_COMPONENTS: Record<
   "arrow-props": ArrowPropsContent,
   "text-props": TextPropsContent,
   "aac-props": AacPropsContent,
+  "aacCard-props": AacCardPropsContent,
   "multi-props": MultiPropsContent,
 };
+
+const HIDDEN_MENUS_FOR_IMAGE_ELEMENTS: MenuItemId[] = ["upload", "image"];
 
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
+  const panelData = useElementPanelStore((s) => s.panelData);
   const activeTitle = selectedMenu ? MENU_LABELS[selectedMenu] : "";
   const ActiveContent = selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null;
+
+  // 이미지가 포함된 요소 선택 시 "업로드"/"이미지" 버튼 숨김
+  const isImageBearingElement = (() => {
+    if (!panelData) return false;
+    if (panelData.type === "aacCardV2") return true;
+    if (panelData.type === "aac" && panelData.hasImage) return true;
+    if (panelData.type === "shape") {
+      const fill = panelData.element.fill;
+      return fill.startsWith("url(") || fill.startsWith("data:");
+    }
+    return false;
+  })();
+
+  const visibleMenuItems = isImageBearingElement
+    ? MENU_ITEMS.filter((item) => !HIDDEN_MENUS_FOR_IMAGE_ELEMENTS.includes(item.id))
+    : MENU_ITEMS;
 
   return (
     <div className="flex h-full">
       {/* 좌측 아이콘 메뉴: 편집 도구 카테고리 전환 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
-        {MENU_ITEMS.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           return (
             <button

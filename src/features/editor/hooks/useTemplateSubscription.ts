@@ -157,7 +157,9 @@ export const useTemplateSubscription = ({
     const pageTemplateId =
       pages.find((page) => page.id === selectedPageId)?.templateId ?? null;
     const nextTemplateId =
-      pageTemplateId === "aacBoard" ? null : pageTemplateId;
+      pageTemplateId === "aacBoard" || pageTemplateId === "aacBoardV2"
+        ? null
+        : pageTemplateId;
     if (nextTemplateId === selectedTemplate) return;
     setSelectedTemplate(nextTemplateId);
   }, [pages, selectedPageId, selectedTemplate, setSelectedTemplate]);

@@ -3,7 +3,7 @@
  */
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasDocument, Page } from "../model/pageTypes";
-import type { CanvasElement, TableCell } from "../model/canvasTypes";
+import type { AacCardElement, CanvasElement, TableCell } from "../model/canvasTypes";
 import fiveSpaceWritingNoteBg from "../templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "../templates/template_pdf/ten-space-writing-note/preview.png";
 import lineNoteWideBg from "../templates/template_pdf/line-note-wide/preview.png";
@@ -20,6 +20,7 @@ import {
 } from "../templates/templateRegistry";
 import {
   buildAacBoardElements,
+  buildAacBoardElementsV2,
   type AacBoardConfig,
   type AacBoardElement,
 } from "./aacBoardUtils";
@@ -274,6 +275,43 @@ export const addAacBoardPage = ({
   };
 };
 
+export const addAacBoardPageV2 = ({
+  config,
+  setPages,
+}: {
+  config: AacBoardConfig;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => {
+  const newPageId = crypto.randomUUID();
+  const aacElements = buildAacBoardElementsV2(config);
+
+  const canvasElements = withLogoCanvasElements(
+    aacElements.map((el) => ({ ...el, id: crypto.randomUUID() })),
+  );
+
+  const firstElementId = canvasElements.find(
+    (el) => el.type === "aacCard",
+  )?.id;
+
+  setPages((prevPages) => {
+    const newPageNumber = prevPages.length + 1;
+    const newPage: Page = {
+      id: newPageId,
+      pageNumber: newPageNumber,
+      templateId: "aacBoardV2",
+      orientation: config.orientation,
+      elements: canvasElements,
+      rev: 0,
+    };
+    return [...prevPages, newPage];
+  });
+  return {
+    id: newPageId,
+    orientation: config.orientation,
+    firstElementId: firstElementId ?? undefined,
+  };
+};
+
 export const addStoryBoardPage = ({
   config,
   setPages,
@@ -335,6 +373,55 @@ export const addShapeElement = ({
       color: "#000000",
       width: 2,
       style: "solid",
+    },
+  };
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === pageId
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
+        : page
+    )
+  );
+  return nextElement.id;
+};
+
+export const addAacCardElement = ({
+  pageId,
+  setPages,
+  getOrientation,
+}: {
+  pageId: string;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => {
+  const pageOrientation = getOrientation();
+  const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
+  const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
+  const size = mmToPx(40);
+  const x = (pageWidth - size) / 2;
+  const y = (pageHeight - size) / 2;
+  const nextElement: AacCardElement = {
+    id: crypto.randomUUID(),
+    type: "aacCard",
+    x,
+    y,
+    w: size,
+    h: size,
+    fill: "#ffffff",
+    radius: mmToPx(4),
+    border: {
+      enabled: true,
+      color: "#E5E7EB",
+      width: 2,
+      style: "solid",
+    },
+    label: {
+      text: "단어",
+      position: "bottom",
+      style: { fontSize: 18, fontWeight: "normal", color: "#000000" },
     },
   };
   setPages((prevPages) =>

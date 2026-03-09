@@ -4,7 +4,7 @@
 import type { CanvasElement } from "./canvasTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 
-export type PageTemplateId = TemplateId | "aacBoard";
+export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 
 export type PageBackground =
   | { type: "none" }

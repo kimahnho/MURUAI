@@ -10,10 +10,7 @@ import {
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type {
-  CanvasElement,
-  ShapeElement,
-} from "../../model/canvasTypes";
+import type { CanvasElement } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import {
   DesignPaperContextMenu,
@@ -527,17 +524,16 @@ const DesignPaper = ({
           편집 중인 요소는 z-20으로 딤 위에 노출되어 해당 도형만 밝게 보인다. */}
       {editingImageId && (() => {
         const el = elements.find((e) => e.id === editingImageId);
-        if (!el || (el.type !== "rect" && el.type !== "roundRect" && el.type !== "ellipse" && el.type !== "mosaic")) return null;
-        const shape = el as ShapeElement;
+        if (!el || (el.type !== "rect" && el.type !== "roundRect" && el.type !== "ellipse" && el.type !== "mosaic" && el.type !== "aacCard")) return null;
         return (
           <div
             className="absolute pointer-events-none z-10"
             style={{
-              left: shape.x,
-              top: shape.y,
-              width: shape.w,
-              height: shape.h,
-              borderRadius: shape.type === "ellipse" ? "50%" : (shape.radius ?? 0),
+              left: el.x,
+              top: el.y,
+              width: el.w,
+              height: el.h,
+              borderRadius: el.type === "ellipse" ? "50%" : ((el as { radius?: number }).radius ?? 0),
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)",
             }}
           />

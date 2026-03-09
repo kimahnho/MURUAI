@@ -9,6 +9,7 @@ import type { Page } from "../model/pageTypes";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
+import { addAacBoardPageV2 } from "../utils/pageFactory";
 
 type AddAacBoardPage = (args: {
   config: AacBoardConfig;
@@ -50,7 +51,7 @@ export const useBoardSubscriptions = ({
       if (!state.config) return;
       // AAC 보드는 생성 직후 첫 요소를 바로 선택해
       // 사용자가 추가 클릭 없이 텍스트 편집 흐름으로 진입하게 한다.
-      const newPage = addAacBoardPage({
+      const newPage = addAacBoardPageV2({
         config: state.config,
         setPages,
       });
