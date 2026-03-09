@@ -258,7 +258,8 @@ export const usePageActions = ({
               if (
                 (element.type === "rect" ||
                   element.type === "roundRect" ||
-                  element.type === "ellipse") &&
+                  element.type === "ellipse" ||
+                  element.type === "mosaic") &&
                 element.labelId
               ) {
                 linkedIds.add(element.labelId);

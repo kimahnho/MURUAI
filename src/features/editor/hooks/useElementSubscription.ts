@@ -25,7 +25,7 @@ type AddTextElement = (args: {
 
 type AddShapeElement = (args: {
   pageId: string;
-  elementType: "rect" | "roundRect" | "ellipse";
+  elementType: "rect" | "roundRect" | "ellipse" | "mosaic";
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => string;
@@ -92,7 +92,8 @@ export const useElementSubscription = ({
     if (
       requestedType === "rect" ||
       requestedType === "roundRect" ||
-      requestedType === "ellipse"
+      requestedType === "ellipse" ||
+      requestedType === "mosaic"
     ) {
       return addShapeElement({
         pageId: activePageId,

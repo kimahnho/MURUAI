@@ -26,6 +26,7 @@ import { normalizeFontWeight } from "../../../utils/fontOptions";
 import Arrow from "../elements/arrow/Arrow";
 import CircleBox from "../elements/circle/CircleBox";
 import Line from "../elements/line/Line";
+import MosaicBox from "../elements/round_box/MosaicBox";
 import RoundBox from "../elements/round_box/RoundBox";
 import TextBox from "../elements/text/TextBox";
 import TableBox from "../elements/table/TableBox";
@@ -283,7 +284,12 @@ export const useDesignPaperElementRenderer = ({
         ? ""
         : element.text;
 
-    const ShapeComponent = element.type === "ellipse" ? CircleBox : RoundBox;
+    const ShapeComponent =
+      element.type === "ellipse"
+        ? CircleBox
+        : element.type === "mosaic"
+          ? MosaicBox
+          : RoundBox;
     const handleImageBoxChange =
       readOnly || element.locked || !isImageFill
         ? undefined
@@ -319,6 +325,7 @@ export const useDesignPaperElementRenderer = ({
         minHeight={1}
         borderRadius={radius}
         fill={element.fill}
+        {...(element.type === "mosaic" ? { mosaicLevel: element.mosaicLevel } : {})}
         imageBox={imageBox}
         border={element.border}
         // 카드 라벨(목표 어휘)이 입력되면 안내 문구를 즉시 숨겨 실제 작업 영역에 집중하게 한다.
@@ -490,6 +497,7 @@ export const useDesignPaperElementRenderer = ({
       case "rect":
       case "roundRect":
       case "ellipse":
+      case "mosaic":
         return renderShapeElement(element);
       case "line":
       case "arrow":

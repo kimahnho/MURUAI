@@ -23,7 +23,7 @@ const patchElement = (
       return { ...el, text: newText, richText: newRichText };
     }
     if (
-      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") &&
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") &&
       el.text
     ) {
       return { ...el, text: applyTextCorrections(el.text, result.corrections) };

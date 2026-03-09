@@ -60,7 +60,8 @@ export const useImageFillSubscription = ({
           if (
             (element.type === "rect" ||
               element.type === "roundRect" ||
-              element.type === "ellipse") &&
+              element.type === "ellipse" ||
+              element.type === "mosaic") &&
             (element as { subType?: string }).subType === "imageSlot"
           ) {
             return true;
@@ -130,7 +131,8 @@ export const useImageFillSubscription = ({
               if (
                 (element.type === "rect" ||
                   element.type === "roundRect" ||
-                  element.type === "ellipse") &&
+                  element.type === "ellipse" ||
+                  element.type === "mosaic") &&
                 selectedIdSet.has(element.id)
               ) {
                 if (element.labelId) {
@@ -161,7 +163,8 @@ export const useImageFillSubscription = ({
             if (
               element.type !== "rect" &&
               element.type !== "roundRect" &&
-              element.type !== "ellipse"
+              element.type !== "ellipse" &&
+              element.type !== "mosaic"
             ) {
               return element;
             }

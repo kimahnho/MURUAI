@@ -45,6 +45,7 @@ export const isImageFillElement = (element: {
 }): boolean =>
   (element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse") &&
+    element.type === "ellipse" ||
+    element.type === "mosaic") &&
   !!element.fill &&
   (element.fill.startsWith("url(") || element.fill.startsWith("data:"));

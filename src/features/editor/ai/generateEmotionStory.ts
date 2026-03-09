@@ -21,11 +21,66 @@ type FewShotExample = {
 };
 
 const MOCK_FEW_SHOT_EXAMPLES: FewShotExample[] = [
-  { title: "생일 파티", sentence: "친구는 깜짝 생일 파티를 받아서", emotions: ["기뻐요", "슬퍼요", "화나요"] },
-  { title: "강아지와 산책", sentence: "친구는 강아지와 공원을 산책해서", emotions: ["재미있어요", "무서워요", "슬퍼요"] },
-  { title: "넘어진 날", sentence: "친구는 달리다가 넘어져 무릎을 다쳐서", emotions: ["슬퍼요", "기뻐요", "고마워요"] },
-  { title: "새 장난감", sentence: "친구는 갖고 싶던 장난감을 선물 받아서", emotions: ["기뻐요", "화나요", "무서워요"] },
-  { title: "발표 시간", sentence: "친구는 반 친구들 앞에서 발표를 해야 해서", emotions: ["기뻐요", "떨려요", "화나요"] },
+  {
+    title: "드디어 기다리던 크리스마스가 다가오고 있어요.",
+    sentence: "친구는 기다리던 크리스마스가 다가와서",
+    emotions: ["기뻐요", "기대돼요", "화나요"],
+  },
+  {
+    title: "엄마와 함께 크리스마스트리를 꾸며요.",
+    sentence: "친구는 엄마와 함께 크리스마스트리를 꾸며서",
+    emotions: ["재미있어요", "슬퍼요", "화나요"],
+  },
+  {
+    title: "크리스마스트리에 별 장식을 달고 싶은데 별 장식이 사라졌어요.",
+    sentence: "친구는 달고 싶었던 별 장식이 사라져서",
+    emotions: ["기뻐요", "고마워요", "슬퍼요"],
+  },
+  {
+    title: "아빠가 새로운 별 장식을 사 오셨어요.",
+    sentence: "친구는 아빠가 새로운 별 장식을 사주셔서",
+    emotions: ["기뻐요", "화나요", "무서워요"],
+  },
+  {
+    title: "오늘 밤에 산타 할아버지가 찾아오시기를 기다려요.",
+    sentence: "친구는 기다리던 산타할아버지를 만날 생각에",
+    emotions: ["힘들어요", "기대돼요", "무서워요"],
+  },
+  {
+    title: "아무리 기다려도 산타 할아버지가 오시지 않아요.",
+    sentence: "친구는 기다리던 산타할아버지가 오시지 않아",
+    emotions: ["기뻐요", "슬퍼요", "고마워요"],
+  },
+  {
+    title: "깜빡 잠이 들었는데 아침이 되었어요. 산타 할아버지를 만나고 싶었는데 못 만났어요.",
+    sentence: "친구는 산타할아버지를 만나지 못해",
+    emotions: ["고마워요", "기뻐요", "슬퍼요"],
+  },
+  {
+    title: "거실에 가 보니 트리 아래에 선물 상자가 있어요. 산타 할아버지가 두고 가신 것 같아요.",
+    sentence: "친구는 산타 할아버지가 두고 가신 선물을 보고",
+    emotions: ["기뻐요", "슬퍼요", "화나요"],
+  },
+  {
+    title: "선물 상자를 열어보니 내가 갖고 싶었던 블록이 들어 있었어요.",
+    sentence: "친구는 좋아하는 블록을 선물로 받아서",
+    emotions: ["슬퍼요", "화나요", "기뻐요"],
+  },
+  {
+    title: "선물 받은 블록으로 아빠랑 블록을 만들었어요.",
+    sentence: "친구는 아빠랑 블록놀이를 해서",
+    emotions: ["슬퍼요", "화나요", "재미있어요"],
+  },
+  {
+    title: "블록 놀이를 하고 있는데 엄마가 내가 좋아하는 초코케이크를 사 오셨어요.",
+    sentence: "엄마가 내가 좋아하는 케이크를 사 오셔서",
+    emotions: ["슬퍼요", "화나요", "기뻐요"],
+  },
+  {
+    title: "엄마가 케이크에 초를 꽂고 불을 붙여요. 촛불에 머리카락이 닿아 머리카락이 탈뻔했어요.",
+    sentence: "친구는 엄마 머리카락이 탈까 봐",
+    emotions: ["놀라요", "고마워요", "기뻐요"],
+  },
 ];
 
 const buildFewShotBlock = (examples: FewShotExample[]): string =>
@@ -37,7 +92,10 @@ const buildFewShotBlock = (examples: FewShotExample[]): string =>
     .join("\n");
 
 const sanitizeTopic = (topic: string): string =>
-  topic.slice(0, 100).replace(/[\n\r"\\]/g, " ").trim();
+  topic
+    .slice(0, 100)
+    .replace(/[\n\r"\\]/g, " ")
+    .trim();
 
 const buildPrompt = (topic: string, availableLabels: string[]) => {
   const safeTopic = sanitizeTopic(topic);
@@ -69,14 +127,19 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
   const valid = parsed.filter((item): item is StoryItem => {
     if (typeof item !== "object" || item === null) return false;
     const rec = item as Record<string, unknown>;
-    if (typeof rec.title !== "string" || typeof rec.sentence !== "string") return false;
+    if (typeof rec.title !== "string" || typeof rec.sentence !== "string")
+      return false;
     if (!Array.isArray(rec.emotions) || rec.emotions.length < 3) return false;
     return rec.emotions.slice(0, 3).every((e) => typeof e === "string");
   });
   if (valid.length === 0) throw new Error("유효한 스토리 데이터가 없습니다.");
   return valid.slice(0, 10).map((item) => ({
     ...item,
-    emotions: [item.emotions[0], item.emotions[1], item.emotions[2]] as [string, string, string],
+    emotions: [item.emotions[0], item.emotions[1], item.emotions[2]] as [
+      string,
+      string,
+      string,
+    ],
   }));
 };
 

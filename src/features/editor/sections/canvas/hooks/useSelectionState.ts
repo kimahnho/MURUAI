@@ -51,7 +51,8 @@ export const useSelectionState = ({
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse";
+    element.type === "ellipse" ||
+    element.type === "mosaic";
   const isMultiColorSelection =
     selectedElements.length > 1 && selectedElements.every(isColorTarget);
   // 다중 선택 UI는 잠금 요소가 섞일 수 있어 "수정 가능한 첫 요소"를 대표값으로 사용한다.
@@ -74,7 +75,8 @@ export const useSelectionState = ({
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse";
+    element.type === "ellipse" ||
+    element.type === "mosaic";
   const multiFontTargets = isMultiColorSelection
     ? selectedElements.filter(isFontTarget)
     : [];
@@ -120,7 +122,8 @@ export const useSelectionState = ({
   const isBorderTarget = (element: CanvasElement): element is ShapeElement =>
     element.type === "rect" ||
     element.type === "roundRect" ||
-    element.type === "ellipse";
+    element.type === "ellipse" ||
+    element.type === "mosaic";
   const multiBorderTargets = isMultiColorSelection
     ? selectedElements.filter(isBorderTarget)
     : [];
@@ -202,7 +205,8 @@ export const useSelectionState = ({
       selectedElement.locked ||
       (selectedElement.type !== "rect" &&
         selectedElement.type !== "roundRect" &&
-        selectedElement.type !== "ellipse")
+        selectedElement.type !== "ellipse" &&
+        selectedElement.type !== "mosaic")
     ) {
       return null;
     }

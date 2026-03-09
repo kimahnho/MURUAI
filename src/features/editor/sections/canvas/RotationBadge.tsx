@@ -25,7 +25,8 @@ const RotationBadge = ({
     !element ||
     (element.type !== "rect" &&
       element.type !== "roundRect" &&
-      element.type !== "ellipse")
+      element.type !== "ellipse" &&
+      element.type !== "mosaic")
   ) {
     return null;
   }

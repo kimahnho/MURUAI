@@ -28,7 +28,7 @@ export const isEmotionLabelElement = (
 
 export const findLabelElementId = (
   elements: CanvasElement[],
-  shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
+  shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" | "mosaic" }>,
   isLabelElement: (
     element: CanvasElement,
   ) => element is Extract<CanvasElement, { type: "text" }>,
@@ -73,12 +73,13 @@ export const isAacCardElement = (
   element: CanvasElement,
 ): element is Extract<
   CanvasElement,
-  { type: "rect" | "roundRect" | "ellipse" }
+  { type: "rect" | "roundRect" | "ellipse" | "mosaic" }
 > => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
-    element.type !== "ellipse"
+    element.type !== "ellipse" &&
+    element.type !== "mosaic"
   ) {
     return false;
   }
@@ -139,12 +140,13 @@ export const isEmotionInferenceCard = (
   element: CanvasElement,
 ): element is Extract<
   CanvasElement,
-  { type: "rect" | "roundRect" | "ellipse" }
+  { type: "rect" | "roundRect" | "ellipse" | "mosaic" }
 > => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
-    element.type !== "ellipse"
+    element.type !== "ellipse" &&
+    element.type !== "mosaic"
   ) {
     return false;
   }

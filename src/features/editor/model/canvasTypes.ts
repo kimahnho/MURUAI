@@ -21,6 +21,7 @@ export type ElementType =
   | "rect"
   | "roundRect"
   | "ellipse"
+  | "mosaic"
   | "line"
   | "arrow"
   | "table";
@@ -63,7 +64,7 @@ export type TextElement = ElementBase & {
 export type ShapeSubType = "emotionSlot" | "emotionInference" | "aacCard" | "imageSlot";
 
 export type ShapeElement = ElementBase & {
-  type: "rect" | "roundRect" | "ellipse";
+  type: "rect" | "roundRect" | "ellipse" | "mosaic";
   subType?: ShapeSubType;
   x: number;
   y: number;
@@ -96,6 +97,7 @@ export type ShapeElement = ElementBase & {
     color?: string;
   };
   labelId?: string;
+  mosaicLevel?: number;
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
