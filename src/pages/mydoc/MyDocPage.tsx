@@ -118,6 +118,7 @@ const MyDocPage = () => {
   const [pendingDuplicateDoc, setPendingDuplicateDoc] =
     useState<DocItem | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [pendingDeleteDocId, setPendingDeleteDocId] = useState<string | null>(null);
   const { isCreatingDoc, createAndOpenDocument } = useCreateDocumentNavigation();
 
   useEffect(() => {
@@ -288,10 +289,15 @@ const MyDocPage = () => {
       )
     : filteredDocs;
 
+  const handleDeleteDoc = (docId: string) => {
+    setPendingDeleteDocId(docId);
+  };
+
   // 소프트 삭제 처리
-  const handleDeleteDoc = async (docId: string) => {
-    const confirmed = window.confirm("학습자료를 삭제할까요?");
-    if (!confirmed) return;
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteDocId) return;
+    const docId = pendingDeleteDocId;
+    setPendingDeleteDocId(null);
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -675,6 +681,35 @@ const MyDocPage = () => {
           )}
         </section>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      <BaseModal
+        isOpen={Boolean(pendingDeleteDocId)}
+        onClose={() => setPendingDeleteDocId(null)}
+        title="학습자료 삭제"
+      >
+        <div className="flex flex-col gap-6">
+          <p className="text-14-regular text-black-70">
+            삭제하면 되돌릴 수 없습니다. 삭제할까요?
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setPendingDeleteDocId(null)}
+              className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-title-14-semibold text-black-70 transition hover:bg-black-10"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => { void handleConfirmDelete(); }}
+              className="flex-1 rounded-lg bg-primary px-4 py-3 text-title-14-semibold text-white-100 transition hover:bg-primary/90"
+            >
+              삭제하기
+            </button>
+          </div>
+        </div>
+      </BaseModal>
 
       {/* 복제 확인 모달 */}
       <BaseModal
