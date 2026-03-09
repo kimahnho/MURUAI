@@ -39,8 +39,10 @@
   --icon-xl: 48px;
 }
 
-* {
-  font-family: "Pretendard";
+@layer base {
+  * {
+    font-family: "Pretendard";
+  }
 }
 
 input[type="color"].color-input::-webkit-color-swatch-wrapper {

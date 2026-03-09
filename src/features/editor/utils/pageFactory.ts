@@ -13,6 +13,7 @@ import emotionDiaryBg from "../templates/template_pdf/emotion-diary/preview.png"
 import pictureDiaryLineNoteBg from "../templates/template_pdf/picture-diary-line-note/preview.png";
 import dictationPracticeBg from "../templates/template_pdf/dictation-practice/preview.png";
 import yellowDiaryLinesBg from "../templates/template_pdf/yellow-diary-lines/preview.png";
+import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -97,7 +98,15 @@ export const buildInitialPages = (
       page.orientation,
       fallbackOrientation
     ),
-    elements: Array.isArray(page.elements) ? page.elements : [],
+    elements: Array.isArray(page.elements)
+      ? page.elements.map((el) => {
+          if (el.type === "text" && el.richText) {
+            const cleaned = stripStyleTags(el.richText, "fontFamily");
+            return cleaned !== el.richText ? { ...el, richText: cleaned } : el;
+          }
+          return el;
+        })
+      : [],
   }));
 };
 
