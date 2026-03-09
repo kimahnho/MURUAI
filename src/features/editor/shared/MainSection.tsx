@@ -14,6 +14,8 @@ import {
 } from "react";
 import { useLocation, useOutletContext } from "react-router-dom";
 import type { CanvasDocument } from "../model/pageTypes";
+import type { SpellCheckResult } from "../ai/checkSpelling";
+import { applyCorrections } from "../utils/applySpellCorrections";
 import CanvasStage from "../sections/canvas/CanvasStage";
 import { useTemplateStore } from "../store/templateStore";
 import { useSideBarStore } from "../store/sideBarStore";
@@ -68,6 +70,7 @@ export interface OutletContext {
   setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
   setRetryAutoSave: (retryFn: () => void) => void;
   setManualSave: (saveFn: () => void) => void;
+  registerSpellCheckApplier: (applier: (corrections: SpellCheckResult[]) => void) => void;
 }
 
 const MainSection = () => {
@@ -84,6 +87,7 @@ const MainSection = () => {
     setAutoSaveState,
     setRetryAutoSave,
     setManualSave,
+    registerSpellCheckApplier,
   } = useOutletContext<OutletContext>();
 
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
@@ -149,6 +153,14 @@ const MainSection = () => {
     setManualSave(manualSave);
   }, [manualSave, setManualSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
+
+  // 맞춤법 교정 적용 콜백 등록
+  useEffect(() => {
+    registerSpellCheckApplier((corrections: SpellCheckResult[]) => {
+      setPages((prev) => applyCorrections(prev, corrections));
+      recordHistory("맞춤법 교정");
+    });
+  }, [registerSpellCheckApplier, setPages, recordHistory]);
 
   const {
     setActivePage,
