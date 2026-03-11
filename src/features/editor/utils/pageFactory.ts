@@ -3,7 +3,7 @@
  */
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasDocument, Page } from "../model/pageTypes";
-import type { AacCardElement, CanvasElement, TableCell } from "../model/canvasTypes";
+import type { AacCardElement, CanvasElement, EmotionCardElement, TableCell } from "../model/canvasTypes";
 import fiveSpaceWritingNoteBg from "../templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "../templates/template_pdf/ten-space-writing-note/preview.png";
 import lineNoteWideBg from "../templates/template_pdf/line-note-wide/preview.png";
@@ -357,7 +357,7 @@ export const addShapeElement = ({
   getOrientation,
 }: {
   pageId: string;
-  elementType: "rect" | "roundRect" | "ellipse" | "mosaic";
+  elementType: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic";
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => {
@@ -376,7 +376,7 @@ export const addShapeElement = ({
     h: size,
     fill: "#b7c3ff",
     radius: elementType === "roundRect" ? mmToPx(8) : 0,
-    ...(elementType === "mosaic" ? { mosaicLevel: 8 } : {}),
+    ...(elementType === "mosaic" || elementType === "circleMosaic" ? { mosaicLevel: 8 } : {}),
     border: {
       enabled: false,
       color: "#000000",
@@ -431,6 +431,57 @@ export const addAacCardElement = ({
       text: "단어",
       position: "bottom",
       style: { fontSize: 18, fontWeight: "normal", color: "#000000" },
+    },
+  };
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === pageId
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, nextElement],
+          })
+        : page
+    )
+  );
+  return nextElement.id;
+};
+
+export const addEmotionCardElement = ({
+  pageId,
+  setPages,
+  getOrientation,
+}: {
+  pageId: string;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}) => {
+  const pageOrientation = getOrientation();
+  const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
+  const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
+  // 감정 추론 템플릿 3페이지의 감정 어휘 카드 디자인 (28mm x 40mm)
+  const cardW = mmToPx(28);
+  const cardH = mmToPx(40);
+  const x = (pageWidth - cardW) / 2;
+  const y = (pageHeight - cardH) / 2;
+  const nextElement: EmotionCardElement = {
+    id: crypto.randomUUID(),
+    type: "emotionCard",
+    x,
+    y,
+    w: cardW,
+    h: cardH,
+    fill: "#FFFFFF",
+    radius: mmToPx(4),
+    border: {
+      enabled: true,
+      color: "#A5B4FC",
+      width: 1.5,
+      style: "solid",
+    },
+    label: {
+      text: "(감정)",
+      position: "bottom",
+      style: { fontSize: 14, fontWeight: "normal", color: "#111827" },
     },
   };
   setPages((prevPages) =>

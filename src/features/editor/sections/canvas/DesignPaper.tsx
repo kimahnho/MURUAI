@@ -524,7 +524,7 @@ const DesignPaper = ({
           편집 중인 요소는 z-20으로 딤 위에 노출되어 해당 도형만 밝게 보인다. */}
       {editingImageId && (() => {
         const el = elements.find((e) => e.id === editingImageId);
-        if (!el || (el.type !== "rect" && el.type !== "roundRect" && el.type !== "ellipse" && el.type !== "mosaic" && el.type !== "aacCard")) return null;
+        if (!el || (el.type !== "rect" && el.type !== "roundRect" && el.type !== "ellipse" && el.type !== "mosaic" && el.type !== "circleMosaic" && el.type !== "aacCard" && el.type !== "emotionCard")) return null;
         return (
           <div
             className="absolute pointer-events-none z-10"

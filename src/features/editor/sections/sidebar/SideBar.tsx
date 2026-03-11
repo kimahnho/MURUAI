@@ -27,12 +27,13 @@ import LinePropsContent from "./content/LinePropsContent";
 import ArrowPropsContent from "./content/ArrowPropsContent";
 import AacPropsContent from "./content/AacPropsContent";
 import AacCardPropsContent from "./content/AacCardPropsContent";
+import EmotionCardPropsContent from "./content/EmotionCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "multi-props">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
@@ -51,6 +52,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   "text-props": "텍스트",
   "aac-props": "AAC",
   "aacCard-props": "AAC 카드",
+  "emotionCard-props": "감정카드",
   "multi-props": "다중 선택",
 };
 
@@ -86,6 +88,7 @@ const CONTENT_COMPONENTS: Record<
   "text-props": TextPropsContent,
   "aac-props": AacPropsContent,
   "aacCard-props": AacCardPropsContent,
+  "emotionCard-props": EmotionCardPropsContent,
   "multi-props": MultiPropsContent,
 };
 

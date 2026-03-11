@@ -52,7 +52,9 @@ export const useSelectionToolbarActions = ({
             el.type === "roundRect" ||
             el.type === "ellipse" ||
             el.type === "mosaic" ||
-            el.type === "aacCard"
+            el.type === "circleMosaic" ||
+            el.type === "aacCard" ||
+            el.type === "emotionCard"
           ) {
             return {
               ...el,

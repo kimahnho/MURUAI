@@ -174,7 +174,9 @@ export const useDesignPaperInteraction = ({
           targetElement.type === "roundRect" ||
           targetElement.type === "ellipse" ||
           targetElement.type === "mosaic" ||
-          targetElement.type === "aacCard")
+          targetElement.type === "circleMosaic" ||
+          targetElement.type === "aacCard" ||
+          targetElement.type === "emotionCard")
       ) {
         const isSameShapeRect =
           Math.abs(nextRect.x - targetElement.x) <= RECT_TOLERANCE &&
@@ -305,7 +307,8 @@ export const useDesignPaperInteraction = ({
       (targetElement.type === "rect" ||
         targetElement.type === "roundRect" ||
         targetElement.type === "ellipse" ||
-        targetElement.type === "mosaic") &&
+        targetElement.type === "mosaic" ||
+        targetElement.type === "circleMosaic") &&
       targetElement.labelId &&
       onElementsChange
     ) {
@@ -502,7 +505,8 @@ export const useDesignPaperInteraction = ({
           (targetElement.type === "rect" ||
             targetElement.type === "roundRect" ||
             targetElement.type === "ellipse" ||
-            targetElement.type === "mosaic")
+            targetElement.type === "mosaic" ||
+            targetElement.type === "circleMosaic")
             ? targetElement.labelId
             : undefined;
         const deltaX =
@@ -527,7 +531,8 @@ export const useDesignPaperInteraction = ({
                 element.type === "rect" ||
                 element.type === "roundRect" ||
                 element.type === "ellipse" ||
-                element.type === "mosaic"
+                element.type === "mosaic" ||
+                element.type === "circleMosaic"
               ) {
                 return { ...element, ...updates };
               }

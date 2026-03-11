@@ -6,7 +6,7 @@ import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
-import { addAacCardElement } from "../utils/pageFactory";
+import { addAacCardElement, addEmotionCardElement } from "../utils/pageFactory";
 
 type TextPreset = {
   text: string;
@@ -26,7 +26,7 @@ type AddTextElement = (args: {
 
 type AddShapeElement = (args: {
   pageId: string;
-  elementType: "rect" | "roundRect" | "ellipse" | "mosaic";
+  elementType: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic";
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => string;
@@ -94,7 +94,8 @@ export const useElementSubscription = ({
       requestedType === "rect" ||
       requestedType === "roundRect" ||
       requestedType === "ellipse" ||
-      requestedType === "mosaic"
+      requestedType === "mosaic" ||
+      requestedType === "circleMosaic"
     ) {
       return addShapeElement({
         pageId: activePageId,
@@ -113,6 +114,13 @@ export const useElementSubscription = ({
     }
     if (requestedType === "aacCard") {
       return addAacCardElement({
+        pageId: activePageId,
+        setPages,
+        getOrientation,
+      });
+    }
+    if (requestedType === "emotionCard") {
+      return addEmotionCardElement({
         pageId: activePageId,
         setPages,
         getOrientation,

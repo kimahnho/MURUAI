@@ -168,7 +168,7 @@ export const generatePdfFromDomPages = async ({
     "pdf.generate.total",
     async () => {
       const deviceTier = getDevicePerformanceTier();
-      const [htmlToImage, { default: jsPDF }] = await Promise.all([
+      const [htmlToImage, { jsPDF }] = await Promise.all([
         import("html-to-image"),
         import("jspdf"),
       ]);

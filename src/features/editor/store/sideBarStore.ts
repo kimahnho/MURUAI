@@ -21,6 +21,7 @@ export type SideBarMenu =
   | "text-props"
   | "aac-props"
   | "aacCard-props"
+  | "emotionCard-props"
   | "multi-props"
   | null;
 

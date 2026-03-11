@@ -71,36 +71,6 @@ const TextPropsContent = () => {
 const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType<typeof useElementPanelStore.getState>["textEditingCallbacks"]> }) => {
   const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
   const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
-  const formatNumber = (value: number) => String(Math.round(value * 100) / 100);
-  const clampLineHeight = (value: number) => Math.min(5, Math.max(0.5, value));
-  const clampLetterSpacing = (value: number) => Math.min(20, Math.max(-10, value));
-
-  const [lineHeightInput, setLineHeightInput] = useState(() => formatNumber(cb.lineHeight));
-  const [isLineHeightEditing, setIsLineHeightEditing] = useState(false);
-  const [letterSpacingInput, setLetterSpacingInput] = useState(() => formatNumber(cb.letterSpacing));
-  const [isLetterSpacingEditing, setIsLetterSpacingEditing] = useState(false);
-
-  const commitLineHeight = () => {
-    const trimmed = lineHeightInput.trim();
-    if (!trimmed || !Number.isFinite(Number(trimmed)) || Number(trimmed) <= 0) {
-      setLineHeightInput(formatNumber(cb.lineHeight));
-      return;
-    }
-    const clamped = clampLineHeight(Number(trimmed));
-    cb.onLineHeightChange(clamped);
-    setLineHeightInput(formatNumber(clamped));
-  };
-
-  const commitLetterSpacing = () => {
-    const trimmed = letterSpacingInput.trim();
-    if (!trimmed || !Number.isFinite(Number(trimmed))) {
-      setLetterSpacingInput(formatNumber(cb.letterSpacing));
-      return;
-    }
-    const clamped = clampLetterSpacing(Number(trimmed));
-    cb.onLetterSpacingChange(clamped);
-    setLetterSpacingInput(formatNumber(clamped));
-  };
 
   return (
     <>
@@ -131,36 +101,6 @@ const EditingTextPanel = ({ callbacks: cb }: { callbacks: NonNullable<ReturnType
           <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => cb.onFontSizeStep(1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary">+</button>
         </div>
         {cb.isFontSizeMixed && <div className="text-12-regular text-black-50">혼합 크기</div>}
-      </div>
-
-      {/* 자간 */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">자간</div>
-        <input
-          type="text" inputMode="decimal"
-          value={isLetterSpacingEditing ? letterSpacingInput : formatNumber(cb.letterSpacing)}
-          onChange={(e) => setLetterSpacingInput(e.target.value.replace(/[^0-9.-]/g, ""))}
-          onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
-          onFocus={(e) => { cb.onToolbarInputFocus(); setLetterSpacingInput(formatNumber(cb.letterSpacing)); setIsLetterSpacingEditing(true); e.target.select(); }}
-          onBlur={() => { if (isLetterSpacingEditing) { setIsLetterSpacingEditing(false); commitLetterSpacing(); } cb.onToolbarInputBlur(); }}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLetterSpacing(); setIsLetterSpacingEditing(false); e.currentTarget.blur(); } }}
-          className="no-spinner w-full rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90"
-        />
-      </div>
-
-      {/* 행간 */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">행간</div>
-        <input
-          type="text" inputMode="decimal"
-          value={isLineHeightEditing ? lineHeightInput : formatNumber(cb.lineHeight)}
-          onChange={(e) => setLineHeightInput(e.target.value.replace(/[^0-9.-]/g, ""))}
-          onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
-          onFocus={(e) => { cb.onToolbarInputFocus(); setLineHeightInput(formatNumber(cb.lineHeight)); setIsLineHeightEditing(true); e.target.select(); }}
-          onBlur={() => { if (isLineHeightEditing) { setIsLineHeightEditing(false); commitLineHeight(); } cb.onToolbarInputBlur(); }}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLineHeight(); setIsLineHeightEditing(false); e.currentTarget.blur(); } }}
-          className="no-spinner w-full rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90"
-        />
       </div>
 
       {/* 색상 */}
@@ -234,6 +174,38 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   const [fontSizeInput, setFontSizeInput] = useState(String(style.fontSize));
   const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
 
+  const formatNumber = (value: number) => String(Math.round(value * 100) / 100);
+  const clampLetterSpacing = (value: number) => Math.min(20, Math.max(-10, value));
+  const clampLineHeight = (value: number) => Math.min(5, Math.max(0.5, value));
+
+  const [letterSpacingInput, setLetterSpacingInput] = useState(() => formatNumber(style.letterSpacing ?? 0));
+  const [isLetterSpacingEditing, setIsLetterSpacingEditing] = useState(false);
+  const [lineHeightInput, setLineHeightInput] = useState(() => formatNumber(style.lineHeight ?? DEFAULT_LINE_HEIGHT));
+  const [isLineHeightEditing, setIsLineHeightEditing] = useState(false);
+
+  const commitLetterSpacing = () => {
+    const trimmed = letterSpacingInput.trim();
+    if (!trimmed || !Number.isFinite(Number(trimmed))) {
+      setLetterSpacingInput(formatNumber(style.letterSpacing ?? 0));
+      return;
+    }
+    const clamped = clampLetterSpacing(Number(trimmed));
+    updateElement(element.id, { style: { ...style, letterSpacing: clamped } });
+    setLetterSpacingInput(formatNumber(clamped));
+  };
+
+  const commitLineHeight = () => {
+    const trimmed = lineHeightInput.trim();
+    if (!trimmed || !Number.isFinite(Number(trimmed)) || Number(trimmed) <= 0) {
+      setLineHeightInput(formatNumber(style.lineHeight ?? DEFAULT_LINE_HEIGHT));
+      return;
+    }
+    const clamped = clampLineHeight(Number(trimmed));
+    const newH = Math.round(style.fontSize * clamped);
+    updateElement(element.id, { style: { ...style, lineHeight: clamped }, h: newH });
+    setLineHeightInput(formatNumber(clamped));
+  };
+
   const MIN_FONT_SIZE = 12;
   const MAX_FONT_SIZE = 120;
   const clampFontSize = (v: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, v));
@@ -295,6 +267,34 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
           />
           <button type="button" onClick={() => handleFontSizeStep(1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary">+</button>
         </div>
+      </div>
+
+      {/* 자간 */}
+      <div className="flex flex-col gap-2">
+        <div className="text-14-semibold text-black-90">자간</div>
+        <input
+          type="text" inputMode="decimal"
+          value={isLetterSpacingEditing ? letterSpacingInput : formatNumber(style.letterSpacing ?? 0)}
+          onChange={(e) => setLetterSpacingInput(e.target.value.replace(/[^0-9.-]/g, ""))}
+          onFocus={(e) => { setLetterSpacingInput(formatNumber(style.letterSpacing ?? 0)); setIsLetterSpacingEditing(true); e.target.select(); }}
+          onBlur={() => { if (isLetterSpacingEditing) { setIsLetterSpacingEditing(false); commitLetterSpacing(); } }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLetterSpacing(); setIsLetterSpacingEditing(false); e.currentTarget.blur(); } }}
+          className="no-spinner w-full rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90"
+        />
+      </div>
+
+      {/* 행간 */}
+      <div className="flex flex-col gap-2">
+        <div className="text-14-semibold text-black-90">행간</div>
+        <input
+          type="text" inputMode="decimal"
+          value={isLineHeightEditing ? lineHeightInput : formatNumber(style.lineHeight ?? DEFAULT_LINE_HEIGHT)}
+          onChange={(e) => setLineHeightInput(e.target.value.replace(/[^0-9.-]/g, ""))}
+          onFocus={(e) => { setLineHeightInput(formatNumber(style.lineHeight ?? DEFAULT_LINE_HEIGHT)); setIsLineHeightEditing(true); e.target.select(); }}
+          onBlur={() => { if (isLineHeightEditing) { setIsLineHeightEditing(false); commitLineHeight(); } }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLineHeight(); setIsLineHeightEditing(false); e.currentTarget.blur(); } }}
+          className="no-spinner w-full rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90"
+        />
       </div>
 
       {/* 색상 */}

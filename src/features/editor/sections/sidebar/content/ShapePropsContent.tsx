@@ -151,7 +151,7 @@ const ShapePropsContent = () => {
       </div>
 
       {/* 모자이크 강도 */}
-      {element.type === "mosaic" && (
+      {(element.type === "mosaic" || element.type === "circleMosaic") && !data.isMultiShape && (
         <div className="flex flex-col gap-2">
           <div className="text-14-semibold text-black-90">모자이크 강도</div>
           <div className="flex items-center gap-2">
@@ -205,8 +205,8 @@ const ShapePropsContent = () => {
         </div>
       </div>
 
-      {/* 이미지 — 이미 이미지가 채워진 도형에서는 숨긴다 */}
-      {!isImageFill && (
+      {/* 이미지 — 이미 이미지가 채워진 도형이거나 다중 선택에서는 숨긴다 */}
+      {!isImageFill && !data.isMultiShape && (
         <div className="flex flex-col gap-2">
           <div className="text-14-semibold text-black-90">이미지</div>
           <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed" aria-disabled={isUploading}>
@@ -253,8 +253,8 @@ const ShapePropsContent = () => {
         </div>
       </div>
 
-      {/* 레이어 */}
-      {moveLayer && <LayerPanel onMoveLayer={(dir) => moveLayer(element.id, dir)} />}
+      {/* 레이어 — 다중 선택 시 숨김 */}
+      {moveLayer && !data.isMultiShape && <LayerPanel onMoveLayer={(dir) => moveLayer(element.id, dir)} />}
     </div>
   );
 };

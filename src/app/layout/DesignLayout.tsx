@@ -6,7 +6,6 @@ import {
   Redo,
   Monitor,
   Smartphone,
-  Printer,
   Plus,
   Minus,
   RotateCcw,
@@ -14,11 +13,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  SpellCheck,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
+import { useSpellCheckStore, buildCorrectionKey } from "@/features/editor/store/spellCheckStore";
 import PdfPreviewContainer from "@/features/editor/shared/PdfPreviewContainer";
 import {
   usePageSwapStore,
@@ -28,6 +30,9 @@ import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
 import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
+import { extractTextsFromPages } from "@/features/editor/utils/spellCheckTextExtractor";
+import { checkSpelling } from "@/features/editor/ai/checkSpelling";
+import type { Page } from "@/features/editor/model/pageTypes";
 
 const ExportModal = lazy(
   () => import("@/features/editor/shared/ExportModal"),
@@ -55,8 +60,6 @@ const DesignLayout = () => {
     setRetryAutoSave,
     setManualSave,
     retryAutoSave,
-    registerSpellCheckApplier,
-    applySpellCorrections,
   } = useDocumentSave({ docId, docName });
 
   const {
@@ -78,8 +81,21 @@ const DesignLayout = () => {
     handleOrientationChange,
   } = useOrientationControl();
 
+  const spellCheckResults = useSpellCheckStore((s) => s.results);
+  const isSpellChecking = useSpellCheckStore((s) => s.isChecking);
+  const setIsSpellChecking = useSpellCheckStore((s) => s.setIsChecking);
+  const setSpellCheckResults = useSpellCheckStore((s) => s.setResults);
+  const isPanelOpen = useSpellCheckStore((s) => s.isPanelOpen);
+  const openSpellCheckPanel = useSpellCheckStore((s) => s.openPanel);
+  const closeSpellCheckPanel = useSpellCheckStore((s) => s.closePanel);
+  const showSpellCheckToast = useSpellCheckStore((s) => s.showToast);
+  const spellCheckActionMap = useSpellCheckStore((s) => s.actionMap);
+  const recheckRequested = useSpellCheckStore((s) => s.recheckRequested);
+  const clearRecheckRequest = useSpellCheckStore((s) => s.clearRecheckRequest);
+
   const toastMessage = useToastStore((state) => state.message);
   const clearToast = useToastStore((state) => state.clearToast);
+  const showToast = useToastStore((state) => state.showToast);
   const toastTimeoutRef = useRef<number | null>(null);
   const canUndo = useUnifiedHistoryStore((state) => state.canUndo);
   const canRedo = useUnifiedHistoryStore((state) => state.canRedo);
@@ -119,13 +135,69 @@ const DesignLayout = () => {
     setZoom(100);
   };
 
-  const preparePdfPages = async () => {
-    // pdfPreviewActive를 먼저 true로 설정해 React가 렌더하고
-    // usePageSwap의 requiredPageIds가 모든 페이지를 포함하도록 만든다.
-    setIsPdfPreviewActive(true);
+  // 맞춤법 검사 실행 (패널 열기 + API 호출)
+  const runSpellCheck = async () => {
+    setIsSpellChecking(true);
+    openSpellCheckPanel();
+    try {
+      const data = getCanvasData() as { pages?: Page[] } | null;
+      const pages = Array.isArray(data?.pages) ? data.pages : [];
+      const textItems = extractTextsFromPages(pages);
+
+      if (textItems.length === 0) {
+        showToast("검사할 텍스트가 없습니다.");
+        setIsSpellChecking(false);
+        closeSpellCheckPanel();
+        return;
+      }
+
+      const results = await checkSpelling(textItems);
+      setSpellCheckResults(results);
+
+      const totalCount = results.reduce((sum, r) => sum + r.corrections.length, 0);
+      if (totalCount > 0) {
+        showSpellCheckToast();
+      } else {
+        showToast("맞춤법 오류가 없습니다.");
+        closeSpellCheckPanel();
+      }
+    } catch {
+      showToast("맞춤법 검사에 실패했어요. 다시 시도해 주세요.");
+      closeSpellCheckPanel();
+    } finally {
+      setIsSpellChecking(false);
+    }
+  };
+
+  // 맞춤법 검사 버튼 클릭: 결과 있으면 패널 토글, 없으면 검사 실행
+  const handleSpellCheckClick = () => {
+    if (spellCheckResults) {
+      if (isPanelOpen) {
+        closeSpellCheckPanel();
+      } else {
+        openSpellCheckPanel();
+      }
+      return;
+    }
+    void runSpellCheck();
+  };
+
+  // 패널에서 재검사 요청 시 검사 재실행
+  useEffect(() => {
+    if (recheckRequested) {
+      clearRecheckRequest();
+      void runSpellCheck();
+    }
+  }, [recheckRequested]);
+
+  // useCallback으로 참조 안정성 보장: ExportModal의 useEffect 의존성에 포함되므로
+  // 매 렌더마다 새 참조가 생기면 cleanup이 실행되어 PdfPreviewContainer가 언마운트된다.
+  const preparePdfPages = useCallback(async () => {
+    flushSync(() => {
+      setIsPdfPreviewActive(true);
+    });
     usePageSwapStore.getState().setPdfPreviewActive(true);
 
-    // React 렌더 사이클이 완료되어 requiredPageIds가 전체 페이지로 확장될 때까지 대기한다.
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -134,11 +206,9 @@ const DesignLayout = () => {
       });
     });
 
-    // requiredPageIds가 모든 페이지를 포함한 상태에서 hydration을 요청한다.
     const requestId = usePageSwapStore.getState().requestHydration();
     await waitForHydration(requestId);
 
-    // 레이아웃 안정화를 위한 추가 RAF
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -146,12 +216,12 @@ const DesignLayout = () => {
         });
       });
     });
-  };
+  }, []);
 
-  const cleanupPdfPages = () => {
+  const cleanupPdfPages = useCallback(() => {
     setIsPdfPreviewActive(false);
     usePageSwapStore.getState().setPdfPreviewActive(false);
-  };
+  }, []);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
@@ -373,14 +443,45 @@ const DesignLayout = () => {
           </div>
 
           <div className="flex h-full shrink-0 items-center gap-3 pr-3">
-            <div className="flex h-full items-center justify-center">
+            {/* 맞춤법 검사 버튼 */}
+            <div className="relative flex h-full items-center justify-center">
               <button
                 type="button"
-                className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20 transition hover:bg-black-30"
-                aria-label="프린트"
+                onClick={handleSpellCheckClick}
+                disabled={isSpellChecking}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-14-semibold shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  isPanelOpen
+                    ? "bg-primary text-white-100"
+                    : "border border-primary bg-primary/10 text-primary hover:bg-primary/20"
+                }`}
+                aria-label="맞춤법 검사"
               >
-                <Printer className="w-6 h-6 text-black-60" />
+                {isSpellChecking ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>검사 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <SpellCheck className="h-4 w-4" />
+                    <span>맞춤법 검사</span>
+                  </>
+                )}
               </button>
+              {/* 대기 중인 오류 건수 뱃지 */}
+              {spellCheckResults && (() => {
+                const count = spellCheckResults.reduce((sum, r) => {
+                  return sum + r.corrections.filter((_, idx) => {
+                    const key = buildCorrectionKey(r.elementId, r.field, idx);
+                    return !spellCheckActionMap.has(key);
+                  }).length;
+                }, 0);
+                return count > 0 ? (
+                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-12-semibold text-white-100 shadow-sm" style={{ fontSize: "10px" }}>
+                    {count}
+                  </span>
+                ) : null;
+              })()}
             </div>
             <div className="flex h-full items-center justify-center">
               <button
@@ -397,7 +498,7 @@ const DesignLayout = () => {
       </header>
       {toastMessage && (
         <div
-          className={`fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-14-medium shadow-lg ${
+          className={`fixed left-1/2 top-5 z-10000 -translate-x-1/2 rounded-full px-4 py-2 text-14-medium shadow-lg ${
             toastMessage ===
             "자료 제작을 위한 기본세트 페이지 3장이 적용되었습니다."
               ? "bg-primary text-white"
@@ -423,7 +524,6 @@ const DesignLayout = () => {
             setAutoSaveState,
             setRetryAutoSave,
             setManualSave,
-            registerSpellCheckApplier,
           }}
         />
       </main>
@@ -446,7 +546,6 @@ const DesignLayout = () => {
             preparePdfPages={preparePdfPages}
             cleanupPdfPages={cleanupPdfPages}
             onPdfExportStateChange={setPdfExporting}
-            onApplySpellCorrections={applySpellCorrections}
           />
         </Suspense>
       )}

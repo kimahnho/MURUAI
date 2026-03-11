@@ -36,7 +36,8 @@ export const applySelectedFontSize = (
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
-    element.type === "mosaic"
+    element.type === "mosaic" ||
+    element.type === "circleMosaic"
   ) {
     return {
       ...element,
@@ -46,7 +47,7 @@ export const applySelectedFontSize = (
       },
     };
   }
-  if (element.type === "aacCard") {
+  if (element.type === "aacCard" || element.type === "emotionCard") {
     return {
       ...element,
       label: {
@@ -76,7 +77,9 @@ export const applySelectedBorderPatch = (
     element.type !== "roundRect" &&
     element.type !== "ellipse" &&
     element.type !== "mosaic" &&
-    element.type !== "aacCard"
+    element.type !== "circleMosaic" &&
+    element.type !== "aacCard" &&
+    element.type !== "emotionCard"
   ) {
     return element;
   }

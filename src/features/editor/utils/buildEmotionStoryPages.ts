@@ -28,7 +28,7 @@ const patchStoryElements = (
   // 감정 카드를 x 좌표 순으로 정렬해 왼→오른 순서로 emotions[0,1,2]에 매칭
   const emotionCards = elements.filter(
     (el): el is ShapeElement =>
-      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") &&
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic") &&
       el.subType === "emotionInference",
   ).sort((a, b) => a.x - b.x);
 
@@ -47,9 +47,18 @@ const patchStoryElements = (
   });
 
   return elements.map((el) => {
-    // 제목 패치
+    // 제목 패치 — widthMode: "fixed"로 한 줄 표시 보장
     if (el.type === "text" && el.text === TITLE_PLACEHOLDER) {
-      return { ...el, text: story.title };
+      const titleWidthPx = Math.round(190 * 3.7795);
+      const titleXPx = Math.round(10 * 3.7795);
+      return {
+        ...el,
+        text: story.title,
+        widthMode: "fixed" as const,
+        x: titleXPx,
+        w: titleWidthPx,
+        h: 46,
+      };
     }
     // 추론 문장 패치
     if (el.type === "text" && el.text === SENTENCE_PLACEHOLDER) {
@@ -69,7 +78,7 @@ const patchStoryElements = (
     const cardEmotion = cardEmotionMap.get(el.id);
     if (
       cardEmotion &&
-      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic")
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic")
     ) {
       const imageUrl = emotionImageMap.get(cardEmotion);
       if (!imageUrl) {

@@ -22,6 +22,13 @@ import { emotionDiaryTemplate } from "./emotionDiaryTemplate";
 import { pictureDiaryLineNoteTemplate } from "./pictureDiaryLineNoteTemplate";
 import { dictationPracticeTemplate } from "./dictationPracticeTemplate";
 import { yellowDiaryLinesTemplate } from "./yellowDiaryLinesTemplate";
+import { labelSheet3x8Template } from "./labelSheet3x8Template";
+import { pictureScheduleTemplate } from "./pictureScheduleTemplate";
+import { wavyLineTracingTemplate } from "./wavyLineTracingTemplate";
+import { variousLineTracingTemplate } from "./variousLineTracingTemplate";
+import { crossLineTracingTemplate } from "./crossLineTracingTemplate";
+import { easyCrossLineTracingTemplate } from "./easyCrossLineTracingTemplate";
+import { straightLineTracingTemplate } from "./straightLineTracingTemplate";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -132,6 +139,48 @@ export const TEMPLATE_REGISTRY = {
     id: "yellowDiaryLines",
     label: "일기장 노랑 줄글",
     template: yellowDiaryLinesTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  labelSheet3x8: {
+    id: "labelSheet3x8",
+    label: "라벨지 3×8",
+    template: labelSheet3x8Template,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  pictureSchedule: {
+    id: "pictureSchedule",
+    label: "그림 시간표",
+    template: pictureScheduleTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  wavyLineTracing: {
+    id: "wavyLineTracing",
+    label: "선 긋기 (구불구불 선)",
+    template: wavyLineTracingTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  variousLineTracing: {
+    id: "variousLineTracing",
+    label: "선 긋기 (다양한 선)",
+    template: variousLineTracingTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  crossLineTracing: {
+    id: "crossLineTracing",
+    label: "선 긋기 (복잡한 교차하기)",
+    template: crossLineTracingTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  easyCrossLineTracing: {
+    id: "easyCrossLineTracing",
+    label: "선 긋기 (쉬운 교차하기)",
+    template: easyCrossLineTracingTemplate,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  straightLineTracing: {
+    id: "straightLineTracing",
+    label: "선 긋기 (직선)",
+    template: straightLineTracingTemplate,
     orientation: "vertical-only" as TemplateOrientation,
   },
 };

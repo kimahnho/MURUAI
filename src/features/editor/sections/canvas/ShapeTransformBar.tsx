@@ -8,10 +8,10 @@ import {
   RotateCcw,
   RotateCw,
 } from "lucide-react";
-import type { AacCardElement, ShapeElement } from "../../model/canvasTypes";
+import type { AacCardElement, EmotionCardElement, ShapeElement } from "../../model/canvasTypes";
 import type { Rect } from "../../utils/designPaperUtils";
 
-type TransformableElement = ShapeElement | AacCardElement;
+type TransformableElement = ShapeElement | AacCardElement | EmotionCardElement;
 
 interface ShapeTransformBarProps {
   element: TransformableElement;

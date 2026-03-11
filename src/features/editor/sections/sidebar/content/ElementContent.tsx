@@ -5,9 +5,11 @@ import { useState } from "react";
 import {
   ArrowRight,
   Circle,
+  CircleDashed,
   Grid3x3,
   Minus,
   RectangleHorizontal,
+  SmilePlus,
   Square,
   SquareUser,
   Table2,
@@ -27,9 +29,11 @@ const SHAPES: ShapeItem[] = [
   { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
   { id: 3, name: "원", icon: Circle, type: "ellipse" },
   { id: 4, name: "모자이크", icon: Grid3x3, type: "mosaic" },
-  { id: 5, name: "선", icon: Minus, type: "line" },
-  { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
-  { id: 7, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
+  { id: 5, name: "원형모자이크", icon: CircleDashed, type: "circleMosaic" },
+  { id: 6, name: "선", icon: Minus, type: "line" },
+  { id: 7, name: "화살표", icon: ArrowRight, type: "arrow" },
+  { id: 8, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
+  { id: 9, name: "감정카드", icon: SmilePlus, type: "emotionCard" },
 ];
 
 const MIN_TABLE_SIZE = 1;
@@ -77,7 +81,7 @@ const ElementContent = () => {
                 key={shape.id}
                 // 도형 선택 이벤트는 type만 전달하고, 기본 크기/위치는 스토어 생성 규칙으로 일관 처리한다.
                 onClick={() => { onSelectShape(shape.type); }}
-                className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+                className="flex flex-col items-center justify-center gap-2 px-2 py-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
                 <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">

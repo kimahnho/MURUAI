@@ -59,7 +59,8 @@ export const buildAacIndex = (elements: CanvasElement[]) => {
       element.type !== "rect" &&
       element.type !== "roundRect" &&
       element.type !== "ellipse" &&
-      element.type !== "mosaic"
+      element.type !== "mosaic" &&
+      element.type !== "circleMosaic"
     ) {
       return;
     }
@@ -142,7 +143,8 @@ export const useAacSelectionState = ({
         (element.type === "rect" ||
           element.type === "roundRect" ||
           element.type === "ellipse" ||
-          element.type === "mosaic") &&
+          element.type === "mosaic" ||
+          element.type === "circleMosaic") &&
         aacCardIdSet.has(element.id)
       ) {
         targets.set(element.id, element);
@@ -265,13 +267,15 @@ export const useAacSelectionState = ({
                 (el.type === "rect" ||
                   el.type === "roundRect" ||
                   el.type === "ellipse" ||
-                  el.type === "mosaic");
+                  el.type === "mosaic" ||
+                  el.type === "circleMosaic");
               if (
                 isTargetCard &&
                 (el.type === "rect" ||
                   el.type === "roundRect" ||
                   el.type === "ellipse" ||
-                  el.type === "mosaic")
+                  el.type === "mosaic" ||
+                  el.type === "circleMosaic")
               ) {
                 const card = el;
                 let nextCard: ShapeElement = card;
