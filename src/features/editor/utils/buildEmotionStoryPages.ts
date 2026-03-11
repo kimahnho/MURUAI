@@ -47,9 +47,18 @@ const patchStoryElements = (
   });
 
   return elements.map((el) => {
-    // 제목 패치
+    // 제목 패치 — widthMode: "fixed"로 한 줄 표시 보장
     if (el.type === "text" && el.text === TITLE_PLACEHOLDER) {
-      return { ...el, text: story.title };
+      const titleWidthPx = Math.round(190 * 3.7795);
+      const titleXPx = Math.round(10 * 3.7795);
+      return {
+        ...el,
+        text: story.title,
+        widthMode: "fixed" as const,
+        x: titleXPx,
+        w: titleWidthPx,
+        h: 46,
+      };
     }
     // 추론 문장 패치
     if (el.type === "text" && el.text === SENTENCE_PLACEHOLDER) {

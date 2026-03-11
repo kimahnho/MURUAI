@@ -104,20 +104,35 @@ const buildPrompt = (topic: string, availableLabels: string[]) => {
 [사용 가능한 감정 라벨 — 반드시 이 목록에서만 선택]
 ${availableLabels.join(", ")}
 
-[참고 예시 — 아래 스타일을 따라 작성할 것]
+[참고 예시 — 아래 스타일과 문장 길이를 최대한 따라 작성할 것]
 ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
 
 위 예시처럼, 주제 "${safeTopic}"에 맞는 감정 추론 활동용 짧은 이야기 10개를 새로 만들어주세요.
 각 이야기는 다음 형식을 따릅니다:
-- title: 이야기 제목 (10자 이내)
+- title: 이야기 상황을 서술하는 문장 (위 예시처럼 구체적인 상황 묘사)
 - sentence: "친구는 [이유/감정 상황]" 형식의 문장 (30자 이내, 반드시 "친구는 "으로 시작)
-- emotions: 감정 선택지 3개 배열 (반드시 위 감정 라벨 목록에서만 선택, 목록에 없는 감정은 절대 사용하지 마세요)
+- emotions: 감정 선택지 3개 배열
+  - 첫 번째(emotions[0]): 상황에 가장 적절한 정답 감정
+  - 두 번째, 세 번째(emotions[1], emotions[2]): 상황과 맞지 않는 오답 감정
+  - 반드시 위 감정 라벨 목록에서만 선택, 목록에 없는 감정은 절대 사용하지 마세요
 
 JSON만 출력하세요 (설명, 마크다운 없음):
 [
-  { "title": "...", "sentence": "친구는 ...", "emotions": ["...", "...", "..."] },
+  { "title": "...", "sentence": "친구는 ...", "emotions": ["정답감정", "오답감정1", "오답감정2"] },
   ...
 ]`;
+};
+
+// AI는 emotions[0]을 정답으로 반환하므로, 카드 표시 시 위치를 랜덤으로 섞는다.
+const shuffleEmotions = (
+  emotions: [string, string, string],
+): [string, string, string] => {
+  const arr = [...emotions] as [string, string, string];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 };
 
 const parseStoryResponse = (raw: string): StoryItem[] => {
@@ -135,11 +150,11 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
   if (valid.length === 0) throw new Error("유효한 스토리 데이터가 없습니다.");
   return valid.slice(0, 10).map((item) => ({
     ...item,
-    emotions: [item.emotions[0], item.emotions[1], item.emotions[2]] as [
-      string,
-      string,
-      string,
-    ],
+    emotions: shuffleEmotions([
+      item.emotions[0],
+      item.emotions[1],
+      item.emotions[2],
+    ]),
   }));
 };
 
