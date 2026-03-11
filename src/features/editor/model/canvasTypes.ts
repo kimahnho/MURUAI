@@ -22,10 +22,12 @@ export type ElementType =
   | "roundRect"
   | "ellipse"
   | "mosaic"
+  | "circleMosaic"
   | "line"
   | "arrow"
   | "table"
-  | "aacCard";
+  | "aacCard"
+  | "emotionCard";
 
 export type ElementBase = {
   id: string;
@@ -65,7 +67,7 @@ export type TextElement = ElementBase & {
 export type ShapeSubType = "emotionSlot" | "emotionInference" | "aacCard" | "imageSlot";
 
 export type ShapeElement = ElementBase & {
-  type: "rect" | "roundRect" | "ellipse" | "mosaic";
+  type: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic";
   subType?: ShapeSubType;
   x: number;
   y: number;
@@ -192,14 +194,48 @@ export type AacCardElement = ElementBase & {
   };
 };
 
-export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement;
+export type EmotionCardElement = ElementBase & {
+  type: "emotionCard";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill: string;
+  backgroundColor?: string;
+  imageBox?: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+  radius?: number;
+  border?: {
+    enabled: boolean;
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted" | "double";
+  };
+  label: {
+    text: string;
+    position: "top" | "bottom" | "none";
+    style: AacCardLabelStyle;
+  };
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+};
+
+export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement | EmotionCardElement;
 
 export type TemplateElement =
   | Omit<TextElement, "id">
   | Omit<ShapeElement, "id">
   | Omit<LineElement, "id">
   | Omit<TableElement, "id">
-  | Omit<AacCardElement, "id">;
+  | Omit<AacCardElement, "id">
+  | Omit<EmotionCardElement, "id">;
 
 export type Template = {
   id: string;

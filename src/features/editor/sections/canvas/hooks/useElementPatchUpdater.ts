@@ -88,7 +88,9 @@ export const useElementPatchUpdater = ({
         element.type === "roundRect" ||
         element.type === "ellipse" ||
         element.type === "mosaic" ||
-        element.type === "aacCard") &&
+        element.type === "circleMosaic" ||
+        element.type === "aacCard" ||
+        element.type === "emotionCard") &&
       "border" in patch
     ) {
       // 도형 border는 기본값이 누락될 수 있어 base를 먼저 보정한 뒤 patch를 덮어쓴다.

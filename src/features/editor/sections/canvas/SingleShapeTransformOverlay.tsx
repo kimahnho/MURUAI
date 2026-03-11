@@ -2,7 +2,7 @@
  * 단일 선택 요소의 변형 박스와 핸들을 렌더링해 리사이즈/회전 진입점을 제공하는 오버레이 컴포넌트.
  */
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { AacCardElement, CanvasElement, ShapeElement } from "../../model/canvasTypes";
+import type { AacCardElement, CanvasElement, EmotionCardElement, ShapeElement } from "../../model/canvasTypes";
 import { getRectFromElement, type Rect } from "../../utils/designPaperUtils";
 import ShapeTransformBar from "./ShapeTransformBar";
 
@@ -18,10 +18,10 @@ type SingleShapeTransformOverlayProps = {
   isRotating: boolean;
   editingImageId: string | null;
   editingShapeTextId: string | null;
-  updateElement: (id: string, updates: Partial<ShapeElement | AacCardElement>) => void;
+  updateElement: (id: string, updates: Partial<ShapeElement | AacCardElement | EmotionCardElement>) => void;
   startShapeRotation: (
     event: ReactPointerEvent<HTMLButtonElement>,
-    element: ShapeElement | AacCardElement,
+    element: ShapeElement | AacCardElement | EmotionCardElement,
     rect: Rect,
   ) => void;
   getBottomCenterAnchor: (
@@ -58,7 +58,9 @@ const SingleShapeTransformOverlay = ({
       element.type !== "roundRect" &&
       element.type !== "ellipse" &&
       element.type !== "mosaic" &&
-      element.type !== "aacCard")
+      element.type !== "circleMosaic" &&
+      element.type !== "aacCard" &&
+      element.type !== "emotionCard")
   ) {
     return null;
   }

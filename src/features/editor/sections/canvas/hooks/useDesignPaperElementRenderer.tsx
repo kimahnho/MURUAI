@@ -6,6 +6,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type {
   AacCardElement,
   CanvasElement,
+  EmotionCardElement,
   LineElement,
   ShapeElement,
   TableElement,
@@ -27,11 +28,13 @@ import { normalizeFontWeight } from "../../../utils/fontOptions";
 import Arrow from "../elements/arrow/Arrow";
 import CircleBox from "../elements/circle/CircleBox";
 import Line from "../elements/line/Line";
+import CircleMosaicBox from "../elements/round_box/CircleMosaicBox";
 import MosaicBox from "../elements/round_box/MosaicBox";
 import RoundBox from "../elements/round_box/RoundBox";
 import TextBox from "../elements/text/TextBox";
 import TableBox from "../elements/table/TableBox";
 import AacCardBox from "../elements/aac_card/AacCardBox";
+import EmotionCardBox from "../elements/emotion_card/EmotionCardBox";
 import { buildTextToolbarConfig } from "../utils/textToolbarConfig";
 import { useTableStore } from "../../../store/tableStore";
 
@@ -351,6 +354,99 @@ export const useDesignPaperElementRenderer = ({
     );
   };
 
+  const renderEmotionCardElement = (element: EmotionCardElement) => {
+    const rect = getRenderableRect(element);
+    if (!rect) return null;
+
+    const isSelected = selectedIds.includes(element.id);
+    const isImageFill =
+      element.fill.startsWith("url(") || element.fill.startsWith("data:");
+    const isImageEditing =
+      isImageFill && editingImageId === element.id && isSelected;
+    const handleImageBoxChange =
+      readOnly || element.locked || !isImageFill
+        ? undefined
+        : (value: { x: number; y: number; w: number; h: number }) => {
+            updateElement(element.id, { imageBox: value });
+          };
+
+    const getLatestTransform = () => {
+      const latest = elements.find((el) => el.id === element.id) ?? element;
+      return "transform" in latest ? (latest.transform ?? {}) : {};
+    };
+    const transformCtx = {
+      elementId: element.id,
+      readOnly: !!readOnly,
+      locked: !!element.locked,
+      getTransform: getLatestTransform,
+      updateElement,
+    };
+
+    return (
+      <EmotionCardBox
+        key={element.id}
+        rect={rect}
+        fill={element.fill}
+        backgroundColor={element.backgroundColor}
+        imageBox={element.imageBox}
+        borderRadius={element.radius ?? 0}
+        border={element.border}
+        label={element.label}
+        isSelected={shouldShowIndividualBorder(element.id)}
+        selectionCount={selectedIds.length}
+        locked={readOnly || element.locked}
+        selectable={element.selectable !== false && !element.locked}
+        onImageBoxChange={handleImageBoxChange}
+        onImageDrop={
+          readOnly || element.locked
+            ? undefined
+            : (imageUrl) => {
+                updateElement(element.id, {
+                  fill: imageUrl.startsWith("url(")
+                    ? imageUrl
+                    : `url(${imageUrl})`,
+                  imageBox: {
+                    x: 0,
+                    y: 0,
+                    w: rect.width,
+                    h: rect.height,
+                  },
+                });
+              }
+        }
+        isImageEditing={isImageEditing}
+        onImageEditingChange={(isEditing: boolean) => {
+          setEditingImageId(isEditing ? element.id : null);
+        }}
+        onLabelChange={(text) => {
+          updateElement(element.id, {
+            label: { ...element.label, text },
+          });
+        }}
+        onRectChange={(nextRect) => {
+          handleRectChange(element.id, nextRect);
+        }}
+        onDragStateChange={(isDragging, finalRect, context) => {
+          handleDragStateChange(element.id, isDragging, finalRect, context);
+        }}
+        onSelectChange={(isSelected, options) => {
+          handleSelectChange(element.id, isSelected, options);
+        }}
+        onContextMenu={(event) => {
+          openContextMenu(event, element.id);
+        }}
+        transformRect={(nextRect, context) =>
+          transformElementRect(element.id, nextRect, context)
+        }
+        transform={element.transform}
+        onFlipX={createFlipXHandler(transformCtx)}
+        onFlipY={createFlipYHandler(transformCtx)}
+        onRotateCW={createRotateCWHandler(transformCtx)}
+        onRotateCCW={createRotateCCWHandler(transformCtx)}
+      />
+    );
+  };
+
   const renderShapeElement = (element: ShapeElement) => {
     const rect = getRenderableRect(element);
     if (!rect) return null;
@@ -384,7 +480,9 @@ export const useDesignPaperElementRenderer = ({
         ? CircleBox
         : element.type === "mosaic"
           ? MosaicBox
-          : RoundBox;
+          : element.type === "circleMosaic"
+            ? CircleMosaicBox
+            : RoundBox;
     const handleImageBoxChange =
       readOnly || element.locked || !isImageFill
         ? undefined
@@ -420,7 +518,7 @@ export const useDesignPaperElementRenderer = ({
         minHeight={1}
         borderRadius={radius}
         fill={element.fill}
-        {...(element.type === "mosaic" ? { mosaicLevel: element.mosaicLevel } : {})}
+        {...(element.type === "mosaic" || element.type === "circleMosaic" ? { mosaicLevel: element.mosaicLevel } : {})}
         imageBox={imageBox}
         border={element.border}
         // 카드 라벨(목표 어휘)이 입력되면 안내 문구를 즉시 숨겨 실제 작업 영역에 집중하게 한다.
@@ -593,6 +691,7 @@ export const useDesignPaperElementRenderer = ({
       case "roundRect":
       case "ellipse":
       case "mosaic":
+      case "circleMosaic":
         return renderShapeElement(element);
       case "line":
       case "arrow":
@@ -601,6 +700,8 @@ export const useDesignPaperElementRenderer = ({
         return renderTableElement(element);
       case "aacCard":
         return renderAacCardElement(element);
+      case "emotionCard":
+        return renderEmotionCardElement(element);
       default:
         return null;
     }

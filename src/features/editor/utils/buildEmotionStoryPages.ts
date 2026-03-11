@@ -28,7 +28,7 @@ const patchStoryElements = (
   // 감정 카드를 x 좌표 순으로 정렬해 왼→오른 순서로 emotions[0,1,2]에 매칭
   const emotionCards = elements.filter(
     (el): el is ShapeElement =>
-      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") &&
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic") &&
       el.subType === "emotionInference",
   ).sort((a, b) => a.x - b.x);
 
@@ -69,7 +69,7 @@ const patchStoryElements = (
     const cardEmotion = cardEmotionMap.get(el.id);
     if (
       cardEmotion &&
-      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic")
+      (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic")
     ) {
       const imageUrl = emotionImageMap.get(cardEmotion);
       if (!imageUrl) {

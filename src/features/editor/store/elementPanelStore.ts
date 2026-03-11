@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import type {
   AacCardElement,
+  EmotionCardElement,
   LineElement,
   ShapeElement,
   TextElement,
@@ -27,6 +28,8 @@ export type ShapePanelData = {
   borderColor: string;
   borderWidth: number;
   borderStyle: BorderStyle;
+  isMultiShape?: boolean;
+  selectedShapeIds?: string[];
 };
 
 export type LinePanelData = {
@@ -85,6 +88,12 @@ export type MultiCallbacks = {
   onDistributeVertical: () => void;
 };
 
+export type EmotionCardPanelData = {
+  type: "emotionCard";
+  element: EmotionCardElement;
+  hasImage: boolean;
+};
+
 export type MultiPanelData = {
   type: "multi";
 };
@@ -95,6 +104,7 @@ export type PanelData =
   | TextPanelData
   | AacPanelData
   | AacCardV2PanelData
+  | EmotionCardPanelData
   | MultiPanelData
   | null;
 

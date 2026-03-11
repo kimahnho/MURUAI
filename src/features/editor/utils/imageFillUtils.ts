@@ -1,7 +1,7 @@
 /**
  * 이미지 채우기 대상 판별과 AAC 연동 보조 유틸을 제공하는 모듈.
  */
-import type { AacCardElement, CanvasElement } from "../model/canvasTypes";
+import type { AacCardElement, CanvasElement, EmotionCardElement } from "../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -28,7 +28,7 @@ export const isEmotionLabelElement = (
 
 export const findLabelElementId = (
   elements: CanvasElement[],
-  shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" | "mosaic" }>,
+  shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic" }>,
   isLabelElement: (
     element: CanvasElement,
   ) => element is Extract<CanvasElement, { type: "text" }>,
@@ -72,18 +72,23 @@ export const isAacCardV2Element = (
   element: CanvasElement,
 ): element is AacCardElement => element.type === "aacCard";
 
+export const isEmotionCardV2Element = (
+  element: CanvasElement,
+): element is EmotionCardElement => element.type === "emotionCard";
+
 export const isAacCardElement = (
   elements: CanvasElement[],
   element: CanvasElement,
 ): element is Extract<
   CanvasElement,
-  { type: "rect" | "roundRect" | "ellipse" | "mosaic" }
+  { type: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic" }
 > => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
     element.type !== "ellipse" &&
-    element.type !== "mosaic"
+    element.type !== "mosaic" &&
+    element.type !== "circleMosaic"
   ) {
     return false;
   }
@@ -165,13 +170,14 @@ export const isEmotionInferenceCard = (
   element: CanvasElement,
 ): element is Extract<
   CanvasElement,
-  { type: "rect" | "roundRect" | "ellipse" | "mosaic" }
+  { type: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic" }
 > => {
   if (
     element.type !== "rect" &&
     element.type !== "roundRect" &&
     element.type !== "ellipse" &&
-    element.type !== "mosaic"
+    element.type !== "mosaic" &&
+    element.type !== "circleMosaic"
   ) {
     return false;
   }

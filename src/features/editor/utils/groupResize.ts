@@ -113,7 +113,8 @@ export const buildGroupResizeSnapshot = (
       (element.type === "rect" ||
         element.type === "roundRect" ||
         element.type === "ellipse" ||
-        element.type === "mosaic") &&
+        element.type === "mosaic" ||
+        element.type === "circleMosaic") &&
       element.labelId &&
       !selectedSet.has(element.labelId)
     ) {

@@ -16,6 +16,7 @@ import {
   isAacCardElement,
   isAacCardV2Element,
   isAacLabelElement,
+  isEmotionCardV2Element,
   isEmotionInferenceCard,
   isEmotionLabelElement,
 } from "../utils/imageFillUtils";
@@ -63,13 +64,15 @@ export const useImageFillSubscription = ({
             (element.type === "rect" ||
               element.type === "roundRect" ||
               element.type === "ellipse" ||
-              element.type === "mosaic") &&
+              element.type === "mosaic" ||
+              element.type === "circleMosaic") &&
             (element as { subType?: string }).subType === "imageSlot"
           ) {
             return true;
           }
           return (
             isAacCardV2Element(element) ||
+            isEmotionCardV2Element(element) ||
             isEmotionInferenceCard(element) ||
             isEmotionSlotShape(element) ||
             isAacCardElement(activePage.elements, element)
@@ -135,7 +138,8 @@ export const useImageFillSubscription = ({
                 (element.type === "rect" ||
                   element.type === "roundRect" ||
                   element.type === "ellipse" ||
-                  element.type === "mosaic") &&
+                  element.type === "mosaic" ||
+              element.type === "circleMosaic") &&
                 selectedIdSet.has(element.id)
               ) {
                 if (element.labelId) {
@@ -163,8 +167,8 @@ export const useImageFillSubscription = ({
           }
           const nextElements = page.elements.map((element) => {
             if (!selectedIdSet.has(element.id)) return element;
-            // aacCard(v2) 복합 요소: 이미지 + 라벨을 한 요소 안에서 처리
-            if (element.type === "aacCard") {
+            // aacCard/emotionCard(v2) 복합 요소: 이미지 + 라벨을 한 요소 안에서 처리
+            if (element.type === "aacCard" || element.type === "emotionCard") {
               if (element.locked) return element;
               hasChanges = true;
               const baseImageBox = element.imageBox ??
@@ -180,7 +184,8 @@ export const useImageFillSubscription = ({
               element.type !== "rect" &&
               element.type !== "roundRect" &&
               element.type !== "ellipse" &&
-              element.type !== "mosaic"
+              element.type !== "mosaic" &&
+              element.type !== "circleMosaic"
             ) {
               return element;
             }
