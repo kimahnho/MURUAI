@@ -1,8 +1,7 @@
 /**
  * 문서 내보내기 옵션 선택과 실행 상태를 처리하는 모달 컴포넌트.
- * 맞춤법 검사 → 검토 → 반영 플로우도 포함한다.
  */
-import { Loader2, SpellCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import BaseModal from "@/shared/ui/BaseModal";
 import { useToastStore } from "../store/toastStore";
@@ -14,11 +13,6 @@ import {
 } from "../utils/userMadeExport";
 import { trackDownloadEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
-import { extractTextsFromPages } from "../utils/spellCheckTextExtractor";
-import { checkSpelling } from "../ai/checkSpelling";
-import type { SpellCheckResult } from "../ai/checkSpelling";
-import type { Page } from "../model/pageTypes";
-import SpellCheckReviewPanel from "./SpellCheckReviewPanel";
 
 type TargetType = "child" | "group";
 
@@ -43,7 +37,6 @@ type ExportModalProps = {
   preparePdfPages?: () => Promise<void>;
   cleanupPdfPages?: () => void;
   onPdfExportStateChange?: (active: boolean) => void;
-  onApplySpellCorrections?: (corrections: SpellCheckResult[]) => void;
 };
 
 const parsePageRangeInput = (value: string, maxPageNumber: number) => {
@@ -96,7 +89,6 @@ const ExportModal = ({
   preparePdfPages,
   cleanupPdfPages,
   onPdfExportStateChange,
-  onApplySpellCorrections,
 }: ExportModalProps) => {
   const showToast = useToastStore((state) => state.showToast);
   const [targetType, setTargetType] = useState<TargetType>("child");
@@ -110,10 +102,6 @@ const ExportModal = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [pdfPageMode, setPdfPageMode] = useState<"all" | "selected">("all");
   const [pdfPageRangeInput, setPdfPageRangeInput] = useState("");
-
-  // 맞춤법 검사 상태
-  const [isSpellChecking, setIsSpellChecking] = useState(false);
-  const [spellCheckResults, setSpellCheckResults] = useState<SpellCheckResult[] | null>(null);
 
   useEffect(() => {
     return () => {
@@ -237,6 +225,7 @@ const ExportModal = ({
         showToast("PDF 생성을 취소했어요.");
         return;
       }
+      console.error("[PDF Export] 실패:", error);
       showToast("PDF를 만들지 못했어요.");
     } finally {
       abortControllerRef.current = null;
@@ -256,60 +245,6 @@ const ExportModal = ({
   const handleClearPdfPages = () => {
     setPdfPageRangeInput("");
   };
-
-  // 맞춤법 검사 실행
-  const handleSpellCheck = async () => {
-    setIsSpellChecking(true);
-    try {
-      const data = getCanvasData() as { pages?: Page[] } | null;
-      const pages = Array.isArray(data?.pages) ? data.pages : [];
-      const textItems = extractTextsFromPages(pages);
-
-      if (textItems.length === 0) {
-        showToast("검사할 텍스트가 없습니다.");
-        setIsSpellChecking(false);
-        return;
-      }
-
-      const results = await checkSpelling(textItems);
-      setSpellCheckResults(results);
-    } catch {
-      showToast("맞춤법 검사에 실패했어요. 다시 시도해 주세요.");
-    } finally {
-      setIsSpellChecking(false);
-    }
-  };
-
-  // 맞춤법 교정 반영
-  const handleApplyCorrections = (selected: SpellCheckResult[]) => {
-    onApplySpellCorrections?.(selected);
-    const correctionCount = selected.reduce((sum, r) => sum + r.corrections.length, 0);
-    mp.track("맞춤법 검사", { correction_count: correctionCount });
-    showToast("맞춤법 교정이 반영되었습니다.");
-    setSpellCheckResults(null);
-  };
-
-  const handleCancelSpellCheck = () => {
-    setSpellCheckResults(null);
-  };
-
-  // 맞춤법 검사 결과 화면
-  if (spellCheckResults !== null) {
-    return (
-      <BaseModal
-        isOpen={open}
-        onClose={onClose}
-        closeOnBackdropClick={false}
-        title="맞춤법 검사 결과"
-      >
-        <SpellCheckReviewPanel
-          results={spellCheckResults}
-          onApply={handleApplyCorrections}
-          onCancel={handleCancelSpellCheck}
-        />
-      </BaseModal>
-    );
-  }
 
   return (
     <BaseModal
@@ -459,26 +394,6 @@ const ExportModal = ({
                 페이지 수가 많으면 시간이 걸릴 수 있어요.
               </p>
             </div>
-          )}
-          {onApplySpellCorrections && (
-            <button
-              type="button"
-              onClick={handleSpellCheck}
-              disabled={isSpellChecking || isDownloading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 py-3 text-14-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSpellChecking ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>검사 중...</span>
-                </>
-              ) : (
-                <>
-                  <SpellCheck className="h-4 w-4" />
-                  <span>맞춤법 검사하기</span>
-                </>
-              )}
-            </button>
           )}
           <button
             type="button"
