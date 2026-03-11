@@ -7,6 +7,7 @@ import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";
 import type {
   AacCardElement,
   CanvasElement,
+  EmotionCardElement,
   ShapeElement,
   TextElement,
 } from "../../../model/canvasTypes";
@@ -48,13 +49,15 @@ export const useSelectionState = ({
 
   const isColorTarget = (
     element: CanvasElement,
-  ): element is TextElement | ShapeElement | AacCardElement =>
+  ): element is TextElement | ShapeElement | AacCardElement | EmotionCardElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
     element.type === "mosaic" ||
-    element.type === "aacCard";
+    element.type === "circleMosaic" ||
+    element.type === "aacCard" ||
+    element.type === "emotionCard";
   const isMultiColorSelection =
     selectedElements.length > 1 && selectedElements.every(isColorTarget);
   // 다중 선택 UI는 잠금 요소가 섞일 수 있어 "수정 가능한 첫 요소"를 대표값으로 사용한다.
@@ -73,13 +76,15 @@ export const useSelectionState = ({
 
   const isFontTarget = (
     element: CanvasElement,
-  ): element is TextElement | ShapeElement | AacCardElement =>
+  ): element is TextElement | ShapeElement | AacCardElement | EmotionCardElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
     element.type === "mosaic" ||
-    element.type === "aacCard";
+    element.type === "circleMosaic" ||
+    element.type === "aacCard" ||
+    element.type === "emotionCard";
   const multiFontTargets = isMultiColorSelection
     ? selectedElements.filter(isFontTarget)
     : [];
@@ -89,7 +94,7 @@ export const useSelectionState = ({
   const getMultiFontFamily = (): string => {
     if (!multiFontSource) return "Pretendard";
     if (multiFontSource.type === "text") return multiFontSource.style.fontFamily ?? "Pretendard";
-    if (multiFontSource.type === "aacCard") return multiFontSource.label.style.fontFamily ?? "Pretendard";
+    if (multiFontSource.type === "aacCard" || multiFontSource.type === "emotionCard") return multiFontSource.label.style.fontFamily ?? "Pretendard";
     return multiFontSource.textStyle?.fontFamily ?? "Pretendard";
   };
   const multiFontFamily = getMultiFontFamily();
@@ -97,14 +102,14 @@ export const useSelectionState = ({
   const multiFontWeight = multiFontSource
     ? multiFontSource.type === "text"
       ? normalizeFontWeight(multiFontSource.style.fontWeight)
-      : multiFontSource.type === "aacCard"
+      : multiFontSource.type === "aacCard" || multiFontSource.type === "emotionCard"
         ? normalizeFontWeight(multiFontSource.label.style.fontWeight)
         : normalizeFontWeight(multiFontSource.textStyle?.fontWeight)
     : 400;
   const multiFontSize =
     multiFontSource && multiFontSource.type === "text"
       ? multiFontSource.style.fontSize
-      : multiFontSource && multiFontSource.type === "aacCard"
+      : multiFontSource && (multiFontSource.type === "aacCard" || multiFontSource.type === "emotionCard")
         ? multiFontSource.label.style.fontSize
         : (multiFontSource?.textStyle?.fontSize ?? 16);
   const minMultiFontSize = 12;
@@ -129,12 +134,14 @@ export const useSelectionState = ({
     onChange: applyMultiFontSize,
   });
 
-  const isBorderTarget = (element: CanvasElement): element is ShapeElement | AacCardElement =>
+  const isBorderTarget = (element: CanvasElement): element is ShapeElement | AacCardElement | EmotionCardElement =>
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
     element.type === "mosaic" ||
-    element.type === "aacCard";
+    element.type === "circleMosaic" ||
+    element.type === "aacCard" ||
+    element.type === "emotionCard";
   const multiBorderTargets = isMultiColorSelection
     ? selectedElements.filter(isBorderTarget)
     : [];
@@ -211,61 +218,78 @@ export const useSelectionState = ({
   })();
 
   const shapeToolbarData = (() => {
+    const buildShapeData = (element: ShapeElement, isMultiShape: boolean, selectedShapeIds: string[]) => {
+      const rect = {
+        x: element.x,
+        y: element.y,
+        width: element.w,
+        height: element.h,
+      };
+      const radius =
+        element.type === "ellipse"
+          ? Math.min(rect.width, rect.height) / 2
+          : (element.radius ?? 0);
+      const maxRadius = Math.min(rect.width, rect.height) / 2;
+      const minRadius = 0;
+      const clampRadius = (value: number) =>
+        Math.min(maxRadius, Math.max(minRadius, value));
+      const isImageFill =
+        element.fill.startsWith("url(") || element.fill.startsWith("data:");
+      const colorValue = isImageFill ? "#ffffff" : element.fill;
+      const borderEnabled = element.border?.enabled ?? false;
+      const borderColor = element.border?.color ?? "#000000";
+      const borderWidth = element.border?.width ?? 2;
+      const borderStyle = element.border?.style ?? "solid";
+
+      return {
+        element,
+        rect,
+        radius,
+        minRadius,
+        maxRadius,
+        clampRadius,
+        colorValue,
+        borderEnabled,
+        borderColor,
+        borderWidth,
+        borderStyle,
+        isMultiShape,
+        selectedShapeIds,
+      };
+    };
+
+    const isShapeBase = (el: CanvasElement): el is ShapeElement =>
+      (el.type === "rect" ||
+        el.type === "roundRect" ||
+        el.type === "ellipse" ||
+        el.type === "mosaic" ||
+        el.type === "circleMosaic") &&
+      !el.locked &&
+      el.subType !== "emotionSlot" &&
+      el.subType !== "emotionInference";
+
+    // 단일 선택: imageSlot은 이미지 삽입 UX를 위해 제외
     if (
-      !selectedElement ||
-      selectedElement.locked ||
-      (selectedElement.type !== "rect" &&
-        selectedElement.type !== "roundRect" &&
-        selectedElement.type !== "ellipse" &&
-        selectedElement.type !== "mosaic")
+      selectedElement &&
+      isShapeBase(selectedElement) &&
+      selectedElement.subType !== "imageSlot"
     ) {
-      return null;
-    }
-    // 감정카드와 이미지 슬롯은 shape-props 패널 대신 전용 탭에서 처리한다.
-    if (
-      selectedElement.subType === "emotionSlot" ||
-      selectedElement.subType === "emotionInference" ||
-      selectedElement.subType === "imageSlot"
-    ) {
-      return null;
+      return buildShapeData(selectedElement, false, [selectedElement.id]);
     }
 
-    const element = selectedElement;
-    const rect = {
-      x: element.x,
-      y: element.y,
-      width: element.w,
-      height: element.h,
-    };
-    const radius =
-      element.type === "ellipse"
-        ? Math.min(rect.width, rect.height) / 2
-        : (element.radius ?? 0);
-    const maxRadius = Math.min(rect.width, rect.height) / 2;
-    const minRadius = 0;
-    const clampRadius = (value: number) =>
-      Math.min(maxRadius, Math.max(minRadius, value));
-    const isImageFill =
-      element.fill.startsWith("url(") || element.fill.startsWith("data:");
-    const colorValue = isImageFill ? "#ffffff" : element.fill;
-    const borderEnabled = element.border?.enabled ?? false;
-    const borderColor = element.border?.color ?? "#000000";
-    const borderWidth = element.border?.width ?? 2;
-    const borderStyle = element.border?.style ?? "solid";
+    // 다중 선택: 같은 도형 타입만 선택된 경우 (imageSlot 포함)
+    if (selectedElements.length > 1) {
+      const selectedShapes = selectedElements.filter(isShapeBase);
+      if (
+        selectedShapes.length === selectedElements.length &&
+        selectedShapes.every((el) => el.type === selectedShapes[0].type)
+      ) {
+        const representative = getUnlockedOrFirst(selectedShapes) ?? selectedShapes[0];
+        return buildShapeData(representative, true, selectedShapes.map((s) => s.id));
+      }
+    }
 
-    return {
-      element,
-      rect,
-      radius,
-      minRadius,
-      maxRadius,
-      clampRadius,
-      colorValue,
-      borderEnabled,
-      borderColor,
-      borderWidth,
-      borderStyle,
-    };
+    return null;
   })();
 
   const { aacToolbarData, applyAacLabelPosition } = useAacSelectionState({

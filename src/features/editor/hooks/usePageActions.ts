@@ -259,7 +259,8 @@ export const usePageActions = ({
                 (element.type === "rect" ||
                   element.type === "roundRect" ||
                   element.type === "ellipse" ||
-                  element.type === "mosaic") &&
+                  element.type === "mosaic" ||
+                  element.type === "circleMosaic") &&
                 element.labelId
               ) {
                 linkedIds.add(element.labelId);
@@ -290,7 +291,8 @@ export const usePageActions = ({
           page.id === pageId
             ? bumpPageRevision({
                 ...page,
-                elements: page.elements.filter((element) => element.locked),
+                templateId: null,
+                elements: withLogoCanvasElements([]),
               })
             : page,
         ),

@@ -20,6 +20,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { Page } from "../../model/pageTypes";
+import { useSpellCheckStore, buildCorrectionKey } from "../../store/spellCheckStore";
 import DesignPaper from "../canvas/DesignPaper";
 import { useBottomBarDrag } from "./hooks/useBottomBarDrag";
 import { useBottomBarScroll } from "./hooks/useBottomBarScroll";
@@ -79,6 +80,7 @@ type PageThumbnailProps = {
   isDragging: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
+  spellErrorCount?: number;
   onSelect: (pageId: string, shiftKey: boolean, metaKey: boolean) => void;
   onDuplicate?: (pageId: string) => void;
   onDelete: (pageId: string) => void;
@@ -98,6 +100,7 @@ const PageThumbnail = ({
   isDragging,
   canMoveLeft,
   canMoveRight,
+  spellErrorCount,
   onSelect,
   onDuplicate,
   onDelete,
@@ -234,6 +237,14 @@ const PageThumbnail = ({
             {page.pageNumber}
           </span>
         </button>
+        {spellErrorCount != null && spellErrorCount > 0 && (
+          <span
+            className="absolute -right-1.5 -top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-white-100 shadow-sm"
+            style={{ fontSize: "10px", fontWeight: 600 }}
+          >
+            {spellErrorCount}
+          </span>
+        )}
       </div>
       <div className="flex items-center justify-center gap-1 h-5">
         {!isDragging && (
@@ -474,6 +485,25 @@ const BottomBar = ({
       return next;
     });
   };
+  // 맞춤법 검사 패널이 열려 있을 때만 페이지별 오류 건수 표시
+  const spellResults = useSpellCheckStore((s) => s.results);
+  const spellActionMap = useSpellCheckStore((s) => s.actionMap);
+  const isPanelOpen = useSpellCheckStore((s) => s.isPanelOpen);
+
+  const spellErrorCountByPageId = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!isPanelOpen || !spellResults) return map;
+    for (const r of spellResults) {
+      let count = 0;
+      r.corrections.forEach((_, idx) => {
+        const key = buildCorrectionKey(r.elementId, r.field, idx);
+        if (!spellActionMap.has(key)) count++;
+      });
+      if (count > 0) map.set(r.pageId, (map.get(r.pageId) ?? 0) + count);
+    }
+    return map;
+  }, [isPanelOpen, spellResults, spellActionMap]);
+
   // keydown 핸들러의 클로저 문제를 피하기 위해 최신 값을 ref로 유지한다.
   const selectedPageIdsRef = useRef<string[]>([]);
   const selectedPageIdRef = useRef(selectedPageId);
@@ -770,6 +800,7 @@ const BottomBar = ({
                     isDragging={isDragging}
                     canMoveLeft={index > 0}
                     canMoveRight={index < pages.length - 1}
+                    spellErrorCount={spellErrorCountByPageId.get(item.page.id)}
                     onSelect={handlePageClick}
                     onDuplicate={onDuplicatePage}
                     onDelete={onDeletePage}

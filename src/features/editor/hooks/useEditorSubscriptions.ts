@@ -37,7 +37,7 @@ type AddTextElement = (args: {
 
 type AddShapeElement = (args: {
   pageId: string;
-  elementType: "rect" | "roundRect" | "ellipse" | "mosaic";
+  elementType: "rect" | "roundRect" | "ellipse" | "mosaic" | "circleMosaic";
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
 }) => string;

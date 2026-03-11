@@ -7,7 +7,6 @@ import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
 import { measurePerf } from "../utils/perfLogger";
 import type { CanvasDocument } from "../model/pageTypes";
-import type { SpellCheckResult } from "../ai/checkSpelling";
 import {
   buildPersistPayload,
   saveExistingDocument,
@@ -34,7 +33,6 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   const canvasGetterRef = useRef<() => CanvasDocument>(() => ({ pages: [] }));
   const retryAutoSaveRef = useRef<(() => void) | null>(null);
   const manualSaveRef = useRef<(() => void) | null>(null);
-  const spellCheckApplierRef = useRef<((corrections: SpellCheckResult[]) => void) | null>(null);
 
   // 외부에서 최신 캔버스 조회 함수를 등록해 저장 시 오래된 스냅샷 사용을 피한다.
   const registerCanvasGetter = useCallback((getter: () => CanvasDocument) => {
@@ -55,21 +53,6 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
   const retryAutoSave = useCallback(() => {
     retryAutoSaveRef.current?.();
   }, []);
-
-  // 맞춤법 교정 적용 콜백 등록 (MainSection에서 setPages 기반 applier를 등록)
-  const registerSpellCheckApplier = useCallback(
-    (applier: (corrections: SpellCheckResult[]) => void) => {
-      spellCheckApplierRef.current = applier;
-    },
-    [],
-  );
-
-  const applySpellCorrections = useCallback(
-    (corrections: SpellCheckResult[]) => {
-      spellCheckApplierRef.current?.(corrections);
-    },
-    [],
-  );
 
   const handleSave = useCallback(async () => {
     // 자동저장 훅이 수동 저장 함수를 등록한 경우 저장 경로를 일원화한다.
@@ -144,7 +127,5 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
     setRetryAutoSave,
     setManualSave,
     retryAutoSave,
-    registerSpellCheckApplier,
-    applySpellCorrections,
   };
 };

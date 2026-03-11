@@ -16,7 +16,10 @@ import { useLocation, useOutletContext } from "react-router-dom";
 import type { CanvasDocument } from "../model/pageTypes";
 import type { SpellCheckResult } from "../ai/checkSpelling";
 import { applyCorrections } from "../utils/applySpellCorrections";
+import { useSpellCheckStore } from "../store/spellCheckStore";
 import CanvasStage from "../sections/canvas/CanvasStage";
+import SpellCheckPanel from "./SpellCheckPanel";
+import SpellCheckToast from "./SpellCheckToast";
 import { useTemplateStore } from "../store/templateStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useFontStore } from "../store/fontStore";
@@ -70,7 +73,6 @@ export interface OutletContext {
   setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
   setRetryAutoSave: (retryFn: () => void) => void;
   setManualSave: (saveFn: () => void) => void;
-  registerSpellCheckApplier: (applier: (corrections: SpellCheckResult[]) => void) => void;
 }
 
 const MainSection = () => {
@@ -87,7 +89,6 @@ const MainSection = () => {
     setAutoSaveState,
     setRetryAutoSave,
     setManualSave,
-    registerSpellCheckApplier,
   } = useOutletContext<OutletContext>();
 
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
@@ -154,13 +155,14 @@ const MainSection = () => {
   }, [manualSave, setManualSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
 
-  // 맞춤법 교정 적용 콜백 등록
+  // 맞춤법 교정 적용 콜백을 spellCheckStore에 등록
+  const setSpellCheckApplier = useSpellCheckStore((s) => s.setApplier);
   useEffect(() => {
-    registerSpellCheckApplier((corrections: SpellCheckResult[]) => {
+    setSpellCheckApplier((corrections: SpellCheckResult[]) => {
       setPages((prev) => applyCorrections(prev, corrections));
       recordHistory("맞춤법 교정");
     });
-  }, [registerSpellCheckApplier, setPages, recordHistory]);
+  }, [setSpellCheckApplier, setPages, recordHistory]);
 
   const {
     setActivePage,
@@ -328,6 +330,14 @@ const MainSection = () => {
           hasImage,
         };
       }
+      if (el?.type === "emotionCard") {
+        const hasImage = el.fill.startsWith("url(") || el.fill.startsWith("data:");
+        return {
+          type: "emotionCard" as const,
+          element: el,
+          hasImage,
+        };
+      }
     }
     // AAC 카드(레거시)를 shape보다 먼저 확인해 shape-props 패널 대신 emotion-aac 탭이 열리도록 한다.
     if (aacToolbarData) {
@@ -352,6 +362,8 @@ const MainSection = () => {
         borderColor: shapeToolbarData.borderColor,
         borderWidth: shapeToolbarData.borderWidth,
         borderStyle: shapeToolbarData.borderStyle,
+        isMultiShape: shapeToolbarData.isMultiShape,
+        selectedShapeIds: shapeToolbarData.selectedShapeIds,
       };
     }
     if (lineToolbarData) {
@@ -405,11 +417,18 @@ const MainSection = () => {
   // updateElement 콜백: 특정 요소에 패치를 적용한다.
   // text 요소의 style은 얕은 병합으로 유실되지 않도록 깊은 병합을 수행한다.
   const updateElementForPanel = useMemo(() => {
+    // 다중 도형 선택 시 모든 선택 도형에 패치를 브로드캐스트한다
+    const broadcastIds =
+      elementPanelData?.type === "shape" && elementPanelData.isMultiShape
+        ? elementPanelData.selectedShapeIds ?? null
+        : null;
+
     return (id: string, patch: Record<string, unknown>) => {
       setPages((prevPages) =>
         updateElementsByPageId(prevPages, selectedPageId, (elements) =>
           elements.map((el) => {
-            if (el.id !== id) return el;
+            const shouldPatch = broadcastIds ? broadcastIds.includes(el.id) : el.id === id;
+            if (!shouldPatch) return el;
             if (el.type === "text" && patch.style && typeof patch.style === "object") {
               return {
                 ...el,
@@ -417,8 +436,8 @@ const MainSection = () => {
                 style: { ...el.style, ...(patch.style as object) },
               };
             }
-            // aacCard 복합 요소: label 내부의 style은 깊은 병합으로 유실을 방지한다
-            if (el.type === "aacCard" && patch.label && typeof patch.label === "object") {
+            // aacCard/emotionCard 복합 요소: label 내부의 style은 깊은 병합으로 유실을 방지한다
+            if ((el.type === "aacCard" || el.type === "emotionCard") && patch.label && typeof patch.label === "object") {
               const labelPatch = patch.label as Record<string, unknown>;
               return {
                 ...el,
@@ -437,7 +456,7 @@ const MainSection = () => {
         ),
       );
     };
-  }, [setPages, selectedPageId]);
+  }, [setPages, selectedPageId, elementPanelData]);
 
   // AAC 전용: labelPosition 변경은 카드/라벨 배치를 동기화하는 별도 로직이 필요하다
   const updateElementForAac = useMemo(() => {
@@ -457,6 +476,7 @@ const MainSection = () => {
         text: "text-props",
         aac: "emotion-aac",
         aacCardV2: "aacCard-props",
+        emotionCard: "emotionCard-props",
         multi: "multi-props",
       };
       setSideBarMenu(menuMap[elementPanelData.type] ?? null);
@@ -527,7 +547,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "aacCard") {
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic" || el.type === "aacCard" || el.type === "emotionCard") {
               const fill = (el.fill ?? "#FFFFFF").toUpperCase();
               const isImage = fill.startsWith("URL(") || fill.startsWith("DATA:");
               if (!isImage && fill === old) {
@@ -555,7 +575,7 @@ const MainSection = () => {
     const getElementColor = (el: import("../model/canvasTypes").CanvasElement): string | null => {
       if (el.locked) return null;
       if (el.type === "text") return (el.style.color ?? "#000000").toUpperCase();
-      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "aacCard") {
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic" || el.type === "aacCard" || el.type === "emotionCard") {
         const fill = (el.fill ?? "#FFFFFF").toUpperCase();
         if (fill.startsWith("URL(") || fill.startsWith("DATA:")) return null;
         return fill;
@@ -600,7 +620,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
+            if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic") {
               const current = el.textStyle?.fontFamily ?? "Pretendard";
               if (current === oldFont) {
                 return {
@@ -610,7 +630,7 @@ const MainSection = () => {
               }
               return el;
             }
-            if (el.type === "aacCard") {
+            if (el.type === "aacCard" || el.type === "emotionCard") {
               const current = el.label.style.fontFamily ?? "Pretendard";
               if (current === oldFont) {
                 return {
@@ -634,10 +654,10 @@ const MainSection = () => {
     const getElementFont = (el: import("../model/canvasTypes").CanvasElement): string | null => {
       if (el.locked) return null;
       if (el.type === "text") return el.style.fontFamily ?? "Pretendard";
-      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic") {
+      if (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic") {
         return el.textStyle?.fontFamily ?? "Pretendard";
       }
-      if (el.type === "aacCard") {
+      if (el.type === "aacCard" || el.type === "emotionCard") {
         return el.label.style.fontFamily ?? "Pretendard";
       }
       return null;
@@ -699,6 +719,8 @@ const MainSection = () => {
         onInteractionChange={handleInteractionChange}
         aiTipKey={location.key}
       />
+      <SpellCheckPanel />
+      <SpellCheckToast />
       <Suspense fallback={null}>
         <BottomBar
           pages={pages}

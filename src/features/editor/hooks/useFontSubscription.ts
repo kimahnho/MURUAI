@@ -78,7 +78,8 @@ export const useFontSubscription = ({
             element.type === "rect" ||
             element.type === "roundRect" ||
             element.type === "ellipse" ||
-            element.type === "mosaic"
+            element.type === "mosaic" ||
+            element.type === "circleMosaic"
           ) {
             const nextWeight =
               payload.fontWeight != null
