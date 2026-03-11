@@ -77,7 +77,14 @@ const isBasicTemplate = (templateId: string) =>
   templateId === "emotionDiary" ||
   templateId === "pictureDiaryLineNote" ||
   templateId === "dictationPractice" ||
-  templateId === "yellowDiaryLines";
+  templateId === "yellowDiaryLines" ||
+  templateId === "labelSheet3x8" ||
+  templateId === "pictureSchedule" ||
+  templateId === "wavyLineTracing" ||
+  templateId === "variousLineTracing" ||
+  templateId === "crossLineTracing" ||
+  templateId === "easyCrossLineTracing" ||
+  templateId === "straightLineTracing";
 
 const sortBasicTemplates = (a: string, b: string) => {
   if (a === "visualSchedule" && b !== "visualSchedule") return -1;
@@ -104,6 +111,20 @@ const sortBasicTemplates = (a: string, b: string) => {
   if (b === "dictationPractice" && a !== "dictationPractice") return 1;
   if (a === "yellowDiaryLines" && b !== "yellowDiaryLines") return -1;
   if (b === "yellowDiaryLines" && a !== "yellowDiaryLines") return 1;
+  if (a === "labelSheet3x8" && b !== "labelSheet3x8") return -1;
+  if (b === "labelSheet3x8" && a !== "labelSheet3x8") return 1;
+  if (a === "pictureSchedule" && b !== "pictureSchedule") return -1;
+  if (b === "pictureSchedule" && a !== "pictureSchedule") return 1;
+  if (a === "straightLineTracing" && b !== "straightLineTracing") return -1;
+  if (b === "straightLineTracing" && a !== "straightLineTracing") return 1;
+  if (a === "wavyLineTracing" && b !== "wavyLineTracing") return -1;
+  if (b === "wavyLineTracing" && a !== "wavyLineTracing") return 1;
+  if (a === "variousLineTracing" && b !== "variousLineTracing") return -1;
+  if (b === "variousLineTracing" && a !== "variousLineTracing") return 1;
+  if (a === "easyCrossLineTracing" && b !== "easyCrossLineTracing") return -1;
+  if (b === "easyCrossLineTracing" && a !== "easyCrossLineTracing") return 1;
+  if (a === "crossLineTracing" && b !== "crossLineTracing") return -1;
+  if (b === "crossLineTracing" && a !== "crossLineTracing") return 1;
   return sortNormalTemplates(a, b);
 };
 
