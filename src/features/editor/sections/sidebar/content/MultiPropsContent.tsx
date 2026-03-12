@@ -51,8 +51,8 @@ const MultiPropsContent = () => {
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">색상</div>
         <div className="flex items-center gap-2">
-          <ColorPickerPopover value={multiColorValue} onChange={onMultiColorChange} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} />
-          <span className="text-14-regular text-black-70 uppercase">{multiColorValue}</span>
+          <ColorPickerPopover value={multiColorValue} onChange={onMultiColorChange} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} allowTransparent />
+          <span className="text-14-regular text-black-70 uppercase">{multiColorValue === "transparent" ? "투명" : multiColorValue}</span>
         </div>
       </div>
 

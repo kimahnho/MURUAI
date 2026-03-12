@@ -42,6 +42,18 @@ const ASD_SWATCHES = [
 const TOOLTIP_DESIRED_WIDTH = 480;
 const TOOLTIP_MARGIN = 12;
 
+// 체커보드 CSS — 투명 상태를 시각적으로 표현
+const CHECKERBOARD_BG: React.CSSProperties = {
+  backgroundImage: [
+    "linear-gradient(45deg, #ccc 25%, transparent 25%)",
+    "linear-gradient(-45deg, #ccc 25%, transparent 25%)",
+    "linear-gradient(45deg, transparent 75%, #ccc 75%)",
+    "linear-gradient(-45deg, transparent 75%, #ccc 75%)",
+  ].join(", "),
+  backgroundSize: "8px 8px",
+  backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0",
+};
+
 type ColorPickerPopoverProps = {
   value: string;
   onChange: (value: string) => void;
@@ -51,6 +63,7 @@ type ColorPickerPopoverProps = {
   buttonClassName?: string;
   ariaLabel?: string;
   closeSignal?: number;
+  allowTransparent?: boolean;
 };
 
 const normalizeHex = (input: string) => {
@@ -163,10 +176,14 @@ const ColorPickerPopover = ({
   buttonClassName = "h-7 w-7",
   ariaLabel = "색상 선택",
   closeSignal,
+  allowTransparent = false,
 }: ColorPickerPopoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [hexInput, setHexInput] = useState(value.toUpperCase());
+  const isTransparent = value === "transparent";
+  const [hexInput, setHexInput] = useState(
+    isTransparent ? "" : value.toUpperCase(),
+  );
   // 팝오버 열릴 때의 색상을 저장해 "같은 색상 모두 변경" 기준으로 사용
   const [originalColor, setOriginalColor] = useState(value.toUpperCase());
 
@@ -174,7 +191,7 @@ const ColorPickerPopover = ({
   const addRecentColor = useRecentColorStore((s) => s.addRecentColor);
 
   useEffect(() => {
-    setHexInput(value.toUpperCase());
+    setHexInput(value === "transparent" ? "" : value.toUpperCase());
   }, [value]);
 
   useEffect(() => {
@@ -197,7 +214,9 @@ const ColorPickerPopover = ({
 
   const applyColor = (color: string) => {
     onChange(color);
-    addRecentColor(color);
+    if (color !== "transparent") {
+      addRecentColor(color);
+    }
   };
 
   const commitHexInput = () => {
@@ -255,7 +274,7 @@ const ColorPickerPopover = ({
           });
         }}
         className={`${buttonClassName} flex items-center justify-center rounded-full border border-black-30 bg-white-100 p-0`}
-        style={{ backgroundColor: value }}
+        style={isTransparent ? CHECKERBOARD_BG : { backgroundColor: value }}
       />
       {isOpen && (
         <div
@@ -275,6 +294,37 @@ const ColorPickerPopover = ({
             </div>
           ) : (
             <>
+              {/* 투명 옵션 */}
+              {allowTransparent && (
+                <div className="pb-2.5 mb-2.5 border-b border-black-15">
+                  <button
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => {
+                      onChange("transparent");
+                      setHexInput("");
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-12-semibold transition-colors ${
+                      isTransparent
+                        ? "bg-primary/10 text-primary"
+                        : "text-black-70 hover:bg-black-5"
+                    }`}
+                  >
+                    <span
+                      className={`h-5 w-5 shrink-0 rounded-full border ${
+                        isTransparent
+                          ? "border-primary ring-2 ring-primary/30"
+                          : "border-black-25"
+                      }`}
+                      style={CHECKERBOARD_BG}
+                    />
+                    투명
+                  </button>
+                </div>
+              )}
+
               {/* 최근 사용한 색상 — 항상 표시, 모든 요소에서 공유 */}
               <div className="pb-2.5 mb-2.5 border-b border-black-15">
                 <div className="mb-2 text-12-semibold text-black-70">
@@ -322,12 +372,14 @@ const ColorPickerPopover = ({
           )}
 
           {/* 커스텀 색상 입력 */}
-          <div className="pt-2.5 border-t border-black-15">
+          <div
+            className={`pt-2.5 border-t border-black-15 ${isTransparent ? "opacity-40 pointer-events-none" : ""}`}
+          >
             <div className="flex items-center gap-2">
               <label className="relative inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black-25">
                 <input
                   type="color"
-                  value={value}
+                  value={isTransparent ? "#ffffff" : value}
                   onChange={(event) => {
                     const nextColor = event.target.value.toUpperCase();
                     applyColor(nextColor);
@@ -338,7 +390,9 @@ const ColorPickerPopover = ({
                 />
                 <span
                   className="h-5 w-5 rounded-full"
-                  style={{ backgroundColor: value }}
+                  style={
+                    isTransparent ? CHECKERBOARD_BG : { backgroundColor: value }
+                  }
                   aria-hidden
                 />
               </label>
@@ -360,7 +414,7 @@ const ColorPickerPopover = ({
                     event.currentTarget.blur();
                   }
                 }}
-                placeholder="#000000"
+                placeholder={isTransparent ? "투명" : "#000000"}
                 className="min-w-0 flex-1 rounded-lg border border-black-20 px-2.5 py-1.5 text-12-regular text-black-90 uppercase focus:border-primary focus:outline-none transition-colors"
               />
             </div>

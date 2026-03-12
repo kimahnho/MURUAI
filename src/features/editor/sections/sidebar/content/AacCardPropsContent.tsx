@@ -59,10 +59,12 @@ const AacCardPropsContent = () => {
     }
   }, [panelData, setSideBarMenu]);
 
-  // 이미지가 삽입된 카드 선택 시 AAC 탭으로 자동 전환
+  // 이미지가 있으면 박스(스타일) 탭, 없으면 AAC(이미지 검색) 탭으로 자동 전환
   useEffect(() => {
-    if (isAacCardV2) setActiveTab("aac");
-  }, [isAacCardV2]);
+    if (isAacCardV2 && panelData?.type === "aacCardV2") {
+      setActiveTab(panelData.hasImage ? "box" : "aac");
+    }
+  }, [isAacCardV2, panelData]);
 
   if (!panelData || panelData.type !== "aacCardV2" || !updateElement) return null;
 
@@ -299,9 +301,10 @@ const AacCardPropsContent = () => {
                 updateElement(element.id, { fill: color });
               }
             }}
+            allowTransparent
           />
           <span className="text-14-regular text-black-70 uppercase">
-            {colorValue}
+            {colorValue === "transparent" ? "투명" : colorValue}
           </span>
           <button
             type="button"

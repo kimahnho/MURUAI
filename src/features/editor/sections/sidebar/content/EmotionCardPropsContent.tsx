@@ -58,9 +58,12 @@ const EmotionCardPropsContent = () => {
     }
   }, [panelData, setSideBarMenu]);
 
+  // 이미지가 있으면 박스(스타일) 탭, 없으면 감정(이미지 선택) 탭으로 자동 전환
   useEffect(() => {
-    if (isEmotionCard) setActiveTab("emotion");
-  }, [isEmotionCard]);
+    if (isEmotionCard && panelData?.type === "emotionCard") {
+      setActiveTab(panelData.hasImage ? "box" : "emotion");
+    }
+  }, [isEmotionCard, panelData]);
 
   if (!panelData || panelData.type !== "emotionCard" || !updateElement) return null;
 
@@ -297,9 +300,10 @@ const EmotionCardPropsContent = () => {
                 updateElement(element.id, { fill: color });
               }
             }}
+            allowTransparent
           />
           <span className="text-14-regular text-black-70 uppercase">
-            {colorValue}
+            {colorValue === "transparent" ? "투명" : colorValue}
           </span>
           <button
             type="button"

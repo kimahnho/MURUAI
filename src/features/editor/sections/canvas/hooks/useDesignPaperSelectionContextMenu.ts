@@ -36,8 +36,8 @@ interface UseDesignPaperSelectionContextMenuParams {
 export const useDesignPaperSelectionContextMenu = ({
   readOnly,
   elements,
-  pageWidth,
-  pageHeight,
+  pageWidth: _pageWidth,
+  pageHeight: _pageHeight,
   selectedIdsRef,
   containerRef,
   editingImageId,
@@ -184,20 +184,13 @@ export const useDesignPaperSelectionContextMenu = ({
       if (!selectedIdsRef.current.includes(elementId)) {
         handleSelect(elementId, { keepContextMenu: true });
       }
-      const rect = containerRef.current?.getBoundingClientRect();
-      const rawX = event.clientX - (rect?.left ?? 0);
-      const rawY = event.clientY - (rect?.top ?? 0);
+      // fixed 포지셔닝용 뷰포트 좌표 — 캔버스 밖에서도 메뉴가 잘리지 않는다
       const menuWidth = 220;
       const menuHeight = 4 * 36 + 8;
-      // 컨텍스트 메뉴가 페이지 밖으로 넘어가지 않도록 렌더링 좌표를 클램프한다.
-      const clampedX = Math.min(
-        Math.max(rawX, 8),
-        Math.max(8, pageWidth - menuWidth),
-      );
-      const clampedY = Math.min(
-        Math.max(rawY, 8),
-        Math.max(8, pageHeight - menuHeight),
-      );
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const clampedX = Math.min(Math.max(event.clientX, 8), vw - menuWidth - 8);
+      const clampedY = Math.min(Math.max(event.clientY, 8), vh - menuHeight - 8);
       setContextMenu({
         x: clampedX,
         y: clampedY,
@@ -205,11 +198,8 @@ export const useDesignPaperSelectionContextMenu = ({
       });
     },
     [
-      containerRef,
       elements,
       handleSelect,
-      pageHeight,
-      pageWidth,
       readOnly,
       selectedIdsRef,
       setContextMenu,
@@ -223,18 +213,14 @@ export const useDesignPaperSelectionContextMenu = ({
       event.preventDefault();
       event.stopPropagation();
       const rect = containerRef.current?.getBoundingClientRect();
-      const rawX = event.clientX - (rect?.left ?? 0);
-      const rawY = event.clientY - (rect?.top ?? 0);
       const menuWidth = 220;
       const menuHeight = 36 + 8;
-      const clampedX = Math.min(
-        Math.max(rawX, 8),
-        Math.max(8, pageWidth - menuWidth),
-      );
-      const clampedY = Math.min(
-        Math.max(rawY, 8),
-        Math.max(8, pageHeight - menuHeight),
-      );
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const clampedX = Math.min(Math.max(event.clientX, 8), vw - menuWidth - 8);
+      const clampedY = Math.min(Math.max(event.clientY, 8), vh - menuHeight - 8);
+      const rawX = event.clientX - (rect?.left ?? 0);
+      const rawY = event.clientY - (rect?.top ?? 0);
       const scale = getContainerScale();
       const pastePosition = {
         x: rawX / scale,
@@ -249,8 +235,6 @@ export const useDesignPaperSelectionContextMenu = ({
     [
       containerRef,
       getContainerScale,
-      pageHeight,
-      pageWidth,
       readOnly,
       setContextMenu,
     ],
