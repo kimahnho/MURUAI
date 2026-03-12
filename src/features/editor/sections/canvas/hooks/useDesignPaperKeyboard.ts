@@ -29,6 +29,7 @@ type UseDesignPaperKeyboardProps = {
   clearEmotionSlotImage: (id: string) => void;
   copySelectedElements: () => void;
   deleteSelectedElements: () => void;
+  onDeleteElements?: (ids: string[]) => void;
   pasteElements: () => void;
   getClipboard: () => CanvasElement[] | null;
   smartGuides: SmartGuideController;
@@ -48,6 +49,7 @@ export const useDesignPaperKeyboard = ({
   clearEmotionSlotImage,
   copySelectedElements,
   deleteSelectedElements,
+  onDeleteElements,
   pasteElements,
   getClipboard,
   smartGuides,
@@ -142,14 +144,11 @@ export const useDesignPaperKeyboard = ({
         const currentSelectedIds = selectedIdsRef.current;
         if (currentSelectedIds.length > 0) {
           event.preventDefault();
-          onElementsChange(
-            elements.filter(
-              (element) => !currentSelectedIds.includes(element.id),
-            ),
-          );
-          selectedIdsRef.current = [];
-          onSelectedIdsChange?.([]);
-          onEditingTextIdChange?.(null);
+          if (onDeleteElements) {
+            onDeleteElements([...currentSelectedIds]);
+          } else {
+            deleteSelectedElements();
+          }
           return;
         }
       }
@@ -345,5 +344,6 @@ export const useDesignPaperKeyboard = ({
     selectedIdsRef,
     clearContextMenu,
     setEditingImageId,
+    onDeleteElements,
   ]);
 };

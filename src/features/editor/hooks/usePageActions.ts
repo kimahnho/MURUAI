@@ -7,6 +7,7 @@ import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
 import { mp } from "@/shared/utils/mixpanel";
 import { bumpPageRevision } from "../utils/pageRevision";
+import { isImageFillElement } from "../utils/imageBoxScaling";
 
 type PageActionsParams = {
   pages: Page[];
@@ -246,38 +247,76 @@ export const usePageActions = ({
   const handleDeleteElements = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
-      mp.track("요소 삭제", { count: ids.length });
-      setPages((prevPages) =>
-        prevPages.map((page) => {
-          if (page.id !== selectedPageId) return page;
 
-          const linkedIds = new Set<string>();
-          // 카드 삭제 시 labelId 연결 텍스트도 함께 제거해 고아 텍스트를 방지한다.
-          page.elements.forEach((element) => {
-            if (ids.includes(element.id)) {
-              if (
-                (element.type === "rect" ||
-                  element.type === "roundRect" ||
-                  element.type === "ellipse" ||
-                  element.type === "mosaic" ||
-                  element.type === "circleMosaic") &&
-                element.labelId
-              ) {
-                linkedIds.add(element.labelId);
-              }
+      // 이미지 클리어와 요소 삭제를 단일 setPages 안에서 원자적으로 처리한다.
+      // setPages 업데이터 바깥에서 cleared 플래그를 읽는 패턴은 React batching으로 작동하지 않는다.
+      let didClearImage = false;
+      setPages((prevPages) => {
+        const page = prevPages.find((p) => p.id === selectedPageId);
+        if (!page) return prevPages;
+
+        // 단일 요소 + 이미지 fill → 이미지만 제거하고 요소는 유지
+        if (ids.length === 1) {
+          const el = page.elements.find((e) => e.id === ids[0]);
+          if (el && isImageFillElement(el)) {
+            didClearImage = true;
+            const fallbackFill = ("backgroundColor" in el && typeof el.backgroundColor === "string" ? el.backgroundColor : undefined) ?? "#FFFFFF";
+            const defaultLabel = el.type === "aacCard" ? "단어" : el.type === "emotionCard" ? "(감정)" : undefined;
+            const linkedLabelId = "labelId" in el && typeof el.labelId === "string" ? el.labelId : undefined;
+            return prevPages.map((p) => {
+              if (p.id !== selectedPageId) return p;
+              return {
+                ...bumpPageRevision(p),
+                elements: p.elements.map((e) => {
+                  if (e.id === el.id) {
+                    const c = { ...e, fill: fallbackFill, imageBox: undefined, backgroundColor: undefined };
+                    if (defaultLabel && "label" in e && e.label && typeof e.label === "object") {
+                      return { ...c, label: { ...e.label, text: defaultLabel } };
+                    }
+                    return c;
+                  }
+                  if (linkedLabelId && e.id === linkedLabelId && e.type === "text") {
+                    return { ...e, text: "(감정)", richText: "" };
+                  }
+                  return e;
+                }),
+              };
+            });
+          }
+        }
+
+        // 이미지 fill이 아닌 경우 → 요소 삭제
+        const linkedIds = new Set<string>();
+        page.elements.forEach((element) => {
+          if (ids.includes(element.id)) {
+            if (
+              (element.type === "rect" ||
+                element.type === "roundRect" ||
+                element.type === "ellipse" ||
+                element.type === "mosaic" ||
+                element.type === "circleMosaic") &&
+              element.labelId
+            ) {
+              linkedIds.add(element.labelId);
             }
-          });
+          }
+        });
 
-          const allIdsToDelete = new Set([...ids, ...linkedIds]);
+        const allIdsToDelete = new Set([...ids, ...linkedIds]);
 
+        return prevPages.map((p) => {
+          if (p.id !== selectedPageId) return p;
           return {
-            ...bumpPageRevision(page),
-            elements: page.elements.filter(
+            ...bumpPageRevision(p),
+            elements: p.elements.filter(
               (element) => !allIdsToDelete.has(element.id),
             ),
           };
-        }),
-      );
+        });
+      });
+
+      if (didClearImage) return;
+      mp.track("요소 삭제", { count: ids.length });
       setSelectedIds([]);
       setEditingTextId(null);
     },

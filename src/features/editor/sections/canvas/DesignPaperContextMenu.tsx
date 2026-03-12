@@ -1,7 +1,7 @@
 /**
  * 요소 우클릭 시 노출되는 컨텍스트 메뉴 액션을 제공하는 컴포넌트.
  */
-import type { Dispatch, SetStateAction } from "react";
+import { useRef, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowUpFromLine,
   ArrowUpToLine,
@@ -44,6 +44,50 @@ type DesignPaperContextMenuProps = {
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
 };
 
+const SUBMENU_W = 240; // w-60
+
+// 메인 메뉴 위치를 기준으로 서브메뉴가 뷰포트에 맞도록 방향을 계산한다.
+const LayerSubmenu = ({
+  items,
+  mainMenuRef,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    Icon: typeof ArrowUpFromLine;
+    enabled: boolean;
+    action: () => void;
+  }>;
+  mainMenuRef: React.RefObject<HTMLDivElement | null>;
+}) => {
+  const rect = mainMenuRef.current?.getBoundingClientRect();
+  const vw = typeof window !== "undefined" ? window.innerWidth : 9999;
+  const openLeft = rect ? rect.right + SUBMENU_W > vw : false;
+
+  return (
+    <div
+      className={`absolute top-0 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg ${
+        openLeft ? "right-full" : "left-full"
+      }`}
+    >
+      {items.map(({ key, label, Icon, enabled, action }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={action}
+          disabled={!enabled}
+          className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
+            enabled ? "text-black-90 hover:bg-black-5" : "text-black-40"
+          }`}
+        >
+          <Icon className="h-4 w-4" />
+          <span>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 // 선택 컨텍스트 메뉴와 레이어 정렬 메뉴를 렌더링한다.
 export const DesignPaperContextMenu = ({
   contextMenu,
@@ -60,6 +104,8 @@ export const DesignPaperContextMenu = ({
   onMoveLayer,
   setContextMenu,
 }: DesignPaperContextMenuProps) => {
+  const mainMenuRef = useRef<HTMLDivElement>(null);
+
   if (!contextMenu) return null;
 
   const target = contextMenu.target;
@@ -104,7 +150,7 @@ export const DesignPaperContextMenu = ({
 
   return (
     <div
-      className="absolute z-50"
+      className="fixed z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onPointerDown={(event) => {
         event.stopPropagation();
@@ -119,7 +165,7 @@ export const DesignPaperContextMenu = ({
         )
       }
     >
-      <div className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
+      <div ref={mainMenuRef} className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
         {isElementMenu && (
           <button
             type="button"
@@ -209,22 +255,10 @@ export const DesignPaperContextMenu = ({
         )}
       </div>
       {isElementMenu && contextMenu.activeSubmenu === "layer" && (
-        <div className="absolute left-full top-0 ml-0 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
-          {items.map(({ key, label, Icon, enabled, action }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={action}
-              disabled={!enabled}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
-                enabled ? "text-black-90 hover:bg-black-5" : "text-black-40"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
+        <LayerSubmenu
+          items={items}
+          mainMenuRef={mainMenuRef}
+        />
       )}
     </div>
   );

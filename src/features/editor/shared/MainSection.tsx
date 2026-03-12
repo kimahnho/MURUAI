@@ -717,6 +717,7 @@ const MainSection = () => {
         onEditingTextIdChange={setEditingTextId}
         onElementsChange={handleElementsChange}
         onInteractionChange={handleInteractionChange}
+        onDeleteElements={handleDeleteElements}
         aiTipKey={location.key}
       />
       <SpellCheckPanel />

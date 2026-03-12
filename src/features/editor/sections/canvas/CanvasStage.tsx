@@ -25,6 +25,7 @@ type CanvasStageProps = {
   onEditingTextIdChange: (nextId: string | null) => void;
   onElementsChange: (nextElements: CanvasElement[]) => void;
   onInteractionChange: (isActive: boolean) => void;
+  onDeleteElements?: (ids: string[]) => void;
   aiTipKey?: string;
 };
 
@@ -44,6 +45,7 @@ const CanvasStage = ({
   onEditingTextIdChange,
   onElementsChange,
   onInteractionChange,
+  onDeleteElements,
   aiTipKey,
 }: CanvasStageProps) => {
   // Stage 액션 ref를 통해 DesignPaper 내부 동작(선택 계산/좌표 조회)을 스테이지 선택 훅과 연결한다.
@@ -134,6 +136,7 @@ const CanvasStage = ({
                 onEditingTextIdChange={onEditingTextIdChange}
                 onElementsChange={onElementsChange}
                 onFileDropOnCanvas={handleFileDrop}
+                onDeleteElements={onDeleteElements}
               />
             )}
           </div>

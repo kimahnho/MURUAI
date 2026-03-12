@@ -23,6 +23,7 @@ interface UseDesignPaperActionsParams {
   setEditingImageId: (id: string | null) => void;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
   selectedIdsRef: MutableRefObject<string[]>;
+  onDeleteElements?: (ids: string[]) => void;
 }
 
 export const useDesignPaperActions = ({
@@ -37,6 +38,7 @@ export const useDesignPaperActions = ({
   setEditingImageId,
   setContextMenu,
   selectedIdsRef,
+  onDeleteElements,
 }: UseDesignPaperActionsParams) => {
   const moveElement = (elementId: string, direction: LayerDirection) => {
     if (readOnly || !onElementsChange) return;
@@ -142,16 +144,23 @@ export const useDesignPaperActions = ({
     );
   };
 
+  // 이미지 fill 체크 + 삭제를 handleDeleteElements(usePageActions)에 위임
+  const requestDeleteIds = (ids: string[]) => {
+    if (onDeleteElements) {
+      onDeleteElements(ids);
+    } else if (onElementsChange) {
+      // fallback: onDeleteElements가 없는 경우 (readOnly 등)
+      const allIdsToDelete = getLinkedIdsToDelete(ids);
+      onElementsChange(
+        elements.filter((element) => !allIdsToDelete.has(element.id)),
+      );
+    }
+  };
+
   const deleteSelectedElements = () => {
-    if (readOnly || !onElementsChange) return;
+    if (readOnly) return;
     if (selectedIds.length === 0) return;
-    const allIdsToDelete = getLinkedIdsToDelete(selectedIds);
-    onElementsChange(
-      elements.filter((element) => !allIdsToDelete.has(element.id)),
-    );
-    selectedIdsRef.current = [];
-    onSelectedIdsChange?.([]);
-    onEditingTextIdChange?.(null);
+    requestDeleteIds(selectedIds);
     setContextMenu(null);
   };
 
@@ -164,19 +173,12 @@ export const useDesignPaperActions = ({
       return;
     }
     if (isEditableTarget(event.target)) return;
+    // capture phase(useDesignPaperKeyboard)에서 이미 처리된 경우 중복 실행 방지
+    if (event.defaultPrevented) return;
     const currentSelectedIds = selectedIdsRef.current;
-    if (currentSelectedIds.length === 0 || !onElementsChange) return;
+    if (currentSelectedIds.length === 0) return;
     event.preventDefault();
-    const allIdsToDelete = getLinkedIdsToDelete(currentSelectedIds);
-    onElementsChange(
-      elements.filter((element) => !allIdsToDelete.has(element.id)),
-    );
-    selectedIdsRef.current = [];
-    onSelectedIdsChange?.([]);
-    onEditingTextIdChange?.(null);
-    if (editingImageId && allIdsToDelete.has(editingImageId)) {
-      setEditingImageId(null);
-    }
+    requestDeleteIds(currentSelectedIds);
     setContextMenu(null);
   };
 

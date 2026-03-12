@@ -83,6 +83,7 @@ interface DesignPaperProps {
   className?: string;
   showShadow?: boolean;
   onFileDropOnCanvas?: (file: File, x: number, y: number) => void;
+  onDeleteElements?: (ids: string[]) => void;
 }
 
 const MM_TO_PX = 3.7795;
@@ -112,6 +113,7 @@ const DesignPaper = ({
   className,
   showShadow = false,
   onFileDropOnCanvas,
+  onDeleteElements,
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
@@ -285,6 +287,7 @@ const DesignPaper = ({
     setEditingImageId,
     setContextMenu,
     selectedIdsRef,
+    onDeleteElements,
   });
 
   useDesignPaperKeyboard({
@@ -301,6 +304,7 @@ const DesignPaper = ({
     clearEmotionSlotImage,
     copySelectedElements,
     deleteSelectedElements,
+    onDeleteElements,
     pasteElements,
     getClipboard,
     smartGuides,
