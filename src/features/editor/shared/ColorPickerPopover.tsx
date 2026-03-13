@@ -64,6 +64,7 @@ type ColorPickerPopoverProps = {
   ariaLabel?: string;
   closeSignal?: number;
   allowTransparent?: boolean;
+  isMixed?: boolean;
 };
 
 const normalizeHex = (input: string) => {
@@ -177,6 +178,7 @@ const ColorPickerPopover = ({
   ariaLabel = "색상 선택",
   closeSignal,
   allowTransparent = false,
+  isMixed = false,
 }: ColorPickerPopoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -274,7 +276,7 @@ const ColorPickerPopover = ({
           });
         }}
         className={`${buttonClassName} flex items-center justify-center rounded-full border border-black-30 bg-white-100 p-0`}
-        style={isTransparent ? CHECKERBOARD_BG : { backgroundColor: value }}
+        style={isMixed ? CHECKERBOARD_BG : isTransparent ? CHECKERBOARD_BG : { backgroundColor: value }}
       />
       {isOpen && (
         <div
