@@ -9,7 +9,17 @@ import { useTableStore } from "@/features/editor/store/tableStore";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { useNumberInput } from "@/features/editor/shared/hooks/useNumberInput";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
-import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
+import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
+import {
+  insertRowAt,
+  insertColAt,
+  deleteRowAt,
+  deleteColAt,
+  adjustCellsAfterInsertRow,
+  adjustCellsAfterInsertCol,
+  adjustCellsAfterDeleteRow,
+  adjustCellsAfterDeleteCol,
+} from "@/features/editor/utils/tableMutation";
 import type { TableCell, TableCellStyle } from "@/features/editor/model/canvasTypes";
 
 const ALIGN_BUTTONS = [
@@ -22,6 +32,7 @@ const TableContent = () => {
   const selectedTable = useTableStore((s) => s.selectedTable);
   const updateTable = useTableStore((s) => s.updateTable);
   const selectedCells = useTableStore((s) => s.selectedCells);
+  const setSelectedCells = useTableStore((s) => s.setSelectedCells);
   const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
 
   // 표 선택이 해제되면(selectedTable === null) "요소" 탭으로 전환한다.
@@ -47,6 +58,7 @@ const TableContent = () => {
         fontWeight: cs?.fontWeight,
         italic: cs?.italic ?? false,
         underline: cs?.underline ?? false,
+        backgroundColor: cs?.backgroundColor,
       };
     }
     const cs = selectedTable.cellStyle;
@@ -58,6 +70,7 @@ const TableContent = () => {
       fontWeight: cs?.fontWeight,
       italic: cs?.italic ?? false,
       underline: cs?.underline ?? false,
+      backgroundColor: cs?.backgroundColor,
     };
   };
 
@@ -81,6 +94,36 @@ const TableContent = () => {
 
   const isBold = resolvedStyle.fontWeight === 700 || resolvedStyle.fontWeight === "bold";
 
+  // 대상 셀들의 특정 스타일 값이 혼합인지 감지
+  const isMixedStyleField = (field: "color" | "backgroundColor"): boolean => {
+    const defaultValue = field === "color" ? "#000000" : undefined;
+    const targetCells = selectedCells.length > 0
+      ? selectedCells.map((c) => cells[c.row]?.[c.col]).filter(Boolean)
+      : cells.flat();
+    if (targetCells.length <= 1) return false;
+    const resolve = (cell: TableCell) =>
+      cell.style?.[field] ?? selectedTable.cellStyle?.[field] ?? defaultValue;
+    const first = resolve(targetCells[0]);
+    return targetCells.some((cell) => resolve(cell) !== first);
+  };
+
+  const isMixedTextColor = isMixedStyleField("color");
+  const isMixedBgColor = isMixedStyleField("backgroundColor");
+
+  // 대상 셀들의 고유 색상 목록을 수집 (혼합 시 표시용)
+  const collectUniqueColors = (field: "color" | "backgroundColor"): string[] => {
+    const defaultValue = field === "color" ? "#000000" : "transparent";
+    const targetCells = selectedCells.length > 0
+      ? selectedCells.map((c) => cells[c.row]?.[c.col]).filter(Boolean)
+      : cells.flat();
+    const colorSet = new Set<string>();
+    for (const cell of targetCells) {
+      const val = cell.style?.[field] ?? selectedTable.cellStyle?.[field] ?? defaultValue;
+      colorSet.add(val ?? defaultValue);
+    }
+    return [...colorSet];
+  };
+
   // 스타일 패치 적용: 선택된 셀이 있으면 개별 셀에, 없으면 표 전체 cellStyle에 적용
   const updateStylePatch = (patch: Partial<TableCellStyle>) => {
     if (selectedCells.length > 0) {
@@ -98,6 +141,7 @@ const TableContent = () => {
             fontWeight: baseStyle?.fontWeight,
             italic: baseStyle?.italic ?? false,
             underline: baseStyle?.underline ?? false,
+            backgroundColor: baseStyle?.backgroundColor,
             ...patch,
           };
           return { ...cell, style: merged };
@@ -105,8 +149,15 @@ const TableContent = () => {
       );
       updateTable({ cells: newCells });
     } else {
-      // 표 전체 cellStyle 적용
-      updateTable({ cellStyle: { ...resolvedStyle, ...patch } });
+      // 표 전체: cellStyle 변경 + 개별 style이 있는 셀에도 patch 적용
+      const newCellStyle = { ...resolvedStyle, ...patch };
+      const newCells: TableCell[][] = cells.map((row) =>
+        row.map((cell) => {
+          if (!cell.style) return cell;
+          return { ...cell, style: { ...cell.style, ...patch } };
+        }),
+      );
+      updateTable({ cellStyle: newCellStyle, cells: newCells });
     }
   };
 
@@ -240,6 +291,103 @@ const TableContent = () => {
         )}
       </div>
 
+      {/* 셀 기준 행/열 편집 — 셀 선택 시에만 표시 */}
+      {selectedCells.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <span className="text-title-16-semibold">셀 기준 편집</span>
+
+          {/* 행 추가/삭제 */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-12-regular text-black-50">행</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const refRow = selectedCells[0].row;
+                  const patch = insertRowAt(selectedTable, refRow);
+                  updateTable(patch);
+                  setSelectedCells(adjustCellsAfterInsertRow(selectedCells, refRow, "above"));
+                }}
+                className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+              >
+                위에 추가
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const refRow = selectedCells[0].row;
+                  const patch = insertRowAt(selectedTable, refRow + 1);
+                  updateTable(patch);
+                  setSelectedCells(adjustCellsAfterInsertRow(selectedCells, refRow, "below"));
+                }}
+                className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+              >
+                아래에 추가
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const refRow = selectedCells[0].row;
+                const patch = deleteRowAt(selectedTable, refRow);
+                if (!patch) return;
+                updateTable(patch);
+                setSelectedCells(adjustCellsAfterDeleteRow(selectedCells, refRow, rows - 1));
+              }}
+              disabled={rows <= 1}
+              className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              행 삭제
+            </button>
+          </div>
+
+          {/* 열 추가/삭제 */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-12-regular text-black-50">열</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const refCol = selectedCells[0].col;
+                  const patch = insertColAt(selectedTable, refCol);
+                  updateTable(patch);
+                  setSelectedCells(adjustCellsAfterInsertCol(selectedCells, refCol, "left"));
+                }}
+                className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+              >
+                왼쪽에 추가
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const refCol = selectedCells[0].col;
+                  const patch = insertColAt(selectedTable, refCol + 1);
+                  updateTable(patch);
+                  setSelectedCells(adjustCellsAfterInsertCol(selectedCells, refCol, "right"));
+                }}
+                className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+              >
+                오른쪽에 추가
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const refCol = selectedCells[0].col;
+                const patch = deleteColAt(selectedTable, refCol);
+                if (!patch) return;
+                updateTable(patch);
+                setSelectedCells(adjustCellsAfterDeleteCol(selectedCells, refCol, cols - 1));
+              }}
+              disabled={cols <= 1}
+              className="rounded border border-black-30 py-1.5 text-14-regular text-black-70 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              열 삭제
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 텍스트 스타일 섹션 */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -306,13 +454,51 @@ const TableContent = () => {
           </div>
         </div>
 
-        {/* 색상 */}
+        {/* 텍스트 색상 */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-12-regular text-black-50">색상</span>
-          <ColorPickerPopover
-            value={resolvedStyle.color ?? "#000000"}
-            onChange={(color) => updateStylePatch({ color })}
-          />
+          <span className="text-12-regular text-black-50">텍스트 색상</span>
+          <div className="flex items-center gap-1.5">
+            <ColorPickerPopover
+              value={resolvedStyle.color ?? "#000000"}
+              onChange={(color) => updateStylePatch({ color })}
+              isMixed={isMixedTextColor}
+            />
+            {isMixedTextColor && (
+              <div className="flex items-center gap-1">
+                {collectUniqueColors("color").map((c) => (
+                  <span
+                    key={c}
+                    className="h-4 w-4 shrink-0 rounded-full border border-black-25"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 배경색 */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-12-regular text-black-50">배경색</span>
+          <div className="flex items-center gap-1.5">
+            <ColorPickerPopover
+              value={resolvedStyle.backgroundColor ?? "transparent"}
+              onChange={(color) => updateStylePatch({ backgroundColor: color === "transparent" ? undefined : color })}
+              isMixed={isMixedBgColor}
+              allowTransparent
+            />
+            {isMixedBgColor && (
+              <div className="flex items-center gap-1">
+                {collectUniqueColors("backgroundColor").map((c) => (
+                  <span
+                    key={c}
+                    className="h-4 w-4 shrink-0 rounded-full border border-black-25"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 정렬 */}

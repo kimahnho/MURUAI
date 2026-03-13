@@ -15,7 +15,19 @@ import SmartGuideOverlay from "./SmartGuideOverlay";
 import {
   DesignPaperContextMenu,
   type ContextMenuState,
+  type TableContextMenuActions,
 } from "./DesignPaperContextMenu";
+import { useTableStore } from "../../store/tableStore";
+import {
+  insertRowAt,
+  insertColAt,
+  deleteRowAt,
+  deleteColAt,
+  adjustCellsAfterInsertRow,
+  adjustCellsAfterInsertCol,
+  adjustCellsAfterDeleteRow,
+  adjustCellsAfterDeleteCol,
+} from "../../utils/tableMutation";
 import {
   GroupSelectionOverlay,
   SelectionRectOverlay,
@@ -420,6 +432,69 @@ const DesignPaper = ({
     mmToPx,
   });
 
+  // 테이블 셀 기준 행/열 삽입·삭제 핸들러 — 클로저에서 snapshot을 캡처해 클릭 시점의 stale 방지
+  const buildTableContext = (): TableContextMenuActions | undefined => {
+    const { selectedTable, selectedCells, updateTable, setSelectedCells } =
+      useTableStore.getState();
+    if (!selectedTable || !updateTable || selectedCells.length === 0)
+      return undefined;
+
+    // snapshot을 클로저에 캡처 — 클릭 시 getState()가 이미 초기화된 경우를 방지
+    const table = selectedTable;
+    const cells = selectedCells;
+    const update = updateTable;
+    const setCells = setSelectedCells;
+
+    return {
+      hasSelectedCells: true,
+      rows: table.rows,
+      cols: table.cols,
+      onInsertRowAbove: () => {
+        const r = cells[0].row;
+        update(insertRowAt(table, r));
+        setCells(adjustCellsAfterInsertRow(cells, r, "above"));
+        setContextMenu(null);
+      },
+      onInsertRowBelow: () => {
+        const r = cells[0].row;
+        update(insertRowAt(table, r + 1));
+        setCells(adjustCellsAfterInsertRow(cells, r, "below"));
+        setContextMenu(null);
+      },
+      onInsertColLeft: () => {
+        const c = cells[0].col;
+        update(insertColAt(table, c));
+        setCells(adjustCellsAfterInsertCol(cells, c, "left"));
+        setContextMenu(null);
+      },
+      onInsertColRight: () => {
+        const c = cells[0].col;
+        update(insertColAt(table, c + 1));
+        setCells(adjustCellsAfterInsertCol(cells, c, "right"));
+        setContextMenu(null);
+      },
+      onDeleteRow: () => {
+        const r = cells[0].row;
+        const patch = deleteRowAt(table, r);
+        if (!patch) return;
+        update(patch);
+        setCells(adjustCellsAfterDeleteRow(cells, r, table.rows - 1));
+        setContextMenu(null);
+      },
+      onDeleteCol: () => {
+        const c = cells[0].col;
+        const patch = deleteColAt(table, c);
+        if (!patch) return;
+        update(patch);
+        setCells(adjustCellsAfterDeleteCol(cells, c, table.cols - 1));
+        setContextMenu(null);
+      },
+    };
+  };
+
+  // contextMenu가 열릴 때 snapshot — 렌더 시 계산하므로 최신 상태 반영
+  const tableContext = contextMenu ? buildTableContext() : undefined;
+
   return (
     <div
       ref={containerRef}
@@ -582,6 +657,7 @@ const DesignPaper = ({
         canUngroupSelection={canUngroupSelection}
         isGroupedSelection={isGroupedSelection}
         canPaste={Boolean(getClipboard())}
+        tableContext={tableContext}
         onCopy={copySelectedElements}
         onPaste={(position) => {
           pasteElements(position);

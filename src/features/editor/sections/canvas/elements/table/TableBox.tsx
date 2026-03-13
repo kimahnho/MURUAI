@@ -51,6 +51,36 @@ const getResizeCursor = (handle: ResizeHandle) => {
 const RESIZE_HANDLES: ResizeHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 // colWidths 없으면 균등 분배, 있으면 비율 보정해 합이 w가 되도록 정규화
+// 포인터 좌표에서 셀 인덱스를 계산해 드래그 선택에 사용한다.
+const hitCellFromPointer = (
+  clientX: number,
+  clientY: number,
+  box: HTMLDivElement,
+  colWidths: number[],
+  rowHeights: number[],
+  scale: number,
+): { row: number; col: number } | null => {
+  const rect = box.getBoundingClientRect();
+  const x = (clientX - rect.left) / scale;
+  const y = (clientY - rect.top) / scale;
+  let col = -1;
+  let accX = 0;
+  for (let i = 0; i < colWidths.length; i++) {
+    accX += colWidths[i];
+    if (x < accX) { col = i; break; }
+  }
+  let row = -1;
+  let accY = 0;
+  for (let i = 0; i < rowHeights.length; i++) {
+    accY += rowHeights[i];
+    if (y < accY) { row = i; break; }
+  }
+  if (col === -1) col = colWidths.length - 1;
+  if (row === -1) row = rowHeights.length - 1;
+  if (col < 0 || row < 0) return null;
+  return { row, col };
+};
+
 const resolveColWidths = (cols: number, w: number, colWidths?: number[]): number[] => {
   if (!colWidths || colWidths.length !== cols) {
     return Array.from({ length: cols }, () => w / cols);
@@ -151,10 +181,102 @@ export const TableBox = ({
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
+    const scale = getScale(boxRef.current);
+
+    // 셀이 선택된 상태에서만 셀 드래그 모드 — 셀 미선택 시 요소 이동 드래그
+    if (wasSelectedBeforePointerRef.current && selectedCells.length > 0 && boxRef.current) {
+      const startCell = hitCellFromPointer(event.clientX, event.clientY, boxRef.current, colWidths, rowHeights, scale);
+      if (!startCell) return;
+
+      const startClientX = event.clientX;
+      const startClientY = event.clientY;
+
+      // 클릭 시점에 해당 셀이 이미 선택되어 있었는지 기록 — 이미 선택된 셀을 다시 클릭해야 편집 진입
+      const wasCellAlreadySelected = selectedCells.some(
+        (c) => c.row === startCell.row && c.col === startCell.col,
+      );
+
+      setEditingCell(null);
+
+      // Cmd(Meta) 클릭: 기존 선택에 토글 추가/제거
+      const isMetaClick = event.metaKey || event.ctrlKey;
+      if (isMetaClick) {
+        if (wasCellAlreadySelected) {
+          // 이미 선택된 셀 → 제거 (최소 1개는 유지)
+          const filtered = selectedCells.filter(
+            (c) => c.row !== startCell.row || c.col !== startCell.col,
+          );
+          setSelectedCells(filtered.length > 0 ? filtered : [startCell]);
+        } else {
+          setSelectedCells([...selectedCells, startCell]);
+        }
+      } else {
+        setSelectedCells([startCell]);
+      }
+
+      // Cmd 클릭 시 기존 선택 기반을 유지해 드래그에 반영
+      const baseCells = isMetaClick
+        ? selectedCells.filter(
+            (c) => c.row !== startCell.row || c.col !== startCell.col,
+          )
+        : [];
+
+      startPointerDragSession({
+        thresholdPx: 3,
+        startContext: { startCell },
+        createMoveContext: (moveEvent) => {
+          const distance = Math.sqrt(
+            (moveEvent.clientX - startClientX) ** 2 +
+            (moveEvent.clientY - startClientY) ** 2,
+          );
+          return { distance, context: { moveEvent } };
+        },
+        onStart: () => {
+          setEditingCell(null);
+        },
+        onMove: ({ moveEvent }) => {
+          if (!boxRef.current) return;
+          const currentCell = hitCellFromPointer(moveEvent.clientX, moveEvent.clientY, boxRef.current, colWidths, rowHeights, scale);
+          if (!currentCell) return;
+          // 시작 셀 ~ 현재 셀 직사각형 범위 내 모든 셀 선택
+          const minRow = Math.min(startCell.row, currentCell.row);
+          const maxRow = Math.max(startCell.row, currentCell.row);
+          const minCol = Math.min(startCell.col, currentCell.col);
+          const maxCol = Math.max(startCell.col, currentCell.col);
+          const dragCells: { row: number; col: number }[] = [];
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              dragCells.push({ row: r, col: c });
+            }
+          }
+          // Cmd 드래그: 기존 선택 + 드래그 범위 합산
+          if (baseCells.length > 0) {
+            const merged = [...baseCells];
+            for (const dc of dragCells) {
+              if (!merged.some((c) => c.row === dc.row && c.col === dc.col)) {
+                merged.push(dc);
+              }
+            }
+            setSelectedCells(merged);
+          } else {
+            setSelectedCells(dragCells);
+          }
+        },
+        onEnd: (moved) => {
+          if (!moved && wasCellAlreadySelected && !isMetaClick) {
+            // 이미 선택된 셀을 다시 클릭(드래그 없음, Cmd 없음) → 편집 진입
+            setSelectedCells([startCell]);
+            setEditingCell(startCell);
+          }
+        },
+      });
+      return;
+    }
+
+    // 미선택 상태 → 테이블 이동 드래그
     const startX = event.clientX;
     const startY = event.clientY;
     const startRect = { ...rectRef.current };
-    const scale = getScale(boxRef.current);
 
     startPointerDragSession({
       thresholdPx: 3,
@@ -175,7 +297,6 @@ export const TableBox = ({
         return { distance, context: { nextRect: transformed } };
       },
       onStart: () => {
-        // 드래그 시작 시 셀 선택/편집 해제
         setSelectedCells([]);
         setEditingCell(null);
         onDragStateChange?.(true);
@@ -186,8 +307,15 @@ export const TableBox = ({
       onEnd: (moved) => {
         if (moved) {
           onDragStateChange?.(false, rectRef.current, { type: "drag" });
+        } else if (wasSelectedBeforePointerRef.current && boxRef.current) {
+          // 이미 선택된 상태에서 클릭(드래그 없음) → 클릭한 셀 선택
+          const clickedCell = hitCellFromPointer(event.clientX, event.clientY, boxRef.current, colWidths, rowHeights, scale);
+          if (clickedCell) {
+            setSelectedCells([clickedCell]);
+            setEditingCell(null);
+          }
+          onDragStateChange?.(false);
         } else {
-          // 드래그 없이 클릭만 한 경우: 셀 아닌 곳 클릭이면 셀 선택 해제
           setSelectedCells([]);
           setEditingCell(null);
           onDragStateChange?.(false);
@@ -375,6 +503,26 @@ export const TableBox = ({
       onPointerDown={handlePointerDown}
       onContextMenu={(event) => {
         event.preventDefault();
+        // 테이블이 이미 선택된 상태에서 우클릭하면 해당 셀을 자동 선택
+        if (isSelected && boxRef.current) {
+          const scale = getScale(boxRef.current);
+          const clickedCell = hitCellFromPointer(
+            event.clientX,
+            event.clientY,
+            boxRef.current,
+            colWidths,
+            rowHeights,
+            scale,
+          );
+          if (clickedCell) {
+            const isAlreadySelected = selectedCells.some(
+              (c) => c.row === clickedCell.row && c.col === clickedCell.col,
+            );
+            if (!isAlreadySelected) {
+              setSelectedCells([clickedCell]);
+            }
+          }
+        }
         onContextMenu?.(event);
       }}
     >
@@ -404,6 +552,7 @@ export const TableBox = ({
             const cellAlignX = cs?.alignX ?? "center";
             const cellFontWeight = cs?.fontWeight;
             const cellColor = cs?.color ?? "#000000";
+            const cellBgColor = cs?.backgroundColor ?? element.cellStyle?.backgroundColor;
             const cellFontStyle = cs?.italic ? "italic" : "normal";
             const cellTextDecoration = cs?.underline ? "underline" : "none";
             const cellJustifyContent =
@@ -434,28 +583,14 @@ export const TableBox = ({
                   boxSizing: "border-box",
                   minWidth: 0,
                   cursor: isSelected && !locked ? "pointer" : "inherit",
-                  // 선택된 셀 하이라이트
-                  backgroundColor: isCellSelected ? "rgba(85, 0, 255, 0.08)" : undefined,
+                  // 셀 배경색 유지 + 선택 시 inset box-shadow로 테두리 + 반투명 오버레이
+                  backgroundColor: cellBgColor,
+                  boxShadow: isCellSelected
+                    ? "inset 0 0 0 1px #5500ff, inset 0 0 0 9999px rgba(85, 0, 255, 0.08)"
+                    : "none",
                 }}
-                onClick={(event) => {
-                  // 첫 클릭(요소 선택)에서는 셀 선택하지 않음 — 두 번째 클릭부터 셀 선택/편집 진입
-                  if (!wasSelectedBeforePointerRef.current || locked) return;
-                  event.stopPropagation();
-
-                  if (event.shiftKey && selectedCells.length > 0) {
-                    // Shift 클릭: 기존 선택에 추가 (편집 모드 진입하지 않음)
-                    setEditingCell(null);
-                    const alreadySelected = selectedCells.some(
-                      (c) => c.row === rowIndex && c.col === colIndex,
-                    );
-                    if (!alreadySelected) {
-                      setSelectedCells([...selectedCells, { row: rowIndex, col: colIndex }]);
-                    }
-                  } else {
-                    // 단일 셀 클릭 → 셀 선택 + 편집 진입 (하이라이트 유지)
-                    setSelectedCells([{ row: rowIndex, col: colIndex }]);
-                    setEditingCell({ row: rowIndex, col: colIndex });
-                  }
+                onClick={() => {
+                  // Cmd 다중 선택 및 일반 클릭은 handlePointerDown에서 처리
                 }}
               >
                 {isEditingThis ? (

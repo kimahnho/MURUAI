@@ -26,6 +26,7 @@ src/features/editor/model/
   canvasTypes.ts                     # TableElement, TableCell 타입 정의
 
 src/features/editor/utils/
+  tableMutation.ts                   # 셀 기준 행/열 삽입·삭제 순수 유틸 (컨텍스트 메뉴 + 사이드바 공유)
   pageFactory.ts                     # addTableElement 함수
 
 src/features/editor/hooks/
@@ -160,6 +161,34 @@ updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
 - `colWidths`가 설정된 경우에만 **"열 간격 동일"** 버튼 표시 → `updateTable({ colWidths: undefined })`
 - `rowHeights`가 설정된 경우에만 **"행 간격 동일"** 버튼 표시 → `updateTable({ rowHeights: undefined })`
 
+## 셀 기준 행/열 삽입·삭제 (`tableMutation.ts`)
+
+셀 선택 상태에서 선택된 셀을 기준으로 행/열을 삽입·삭제하는 순수 유틸리티.
+컨텍스트 메뉴(우클릭 → "표 편집" 서브메뉴)와 사이드바(TableContent "셀 기준 편집" 섹션) 양쪽에서 공유한다.
+
+### 함수 목록
+
+| 함수 | 역할 |
+|------|------|
+| `insertRowAt(table, rowIndex)` | rowIndex 위치에 빈 행 삽입 (rowHeights + h 조정) |
+| `insertColAt(table, colIndex)` | colIndex 위치에 빈 열 삽입 (colWidths 조정, w 유지) |
+| `deleteRowAt(table, rowIndex)` | rowIndex 행 삭제 (rows ≤ 1이면 null 반환) |
+| `deleteColAt(table, colIndex)` | colIndex 열 삭제 (cols ≤ 1이면 null 반환) |
+| `adjustCellsAfterInsertRow` | 삽입 후 selectedCells 행 좌표 보정 |
+| `adjustCellsAfterInsertCol` | 삽입 후 selectedCells 열 좌표 보정 |
+| `adjustCellsAfterDeleteRow` | 삭제 후 selectedCells 보정 (삭제 행만 선택 시 인접 행 fallback) |
+| `adjustCellsAfterDeleteCol` | 삭제 후 selectedCells 보정 (삭제 열만 선택 시 인접 열 fallback) |
+
+### 컨텍스트 메뉴 연동 (DesignPaper.tsx)
+
+- `buildTableContext()` 함수가 6개 핸들러를 생성해 `DesignPaperContextMenu`에 `tableContext` prop으로 전달
+- 각 핸들러는 `useTableStore.getState()`로 최신 상태를 읽고, mutation → selectedCells 보정 → 메뉴 닫기 순서로 실행
+
+### 우클릭 셀 자동 선택 (TableBox.tsx)
+
+- 표가 이미 선택된 상태에서 우클릭 → `hitCellFromPointer`로 셀 식별 → 미선택 셀이면 `setSelectedCells([clickedCell])`
+- 이미 선택된 셀을 우클릭하면 기존 선택 유지
+
 ## 주의사항
 
 1. **TableBox는 `usePointerDragSession` 기반** — 드래그/리사이즈/분리선 모두 이 훅 사용
@@ -167,3 +196,4 @@ updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
 3. **리사이즈·분리선 핸들은 단일 선택 상태에서 표시** — `isSelected && selectionCount === 1` (편집 중에도 표시)
 4. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
 5. **행/열 추가·삭제 시 `colWidths`/`rowHeights` 반드시 함께 업데이트** — 누락 시 기존 간격이 균등으로 리셋됨
+6. **셀 기준 삽입·삭제 후 selectedCells 보정 필수** — `adjustCellsAfter*` 함수로 좌표 이동/fallback 처리
