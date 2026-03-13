@@ -44,7 +44,7 @@ export const useCanvasFileDrop = (
     }
 
     const localUrl = URL.createObjectURL(file);
-    const elementId = `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const elementId = crypto.randomUUID();
 
     // 로컬 파일에서 이미지 크기를 즉시 읽어 프리뷰 요소를 삽입한다.
     const img = new Image();
@@ -59,6 +59,7 @@ export const useCanvasFileDrop = (
         h,
         fill: `url(${localUrl})`,
         imageBox: { x: 0, y: 0, w, h },
+        isStandaloneImage: true,
       };
       onElementsChange([...getElements(), previewElement]);
     };
@@ -74,6 +75,7 @@ export const useCanvasFileDrop = (
         h: DEFAULT_SIZE,
         fill: `url(${localUrl})`,
         imageBox: { x: 0, y: 0, w: DEFAULT_SIZE, h: DEFAULT_SIZE },
+        isStandaloneImage: true,
       };
       onElementsChange([...getElements(), previewElement]);
     };

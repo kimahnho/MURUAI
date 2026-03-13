@@ -256,9 +256,14 @@ export const usePageActions = ({
         if (!page) return prevPages;
 
         // 단일 요소 + 이미지 fill → 이미지만 제거하고 요소는 유지
+        // 단, standalone 이미지(사이드바/파일 드롭으로 생성)는 요소 자체를 삭제
         if (ids.length === 1) {
           const el = page.elements.find((e) => e.id === ids[0]);
-          if (el && isImageFillElement(el)) {
+          const isStandalone =
+            el &&
+            "isStandaloneImage" in el &&
+            el.isStandaloneImage === true;
+          if (el && isImageFillElement(el) && !isStandalone) {
             didClearImage = true;
             const fallbackFill = ("backgroundColor" in el && typeof el.backgroundColor === "string" ? el.backgroundColor : undefined) ?? "#FFFFFF";
             const defaultLabel = el.type === "aacCard" ? "단어" : el.type === "emotionCard" ? "(감정)" : undefined;
