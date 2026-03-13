@@ -8,10 +8,24 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { TableElement, Rect, ResizeHandle } from "../../../../model/canvasTypes";
+import type { TableElement, TableBorderLine, Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
 import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 import { useTableStore } from "../../../../store/tableStore";
+
+// 테두리 설정에서 CSS border 문자열을 생성
+const resolveBorder = (line: TableBorderLine | null | undefined): string => {
+  if (line === null) return "none";
+  if (!line) return "1px solid #000000";
+  return `${line.width}px ${line.style} ${line.color}`;
+};
+
+// 테두리 설정에서 너비만 추출
+const resolveBorderWidth = (line: TableBorderLine | null | undefined): number => {
+  if (line === null) return 0;
+  if (!line) return 1;
+  return line.width;
+};
 
 const HANDLE_SIZE = 10;
 const HALF_HANDLE = HANDLE_SIZE / 2;
@@ -534,7 +548,6 @@ export const TableBox = ({
           gridTemplateRows: rowHeights.map((h) => `${h}px`).join(" "),
           width: "100%",
           height: "100%",
-          border: "1px solid #000000",
           boxSizing: "border-box",
         }}
       >
@@ -545,6 +558,23 @@ export const TableBox = ({
             const isCellSelected = selectedCells.some(
               (c) => c.row === rowIndex && c.col === colIndex,
             );
+
+            // 선택 영역 외곽 테두리 계산 — 인접 셀이 선택되지 않은 변에만 2px 테두리
+            let cellBoxShadow = "none";
+            if (isCellSelected) {
+              const hasTop = selectedCells.some((c) => c.row === rowIndex - 1 && c.col === colIndex);
+              const hasBottom = selectedCells.some((c) => c.row === rowIndex + 1 && c.col === colIndex);
+              const hasLeft = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex - 1);
+              const hasRight = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex + 1);
+              const shadows: string[] = [];
+              if (!hasTop) shadows.push("inset 0 2px 0 0 #5500ff");
+              if (!hasBottom) shadows.push("inset 0 -2px 0 0 #5500ff");
+              if (!hasLeft) shadows.push("inset 2px 0 0 0 #5500ff");
+              if (!hasRight) shadows.push("inset -2px 0 0 0 #5500ff");
+              shadows.push("inset 0 0 0 9999px rgba(85, 0, 255, 0.08)");
+              cellBoxShadow = shadows.join(", ");
+            }
+
             // 개별 셀 스타일 우선, 없으면 표 전체 cellStyle, 없으면 기본값
             const cs = cell.style ?? element.cellStyle;
             const cellFontSize = cs?.fontSize ?? 13;
@@ -573,8 +603,6 @@ export const TableBox = ({
               <div
                 key={`${rowIndex}-${colIndex}`}
                 style={{
-                  borderRight: colIndex < element.cols - 1 ? "1px solid #000000" : "none",
-                  borderBottom: rowIndex < element.rows - 1 ? "1px solid #000000" : "none",
                   overflow: "hidden",
                   display: "flex",
                   alignItems: "center",
@@ -583,11 +611,8 @@ export const TableBox = ({
                   boxSizing: "border-box",
                   minWidth: 0,
                   cursor: isSelected && !locked ? "pointer" : "inherit",
-                  // 셀 배경색 유지 + 선택 시 inset box-shadow로 테두리 + 반투명 오버레이
                   backgroundColor: cellBgColor,
-                  boxShadow: isCellSelected
-                    ? "inset 0 0 0 1px #5500ff, inset 0 0 0 9999px rgba(85, 0, 255, 0.08)"
-                    : "none",
+                  boxShadow: cellBoxShadow,
                 }}
                 onClick={() => {
                   // Cmd 다중 선택 및 일반 클릭은 handlePointerDown에서 처리
@@ -628,6 +653,93 @@ export const TableBox = ({
           })
         )}
       </div>
+
+      {/* 테두리 오버레이 레이어 — 셀 레이아웃에 영향 없이 테두리만 렌더 */}
+      {(() => {
+        const bc = element.borderConfig;
+        const outerBorder = bc ? resolveBorder(bc.outer) : "1px solid #000000";
+        const outerWidth = bc ? resolveBorderWidth(bc.outer) : 1;
+        const horizontalBorder = bc ? resolveBorder(bc.horizontal) : "1px solid #000000";
+        const horizontalWidth = bc ? resolveBorderWidth(bc.horizontal) : 1;
+        const verticalBorder = bc ? resolveBorder(bc.vertical) : "1px solid #000000";
+        const verticalWidth = bc ? resolveBorderWidth(bc.vertical) : 1;
+
+        // 내부 행 경계 y좌표
+        const cumRowHeights: number[] = [];
+        let sumH = 0;
+        for (let i = 0; i < rowHeights.length - 1; i++) {
+          sumH += rowHeights[i];
+          cumRowHeights.push(sumH);
+        }
+        // 내부 열 경계 x좌표
+        const cumColWidths: number[] = [];
+        let sumW = 0;
+        for (let i = 0; i < colWidths.length - 1; i++) {
+          sumW += colWidths[i];
+          cumColWidths.push(sumW);
+        }
+
+        return (
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+            {/* 외곽 테두리 — outline은 box model 밖에 그려져 내부 공간 불변 */}
+            {outerBorder !== "none" && (
+              <div style={{ position: "absolute", inset: 0, outline: outerBorder, outlineOffset: -outerWidth / 2 }} />
+            )}
+            {/* 내부 가로선 — translateY로 선 두께 절반만큼 위로 이동해 셀 경계 중심에 배치 */}
+            {cumRowHeights.map((y, i) => (
+              <div key={`h-${i}`} style={{ position: "absolute", left: 0, right: 0, top: y, borderTop: horizontalBorder, transform: `translateY(-${horizontalWidth / 2}px)` }} />
+            ))}
+            {/* 내부 세로선 — translateX로 선 두께 절반만큼 왼쪽 이동해 셀 경계 중심에 배치 */}
+            {cumColWidths.map((x, i) => (
+              <div key={`v-${i}`} style={{ position: "absolute", top: 0, bottom: 0, left: x, borderLeft: verticalBorder, transform: `translateX(-${verticalWidth / 2}px)` }} />
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* 빗금(대각선) 오버레이 — 셀별 diagonal 값에 따라 SVG 선 렌더 */}
+      {(() => {
+        const hasDiagonal = element.cells.some((row) =>
+          row.some((cell) => cell.style?.diagonal),
+        );
+        if (!hasDiagonal) return null;
+
+        // 셀 좌측 x / 상단 y 누적합 (0부터 시작, N개)
+        const cumX = [0];
+        for (let i = 0; i < colWidths.length; i++) cumX.push(cumX[i] + colWidths[i]);
+        const cumY = [0];
+        for (let i = 0; i < rowHeights.length; i++) cumY.push(cumY[i] + rowHeights[i]);
+        const diagColor = element.diagonalColor ?? "#000000";
+
+        return (
+          <svg
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            width={element.w}
+            height={element.h}
+          >
+            {element.cells.flatMap((row, ri) =>
+              row.map((cell, ci) => {
+                const d = cell.style?.diagonal;
+                if (!d) return null;
+                const cx = cumX[ci];
+                const cy = cumY[ri];
+                const cw = colWidths[ci];
+                const ch = rowHeights[ri];
+                return (
+                  <g key={`diag-${ri}-${ci}`}>
+                    {(d === "backslash" || d === "cross") && (
+                      <line x1={cx} y1={cy} x2={cx + cw} y2={cy + ch} stroke={diagColor} strokeWidth={1} />
+                    )}
+                    {(d === "slash" || d === "cross") && (
+                      <line x1={cx + cw} y1={cy} x2={cx} y2={cy + ch} stroke={diagColor} strokeWidth={1} />
+                    )}
+                  </g>
+                );
+              }),
+            )}
+          </svg>
+        );
+      })()}
 
       {/* 열 분리선 드래그 핸들 (선택 상태일 때) */}
       {isSelected && selectionCount === 1 && !locked &&
