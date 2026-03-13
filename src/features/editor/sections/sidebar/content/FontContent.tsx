@@ -3,7 +3,7 @@
  * "사용중인 글꼴" → "최근 사용 글꼴" → "모든 글꼴" 3섹션 구조로 표시한다.
  */
 import { Check, ChevronDown, ChevronRight, Star, Clock, Type } from "lucide-react";
-import { FONT_OPTIONS, type FontOption } from "@/features/editor/utils/fontOptions";
+import { FONT_OPTIONS, type FontOption } from "@/shared/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
 import { useFontContentState } from "../hooks/useFontContentState";

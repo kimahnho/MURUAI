@@ -43,7 +43,7 @@ import type { PanelData } from "../store/elementPanelStore";
 import { moveLayerByDirection } from "../utils/layerUtils";
 import { updateElementsByPageId } from "../utils/pageMutation";
 import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
-import { collectUsedFontFamilies } from "../utils/fontOptions";
+import { collectUsedFontFamilies } from "@/shared/utils/fontOptions";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,

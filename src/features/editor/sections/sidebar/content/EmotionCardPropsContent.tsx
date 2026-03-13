@@ -17,7 +17,7 @@ import {
 } from "@/features/editor/store/elementPanelStore";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import type { AacCardLabelStyle } from "@/features/editor/model/canvasTypes";
-import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
+import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import LayerPanel from "./LayerPanel";

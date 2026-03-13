@@ -6,7 +6,7 @@
  */
 import { useState } from "react";
 import { ArrowRight, Check, ChevronDown, ChevronRight, ChevronUp, Star, Clock, Type } from "lucide-react";
-import { FONT_OPTIONS, getFontLabel, type FontOption } from "@/features/editor/utils/fontOptions";
+import { FONT_OPTIONS, getFontLabel, type FontOption } from "@/shared/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
