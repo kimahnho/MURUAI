@@ -82,11 +82,21 @@ src/
 10. **이벤트 추적**: DB 이벤트(`trackEvents.ts`)는 비차단 패턴 필수 (`void` + `console.warn`, `await` 금지)
 11. **사이드바 탭 추가**: `SideBarMenu` 타입 + `MENU_LABELS` + `MENU_ITEMS` + `CONTENT_COMPONENTS` 4곳 동시 수정 필수
 
+## 지침 모듈화 원칙
+
+- 지침은 단일 문서에 과도하게 집중시키지 않는다. 주제 경계가 명확해지면 즉시 분리한다.
+- 루트 문서(`CLAUDE.md`)는 공통 원칙/우선순위/링크 중심으로 유지한다.
+- 분리된 문서는 담당 범위를 파일 상단에 명확히 쓰고, 상호 참조 링크를 포함해야 한다.
+- 신규 요구사항 추가 시 기존 문서에 억지로 덧붙이지 말고, 적절하면 새 문서를 생성한다.
+- 7~20줄 이하의 마이크로 섹션은 관련 주제끼리 묶어 하나의 문서로 관리한다 (파일 수 폭증 방지).
+
 ## 도메인별 상세 지침
 
 | 도메인 | 규칙 파일 |
 |--------|----------|
 | 에디터 전반 | `.claude/rules/editor.md` |
+| 에디터 사이드바 패널 | `.claude/rules/editor-sidebar-panel.md` |
+| 에디터 기능별 상세 | `.claude/rules/editor-features.md` |
 | 캔버스 아키텍처 | `.claude/rules/canvas-architecture.md` |
 | PDF 출력 | `.claude/rules/pdf-export.md` |
 | TextBox | `.claude/rules/textbox.md` |

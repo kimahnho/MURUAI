@@ -107,7 +107,7 @@ elements.map((el) => {
 
 - 훅 10개 이상 또는 500줄 이상인 컴포넌트는 분리를 검토한다
 - 렌더링 로직, 인터랙션 로직, 이벤트 핸들링을 하위 컴포넌트/훅으로 추출
-- 현재 해당 파일: `DesignPaper.tsx` (609줄, 14+ 훅), `useDesignPaperInteraction.ts` (671줄)
+- 현재 해당 파일: `DesignPaper.tsx` (697줄, 14+ 훅), `useDesignPaperInteraction.ts` (682줄)
 
 ## 관련 파일
 

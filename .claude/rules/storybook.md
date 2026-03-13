@@ -36,6 +36,7 @@ src/features/storybook/
   data/
     artStylePresets.ts            # 그림체 5종 프리셋 + 프롬프트
     studentService.ts             # 학습자 목록 Supabase 쿼리
+    mockStoryService.ts           # Mock 기획서 + 스토리북 생성 (프로토타입/테스트용)
 ```
 
 ## 진입점
@@ -154,8 +155,9 @@ generateStoryImages(pages, artStyleId, onProgress?): Promise<string[]>
 ## 현재 상태
 
 - ✅ Gemini API 연동 완료 (기획서 생성 + 이미지 생성)
-- ✅ 16:9 이미지 생성 + Cloudinary 업로드 구현
+- ✅ 16:9 이미지 생성 + Cloudinary 업로드 구현 (Phase 1/2 파이프라인)
 - ✅ 에디터 캔버스 삽입 구현 (`requestInsertPages()`)
+- ✅ Progress callback + UI 표시 ("이미지 생성 중 3/10")
 - ❌ DB 저장 미구현 — 스토어에만 존재
 
 ## 주의사항

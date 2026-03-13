@@ -17,8 +17,9 @@ src/pages/home/
 src/features/home/
   components/                   # UI 컴포넌트
     FirstCommentSection.tsx     # 상단 인사말
+    RecentDocumentsSection.tsx  # 최근 작업 자료
     ChoiceUserSection.tsx       # 학습자 선택
-    CalendarSection.tsx         # 주간 계획표
+    CalendarSection.tsx         # 주간 계획표 (미사용 — HomePage에 미렌더링)
     AddUserModal.tsx
     AddGroupModal.tsx
     EditUserModal.tsx
@@ -55,7 +56,7 @@ type Schedule = { id: string; date: string; studentId?: string; groupId?: string
 
 - `students_n` - 학습자 정보
 - `groups_n` - 그룹 정보
-- `schedules` - 수업 일정
+- `schedules_n` - 수업 일정
 
 ## 주의사항
 

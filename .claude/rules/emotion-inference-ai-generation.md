@@ -226,6 +226,7 @@ generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
 - **모델**: `gemini-2.5-flash-image`, `aspectRatio: "16:9"`
 - **2단계 파이프라인**: Phase 1에서 10장 base64 수집 (모두 성공해야 진행) → Phase 2에서 일괄 Cloudinary 업로드
 - **캐릭터 참조 이미지**: `imageStyle`에 따라 `characterBoy` / `characterGirl` 로드 → Gemini에 인라인 이미지로 전달
+- **캐릭터 이미지 위치**: `src/shared/assets/characters/{boy.png, girl.png}` → `src/shared/assets/index.ts`에서 export
 - **한→영 번역**: `translateScenesToEnglish()` — 10개 장면을 1회 Gemini 호출로 일괄 번역 (실패 시 한국어 fallback)
 - **재시도**: `MAX_RETRIES = 5`, `RETRY_DELAY_MS = 3000`
 - **Cloudinary 폴더**: `muru_emotion_scene/{userId}`
@@ -249,7 +250,7 @@ const heroImageUrls = await generateEmotionSceneImages(
 ```typescript
 const emotionCards = elements.filter(
   (el): el is ShapeElement =>
-    (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse") &&
+    (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" || el.type === "mosaic" || el.type === "circleMosaic") &&
     el.subType === "emotionInference",
 ).sort((a, b) => a.x - b.x);
 ```
@@ -273,3 +274,4 @@ const emotionCards = elements.filter(
 | 진입점 2 (AI 탭) | `src/features/editor/sections/sidebar/content/AiTemplateContent.tsx` (`skipChoice` — 바로 주제 입력) |
 | Page 타입 | `src/features/editor/model/pageTypes.ts` |
 | CanvasElement 타입 | `src/features/editor/model/canvasTypes.ts` |
+| 캐릭터 참조 이미지 | `src/shared/assets/characters/{boy.png, girl.png}` |
