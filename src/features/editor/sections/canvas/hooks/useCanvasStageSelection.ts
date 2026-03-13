@@ -82,6 +82,8 @@ export const useCanvasStageSelection = ({
     const target = event.target as HTMLElement;
     // 텍스트 속성 패널 클릭은 선택 로직을 시작하지 않음
     if (target.closest("[data-text-props-panel]")) return false;
+    // 컨텍스트 메뉴 portal 클릭은 캔버스 선택으로 처리하지 않음
+    if (target.closest("[data-context-menu-portal]")) return false;
     const pageRoot = target.closest("[data-page-id]");
     if (!pageRoot) return true;
     return target === pageRoot;

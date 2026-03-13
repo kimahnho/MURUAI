@@ -101,6 +101,7 @@ export type ShapeElement = ElementBase & {
   };
   labelId?: string;
   mosaicLevel?: number;
+  isStandaloneImage?: boolean;
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
@@ -117,12 +118,33 @@ export type LineElement = ElementBase & {
     width: number;
     style?: "solid" | "dashed" | "dotted";
   };
+  // 화살표 끝점 설정 (미설정 시 arrow → end-only, line → 없음)
+  marker?: {
+    start?: boolean;
+    end?: boolean;
+  };
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
     rotation?: number; // 0, 90, 180, 270
   };
 };
+
+export type TableBorderStyle = "solid" | "dashed" | "dotted";
+
+export type TableBorderLine = {
+  color: string;
+  width: number;
+  style: TableBorderStyle;
+};
+
+export type TableBorderConfig = {
+  outer?: TableBorderLine | null;      // 외곽 4변 (null = 없음)
+  horizontal?: TableBorderLine | null;  // 내부 가로선 (행 사이)
+  vertical?: TableBorderLine | null;    // 내부 세로선 (열 사이)
+};
+
+export type CellDiagonal = "backslash" | "slash" | "cross";
 
 export type TableCellStyle = {
   fontSize: number;                      // 기본값 13
@@ -132,6 +154,8 @@ export type TableCellStyle = {
   color?: string;                        // 기본값 "#000000"
   italic?: boolean;
   underline?: boolean;
+  backgroundColor?: string;              // 셀 배경색 (undefined = 투명)
+  diagonal?: CellDiagonal | null;        // 빗금 방향 (\, /, X, 없음)
 };
 
 export type TableCell = {
@@ -152,6 +176,8 @@ export type TableElement = ElementBase & {
   colWidths?: number[];   // 각 열 너비 (px, 합계 = w)
   rowHeights?: number[];  // 각 행 높이 (px, 합계 = h)
   cellStyle?: TableCellStyle;  // undefined이면 기본값(fontSize=13, alignX="center") 사용
+  borderConfig?: TableBorderConfig;  // undefined이면 기본값(1px solid #000000 전체) 사용
+  diagonalColor?: string;  // 빗금 색상 (테이블 일괄, 기본값 "#000000")
 };
 
 export type AacCardLabelStyle = {

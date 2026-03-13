@@ -22,12 +22,14 @@ const EditUserModalContent = ({
 
   const initialName = student?.name ?? "";
   const initialBirthYear = student?.birth_year ?? "";
+  const initialGender = student?.gender ?? null;
   const initialNotes = student?.significant ?? "";
   const initialGoals = student?.learning_goal ?? "";
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(initialName);
   const [birthYear, setBirthYear] = useState(initialBirthYear);
+  const [gender, setGender] = useState<string | null>(initialGender);
   const [notes, setNotes] = useState(initialNotes);
   const [learningGoals, setLearningGoals] = useState(initialGoals);
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,7 @@ const EditUserModalContent = ({
   const handleReset = () => {
     setName(initialName);
     setBirthYear(initialBirthYear);
+    setGender(initialGender);
     setNotes(initialNotes);
     setLearningGoals(initialGoals);
     setIsEditing(false);
@@ -76,6 +79,7 @@ const EditUserModalContent = ({
       id: student.id,
       name: name.trim(),
       birth_year: birthYear,
+      gender,
       significant: notes.trim() || undefined,
       learning_goal: learningGoals.trim() || undefined,
     });
@@ -177,6 +181,35 @@ const EditUserModalContent = ({
           ) : (
             <div className="w-1/3 rounded-lg border border-black-10 bg-black-5 px-4 py-3 text-15-regular text-black-90">
               {initialBirthYear || "-"}
+            </div>
+          )}
+        </div>
+
+        {/* 성별 */}
+        <div className="flex flex-col gap-2">
+          <span className="text-title-14-semibold text-black-100">
+            성별
+          </span>
+          {isEditing ? (
+            <div className="flex gap-2">
+              {([["male", "남자"], ["female", "여자"]] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => { setGender(gender === value ? null : value); }}
+                  className={`flex-1 rounded-lg border py-2.5 text-14-medium transition ${
+                    gender === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-black-30 text-black-60 hover:bg-black-10"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-black-10 bg-black-5 px-4 py-3 text-15-regular text-black-90">
+              {initialGender === "male" ? "남자" : initialGender === "female" ? "여자" : "미설정"}
             </div>
           )}
         </div>

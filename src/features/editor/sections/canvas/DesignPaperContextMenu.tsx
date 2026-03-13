@@ -13,6 +13,7 @@ import {
   Copy,
   Group,
   Layers,
+  Table,
   Trash2,
   Ungroup,
 } from "lucide-react";
@@ -23,10 +24,22 @@ export type LayerDirection = "forward" | "front" | "backward" | "back";
 export type ContextMenuState = {
   x: number;
   y: number;
-  activeSubmenu?: "layer";
+  activeSubmenu?: "layer" | "table";
   target:
     | { type: "element"; id: string }
     | { type: "canvas"; pastePosition: { x: number; y: number } };
+};
+
+export type TableContextMenuActions = {
+  hasSelectedCells: boolean;
+  rows: number;
+  cols: number;
+  onInsertRowAbove: () => void;
+  onInsertRowBelow: () => void;
+  onInsertColLeft: () => void;
+  onInsertColRight: () => void;
+  onDeleteRow: () => void;
+  onDeleteCol: () => void;
 };
 
 type DesignPaperContextMenuProps = {
@@ -36,6 +49,7 @@ type DesignPaperContextMenuProps = {
   canUngroupSelection: boolean;
   isGroupedSelection: boolean;
   canPaste: boolean;
+  tableContext?: TableContextMenuActions;
   onCopy: () => void;
   onPaste: (position?: { x: number; y: number }) => void;
   onGroup: () => void;
@@ -47,23 +61,28 @@ type DesignPaperContextMenuProps = {
 
 const SUBMENU_W = 240; // w-60
 
+type SubmenuItem = {
+  key: string;
+  label: string;
+  Icon: typeof ArrowUpFromLine;
+  enabled: boolean;
+  action: () => void;
+};
+
 // 메인 메뉴 위치를 기준으로 서브메뉴가 뷰포트에 맞도록 방향을 계산한다.
-const LayerSubmenu = ({
+const Submenu = ({
   items,
   mainMenuRef,
+  dividerAfter,
 }: {
-  items: Array<{
-    key: string;
-    label: string;
-    Icon: typeof ArrowUpFromLine;
-    enabled: boolean;
-    action: () => void;
-  }>;
+  items: SubmenuItem[];
   mainMenuRef: React.RefObject<HTMLDivElement | null>;
+  dividerAfter?: number[];
 }) => {
   const rect = mainMenuRef.current?.getBoundingClientRect();
   const vw = typeof window !== "undefined" ? window.innerWidth : 9999;
   const openLeft = rect ? rect.right + SUBMENU_W > vw : false;
+  const dividerSet = new Set(dividerAfter ?? []);
 
   return (
     <div
@@ -71,19 +90,23 @@ const LayerSubmenu = ({
         openLeft ? "right-full" : "left-full"
       }`}
     >
-      {items.map(({ key, label, Icon, enabled, action }) => (
-        <button
-          key={key}
-          type="button"
-          onClick={action}
-          disabled={!enabled}
-          className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
-            enabled ? "text-black-90 hover:bg-black-5" : "text-black-40"
-          }`}
-        >
-          <Icon className="h-4 w-4" />
-          <span>{label}</span>
-        </button>
+      {items.map(({ key, label, Icon, enabled, action }, idx) => (
+        <div key={key}>
+          <button
+            type="button"
+            onClick={action}
+            disabled={!enabled}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
+              enabled ? "text-black-90 hover:bg-black-5" : "text-black-40"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{label}</span>
+          </button>
+          {dividerSet.has(idx) && (
+            <div className="mx-2 my-1 border-t border-black-10" />
+          )}
+        </div>
       ))}
     </div>
   );
@@ -97,6 +120,7 @@ export const DesignPaperContextMenu = ({
   canUngroupSelection,
   isGroupedSelection,
   canPaste,
+  tableContext,
   onCopy,
   onPaste,
   onGroup,
@@ -118,7 +142,7 @@ export const DesignPaperContextMenu = ({
   const canForward = isElementMenu && index < elements.length - 1;
   const canBackward = isElementMenu && index > 0;
 
-  const items = [
+  const layerItems: SubmenuItem[] = [
     {
       key: "forward",
       label: "앞으로 가져오기",
@@ -149,19 +173,75 @@ export const DesignPaperContextMenu = ({
     },
   ];
 
+  const showTableSubmenu =
+    isElementMenu && tableContext?.hasSelectedCells;
+
+  const tableItems: SubmenuItem[] = tableContext
+    ? [
+        {
+          key: "insert-row-above",
+          label: "위에 행 추가",
+          Icon: ArrowUpFromLine,
+          enabled: true,
+          action: tableContext.onInsertRowAbove,
+        },
+        {
+          key: "insert-row-below",
+          label: "아래에 행 추가",
+          Icon: ArrowUpToLine,
+          enabled: true,
+          action: tableContext.onInsertRowBelow,
+        },
+        {
+          key: "insert-col-left",
+          label: "왼쪽에 열 추가",
+          Icon: ArrowUpFromLine,
+          enabled: true,
+          action: tableContext.onInsertColLeft,
+        },
+        {
+          key: "insert-col-right",
+          label: "오른쪽에 열 추가",
+          Icon: ArrowUpToLine,
+          enabled: true,
+          action: tableContext.onInsertColRight,
+        },
+        {
+          key: "delete-row",
+          label: "행 삭제",
+          Icon: Trash2,
+          enabled: tableContext.rows > 1,
+          action: tableContext.onDeleteRow,
+        },
+        {
+          key: "delete-col",
+          label: "열 삭제",
+          Icon: Trash2,
+          enabled: tableContext.cols > 1,
+          action: tableContext.onDeleteCol,
+        },
+      ]
+    : [];
+
   // transform된 부모 안에서 position:fixed가 깨지므로 portal로 body에 마운트한다.
   return createPortal(
     <div
+      data-context-menu-portal
       className="fixed z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
+      onMouseDown={(event) => {
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
         event.stopPropagation();
       }}
       onContextMenu={(event) => {
         event.preventDefault();
       }}
       onMouseLeave={() =>
-        // 레이어 서브메뉴는 마우스 이탈 시만 닫아 메뉴 이동 중 깜빡임을 줄인다.
         setContextMenu((prev) =>
           prev ? { ...prev, activeSubmenu: undefined } : prev,
         )
@@ -238,6 +318,23 @@ export const DesignPaperContextMenu = ({
             </span>
           </button>
         )}
+        {showTableSubmenu && (
+          <button
+            type="button"
+            onMouseEnter={() => {
+              setContextMenu((prev) =>
+                prev ? { ...prev, activeSubmenu: "table" } : prev,
+              );
+            }}
+            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5"
+          >
+            <span className="flex items-center gap-2">
+              <Table className="h-4 w-4" />
+              표 편집
+            </span>
+            <ChevronRight className="h-4 w-4 text-black-50" />
+          </button>
+        )}
         {isElementMenu && (
           <button
             type="button"
@@ -257,9 +354,16 @@ export const DesignPaperContextMenu = ({
         )}
       </div>
       {isElementMenu && contextMenu.activeSubmenu === "layer" && (
-        <LayerSubmenu
-          items={items}
+        <Submenu
+          items={layerItems}
           mainMenuRef={mainMenuRef}
+        />
+      )}
+      {showTableSubmenu && contextMenu.activeSubmenu === "table" && (
+        <Submenu
+          items={tableItems}
+          mainMenuRef={mainMenuRef}
+          dividerAfter={[1, 3]}
         />
       )}
     </div>,

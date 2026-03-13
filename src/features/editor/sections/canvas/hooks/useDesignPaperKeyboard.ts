@@ -3,6 +3,7 @@
  */
 import { useEffect, useRef, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
+import { useTableStore } from "../../../store/tableStore";
 import {
   getRectFromElement,
   isEditableTarget,
@@ -143,6 +144,25 @@ export const useDesignPaperKeyboard = ({
 
         const currentSelectedIds = selectedIdsRef.current;
         if (currentSelectedIds.length > 0) {
+          // 테이블 셀이 선택된 경우 → 셀 텍스트만 삭제
+          const tableState = useTableStore.getState();
+          if (
+            tableState.selectedCells.length > 0 &&
+            tableState.selectedTable &&
+            tableState.updateTable
+          ) {
+            event.preventDefault();
+            const { selectedTable, selectedCells, updateTable } = tableState;
+            const cellSet = new Set(selectedCells.map((c) => `${c.row},${c.col}`));
+            const newCells = selectedTable.cells.map((row, ri) =>
+              row.map((cell, ci) =>
+                cellSet.has(`${ri},${ci}`) ? { ...cell, text: "" } : cell,
+              ),
+            );
+            updateTable({ cells: newCells });
+            return;
+          }
+
           event.preventDefault();
           if (onDeleteElements) {
             onDeleteElements([...currentSelectedIds]);

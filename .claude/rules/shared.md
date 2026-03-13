@@ -12,7 +12,9 @@ paths:
 ```
 src/shared/
   api/          # Supabase, Cloudinary 클라이언트
-  assets/       # 이미지, 아이콘
+  assets/       # 이미지, 아이콘, 에셋 barrel export (index.ts)
+    characters/   # AI 캐릭터 참조 이미지 (boy.png, girl.png)
+    logo/         # 로고 이미지 (main_logo.png)
   hooks/        # 범용 훅 (useAuth)
   providers/    # 전역 Provider (AuthProvider)
   store/        # 전역 스토어 (useAuthStore)
@@ -53,6 +55,7 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 | `ui/ErrorFallback.tsx` | 에러 바운더리 폴백 |
 | `utils/initSentry.ts` | Sentry 초기화 |
 | `utils/initMixpanel.ts` | Mixpanel 초기화 |
+| `assets/index.ts` | 에셋 barrel export (`mainLogo`, `characterBoy`, `characterGirl`) |
 
 ## 새 공용 코드 추가 기준
 

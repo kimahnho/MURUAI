@@ -17,15 +17,16 @@ src/features/editor/sections/canvas/elements/table/
   TableBox.tsx                       # 표 캔버스 컴포넌트 (렌더링 + 드래그/리사이즈 + 셀 편집 + 열/행 분리선 리사이즈)
 
 src/features/editor/sections/sidebar/content/
-  TableContent.tsx                   # 표 속성 사이드바 패널 (행/열 +/- 편집, 간격 동일 버튼)
+  TableContent.tsx                   # 표 속성 사이드바 패널 (행/열, 테두리, 빗금, 텍스트 스타일)
 
 src/features/editor/store/
   tableStore.ts                      # 선택된 표 요소 + updateTable 콜백 공유 스토어
 
 src/features/editor/model/
-  canvasTypes.ts                     # TableElement, TableCell 타입 정의
+  canvasTypes.ts                     # TableElement, TableCell, TableCellStyle, TableBorderConfig, CellDiagonal 타입
 
 src/features/editor/utils/
+  tableMutation.ts                   # 셀 기준 행/열 삽입·삭제 순수 유틸 (컨텍스트 메뉴 + 사이드바 공유)
   pageFactory.ts                     # addTableElement 함수
 
 src/features/editor/hooks/
@@ -41,9 +42,53 @@ src/features/editor/sections/sidebar/
 
 ## 데이터 모델
 
+### 테두리 타입
+
+```typescript
+export type TableBorderStyle = "solid" | "dashed" | "dotted";
+
+export type TableBorderLine = {
+  color: string;
+  width: number;
+  style: TableBorderStyle;
+};
+
+export type TableBorderConfig = {
+  outer?: TableBorderLine | null;      // 외곽 4변 (null = 없음)
+  horizontal?: TableBorderLine | null;  // 내부 가로선 (행 사이)
+  vertical?: TableBorderLine | null;    // 내부 세로선 (열 사이)
+};
+```
+
+### 빗금 타입
+
+```typescript
+export type CellDiagonal = "backslash" | "slash" | "cross";
+// backslash: 좌상→우하 (\), slash: 우상→좌하 (/), cross: 양쪽 (X)
+```
+
+### 셀 스타일
+
+```typescript
+export type TableCellStyle = {
+  fontSize: number;                      // 기본값 13
+  fontFamily?: string;
+  alignX: "left" | "center" | "right";  // 기본값 "center"
+  fontWeight?: "normal" | "bold" | number;
+  color?: string;                        // 기본값 "#000000"
+  italic?: boolean;
+  underline?: boolean;
+  backgroundColor?: string;              // 셀 배경색 (undefined = 투명)
+  diagonal?: CellDiagonal | null;        // 빗금 방향
+};
+```
+
+### 셀 및 테이블 요소
+
 ```typescript
 export type TableCell = {
   text: string;
+  style?: TableCellStyle;  // 개별 셀 스타일 (없으면 element.cellStyle → 기본값 순으로 fallback)
 };
 
 export type TableElement = ElementBase & {
@@ -54,11 +99,101 @@ export type TableElement = ElementBase & {
   h: number;
   rows: number;
   cols: number;
-  cells: TableCell[][];  // cells[rowIndex][colIndex]
-  // undefined 이면 균등 분배 (CSS Grid 1fr 동작과 동일)
-  colWidths?: number[];   // 각 열 너비 (px, 합계 = w)
-  rowHeights?: number[];  // 각 행 높이 (px, 합계 = h)
+  cells: TableCell[][];
+  colWidths?: number[];              // 각 열 너비 (px, 합계 = w). undefined = 균등 분배
+  rowHeights?: number[];             // 각 행 높이 (px, 합계 = h). undefined = 균등 분배
+  cellStyle?: TableCellStyle;        // 표 전체 기본 스타일
+  borderConfig?: TableBorderConfig;  // undefined = 기본값(1px solid #000000 전체)
+  diagonalColor?: string;            // 빗금 색상 (테이블 일괄, 기본값 "#000000")
 };
+```
+
+### 셀 스타일 Fallback 체인
+
+```
+cell.style → element.cellStyle → 기본값(fontSize=13, alignX="center", color="#000000")
+```
+
+선택된 셀에 스타일 적용 시 `updateStylePatch` 함수 사용:
+- `selectedCells.length > 0`: 선택된 셀에만 개별 `cell.style` 적용
+- `selectedCells.length === 0`: 표 전체 `cellStyle` 변경 + 개별 style이 있는 셀에도 patch 적용
+
+## 테두리 커스터마이징
+
+### 3채널 시스템
+
+| 채널 | 역할 | null 의미 |
+|------|------|----------|
+| `outer` | 외곽 4변 | 외곽선 없음 |
+| `horizontal` | 내부 가로선 (행 사이) | 가로선 없음 |
+| `vertical` | 내부 세로선 (열 사이) | 세로선 없음 |
+
+### 렌더링 방식 (TableBox.tsx 오버레이 레이어)
+
+셀 그리드 위에 `position: absolute` + `pointerEvents: none` 레이어로 렌더:
+
+- **외곽 테두리**: CSS `outline` + `outlineOffset: -width/2` — box model 밖에 그려져 내부 공간 불변
+- **내부 가로선**: `borderTop` + `transform: translateY(-width/2)` — 셀 경계 중앙 배치
+- **내부 세로선**: `borderLeft` + `transform: translateX(-width/2)` — 셀 경계 중앙 배치
+
+```typescript
+// ❌ 금지: border + box-sizing (외곽이 내부 공간을 잠식)
+<div style={{ border: outerBorder, boxSizing: "border-box" }} />
+
+// ✅ 올바른 방식: outline (내부 공간 불변)
+<div style={{ outline: outerBorder, outlineOffset: -outerWidth / 2 }} />
+```
+
+### 사이드바 UI (TableContent.tsx)
+
+- **5개 위치 타겟**: 전체, 외곽, 내부, 가로선, 세로선
+- **4개 스타일**: 없음(Ban), 실선, 점선, 대시선
+- **색상**: ColorPickerPopover
+- **두께**: range(1-20) + 숫자 입력
+
+## 빗금(대각선)
+
+### 데이터
+
+- 방향: `cell.style.diagonal` — 셀 단위 (`"backslash"` / `"slash"` / `"cross"` / null)
+- 색상: `element.diagonalColor` — 테이블 단위 일괄 적용
+
+### 렌더링 (TableBox.tsx SVG 오버레이)
+
+```typescript
+// 빗금이 하나라도 있을 때만 SVG 렌더
+<svg style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+  {/* 각 셀의 diagonal 값에 따라 <line> 렌더 */}
+  {/* backslash: (cx, cy) → (cx+cw, cy+ch) */}
+  {/* slash: (cx+cw, cy) → (cx, cy+ch) */}
+</svg>
+```
+
+### 사이드바 UI (셀 선택 시에만 표시)
+
+- `╲` / `╱` 토글 버튼: 둘 다 활성 = cross(X)
+- 해제 버튼 (Ban 아이콘)
+- 색상 피커: `updateTable({ diagonalColor })` — 테이블 레벨
+
+### 토글 동작
+
+| 현재 상태 | `╲` 클릭 | `╱` 클릭 |
+|-----------|---------|---------|
+| 없음 | backslash | slash |
+| backslash | 해제 | cross |
+| slash | cross | 해제 |
+| cross | slash | backslash |
+
+## 셀 선택 스타일링
+
+다중 셀 선택 시 **외곽 변만 2px 테두리**, 내부 경계에는 테두리 없음:
+
+```typescript
+// 인접 셀이 선택되지 않은 변에만 2px inset boxShadow
+const hasTop = selectedCells.some((c) => c.row === rowIndex - 1 && c.col === colIndex);
+if (!hasTop) shadows.push("inset 0 2px 0 0 #5500ff");
+// ... 4방향 각각 판별
+shadows.push("inset 0 0 0 9999px rgba(85, 0, 255, 0.08)");  // 배경 틴트
 ```
 
 ## 요소 생성 플로우
@@ -88,13 +223,11 @@ const selectedTableElement = useMemo(() => {
 
 useEffect(() => {
   if (selectedTableElement) {
-    // 표 선택: 사이드바 "표" 탭 열기 + tableStore에 최신 데이터 등록
     setSideBarMenu("table");
     setSelectedTable(selectedTableElement, (patch) => {
       updateElement(selectedTableElement.id, patch);
     });
   } else {
-    // 표 선택 해제: tableStore 초기화 → TableContent의 useEffect가 사이드바를 닫음
     setSelectedTable(null, null);
   }
 }, [selectedTableElement, setSideBarMenu, setSelectedTable, updateElement]);
@@ -120,6 +253,7 @@ useEffect(() => {
 ### colWidths / rowHeights 관리 규칙
 
 - `undefined` → 균등 분배 (TableBox 내 `resolveColWidths`/`resolveRowHeights` 헬퍼가 처리)
+- `resolveColWidths`/`resolveRowHeights`: 합계가 w/h와 다르면 비례 보정
 - 분리선 드래그 시 `onColWidthsChange(colWidths)` / `onRowHeightsChange(rowHeights)` 콜백 → `updateElement` 호출
 - `gridTemplateColumns` / `gridTemplateRows`는 `repeat(n, 1fr)` 대신 실제 px 값 배열로 구성
 
@@ -140,25 +274,58 @@ useEffect(() => {
 - **열 삭제**: `colWidths`가 있으면 마지막 항목 제거. 표 전체 `w`는 변경하지 않음
 - `colWidths`/`rowHeights`가 `undefined`이면 추가·삭제 후에도 `undefined` 유지 (균등 분배 유지)
 
-```typescript
-// 행 추가: 표 높이도 함께 증가
-const newRowHeight = rowHeights
-  ? rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length
-  : selectedTable.h / rows;
-const nextRowHeights = rowHeights ? [...rowHeights, newRowHeight] : undefined;
-updateTable({ rows: rows + 1, cells: [...cells, newRow], rowHeights: nextRowHeights, h: selectedTable.h + newRowHeight });
-
-// 열 추가: 표 너비 변경 없음
-const nextColWidths = colWidths
-  ? [...colWidths, colWidths.reduce((a, b) => a + b, 0) / colWidths.length]
-  : undefined;
-updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
-```
-
 ### 간격 동일 버튼 (TableContent.tsx)
 
 - `colWidths`가 설정된 경우에만 **"열 간격 동일"** 버튼 표시 → `updateTable({ colWidths: undefined })`
 - `rowHeights`가 설정된 경우에만 **"행 간격 동일"** 버튼 표시 → `updateTable({ rowHeights: undefined })`
+
+## 혼합값 감지 (TableContent.tsx)
+
+선택된 셀들의 스타일이 서로 다를 때 UI에 표시:
+
+```typescript
+// isMixedStyleField("color"): 대상 셀들의 color 값이 다르면 true
+// collectUniqueColors("backgroundColor"): 고유 색상 목록 수집
+const targetCells = selectedCells.length > 0
+  ? selectedCells.map((c) => cells[c.row]?.[c.col]).filter(Boolean)
+  : cells.flat();
+```
+
+## 셀 기준 행/열 삽입·삭제 (`tableMutation.ts`)
+
+셀 선택 상태에서 선택된 셀을 기준으로 행/열을 삽입·삭제하는 순수 유틸리티.
+컨텍스트 메뉴(우클릭 → "표 편집" 서브메뉴)와 사이드바(TableContent "셀 기준 편집" 섹션) 양쪽에서 공유한다.
+
+### 함수 목록
+
+| 함수 | 역할 |
+|------|------|
+| `insertRowAt(table, rowIndex)` | rowIndex 위치에 빈 행 삽입 (rowHeights + h 조정) |
+| `insertColAt(table, colIndex)` | colIndex 위치에 빈 열 삽입 (colWidths 조정, w 유지) |
+| `deleteRowAt(table, rowIndex)` | rowIndex 행 삭제 (rows ≤ 1이면 null 반환) |
+| `deleteColAt(table, colIndex)` | colIndex 열 삭제 (cols ≤ 1이면 null 반환) |
+| `adjustCellsAfterInsertRow` | 삽입 후 selectedCells 행 좌표 보정 |
+| `adjustCellsAfterInsertCol` | 삽입 후 selectedCells 열 좌표 보정 |
+| `adjustCellsAfterDeleteRow` | 삭제 후 selectedCells 보정 (삭제 행만 선택 시 인접 행 fallback) |
+| `adjustCellsAfterDeleteCol` | 삭제 후 selectedCells 보정 (삭제 열만 선택 시 인접 열 fallback) |
+
+### 컨텍스트 메뉴 연동 (DesignPaper.tsx)
+
+- `buildTableContext()` 함수가 6개 핸들러를 생성해 `DesignPaperContextMenu`에 `tableContext` prop으로 전달
+- 각 핸들러는 `useTableStore.getState()`로 최신 상태를 읽고, mutation → selectedCells 보정 → 메뉴 닫기 순서로 실행
+
+### 우클릭 셀 자동 선택 (TableBox.tsx)
+
+- 표가 이미 선택된 상태에서 우클릭 → `hitCellFromPointer`로 셀 식별 → 미선택 셀이면 `setSelectedCells([clickedCell])`
+- 이미 선택된 셀을 우클릭하면 기존 선택 유지
+
+## 행/열 헤더 버튼 (TableBox.tsx)
+
+- **열 헤더**: 선택된 셀의 열에 해당하는 버튼을 표 **상단 바깥**에 표시
+- **행 헤더**: 선택된 셀의 행에 해당하는 버튼을 표 **좌측 바깥**에 표시
+- 표시 조건: `isSelected && selectedCells.length > 0`
+- 클릭 시 해당 행/열 전체 선택
+- 전체 선택 시 primary 배경색으로 하이라이트
 
 ## 주의사항
 
@@ -167,3 +334,6 @@ updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
 3. **리사이즈·분리선 핸들은 단일 선택 상태에서 표시** — `isSelected && selectionCount === 1` (편집 중에도 표시)
 4. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
 5. **행/열 추가·삭제 시 `colWidths`/`rowHeights` 반드시 함께 업데이트** — 누락 시 기존 간격이 균등으로 리셋됨
+6. **셀 기준 삽입·삭제 후 selectedCells 보정 필수** — `adjustCellsAfter*` 함수로 좌표 이동/fallback 처리
+7. **외곽 테두리는 `outline` 사용** — `border` + `box-sizing: border-box` 금지 (내부 공간 잠식)
+8. **내부선은 `translate` 중앙 배치** — `translateY(-width/2)` / `translateX(-width/2)`로 셀 경계 중심에 위치

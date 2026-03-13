@@ -26,6 +26,13 @@ src/features/editor/sections/canvas/elements/text/
     useTextBoxEditingHandlers.ts     # 텍스트 입력/포맷/키보드 편집 이벤트 + 사이드바 콜백 등록
     useTextBoxInteraction.ts         # 드래그/리사이즈/클릭 인터랙션
     useTextBoxSelectionEffect.ts     # 편집 진입 시 캐럿/선택 복원
+    useTextSelectionSession.ts       # 텍스트 선택 세션 관리
+    useTextFormattingCommands.ts     # 인라인 포맷팅 명령 실행
+    useTextEditingSessionController.ts # 편집 세션 시작/종료 제어
+    useToolbarFontSizeInput.ts       # 툴바 폰트 크기 입력 처리
+
+src/features/editor/sections/canvas/elements/text/
+  textSelectionSession.ts            # 선택 세션 상태 (DOM 커서/셀렉션 관리)
 
 src/features/editor/sections/canvas/utils/
   textToolbarConfig.ts               # 요소 레벨 툴바 설정 빌더 (buildTextToolbarConfig)
@@ -33,7 +40,7 @@ src/features/editor/sections/canvas/utils/
 
 src/features/editor/sections/canvas/hooks/
   useDesignPaperElementRenderer.tsx   # 텍스트 요소 렌더링 분기 (renderTextElement)
-ㅓ
+
 src/features/editor/sections/sidebar/content/
   TextPropsContent.tsx               # 사이드바 텍스트 속성 패널 (편집/비편집 모드 분기)
 

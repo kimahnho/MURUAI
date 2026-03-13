@@ -6,7 +6,7 @@
 
 | 테이블 | 용도 | 소유권 컬럼 | 소프트 삭제 |
 |--------|------|------------|------------|
-| `students_n` | 학습자(아동) 관리 | `user_id` | `deleted_at` |
+| `students_n` | 학습자(아동) 관리 (`gender` 컬럼 추가됨) | `user_id` | `deleted_at` |
 | `groups_n` | 그룹 관리 | `owner_id` | `deleted_at` |
 | `groups_members_n` | 그룹-학습자 다대다 | — | `deleted_at` |
 | `schedules_n` | 수업 일정 | `user_id` | `deleted_at` |

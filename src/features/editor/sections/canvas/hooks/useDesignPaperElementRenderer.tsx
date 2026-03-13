@@ -24,7 +24,7 @@ import {
   createRotateCWHandler,
   createRotateCCWHandler,
 } from "../../../utils/elementTransforms";
-import { normalizeFontWeight } from "../../../utils/fontOptions";
+import { normalizeFontWeight } from "@/shared/utils/fontOptions";
 import Arrow from "../elements/arrow/Arrow";
 import CircleBox from "../elements/circle/CircleBox";
 import Line from "../elements/line/Line";
@@ -603,6 +603,7 @@ export const useDesignPaperElementRenderer = ({
       start: element.start,
       end: element.end,
       stroke,
+      marker: element.marker,
       isSelected: shouldShowIndividualBorder(element.id),
       selectionCount: selectedIds.length,
       locked: readOnly || element.locked,

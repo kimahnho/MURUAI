@@ -7,8 +7,9 @@ import {
   useState,
   type DragEvent as ReactDragEvent,
 } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
+import { useRecentImageSearchStore } from "@/features/editor/store/recentImageSearchStore";
 import { useImageLibrary } from "../hooks/useImageLibrary";
 import { getThumbnailUrl } from "@/shared/api/getThumbnailUrl";
 
@@ -48,6 +49,9 @@ const setDragImageData = (
 
 const ImageLibraryContent = () => {
   const requestImageFill = useImageFillStore((state) => state.requestImageFill);
+  const recentSearches = useRecentImageSearchStore((s) => s.recentSearches);
+  const addRecentSearch = useRecentImageSearchStore((s) => s.addRecentSearch);
+  const removeRecentSearch = useRecentImageSearchStore((s) => s.removeRecentSearch);
   const [selectedStyle, setSelectedStyle] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchInput, setSearchInput] = useState("");
@@ -56,12 +60,14 @@ const ImageLibraryContent = () => {
   useEffect(() => {
     // 검색 입력은 디바운스로 묶어 연속 입력 시 쿼리 폭주를 방지한다.
     const timer = window.setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
+      const trimmed = searchInput.trim();
+      setDebouncedSearch(trimmed);
+      if (trimmed) addRecentSearch(trimmed);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       window.clearTimeout(timer);
     };
-  }, [searchInput]);
+  }, [searchInput, addRecentSearch]);
 
   const filters = useMemo(
     () => ({
@@ -157,6 +163,32 @@ const ImageLibraryContent = () => {
         </div>
         {isFetching && !isFetchingNextPage && (
           <span className="text-12-regular text-black-50">검색 중...</span>
+        )}
+        {recentSearches.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-11-regular text-black-40">최근</span>
+            {recentSearches.map((keyword) => (
+              <span
+                key={keyword}
+                className="inline-flex items-center gap-0.5 rounded-full border border-black-20 pl-2.5 pr-1 py-0.5 text-12-regular text-black-60 hover:border-black-40 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => { setSearchInput(keyword); }}
+                  className="hover:text-black-80"
+                >
+                  {keyword}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { removeRecentSearch(keyword); }}
+                  className="p-0.5 rounded-full hover:bg-black-10"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
       </div>
 

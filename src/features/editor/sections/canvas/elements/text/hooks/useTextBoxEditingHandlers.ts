@@ -31,7 +31,7 @@ import { useTextFormattingCommands } from "./useTextFormattingCommands";
 import { useTextSelectionSession } from "./useTextSelectionSession";
 import { useToolbarFontSizeInput } from "./useToolbarFontSizeInput";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
-import { getFontLabel, matchFontFamily } from "@/features/editor/utils/fontOptions";
+import { getFontLabel, matchFontFamily } from "@/shared/utils/fontOptions";
 
 type UseTextBoxEditingHandlersProps = {
   editable: boolean;

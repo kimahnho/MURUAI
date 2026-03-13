@@ -89,9 +89,7 @@ export const useImageFillSubscription = ({
       if (activeSelectedIds.length === 0) {
         // 강제 삽입 요청인데 선택된 카드가 없으면 새 이미지를 생성해
         // 입력 의도를 버리지 않고 바로 편집 가능한 상태로 전환한다.
-        const newElementId = `element-${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 9)}`;
+        const newElementId = crypto.randomUUID();
         const defaultWidth = state.width ?? 200;
         const defaultHeight =
           state.height ?? Math.round(defaultWidth * (240 / 200));
@@ -109,6 +107,7 @@ export const useImageFillSubscription = ({
             w: defaultWidth,
             h: defaultHeight,
           },
+          isStandaloneImage: true,
         };
 
         setPages((prevPages) =>

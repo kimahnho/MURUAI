@@ -24,6 +24,7 @@ const patchStoryElements = (
   elements: CanvasElement[],
   story: StoryItem,
   emotionImageMap: Map<string, string>,
+  heroImageUrl?: string,
 ): CanvasElement[] => {
   // 감정 카드를 x 좌표 순으로 정렬해 왼→오른 순서로 emotions[0,1,2]에 매칭
   const emotionCards = elements.filter(
@@ -113,6 +114,21 @@ const patchStoryElements = (
     if (labelEmotion && el.type === "text" && el.text === LABEL_PLACEHOLDER) {
       return { ...el, text: labelEmotion };
     }
+    // 히어로 박스 패치 — fill이 "#D1D5DB"인 roundRect (subType 없음)
+    if (
+      heroImageUrl &&
+      el.type === "roundRect" &&
+      el.fill === "#D1D5DB" &&
+      !el.subType
+    ) {
+      const imageBox = calculateCoverImageBox(el.w, el.h, 1024, 576);
+      return {
+        ...el,
+        fill: `url(${heroImageUrl})`,
+        imageBox,
+        isStandaloneImage: true,
+      };
+    }
     return el;
   });
 };
@@ -120,6 +136,7 @@ const patchStoryElements = (
 export const buildEmotionStoryPages = (
   stories: StoryItem[],
   emotionImageMap?: Map<string, string>,
+  heroImageUrls?: string[],
 ): Page[] => {
   const imageMap = emotionImageMap ?? new Map<string, string>();
 
@@ -139,17 +156,18 @@ export const buildEmotionStoryPages = (
   }));
 
   // AI 스토리 10장 (page_4 레이아웃 × 10)
-  const storyPages: Page[] = stories.map((story) => {
+  const storyPages: Page[] = stories.map((story, index) => {
     // 장마다 개별 instantiate — 요소 id 충돌 방지
     const baseElements = withLogoCanvasElements(
       instantiateTemplate(emotionInferencePage4),
     );
+    const heroUrl = heroImageUrls?.[index];
     return {
       id: crypto.randomUUID(),
       pageNumber: 0,
       templateId: "emotionInference" as const,
       orientation: "vertical" as const,
-      elements: patchStoryElements(baseElements, story, imageMap),
+      elements: patchStoryElements(baseElements, story, imageMap, heroUrl),
       rev: 0,
     };
   });

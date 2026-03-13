@@ -3,7 +3,7 @@
  */
 import type { Dispatch, SetStateAction } from "react";
 import { useNumberInput } from "../../../shared/hooks/useNumberInput";
-import { getFontLabel, normalizeFontWeight } from "../../../utils/fontOptions";
+import { getFontLabel, normalizeFontWeight } from "@/shared/utils/fontOptions";
 import type {
   AacCardElement,
   CanvasElement,

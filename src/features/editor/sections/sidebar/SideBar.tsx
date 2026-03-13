@@ -5,9 +5,9 @@ import {
   PenTool,
   FileText,
   Layout,
+  Sparkles,
   Smile,
   Box,
-  Image,
   Type,
   Upload,
 } from "lucide-react";
@@ -15,10 +15,10 @@ import type { ComponentType } from "react";
 import UploadContent from "./content/UploadContent";
 import EmotionAACContent from "./content/EmotionAACContent";
 import ElementContent from "./content/ElementContent";
-import ImageLibraryContent from "./content/ImageLibraryContent";
 import TextContent from "./content/TextContent";
 import FontContent from "./content/FontContent";
 import TemplateContent from "./content/TemplateContent";
+import AiTemplateContent from "./content/AiTemplateContent";
 import DesignContent from "./content/DesignContent";
 import PageContent from "./content/PageContent";
 import TableContent from "./content/TableContent";
@@ -31,17 +31,16 @@ import EmotionCardPropsContent from "./content/EmotionCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
-import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
   page: "페이지",
   template: "템플릿",
-  "emotion-aac": "감정/AAC",
+  "ai-template": "AI 템플릿",
+  "emotion-aac": "그림",
   element: "요소",
-  image: "이미지",
   text: "텍스트",
   font: "글꼴",
   upload: "업로드",
@@ -60,9 +59,9 @@ const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "design", icon: PenTool },
   { id: "page", icon: FileText },
   { id: "template", icon: Layout },
+  { id: "ai-template", icon: Sparkles },
   { id: "emotion-aac", icon: Smile },
   { id: "element", icon: Box },
-  { id: "image", icon: Image },
   { id: "text", icon: Type },
   { id: "upload", icon: Upload },
 ];
@@ -75,9 +74,9 @@ const CONTENT_COMPONENTS: Record<
   design: DesignContent,
   page: PageContent,
   template: TemplateContent,
+  "ai-template": AiTemplateContent,
   "emotion-aac": EmotionAACContent,
   element: ElementContent,
-  image: ImageLibraryContent,
   text: TextContent,
   font: FontContent,
   upload: UploadContent,
@@ -92,36 +91,17 @@ const CONTENT_COMPONENTS: Record<
   "multi-props": MultiPropsContent,
 };
 
-const HIDDEN_MENUS_FOR_IMAGE_ELEMENTS: MenuItemId[] = ["upload", "image"];
-
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
-  const panelData = useElementPanelStore((s) => s.panelData);
   const activeTitle = selectedMenu ? MENU_LABELS[selectedMenu] : "";
   const ActiveContent = selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null;
-
-  // 이미지가 포함된 요소 선택 시 "업로드"/"이미지" 버튼 숨김
-  const isImageBearingElement = (() => {
-    if (!panelData) return false;
-    if (panelData.type === "aacCardV2") return true;
-    if (panelData.type === "aac" && panelData.hasImage) return true;
-    if (panelData.type === "shape") {
-      const fill = panelData.element.fill;
-      return fill.startsWith("url(") || fill.startsWith("data:");
-    }
-    return false;
-  })();
-
-  const visibleMenuItems = isImageBearingElement
-    ? MENU_ITEMS.filter((item) => !HIDDEN_MENUS_FOR_IMAGE_ELEMENTS.includes(item.id))
-    : MENU_ITEMS;
 
   return (
     <div className="flex h-full">
       {/* 좌측 아이콘 메뉴: 편집 도구 카테고리 전환 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
-        {visibleMenuItems.map((item) => {
+        {MENU_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
             <button

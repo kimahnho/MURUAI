@@ -2,7 +2,7 @@
  * 텍스트 툴바 옵션과 표시 규칙 설정을 정의하는 모듈.
  */
 import type { TextElement } from "../../../model/canvasTypes";
-import { getFontLabel } from "../../../utils/fontOptions";
+import { getFontLabel } from "@/shared/utils/fontOptions";
 import type { SideBarMenu } from "../../../store/sideBarStore";
 import {
   applyFontSizeDeltaToRichText,

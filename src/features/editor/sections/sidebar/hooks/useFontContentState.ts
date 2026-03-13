@@ -2,7 +2,7 @@
  * 폰트 패널의 선택 폰트/굵기/크기 등 UI 상태를 관리하는 훅.
  */
 import { useState } from "react";
-import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
+import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import { useRecentFontStore } from "@/features/editor/store/recentFontStore";

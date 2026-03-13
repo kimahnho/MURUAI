@@ -39,6 +39,7 @@ import StorySequenceModal from "./StorySequenceModal";
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
 import type { EmotionImageStyle } from "./EmotionInferenceChoiceModal";
 import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
+import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotionSceneImages";
 import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStoryPages";
 import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageMap";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
@@ -426,6 +427,10 @@ const TemplateContent = () => {
   const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] =
     useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [generatingProgress, setGeneratingProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyCount, setStoryCount] = useState(4);
   const [storyDirection, setStoryDirection] =
@@ -634,6 +639,7 @@ const TemplateContent = () => {
       <EmotionInferenceChoiceModal
         isOpen={isEmotionChoiceModalOpen}
         isGenerating={isAiGenerating}
+        generatingProgress={generatingProgress}
         onClose={() => {
           if (!isAiGenerating) setIsEmotionChoiceModalOpen(false);
         }}
@@ -648,7 +654,12 @@ const TemplateContent = () => {
             const emotionImageMap = await fetchEmotionImageMap(imageStyle);
             const availableLabels = [...emotionImageMap.keys()];
             const stories = await generateEmotionStory(topic, availableLabels);
-            const pages = buildEmotionStoryPages(stories, emotionImageMap);
+            // 히어로 이미지 생성 (10장 모두 필수 — 실패 시 전체 에러)
+            const heroImageUrls = await generateEmotionSceneImages(
+              stories, imageStyle,
+              (current, total) => { setGeneratingProgress({ current, total }); },
+            );
+            const pages = buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls);
             useTemplateStore.getState().requestInsertPages(pages);
             setIsEmotionChoiceModalOpen(false);
           } catch {
@@ -657,6 +668,7 @@ const TemplateContent = () => {
               .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");
           } finally {
             setIsAiGenerating(false);
+            setGeneratingProgress(null);
           }
         }}
       />

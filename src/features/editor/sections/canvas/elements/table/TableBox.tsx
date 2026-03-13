@@ -8,10 +8,24 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { TableElement, Rect, ResizeHandle } from "../../../../model/canvasTypes";
+import type { TableElement, TableBorderLine, Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
 import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 import { useTableStore } from "../../../../store/tableStore";
+
+// 테두리 설정에서 CSS border 문자열을 생성
+const resolveBorder = (line: TableBorderLine | null | undefined): string => {
+  if (line === null) return "none";
+  if (!line) return "1px solid #000000";
+  return `${line.width}px ${line.style} ${line.color}`;
+};
+
+// 테두리 설정에서 너비만 추출
+const resolveBorderWidth = (line: TableBorderLine | null | undefined): number => {
+  if (line === null) return 0;
+  if (!line) return 1;
+  return line.width;
+};
 
 const HANDLE_SIZE = 10;
 const HALF_HANDLE = HANDLE_SIZE / 2;
@@ -51,6 +65,36 @@ const getResizeCursor = (handle: ResizeHandle) => {
 const RESIZE_HANDLES: ResizeHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 // colWidths 없으면 균등 분배, 있으면 비율 보정해 합이 w가 되도록 정규화
+// 포인터 좌표에서 셀 인덱스를 계산해 드래그 선택에 사용한다.
+const hitCellFromPointer = (
+  clientX: number,
+  clientY: number,
+  box: HTMLDivElement,
+  colWidths: number[],
+  rowHeights: number[],
+  scale: number,
+): { row: number; col: number } | null => {
+  const rect = box.getBoundingClientRect();
+  const x = (clientX - rect.left) / scale;
+  const y = (clientY - rect.top) / scale;
+  let col = -1;
+  let accX = 0;
+  for (let i = 0; i < colWidths.length; i++) {
+    accX += colWidths[i];
+    if (x < accX) { col = i; break; }
+  }
+  let row = -1;
+  let accY = 0;
+  for (let i = 0; i < rowHeights.length; i++) {
+    accY += rowHeights[i];
+    if (y < accY) { row = i; break; }
+  }
+  if (col === -1) col = colWidths.length - 1;
+  if (row === -1) row = rowHeights.length - 1;
+  if (col < 0 || row < 0) return null;
+  return { row, col };
+};
+
 const resolveColWidths = (cols: number, w: number, colWidths?: number[]): number[] => {
   if (!colWidths || colWidths.length !== cols) {
     return Array.from({ length: cols }, () => w / cols);
@@ -151,10 +195,102 @@ export const TableBox = ({
       onSelectChange?.(true, { additive: event.shiftKey });
     }
 
+    const scale = getScale(boxRef.current);
+
+    // 셀이 선택된 상태에서만 셀 드래그 모드 — 셀 미선택 시 요소 이동 드래그
+    if (wasSelectedBeforePointerRef.current && selectedCells.length > 0 && boxRef.current) {
+      const startCell = hitCellFromPointer(event.clientX, event.clientY, boxRef.current, colWidths, rowHeights, scale);
+      if (!startCell) return;
+
+      const startClientX = event.clientX;
+      const startClientY = event.clientY;
+
+      // 클릭 시점에 해당 셀이 이미 선택되어 있었는지 기록 — 이미 선택된 셀을 다시 클릭해야 편집 진입
+      const wasCellAlreadySelected = selectedCells.some(
+        (c) => c.row === startCell.row && c.col === startCell.col,
+      );
+
+      setEditingCell(null);
+
+      // Cmd(Meta) 클릭: 기존 선택에 토글 추가/제거
+      const isMetaClick = event.metaKey || event.ctrlKey;
+      if (isMetaClick) {
+        if (wasCellAlreadySelected) {
+          // 이미 선택된 셀 → 제거 (최소 1개는 유지)
+          const filtered = selectedCells.filter(
+            (c) => c.row !== startCell.row || c.col !== startCell.col,
+          );
+          setSelectedCells(filtered.length > 0 ? filtered : [startCell]);
+        } else {
+          setSelectedCells([...selectedCells, startCell]);
+        }
+      } else {
+        setSelectedCells([startCell]);
+      }
+
+      // Cmd 클릭 시 기존 선택 기반을 유지해 드래그에 반영
+      const baseCells = isMetaClick
+        ? selectedCells.filter(
+            (c) => c.row !== startCell.row || c.col !== startCell.col,
+          )
+        : [];
+
+      startPointerDragSession({
+        thresholdPx: 3,
+        startContext: { startCell },
+        createMoveContext: (moveEvent) => {
+          const distance = Math.sqrt(
+            (moveEvent.clientX - startClientX) ** 2 +
+            (moveEvent.clientY - startClientY) ** 2,
+          );
+          return { distance, context: { moveEvent } };
+        },
+        onStart: () => {
+          setEditingCell(null);
+        },
+        onMove: ({ moveEvent }) => {
+          if (!boxRef.current) return;
+          const currentCell = hitCellFromPointer(moveEvent.clientX, moveEvent.clientY, boxRef.current, colWidths, rowHeights, scale);
+          if (!currentCell) return;
+          // 시작 셀 ~ 현재 셀 직사각형 범위 내 모든 셀 선택
+          const minRow = Math.min(startCell.row, currentCell.row);
+          const maxRow = Math.max(startCell.row, currentCell.row);
+          const minCol = Math.min(startCell.col, currentCell.col);
+          const maxCol = Math.max(startCell.col, currentCell.col);
+          const dragCells: { row: number; col: number }[] = [];
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              dragCells.push({ row: r, col: c });
+            }
+          }
+          // Cmd 드래그: 기존 선택 + 드래그 범위 합산
+          if (baseCells.length > 0) {
+            const merged = [...baseCells];
+            for (const dc of dragCells) {
+              if (!merged.some((c) => c.row === dc.row && c.col === dc.col)) {
+                merged.push(dc);
+              }
+            }
+            setSelectedCells(merged);
+          } else {
+            setSelectedCells(dragCells);
+          }
+        },
+        onEnd: (moved) => {
+          if (!moved && wasCellAlreadySelected && !isMetaClick) {
+            // 이미 선택된 셀을 다시 클릭(드래그 없음, Cmd 없음) → 편집 진입
+            setSelectedCells([startCell]);
+            setEditingCell(startCell);
+          }
+        },
+      });
+      return;
+    }
+
+    // 미선택 상태 → 테이블 이동 드래그
     const startX = event.clientX;
     const startY = event.clientY;
     const startRect = { ...rectRef.current };
-    const scale = getScale(boxRef.current);
 
     startPointerDragSession({
       thresholdPx: 3,
@@ -175,7 +311,6 @@ export const TableBox = ({
         return { distance, context: { nextRect: transformed } };
       },
       onStart: () => {
-        // 드래그 시작 시 셀 선택/편집 해제
         setSelectedCells([]);
         setEditingCell(null);
         onDragStateChange?.(true);
@@ -186,8 +321,15 @@ export const TableBox = ({
       onEnd: (moved) => {
         if (moved) {
           onDragStateChange?.(false, rectRef.current, { type: "drag" });
+        } else if (wasSelectedBeforePointerRef.current && boxRef.current) {
+          // 이미 선택된 상태에서 클릭(드래그 없음) → 클릭한 셀 선택
+          const clickedCell = hitCellFromPointer(event.clientX, event.clientY, boxRef.current, colWidths, rowHeights, scale);
+          if (clickedCell) {
+            setSelectedCells([clickedCell]);
+            setEditingCell(null);
+          }
+          onDragStateChange?.(false);
         } else {
-          // 드래그 없이 클릭만 한 경우: 셀 아닌 곳 클릭이면 셀 선택 해제
           setSelectedCells([]);
           setEditingCell(null);
           onDragStateChange?.(false);
@@ -375,6 +517,26 @@ export const TableBox = ({
       onPointerDown={handlePointerDown}
       onContextMenu={(event) => {
         event.preventDefault();
+        // 테이블이 이미 선택된 상태에서 우클릭하면 해당 셀을 자동 선택
+        if (isSelected && boxRef.current) {
+          const scale = getScale(boxRef.current);
+          const clickedCell = hitCellFromPointer(
+            event.clientX,
+            event.clientY,
+            boxRef.current,
+            colWidths,
+            rowHeights,
+            scale,
+          );
+          if (clickedCell) {
+            const isAlreadySelected = selectedCells.some(
+              (c) => c.row === clickedCell.row && c.col === clickedCell.col,
+            );
+            if (!isAlreadySelected) {
+              setSelectedCells([clickedCell]);
+            }
+          }
+        }
         onContextMenu?.(event);
       }}
     >
@@ -386,7 +548,6 @@ export const TableBox = ({
           gridTemplateRows: rowHeights.map((h) => `${h}px`).join(" "),
           width: "100%",
           height: "100%",
-          border: "1px solid #000000",
           boxSizing: "border-box",
         }}
       >
@@ -397,6 +558,23 @@ export const TableBox = ({
             const isCellSelected = selectedCells.some(
               (c) => c.row === rowIndex && c.col === colIndex,
             );
+
+            // 선택 영역 외곽 테두리 계산 — 인접 셀이 선택되지 않은 변에만 2px 테두리
+            let cellBoxShadow = "none";
+            if (isCellSelected) {
+              const hasTop = selectedCells.some((c) => c.row === rowIndex - 1 && c.col === colIndex);
+              const hasBottom = selectedCells.some((c) => c.row === rowIndex + 1 && c.col === colIndex);
+              const hasLeft = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex - 1);
+              const hasRight = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex + 1);
+              const shadows: string[] = [];
+              if (!hasTop) shadows.push("inset 0 2px 0 0 #5500ff");
+              if (!hasBottom) shadows.push("inset 0 -2px 0 0 #5500ff");
+              if (!hasLeft) shadows.push("inset 2px 0 0 0 #5500ff");
+              if (!hasRight) shadows.push("inset -2px 0 0 0 #5500ff");
+              shadows.push("inset 0 0 0 9999px rgba(85, 0, 255, 0.08)");
+              cellBoxShadow = shadows.join(", ");
+            }
+
             // 개별 셀 스타일 우선, 없으면 표 전체 cellStyle, 없으면 기본값
             const cs = cell.style ?? element.cellStyle;
             const cellFontSize = cs?.fontSize ?? 13;
@@ -404,6 +582,7 @@ export const TableBox = ({
             const cellAlignX = cs?.alignX ?? "center";
             const cellFontWeight = cs?.fontWeight;
             const cellColor = cs?.color ?? "#000000";
+            const cellBgColor = cs?.backgroundColor ?? element.cellStyle?.backgroundColor;
             const cellFontStyle = cs?.italic ? "italic" : "normal";
             const cellTextDecoration = cs?.underline ? "underline" : "none";
             const cellJustifyContent =
@@ -424,8 +603,6 @@ export const TableBox = ({
               <div
                 key={`${rowIndex}-${colIndex}`}
                 style={{
-                  borderRight: colIndex < element.cols - 1 ? "1px solid #000000" : "none",
-                  borderBottom: rowIndex < element.rows - 1 ? "1px solid #000000" : "none",
                   overflow: "hidden",
                   display: "flex",
                   alignItems: "center",
@@ -434,28 +611,11 @@ export const TableBox = ({
                   boxSizing: "border-box",
                   minWidth: 0,
                   cursor: isSelected && !locked ? "pointer" : "inherit",
-                  // 선택된 셀 하이라이트
-                  backgroundColor: isCellSelected ? "rgba(85, 0, 255, 0.08)" : undefined,
+                  backgroundColor: cellBgColor,
+                  boxShadow: cellBoxShadow,
                 }}
-                onClick={(event) => {
-                  // 첫 클릭(요소 선택)에서는 셀 선택하지 않음 — 두 번째 클릭부터 셀 선택/편집 진입
-                  if (!wasSelectedBeforePointerRef.current || locked) return;
-                  event.stopPropagation();
-
-                  if (event.shiftKey && selectedCells.length > 0) {
-                    // Shift 클릭: 기존 선택에 추가 (편집 모드 진입하지 않음)
-                    setEditingCell(null);
-                    const alreadySelected = selectedCells.some(
-                      (c) => c.row === rowIndex && c.col === colIndex,
-                    );
-                    if (!alreadySelected) {
-                      setSelectedCells([...selectedCells, { row: rowIndex, col: colIndex }]);
-                    }
-                  } else {
-                    // 단일 셀 클릭 → 셀 선택 + 편집 진입 (하이라이트 유지)
-                    setSelectedCells([{ row: rowIndex, col: colIndex }]);
-                    setEditingCell({ row: rowIndex, col: colIndex });
-                  }
+                onClick={() => {
+                  // Cmd 다중 선택 및 일반 클릭은 handlePointerDown에서 처리
                 }}
               >
                 {isEditingThis ? (
@@ -493,6 +653,93 @@ export const TableBox = ({
           })
         )}
       </div>
+
+      {/* 테두리 오버레이 레이어 — 셀 레이아웃에 영향 없이 테두리만 렌더 */}
+      {(() => {
+        const bc = element.borderConfig;
+        const outerBorder = bc ? resolveBorder(bc.outer) : "1px solid #000000";
+        const outerWidth = bc ? resolveBorderWidth(bc.outer) : 1;
+        const horizontalBorder = bc ? resolveBorder(bc.horizontal) : "1px solid #000000";
+        const horizontalWidth = bc ? resolveBorderWidth(bc.horizontal) : 1;
+        const verticalBorder = bc ? resolveBorder(bc.vertical) : "1px solid #000000";
+        const verticalWidth = bc ? resolveBorderWidth(bc.vertical) : 1;
+
+        // 내부 행 경계 y좌표
+        const cumRowHeights: number[] = [];
+        let sumH = 0;
+        for (let i = 0; i < rowHeights.length - 1; i++) {
+          sumH += rowHeights[i];
+          cumRowHeights.push(sumH);
+        }
+        // 내부 열 경계 x좌표
+        const cumColWidths: number[] = [];
+        let sumW = 0;
+        for (let i = 0; i < colWidths.length - 1; i++) {
+          sumW += colWidths[i];
+          cumColWidths.push(sumW);
+        }
+
+        return (
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+            {/* 외곽 테두리 — outline은 box model 밖에 그려져 내부 공간 불변 */}
+            {outerBorder !== "none" && (
+              <div style={{ position: "absolute", inset: 0, outline: outerBorder, outlineOffset: -outerWidth / 2 }} />
+            )}
+            {/* 내부 가로선 — translateY로 선 두께 절반만큼 위로 이동해 셀 경계 중심에 배치 */}
+            {cumRowHeights.map((y, i) => (
+              <div key={`h-${i}`} style={{ position: "absolute", left: 0, right: 0, top: y, borderTop: horizontalBorder, transform: `translateY(-${horizontalWidth / 2}px)` }} />
+            ))}
+            {/* 내부 세로선 — translateX로 선 두께 절반만큼 왼쪽 이동해 셀 경계 중심에 배치 */}
+            {cumColWidths.map((x, i) => (
+              <div key={`v-${i}`} style={{ position: "absolute", top: 0, bottom: 0, left: x, borderLeft: verticalBorder, transform: `translateX(-${verticalWidth / 2}px)` }} />
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* 빗금(대각선) 오버레이 — 셀별 diagonal 값에 따라 SVG 선 렌더 */}
+      {(() => {
+        const hasDiagonal = element.cells.some((row) =>
+          row.some((cell) => cell.style?.diagonal),
+        );
+        if (!hasDiagonal) return null;
+
+        // 셀 좌측 x / 상단 y 누적합 (0부터 시작, N개)
+        const cumX = [0];
+        for (let i = 0; i < colWidths.length; i++) cumX.push(cumX[i] + colWidths[i]);
+        const cumY = [0];
+        for (let i = 0; i < rowHeights.length; i++) cumY.push(cumY[i] + rowHeights[i]);
+        const diagColor = element.diagonalColor ?? "#000000";
+
+        return (
+          <svg
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            width={element.w}
+            height={element.h}
+          >
+            {element.cells.flatMap((row, ri) =>
+              row.map((cell, ci) => {
+                const d = cell.style?.diagonal;
+                if (!d) return null;
+                const cx = cumX[ci];
+                const cy = cumY[ri];
+                const cw = colWidths[ci];
+                const ch = rowHeights[ri];
+                return (
+                  <g key={`diag-${ri}-${ci}`}>
+                    {(d === "backslash" || d === "cross") && (
+                      <line x1={cx} y1={cy} x2={cx + cw} y2={cy + ch} stroke={diagColor} strokeWidth={1} />
+                    )}
+                    {(d === "slash" || d === "cross") && (
+                      <line x1={cx + cw} y1={cy} x2={cx} y2={cy + ch} stroke={diagColor} strokeWidth={1} />
+                    )}
+                  </g>
+                );
+              }),
+            )}
+          </svg>
+        );
+      })()}
 
       {/* 열 분리선 드래그 핸들 (선택 상태일 때) */}
       {isSelected && selectionCount === 1 && !locked &&

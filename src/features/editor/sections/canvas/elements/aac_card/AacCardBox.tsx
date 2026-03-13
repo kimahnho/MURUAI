@@ -142,6 +142,13 @@ const AacCardBox = ({
     }
   };
 
+  // 라벨이 표시될 때 이미지를 위로 올려 라벨과 겹치지 않게 한다.
+  const adjustedImageBox = (() => {
+    if (!imageBox || !showLabel) return imageBox;
+    const offset = label.position === "bottom" ? -(labelHeight / 2) : labelHeight / 2;
+    return { ...imageBox, y: imageBox.y + offset };
+  })();
+
   // 라벨 영역을 RoundBox의 children으로 전달
   const labelElement = showLabel ? (
     <div
@@ -189,7 +196,7 @@ const AacCardBox = ({
       minHeight={80}
       fill={fill}
       backgroundColor={backgroundColor}
-      imageBox={imageBox}
+      imageBox={adjustedImageBox}
       borderRadius={borderRadius}
       border={border}
       isSelected={isSelected}
