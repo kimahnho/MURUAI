@@ -4,6 +4,7 @@
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import type { Point } from "../../../../model/canvasTypes";
 import { normalizePoint } from "../../../../utils/domUtils";
+import { resolveMarkers } from "../../../../utils/designPaperUtils";
 import { useLineInteraction } from "./useLineInteraction";
 import TransformToolbar from "../TransformToolbar";
 
@@ -15,6 +16,10 @@ interface LineShapeProps {
     color: string;
     width: number;
     style?: "solid" | "dashed" | "dotted";
+  };
+  marker?: {
+    start?: boolean;
+    end?: boolean;
   };
   isSelected?: boolean;
   selectionCount?: number;
@@ -42,9 +47,11 @@ interface LineShapeProps {
 }
 
 const Line = ({
+  id,
   start,
   end,
   stroke,
+  marker,
   isSelected = false,
   selectionCount = 0,
   locked = false,
@@ -67,9 +74,14 @@ const Line = ({
     lineRef.current = { start: safeStart, end: safeEnd };
   }, [safeStart, safeEnd]);
 
+  const resolved = resolveMarkers({ type: "line", marker } as Parameters<typeof resolveMarkers>[0]);
+  const hasStart = resolved.start;
+  const hasEnd = resolved.end;
+
   const handleSize = 10;
   const halfHandle = handleSize / 2;
-  const padding = Math.max(6, stroke.width, handleSize);
+  const markerPadding = (hasStart || hasEnd) ? 12 : 0;
+  const padding = Math.max(6, stroke.width, handleSize, markerPadding);
   const getBounds = (line: { start: Point; end: Point }) => {
     const minX = Math.min(line.start.x, line.end.x);
     const minY = Math.min(line.start.y, line.end.y);
@@ -89,6 +101,8 @@ const Line = ({
   });
   const startRel = { x: safeStart.x - boxX, y: safeStart.y - boxY };
   const endRel = { x: safeEnd.x - boxX, y: safeEnd.y - boxY };
+  const markerStartId = `line-start-${id}`;
+  const markerEndId = `line-end-${id}`;
   const angleRad = Math.atan2(safeEnd.y - safeStart.y, safeEnd.x - safeStart.x);
   const angleDeg = Math.round(((angleRad * 180) / Math.PI + 360) % 360) % 360;
 
@@ -168,6 +182,36 @@ const Line = ({
           transformOrigin: "center center",
         }}
       >
+        {(hasStart || hasEnd) && (
+          <defs>
+            {hasStart && (
+              <marker
+                id={markerStartId}
+                viewBox="0 0 10 10"
+                refX="1"
+                refY="5"
+                markerWidth="10"
+                markerHeight="10"
+                orient="auto"
+              >
+                <path d="M 10 0 L 0 5 L 10 10 z" fill={stroke.color} />
+              </marker>
+            )}
+            {hasEnd && (
+              <marker
+                id={markerEndId}
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="10"
+                markerHeight="10"
+                orient="auto"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={stroke.color} />
+              </marker>
+            )}
+          </defs>
+        )}
         <line
           x1={startRel.x}
           y1={startRel.y}
@@ -193,6 +237,8 @@ const Line = ({
                 ? `${stroke.width * 0.5} ${stroke.width * 2}`
                 : undefined
           }
+          markerStart={hasStart ? `url(#${markerStartId})` : undefined}
+          markerEnd={hasEnd ? `url(#${markerEndId})` : undefined}
           pointerEvents="none"
         />
       </svg>

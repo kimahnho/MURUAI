@@ -12,6 +12,14 @@ export type Rect = { x: number; y: number; width: number; height: number };
 export type SelectionRect = Rect;
 
 export const RECT_TOLERANCE = 1;
+
+// 마커 필드가 없는 기존 요소와 호환하면서 유효한 마커 상태를 반환한다.
+export const resolveMarkers = (element: LineElement): { start: boolean; end: boolean } => {
+  if (element.marker) {
+    return { start: element.marker.start ?? false, end: element.marker.end ?? false };
+  }
+  return { start: false, end: element.type === "arrow" };
+};
 export const DEFAULT_TEXT_LINE_HEIGHT = 1.2;
 export const DEFAULT_STROKE: LineElement["stroke"] = {
   color: "#000000",
@@ -107,7 +115,8 @@ export const getElementBoundsForSelection = (
   if (element.visible === false || element.selectable === false) return null;
   if (element.type === "line" || element.type === "arrow") {
     const stroke = element.stroke ?? DEFAULT_STROKE;
-    const markerPadding = element.type === "arrow" ? 12 : 0;
+    const markers = resolveMarkers(element);
+    const markerPadding = (markers.start || markers.end) ? 12 : 0;
     // 선/화살표 선택은 클릭 허용 범위를 넉넉히 잡아 얇은 선도 안정적으로 선택되게 한다.
     const padding = Math.max(6, stroke.width, markerPadding);
     const minX = Math.min(element.start.x, element.end.x) - padding;

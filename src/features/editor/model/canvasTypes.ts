@@ -101,6 +101,7 @@ export type ShapeElement = ElementBase & {
   };
   labelId?: string;
   mosaicLevel?: number;
+  isStandaloneImage?: boolean;
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
@@ -117,6 +118,11 @@ export type LineElement = ElementBase & {
     width: number;
     style?: "solid" | "dashed" | "dotted";
   };
+  // 화살표 끝점 설정 (미설정 시 arrow → end-only, line → 없음)
+  marker?: {
+    start?: boolean;
+    end?: boolean;
+  };
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
@@ -132,6 +138,7 @@ export type TableCellStyle = {
   color?: string;                        // 기본값 "#000000"
   italic?: boolean;
   underline?: boolean;
+  backgroundColor?: string;              // 셀 배경색 (undefined = 투명)
 };
 
 export type TableCell = {
