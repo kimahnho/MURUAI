@@ -53,7 +53,7 @@ const PagePreviewPanel = () => {
                 <img
                   src={selectedPreset.previewImage}
                   alt={selectedPreset.label}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-contain"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-black-25">

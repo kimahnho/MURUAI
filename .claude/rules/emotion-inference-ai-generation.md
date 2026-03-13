@@ -88,9 +88,10 @@ import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
 
 type StoryItem = { title: string; sentence: string; emotions: [string, string, string] };
 
-// buildEmotionStoryPages(stories, emotionImageMap)로 호출
+// buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls?)로 호출
 // emotionImageMap: Map<string, string> — 감정 라벨 → 이미지 URL
-// patchStoryElements에서 제목, 추론 문장, 감정 카드 이미지, 감정 라벨 텍스트를 모두 패치
+// heroImageUrls?: string[] — AI 생성 히어로 장면 이미지 URL 10개 (선택)
+// patchStoryElements에서 제목, 추론 문장, 감정 카드 이미지, 감정 라벨 텍스트, 히어로 이미지를 모두 패치
 ```
 
 ## AI 호출 방식
@@ -160,8 +161,9 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 
 ### 3. AI 로딩 상태
 생성 중 UI:
-- `EmotionInferenceChoiceModal`의 확인 버튼을 `isLoading` 상태로 비활성화
-- 버튼 텍스트: "생성하기" → "생성 중..."
+- `EmotionInferenceChoiceModal`의 확인 버튼을 `isGenerating` 상태로 비활성화
+- 버튼 텍스트: "생성하기" → "이미지 생성 중 (3/10)" (`generatingProgress` prop)
+- 생성 중 모달 바깥 클릭 시 `handleClose` 가드: `if (isGenerating) return;` — 주제/스타일 상태 보존
 
 ### 4. 에러 처리
 - AI 호출 실패 시 `showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.")`
@@ -173,14 +175,15 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 
 ## 감정 이미지 자동 채우기
 
-### 호출 체인 (TemplateContent.tsx)
+### 호출 체인 (AiTemplateContent.tsx)
 
 ```
 onSelectAi(topic, imageStyle)
-  → fetchEmotionImageMap(imageStyle)       // DB에서 감정 라벨 → 이미지 URL 맵
-  → availableLabels = [...map.keys()]      // AI에 전달할 감정 목록 추출
-  → generateEmotionStory(topic, labels)    // AI가 emotions 포함 StoryItem[] 반환
-  → buildEmotionStoryPages(stories, map)   // 이미지 자동 채우기 포함 13페이지 빌드
+  → fetchEmotionImageMap(imageStyle)                        // DB에서 감정 라벨 → 이미지 URL 맵
+  → availableLabels = [...map.keys()]                       // AI에 전달할 감정 목록 추출
+  → generateEmotionStory(topic, labels)                     // AI가 emotions 포함 StoryItem[] 반환
+  → generateEmotionSceneImages(stories, imageStyle, onProgress)  // AI 히어로 장면 이미지 10장 생성
+  → buildEmotionStoryPages(stories, map, heroImageUrls)     // 이미지 자동 채우기 포함 13페이지 빌드
   → requestInsertPages(pages)
 ```
 
@@ -199,6 +202,45 @@ type EmotionImageStyle = "photo-boy" | "photo-girl";
 2. **추론 문장**: `text === "아이는 __________"` → `story.sentence` (widthMode: "fixed", w/x 명시 복원)
 3. **감정 카드 3개**: `subType === "emotionInference"` 셰이프를 x좌표 순 정렬 → `emotions[0,1,2]` 매칭 → `fill: url(imageUrl)` + `imageBox`
 4. **감정 라벨 3개**: 카드의 `labelId`로 연결된 텍스트 요소 → `"(감정)"` → 감정 이름
+
+### 히어로 이미지 패치 대상
+
+`buildEmotionStoryPages`에 `heroImageUrls`를 전달하면 page_4의 회색 히어로 박스에 장면 이미지를 채운다.
+
+```typescript
+// 히어로 박스 식별: fill="#D1D5DB" + subType 없음인 roundRect
+if (heroImageUrl && el.type === "roundRect" && el.fill === "#D1D5DB" && !el.subType) {
+  const imageBox = calculateCoverImageBox(el.w, el.h, 1024, 576);
+  return { ...el, fill: `url(${heroImageUrl})`, imageBox, isStandaloneImage: true };
+}
+```
+
+## 히어로 장면 이미지 생성
+
+### 파이프라인 (`generateEmotionSceneImages.ts`)
+
+```typescript
+generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
+```
+
+- **모델**: `gemini-2.5-flash-image`, `aspectRatio: "16:9"`
+- **2단계 파이프라인**: Phase 1에서 10장 base64 수집 (모두 성공해야 진행) → Phase 2에서 일괄 Cloudinary 업로드
+- **캐릭터 참조 이미지**: `imageStyle`에 따라 `characterBoy` / `characterGirl` 로드 → Gemini에 인라인 이미지로 전달
+- **한→영 번역**: `translateScenesToEnglish()` — 10개 장면을 1회 Gemini 호출로 일괄 번역 (실패 시 한국어 fallback)
+- **재시도**: `MAX_RETRIES = 5`, `RETRY_DELAY_MS = 3000`
+- **Cloudinary 폴더**: `muru_emotion_scene/{userId}`
+
+### Progress 콜백
+
+```typescript
+// AiTemplateContent.tsx에서 전달
+const heroImageUrls = await generateEmotionSceneImages(
+  stories, imageStyle,
+  (current, total) => { setGeneratingProgress({ current, total }); },
+);
+// EmotionInferenceChoiceModal에 generatingProgress prop으로 전달
+// 버튼 텍스트: "이미지 생성 중 (3/10)"
+```
 
 ### 타입 안전성 주의
 
@@ -222,7 +264,8 @@ const emotionCards = elements.filter(
 | 페이지 팩토리 | `src/features/editor/utils/pageFactory.ts` |
 | 로고 요소 | `src/features/editor/utils/logoElement.ts` |
 | 선택 모달 | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` (`skipChoice` prop으로 선택 화면 스킵 가능) |
-| AI 생성 함수 | `src/features/editor/ai/generateEmotionStory.ts` |
+| AI 스토리 생성 | `src/features/editor/ai/generateEmotionStory.ts` |
+| AI 히어로 이미지 생성 | `src/features/editor/ai/generateEmotionSceneImages.ts` |
 | 페이지 빌더 | `src/features/editor/utils/buildEmotionStoryPages.ts` |
 | 감정 이미지 조회 | `src/features/editor/utils/fetchEmotionImageMap.ts` |
 | 이미지 채우기 유틸 | `src/features/editor/utils/imageFillUtils.ts` |

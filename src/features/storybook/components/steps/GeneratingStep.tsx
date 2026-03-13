@@ -7,8 +7,10 @@ import {
   GENERATING_MESSAGES,
   GENERATING_MESSAGE_INTERVAL_MS,
 } from "../../model/storybookTypes";
+import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 
 const GeneratingStep = () => {
+  const imageProgress = useStorybookWizardStore((s) => s.imageProgress);
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -33,6 +35,13 @@ const GeneratingStep = () => {
           />
         ))}
       </div>
+
+      {/* 진행률 */}
+      {imageProgress && (
+        <p className="text-14-semibold text-primary">
+          이미지 생성 중 ({imageProgress.current}/{imageProgress.total})
+        </p>
+      )}
 
       {/* 안내 문구 */}
       <p className="text-16-semibold text-black-80 text-center">

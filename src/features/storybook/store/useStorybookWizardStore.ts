@@ -14,16 +14,19 @@ import type {
 } from "../model/storybookTypes";
 import { INITIAL_FORM_DATA } from "../model/storybookTypes";
 import { canAdvance } from "../model/storybookValidation";
-import {
-  fetchMockProposals,
-  generateMockStorybook,
-} from "../data/mockStoryService";
+import { useToastStore } from "@/features/editor/store/toastStore";
+import { useTemplateStore } from "@/features/editor/store/templateStore";
+
+import { generateStoryProposals } from "../ai/generateStoryProposals";
+import { generateStorybook } from "../ai/generateStorybook";
+import { buildStoryPages } from "../utils/buildStoryPages";
 
 interface StorybookWizardState {
   currentStep: WizardStep;
   formData: WizardFormData;
   generatedBook: StoryBook | null;
   isLoading: boolean;
+  imageProgress: { current: number; total: number } | null;
   error: string | null;
 
   // 네비게이션
@@ -59,6 +62,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     formData: { ...INITIAL_FORM_DATA },
     generatedBook: null,
     isLoading: false,
+    imageProgress: null,
     error: null,
 
     // ─── 네비게이션 ───
@@ -144,7 +148,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
       set({ isLoading: true, error: null });
       try {
-        const proposals = await fetchMockProposals(
+        const proposals = await generateStoryProposals(
           formData.childInfo,
           formData.topic,
         );
@@ -171,19 +175,26 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const proposal = formData.editedProposal;
       if (!proposal || !formData.artStyle || !formData.childInfo) return;
 
-      set({ isLoading: true, error: null, currentStep: 5 });
+      set({ isLoading: true, error: null, currentStep: 5, imageProgress: null });
       try {
-        const book = await generateMockStorybook(
+        const book = await generateStorybook(
           proposal,
           formData.artStyle,
           formData.layout,
           formData.fontFamily,
           formData.childInfo,
+          (current, total) => { set({ imageProgress: { current, total } }); },
         );
-        set({ generatedBook: book, isLoading: false, currentStep: 6 });
+        set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
+
+        // 에디터 캔버스에 10페이지 삽입
+        const pages = buildStoryPages(book);
+        useTemplateStore.getState().requestInsertPages(pages);
+        useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!");
       } catch {
         set({
           isLoading: false,
+          imageProgress: null,
           error: "스토리북 생성에 실패했어요. 다시 시도해 주세요.",
           currentStep: 4,
         });
@@ -198,6 +209,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         formData: { ...INITIAL_FORM_DATA },
         generatedBook: null,
         isLoading: false,
+        imageProgress: null,
         error: null,
       });
     },

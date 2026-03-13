@@ -10,6 +10,7 @@ export type EmotionImageStyle = "photo-boy" | "photo-girl";
 interface EmotionInferenceChoiceModalProps {
   isOpen: boolean;
   isGenerating?: boolean;
+  generatingProgress?: { current: number; total: number } | null;
   /** true이면 선택 화면을 건너뛰고 바로 주제 입력을 표시한다. */
   skipChoice?: boolean;
   onClose: () => void;
@@ -28,6 +29,7 @@ const IMAGE_STYLE_OPTIONS: Array<{
 const EmotionInferenceChoiceModal = ({
   isOpen,
   isGenerating = false,
+  generatingProgress,
   skipChoice = false,
   onClose,
   onSelectTemplate,
@@ -40,6 +42,7 @@ const EmotionInferenceChoiceModal = ({
   if (!isOpen) return null;
 
   const handleClose = () => {
+    if (isGenerating) return;
     setShowTopicInput(skipChoice);
     setTopic("");
     onClose();
@@ -211,7 +214,11 @@ const EmotionInferenceChoiceModal = ({
                     />
                   </svg>
                 )}
-                {isGenerating ? "생성 중..." : "생성하기"}
+                {isGenerating
+                  ? generatingProgress
+                    ? `이미지 생성 중 (${generatingProgress.current}/${generatingProgress.total})`
+                    : "생성 중..."
+                  : "생성하기"}
               </button>
             </div>
           </div>
