@@ -425,7 +425,7 @@ const DesignPaper = ({
       ref={containerRef}
       tabIndex={readOnly ? undefined : 0}
       className={`relative bg-white shrink-0 outline-none transition-all ${
-        editingImageId ? "overflow-visible" : "overflow-hidden"
+        readOnly ? "overflow-hidden" : "overflow-visible"
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
@@ -524,6 +524,16 @@ const DesignPaper = ({
       onContextMenu={openCanvasContextMenu}
     >
       {elements.map((element) => renderElement(element))}
+      {/* 페이지 영역 바깥의 요소 부분을 반투명 화이트 오버레이로 덮어 경계 밖임을 시각적으로 표현한다. */}
+      {!readOnly && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: 5,
+            boxShadow: "0 0 0 9999px rgba(255, 255, 255, 0.65)",
+          }}
+        />
+      )}
       {/* 이미지 크롭 편집 모드: 모든 요소(z-index 없음) 위에 딤(z-10)을 올려 전체를 어둡게 처리한다.
           편집 중인 요소는 z-20으로 딤 위에 노출되어 해당 도형만 밝게 보인다. */}
       {editingImageId && (() => {
@@ -582,7 +592,9 @@ const DesignPaper = ({
         onMoveLayer={moveElement}
         setContextMenu={setContextMenu}
       />
-      <SmartGuideOverlay guides={smartGuides.guides} />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
+        <SmartGuideOverlay guides={smartGuides.guides} />
+      </div>
       {isRotating && rotationBadge && (
         <RotationBadge
           elements={elements}
