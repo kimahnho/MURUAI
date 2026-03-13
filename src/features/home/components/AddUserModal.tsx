@@ -12,6 +12,7 @@ const AddUserModal = () => {
   const { refreshStudents } = useStudentStore();
   const [name, setName] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [gender, setGender] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [learningGoals, setLearningGoals] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,7 @@ const AddUserModal = () => {
   const handleReset = () => {
     setName("");
     setBirthYear("");
+    setGender(null);
     setNotes("");
     setLearningGoals("");
     setError(null);
@@ -43,6 +45,7 @@ const AddUserModal = () => {
     const { data, error: createError } = await studentModel.create({
       name,
       birth_year: birthYear,
+      gender,
       significant: notes || undefined,
       learning_goal: learningGoals || undefined,
     });
@@ -116,6 +119,29 @@ const AddUserModal = () => {
             maxLength={4}
             required
           />
+        </div>
+
+        {/* 성별 */}
+        <div className="flex flex-col gap-2">
+          <span className="text-title-14-semibold text-black-100">
+            성별 (선택)
+          </span>
+          <div className="flex gap-2">
+            {([["male", "남자"], ["female", "여자"]] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => { setGender(gender === value ? null : value); }}
+                className={`flex-1 rounded-lg border py-2.5 text-14-medium transition ${
+                  gender === value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-black-30 text-black-60 hover:bg-black-10"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 특이사항 */}

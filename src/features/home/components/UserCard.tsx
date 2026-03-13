@@ -34,7 +34,7 @@ const UserCard = ({ student, onClick }: UserCardProps) => {
           {student.name}
         </span>
         <span className="flex text-title-14-semibold text-black-70">
-          만 {age}세 · {student.birth_year}년생
+          만 {age}세 · {student.birth_year}년생{student.gender === "male" ? " · 남자" : student.gender === "female" ? " · 여자" : ""}
         </span>
       </div>
 

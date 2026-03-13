@@ -8,6 +8,7 @@ export interface Student {
   user_id: string;
   name: string;
   birth_year: string;
+  gender?: string | null;
   significant?: string;
   learning_goal?: string;
   created_at?: string;
@@ -16,6 +17,7 @@ export interface Student {
 export interface CreateStudentInput {
   name: string;
   birth_year: string;
+  gender?: string | null;
   significant?: string;
   learning_goal?: string;
 }
@@ -41,6 +43,7 @@ export const studentModel = {
             user_id: user.id,
             name: input.name,
             birth_year: input.birth_year,
+            gender: input.gender || null,
             significant: input.significant || null,
             learning_goal: input.learning_goal || null,
           },
@@ -111,6 +114,7 @@ export const studentModel = {
         .update({
           name: input.name,
           birth_year: input.birth_year,
+          gender: input.gender || null,
           significant: input.significant || null,
           learning_goal: input.learning_goal || null,
         })

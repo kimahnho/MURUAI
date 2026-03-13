@@ -42,7 +42,7 @@ src/features/home/
 
 ```typescript
 // 학습자
-type Student = { id: string; name: string; ... }
+type Student = { id: string; name: string; gender?: string | null; ... }
 
 // 그룹
 type Group = { id: string; name: string; members: string[]; ... }
