@@ -10,6 +10,8 @@ export type EmotionImageStyle = "photo-boy" | "photo-girl";
 interface EmotionInferenceChoiceModalProps {
   isOpen: boolean;
   isGenerating?: boolean;
+  /** true이면 선택 화면을 건너뛰고 바로 주제 입력을 표시한다. */
+  skipChoice?: boolean;
   onClose: () => void;
   onSelectTemplate: () => void;
   onSelectAi: (topic: string, imageStyle: EmotionImageStyle) => void;
@@ -26,18 +28,19 @@ const IMAGE_STYLE_OPTIONS: Array<{
 const EmotionInferenceChoiceModal = ({
   isOpen,
   isGenerating = false,
+  skipChoice = false,
   onClose,
   onSelectTemplate,
   onSelectAi,
 }: EmotionInferenceChoiceModalProps) => {
-  const [showTopicInput, setShowTopicInput] = useState(false);
+  const [showTopicInput, setShowTopicInput] = useState(skipChoice);
   const [topic, setTopic] = useState("");
   const [imageStyle, setImageStyle] = useState<EmotionImageStyle>("photo-boy");
 
   if (!isOpen) return null;
 
   const handleClose = () => {
-    setShowTopicInput(false);
+    setShowTopicInput(skipChoice);
     setTopic("");
     onClose();
   };
@@ -65,10 +68,12 @@ const EmotionInferenceChoiceModal = ({
 
         <div className="mb-5">
           <h2 className="text-title-18-semibold text-black-100">
-            감정 추론 활동
+            {skipChoice ? "AI 감정추론 활동" : "감정 추론 활동"}
           </h2>
           <p className="mt-1 text-13-regular text-black-50">
-            생성 방식을 선택해 주세요
+            {skipChoice
+              ? "주제를 입력하면 AI가 스토리를 만들어요"
+              : "생성 방식을 선택해 주세요"}
           </p>
         </div>
 
@@ -161,13 +166,17 @@ const EmotionInferenceChoiceModal = ({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setShowTopicInput(false);
-                  setTopic("");
-                }}
+                onClick={
+                  skipChoice
+                    ? handleClose
+                    : () => {
+                        setShowTopicInput(false);
+                        setTopic("");
+                      }
+                }
                 className="flex-1 rounded-xl border border-black-15 py-2.5 text-14-semibold text-black-60 transition hover:bg-black-5"
               >
-                뒤로
+                {skipChoice ? "취소" : "뒤로"}
               </button>
               <button
                 type="button"

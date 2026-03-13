@@ -96,6 +96,7 @@ src/
 | DB/Supabase | `.claude/rules/database.md` |
 | 모니터링 (Sentry/Mixpanel) | `.claude/rules/monitoring.md` |
 | AI 감정 추론 생성 | `.claude/rules/emotion-inference-ai-generation.md` |
+| 스토리북 AI 생성기 | `.claude/rules/storybook.md` |
 | 홈페이지 | `.claude/rules/home-page.md`, `.claude/rules/home.md` |
 | 내 문서 | `.claude/rules/mydoc.md` |
 | 관리자 | `.claude/rules/admin.md` |

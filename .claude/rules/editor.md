@@ -28,6 +28,8 @@ src/features/editor/
         FontContent.tsx             # 폰트 선택
         ImageLibraryContent.tsx     # 이미지 라이브러리
         TemplateContent.tsx         # 템플릿 갤러리
+        AiTemplateContent.tsx       # AI 템플릿 (스토리북 + 감정추론)
+        EmotionInferenceChoiceModal.tsx # 감정 추론 생성 방식 선택 모달
         TextContent.tsx             # 텍스트 삽입
         UploadContent.tsx           # 파일 업로드
         TableContent.tsx            # 표 행/열 속성 패널 (표 선택 시에만 자동 노출)

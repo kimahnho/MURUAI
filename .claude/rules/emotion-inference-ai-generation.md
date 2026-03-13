@@ -221,11 +221,12 @@ const emotionCards = elements.filter(
 | 인스턴스화 | `src/features/editor/templates/instantiateTemplate.ts` |
 | 페이지 팩토리 | `src/features/editor/utils/pageFactory.ts` |
 | 로고 요소 | `src/features/editor/utils/logoElement.ts` |
-| 선택 모달 | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` |
+| 선택 모달 | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` (`skipChoice` prop으로 선택 화면 스킵 가능) |
 | AI 생성 함수 | `src/features/editor/ai/generateEmotionStory.ts` |
 | 페이지 빌더 | `src/features/editor/utils/buildEmotionStoryPages.ts` |
 | 감정 이미지 조회 | `src/features/editor/utils/fetchEmotionImageMap.ts` |
 | 이미지 채우기 유틸 | `src/features/editor/utils/imageFillUtils.ts` |
-| 진입점 (호출 체인) | `src/features/editor/sections/sidebar/content/TemplateContent.tsx` |
+| 진입점 1 (템플릿 탭) | `src/features/editor/sections/sidebar/content/TemplateContent.tsx` |
+| 진입점 2 (AI 탭) | `src/features/editor/sections/sidebar/content/AiTemplateContent.tsx` (`skipChoice` — 바로 주제 입력) |
 | Page 타입 | `src/features/editor/model/pageTypes.ts` |
 | CanvasElement 타입 | `src/features/editor/model/canvasTypes.ts` |
