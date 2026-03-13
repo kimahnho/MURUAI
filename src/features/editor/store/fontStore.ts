@@ -13,8 +13,10 @@ interface FontStore {
   request: FontPayload | null;
   panelFontFamily: string;
   panelFontWeight: number;
+  usedFontFamilies: string[];
   setPanelFont: (payload: Required<FontPayload>) => void;
   applyFont: (payload: FontPayload) => void;
+  setUsedFontFamilies: (families: string[]) => void;
 }
 
 export const useFontStore = create<FontStore>((set) => ({
@@ -22,6 +24,7 @@ export const useFontStore = create<FontStore>((set) => ({
   request: null,
   panelFontFamily: "Pretendard",
   panelFontWeight: 400,
+  usedFontFamilies: [],
   setPanelFont: (payload) =>
     { set({
       panelFontFamily: payload.fontFamily,
@@ -34,4 +37,5 @@ export const useFontStore = create<FontStore>((set) => ({
       panelFontFamily: payload.fontFamily ?? state.panelFontFamily,
       panelFontWeight: payload.fontWeight ?? state.panelFontWeight,
     })); },
+  setUsedFontFamilies: (families) => { set({ usedFontFamilies: families }); },
 }));

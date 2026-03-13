@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FONT_OPTIONS } from "@/features/editor/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
+import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
 
 export const useFontContentState = () => {
   const panelFontFamily = useFontStore((state) => state.panelFontFamily);
@@ -12,6 +13,7 @@ export const useFontContentState = () => {
   const applyFont = useFontStore((state) => state.applyFont);
   const setPanelFont = useFontStore((state) => state.setPanelFont);
   const textEditingCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
+  const addRecentFont = useRecentFontStore((s) => s.addRecentFont);
   const selectedFont =
     FONT_OPTIONS.find((font) => font.family === panelFontFamily) ??
     FONT_OPTIONS[0];
@@ -39,6 +41,7 @@ export const useFontContentState = () => {
     } else {
       applyFont({ fontFamily: font.family, fontWeight: nextWeight });
     }
+    addRecentFont(font.family);
     setExpandedFontIds((prev) =>
       prev.includes(font.id) ? prev : [...prev, font.id],
     );
@@ -52,6 +55,7 @@ export const useFontContentState = () => {
     } else {
       applyFont({ fontFamily: family, fontWeight: weight });
     }
+    addRecentFont(family);
     const font = FONT_OPTIONS.find((item) => item.family === family);
     if (font) {
       setExpandedFontIds((prev) =>
