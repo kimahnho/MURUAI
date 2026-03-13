@@ -13,6 +13,52 @@ export interface StudentSummary {
   learning_goal: string | null;
 }
 
+/** 기존 학습자의 gender만 업데이트 (비차단) */
+export async function updateStudentGender(
+  studentId: string,
+  gender: "male" | "female",
+): Promise<void> {
+  const { error } = await supabase
+    .from("students_n")
+    .update({ gender })
+    .eq("id", studentId);
+  if (error) console.warn("students_n gender 업데이트 실패:", error);
+}
+
+/** 직접 입력 아동을 students_n에 신규 생성, 생성된 id 반환 */
+export async function createStudentFromWizard(info: {
+  name: string;
+  gender: "male" | "female";
+  age: number;
+  diagnosis?: string;
+  learningGoal?: string;
+}): Promise<string | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) return null;
+
+  const birthYear = String(new Date().getFullYear() - info.age);
+  const { data, error } = await supabase
+    .from("students_n")
+    .insert({
+      user_id: session.user.id,
+      name: info.name,
+      birth_year: birthYear,
+      gender: info.gender,
+      significant: info.diagnosis || null,
+      learning_goal: info.learningGoal || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("students_n 생성 실패:", error);
+    return null;
+  }
+  return data.id;
+}
+
 export async function fetchStudentsForWizard(): Promise<StudentSummary[]> {
   const { data: { session } } = await supabase.auth.getSession();
 

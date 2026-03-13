@@ -20,6 +20,10 @@ import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { generateStoryProposals } from "../ai/generateStoryProposals";
 import { generateStorybook } from "../ai/generateStorybook";
 import { buildStoryPages } from "../utils/buildStoryPages";
+import {
+  updateStudentGender,
+  createStudentFromWizard,
+} from "../data/studentService";
 
 interface StorybookWizardState {
   currentStep: WizardStep;
@@ -71,6 +75,28 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const { currentStep, formData } = get();
       if (currentStep >= 6) return;
       if (!canAdvance(currentStep, formData)) return;
+
+      // Step 1→2: 아동 정보 DB 동기화 (비차단)
+      if (currentStep === 1 && formData.childInfo) {
+        const info = formData.childInfo;
+        if (info.studentId) {
+          void updateStudentGender(info.studentId, info.gender);
+        } else {
+          void createStudentFromWizard(info).then((newId) => {
+            if (newId) {
+              set((s) => ({
+                formData: {
+                  ...s.formData,
+                  childInfo: s.formData.childInfo
+                    ? { ...s.formData.childInfo, studentId: newId }
+                    : null,
+                },
+              }));
+            }
+          });
+        }
+      }
+
       set({ currentStep: (currentStep + 1) as WizardStep, error: null });
     },
 
