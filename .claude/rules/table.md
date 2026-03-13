@@ -163,7 +163,7 @@ updateTable({ cols: cols + 1, cells: newCells, colWidths: nextColWidths });
 ## 주의사항
 
 1. **TableBox는 `usePointerDragSession` 기반** — 드래그/리사이즈/분리선 모두 이 훅 사용
-2. **셀 편집은 `contentEditable`** — 표 선택 후 셀 클릭 → 즉시 편집 진입 (하이라이트 유지). `Escape`/`Enter` → blur
+2. **셀 편집은 `contentEditable`** — 표 선택 상태에서 셀 클릭 → 편집 진입 (첫 클릭은 요소 선택만, 두 번째 클릭부터 셀 선택). `Escape`/`Enter` → blur
 3. **리사이즈·분리선 핸들은 단일 선택 상태에서 표시** — `isSelected && selectionCount === 1` (편집 중에도 표시)
 4. **`tableStore`는 에디터 캔버스 ↔ 사이드바 패널 간 선택 상태 공유 전용** — 다른 용도 사용 금지
 5. **행/열 추가·삭제 시 `colWidths`/`rowHeights` 반드시 함께 업데이트** — 누락 시 기존 간격이 균등으로 리셋됨

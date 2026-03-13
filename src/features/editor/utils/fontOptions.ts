@@ -199,6 +199,36 @@ export const FONT_OPTIONS: FontOption[] = [
   },
 ];
 
+// 문서의 모든 페이지에서 사용 중인 fontFamily를 수집한다.
+export const collectUsedFontFamilies = (
+  pages: { elements: { type: string; style?: { fontFamily?: string }; textStyle?: { fontFamily?: string }; label?: { style?: { fontFamily?: string } }; cells?: { style?: { fontFamily?: string } }[][] }[] }[],
+): string[] => {
+  const families = new Set<string>();
+  for (const page of pages) {
+    for (const el of page.elements) {
+      if (el.type === "text" && el.style?.fontFamily) {
+        families.add(el.style.fontFamily);
+      }
+      if (el.textStyle?.fontFamily) {
+        families.add(el.textStyle.fontFamily);
+      }
+      if ((el.type === "aacCard" || el.type === "emotionCard") && el.label?.style?.fontFamily) {
+        families.add(el.label.style.fontFamily);
+      }
+      if (el.type === "table" && el.cells) {
+        for (const row of el.cells) {
+          for (const cell of row) {
+            if (cell.style?.fontFamily) {
+              families.add(cell.style.fontFamily);
+            }
+          }
+        }
+      }
+    }
+  }
+  return [...families];
+};
+
 export const getFontLabel = (family: string) => {
   // 등록된 폰트가 아니면 원본 family를 반환해 커스텀 폰트도 안전하게 표시한다.
   const match = FONT_OPTIONS.find((font) => font.family === family);

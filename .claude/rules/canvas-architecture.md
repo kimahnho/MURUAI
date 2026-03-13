@@ -75,6 +75,34 @@ elements.map((el) => {
 
 감정 슬롯 요소(`isEmotionSlotShape`)의 rect 업데이트는 이동/리사이즈 **중** `handleRectChange`에서만 실시간 적용한다. 드래그 **종료** 시점(`handleDragStateChange`)에서는 중복 호출하지 않고 정리(activeInteraction 초기화, 가이드 클리어)만 수행한다.
 
+## DesignPaper overflow 규칙
+
+- 편집 모드(`readOnly=false`): `overflow-visible` — 요소가 페이지 바깥으로 나가도 보임
+- 읽기 전용(`readOnly=true`, 썸네일/PDF): `overflow-hidden` — 기존 클리핑 유지
+- 페이지 바깥 영역은 반투명 화이트 오버레이(`zIndex: 5`, `boxShadow: 0 0 0 9999px rgba(255,255,255,0.65)`)로 시각적 구분
+- SmartGuideOverlay(기준선)는 `overflow-hidden` 래퍼(`absolute inset-0`)로 감싸 페이지 바깥으로 나가지 않도록 클리핑
+
+## Z-Index 레이어 구조 (DesignPaper 내부)
+
+| 레이어 | Z-Index | 비고 |
+|--------|---------|------|
+| 일반 요소 | auto (0) | 바깥 부분은 반투명 오버레이로 페이드 |
+| 반투명 오버레이 | 5 | 페이지 바깥 영역 화이트 덮개 |
+| 이미지 편집 딤 | 10 | 크롭 편집 시 어두운 오버레이 |
+| 편집 중 요소 | 20 | 이미지 편집 대상 요소 |
+| SmartGuideOverlay 래퍼 | 20 | overflow-hidden 래퍼 |
+| GroupSelectionOverlay | 30 | 다중 선택 바운딩 박스 |
+| SelectionRectOverlay | 40 | 드래그 선택 사각형 |
+| ShapeTransformBar | 50 | 회전/반전 버튼 + 회전 핸들 |
+| FixedToolBar | 50 | 텍스트 인라인 툴바 |
+| RotationBadge | 9999 | 회전 중 각도 표시 |
+
+새 오버레이/컨트롤 추가 시 이 레이어 순서를 준수해야 한다.
+
+## 컨텍스트 메뉴 portal 패턴
+
+`DesignPaperContextMenu`는 `createPortal(menu, document.body)`로 렌더링한다. DesignPaper 내부에 두면 `overflow-hidden`(readOnly)이나 상위 `transform: scale()`에 의해 `position: fixed`가 깨진다.
+
 ## 대형 컴포넌트 분리 기준
 
 - 훅 10개 이상 또는 500줄 이상인 컴포넌트는 분리를 검토한다
@@ -91,3 +119,6 @@ elements.map((el) => {
 | 페이지 변경 유틸 | `src/features/editor/utils/pageMutation.ts` |
 | 표 스토어 | `src/features/editor/store/tableStore.ts` |
 | 인터랙션 훅 | `src/features/editor/sections/canvas/hooks/useDesignPaperInteraction.ts` |
+| 컨텍스트 메뉴 | `src/features/editor/sections/canvas/DesignPaperContextMenu.tsx` |
+| 스마트 가이드 오버레이 | `src/features/editor/sections/canvas/SmartGuideOverlay.tsx` |
+| 변형 바 (회전/반전) | `src/features/editor/sections/canvas/ShapeTransformBar.tsx` |

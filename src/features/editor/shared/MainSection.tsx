@@ -43,6 +43,7 @@ import type { PanelData } from "../store/elementPanelStore";
 import { moveLayerByDirection } from "../utils/layerUtils";
 import { updateElementsByPageId } from "../utils/pageMutation";
 import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
+import { collectUsedFontFamilies } from "../utils/fontOptions";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -97,6 +98,7 @@ const MainSection = () => {
   );
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
+  const setUsedFontFamilies = useFontStore((state) => state.setUsedFontFamilies);
   const { pages, setPages, selectedPageId, setSelectedPageId } =
     useInitialPageState({ loadedDocument, orientation });
   const selectedPageIdRef = useRef(selectedPageId);
@@ -132,6 +134,11 @@ const MainSection = () => {
   useSyncedRef(pagesRef, pages);
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
+
+  // 페이지 요소의 폰트 변경을 감지해 "사용중인 글꼴" 목록을 갱신한다.
+  useEffect(() => {
+    setUsedFontFamilies(collectUsedFontFamilies(pages));
+  }, [pages, setUsedFontFamilies]);
 
   // 자동 저장 시작 조건:
   // 1) 문서 ID가 없는 신규 문서이거나

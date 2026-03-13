@@ -1,13 +1,15 @@
 /**
  * 사이드바 속성 패널 내에서 펼쳐지는 인라인 폰트 선택 리스트.
  * 폰트 클릭 시 사이드바 전환 없이 리스트가 열리고,
+ * "사용중인 글꼴" → "최근 사용 글꼴" → "모든 글꼴" 3섹션 구조로 표시한다.
  * 같은 폰트를 사용하는 요소가 있으면 하단에 일괄 변경 버튼이 표시된다.
  */
 import { useState } from "react";
-import { ArrowRight, Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
-import { FONT_OPTIONS, getFontLabel } from "@/features/editor/utils/fontOptions";
+import { ArrowRight, Check, ChevronDown, ChevronRight, ChevronUp, Star, Clock, Type } from "lucide-react";
+import { FONT_OPTIONS, getFontLabel, type FontOption } from "@/features/editor/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
+import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
 
 const SAMPLE_TEXT = "가나다 ABC 123";
 
@@ -23,9 +25,12 @@ interface InlineFontPickerProps {
 const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPickerProps) => {
   const applyFont = useFontStore((s) => s.applyFont);
   const fontWeight = useFontStore((s) => s.panelFontWeight);
+  const usedFontFamilies = useFontStore((s) => s.usedFontFamilies);
   const changeAllMatchingFonts = useElementPanelStore((s) => s.changeAllMatchingFonts);
   const hasMatchingFonts = useElementPanelStore((s) => s.hasMatchingFonts);
   const textEditingCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
+  const recentFonts = useRecentFontStore((s) => s.recentFonts);
+  const addRecentFont = useRecentFontStore((s) => s.addRecentFont);
 
   const [isOpen, setIsOpen] = useState(false);
   const [expandedFontIds, setExpandedFontIds] = useState<string[]>([]);
@@ -51,13 +56,13 @@ const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPicke
       ? fontWeight
       : (font.weights[0]?.value ?? 400);
 
-    // 편집 중이면 선택 범위에만 인라인 적용하고, 아니면 요소 전체에 적용
     if (textEditingCallbacks) {
       textEditingCallbacks.onFontFamilyChange(font.family, nextWeight);
       useFontStore.getState().setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
     } else {
       applyFont({ fontFamily: font.family, fontWeight: nextWeight });
     }
+    addRecentFont(font.family);
   };
 
   const handleSelectWeight = (family: string, weight: number) => {
@@ -67,6 +72,7 @@ const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPicke
     } else {
       applyFont({ fontFamily: family, fontWeight: weight });
     }
+    addRecentFont(family);
   };
 
   const toggleExpand = (fontId: string) => {
@@ -81,6 +87,74 @@ const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPicke
     : [selectedFont.id, ...expandedFontIds];
 
   const mouseDownHandler = preventFocus ? (e: React.MouseEvent) => e.preventDefault() : undefined;
+
+  const usedFontOptions = FONT_OPTIONS.filter((f) =>
+    usedFontFamilies.includes(f.family),
+  );
+  const recentFontOptions = recentFonts
+    .map((family) => FONT_OPTIONS.find((f) => f.family === family))
+    .filter((f): f is FontOption => f !== undefined);
+
+  const renderFontRow = (font: FontOption) => {
+    const isSelected = font.id === selectedFont.id;
+    const isExpanded = effectiveExpandedFontIds.includes(font.id);
+    const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+    return (
+      <div key={font.id} className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
+        <div className="flex items-start gap-2 px-3 py-2.5 hover:bg-black-20">
+          <button
+            type="button"
+            onMouseDown={mouseDownHandler}
+            onClick={() => toggleExpand(font.id)}
+            className="mt-0.5 flex h-5 w-5 items-center justify-center text-black-60"
+          >
+            <ChevronIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={mouseDownHandler}
+            onClick={() => handleSelectFont(font.family)}
+            className="flex flex-1 flex-col items-start gap-0.5 text-left"
+          >
+            <span className="text-13-semibold text-black-90" style={{ fontFamily: font.family, fontWeight: 400 }}>
+              {font.label}
+            </span>
+            <span className="text-11-regular text-black-60" style={{ fontFamily: font.family, fontWeight: 400 }}>
+              {SAMPLE_TEXT}
+            </span>
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="px-3 pb-2">
+            <div className="flex flex-col gap-1">
+              {font.weights.map((weight) => {
+                const isActive = fontFamily === font.family && fontWeight === weight.value;
+                return (
+                  <button
+                    key={weight.value}
+                    type="button"
+                    onMouseDown={mouseDownHandler}
+                    onClick={() => handleSelectWeight(font.family, weight.value)}
+                    className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-1.5 text-13-regular transition ${
+                      isActive ? "bg-primary/10 text-primary" : "text-black-70 hover:bg-black-10"
+                    }`}
+                  >
+                    <span className="grid flex-1 min-w-0 grid-cols-2 items-center text-left">
+                      <span className="text-left">{weight.label}</span>
+                      <span className="text-11-regular text-black-60 text-left" style={{ fontFamily: font.family, fontWeight: weight.value }}>
+                        {SAMPLE_TEXT}
+                      </span>
+                    </span>
+                    <Check className={`h-3.5 w-3.5 ${isActive ? "opacity-100" : "opacity-0"}`} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -100,66 +174,37 @@ const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPicke
       {isOpen && (
         <div className="relative flex flex-col">
           <div className="max-h-60 overflow-y-auto rounded-lg border border-black-25 bg-white-100">
-            {FONT_OPTIONS.map((font) => {
-              const isSelected = font.id === selectedFont.id;
-              const isExpanded = effectiveExpandedFontIds.includes(font.id);
-              const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
-              return (
-                <div key={font.id} className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
-                  <div className="flex items-start gap-2 px-3 py-2.5 hover:bg-black-20">
-                    <button
-                      type="button"
-                      onMouseDown={mouseDownHandler}
-                      onClick={() => toggleExpand(font.id)}
-                      className="mt-0.5 flex h-5 w-5 items-center justify-center text-black-60"
-                    >
-                      <ChevronIcon className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={mouseDownHandler}
-                      onClick={() => handleSelectFont(font.family)}
-                      className="flex flex-1 flex-col items-start gap-0.5 text-left"
-                    >
-                      <span className="text-13-semibold text-black-90" style={{ fontFamily: font.family, fontWeight: 400 }}>
-                        {font.label}
-                      </span>
-                      <span className="text-11-regular text-black-60" style={{ fontFamily: font.family, fontWeight: 400 }}>
-                        {SAMPLE_TEXT}
-                      </span>
-                    </button>
+            {usedFontOptions.length > 0 && (
+              <>
+                <div className="mb-0.5">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-11-semibold text-black-60">
+                    <Star className="h-3 w-3" />
+                    사용중인 글꼴
                   </div>
-                  {isExpanded && (
-                    <div className="px-3 pb-2">
-                      <div className="flex flex-col gap-1">
-                        {font.weights.map((weight) => {
-                          const isActive = fontFamily === font.family && fontWeight === weight.value;
-                          return (
-                            <button
-                              key={weight.value}
-                              type="button"
-                              onMouseDown={mouseDownHandler}
-                              onClick={() => handleSelectWeight(font.family, weight.value)}
-                              className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-1.5 text-13-regular transition ${
-                                isActive ? "bg-primary/10 text-primary" : "text-black-70 hover:bg-black-10"
-                              }`}
-                            >
-                              <span className="grid flex-1 min-w-0 grid-cols-2 items-center text-left">
-                                <span className="text-left">{weight.label}</span>
-                                <span className="text-11-regular text-black-60 text-left" style={{ fontFamily: font.family, fontWeight: weight.value }}>
-                                  {SAMPLE_TEXT}
-                                </span>
-                              </span>
-                              <Check className={`h-3.5 w-3.5 ${isActive ? "opacity-100" : "opacity-0"}`} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {usedFontOptions.map(renderFontRow)}
                 </div>
-              );
-            })}
+                <div className="mx-3 border-b border-black-15" />
+              </>
+            )}
+            {recentFontOptions.length > 0 && (
+              <>
+                <div className="mb-0.5">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-11-semibold text-black-60">
+                    <Clock className="h-3 w-3" />
+                    최근 사용 글꼴
+                  </div>
+                  {recentFontOptions.map(renderFontRow)}
+                </div>
+                <div className="mx-3 border-b border-black-15" />
+              </>
+            )}
+            <div className="mb-0.5">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 text-11-semibold text-black-60">
+                <Type className="h-3 w-3" />
+                모든 글꼴
+              </div>
+              {FONT_OPTIONS.map(renderFontRow)}
+            </div>
           </div>
 
           {/* 하단 고정: 같은 글꼴 일괄 변경 */}

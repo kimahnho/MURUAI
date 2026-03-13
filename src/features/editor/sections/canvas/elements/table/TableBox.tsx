@@ -118,6 +118,8 @@ export const TableBox = ({
   const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
   const [hoveredColDivider, setHoveredColDivider] = useState<number | null>(null);
   const [hoveredRowDivider, setHoveredRowDivider] = useState<number | null>(null);
+  // 현재 포인터 이벤트 시작 시점에 테이블이 이미 선택 상태였는지 추적 — 첫 클릭은 요소 선택만, 두 번째 클릭부터 셀 선택
+  const wasSelectedBeforePointerRef = useRef(false);
   // tableStore를 단일 진실 공급원으로 사용
   const selectedCells = useTableStore((s) => s.selectedCells);
   const setSelectedCells = useTableStore((s) => s.setSelectedCells);
@@ -141,6 +143,9 @@ export const TableBox = ({
     if (locked) return;
 
     event.stopPropagation();
+
+    // 포인터 시작 시점의 선택 상태 기록
+    wasSelectedBeforePointerRef.current = isSelected;
 
     if (!isSelected) {
       onSelectChange?.(true, { additive: event.shiftKey });
@@ -433,8 +438,8 @@ export const TableBox = ({
                   backgroundColor: isCellSelected ? "rgba(85, 0, 255, 0.08)" : undefined,
                 }}
                 onClick={(event) => {
-                  // 표가 선택된 상태에서 셀 클릭 → 즉시 편집 진입 + 셀 선택 동시 적용
-                  if (!isSelected || locked) return;
+                  // 첫 클릭(요소 선택)에서는 셀 선택하지 않음 — 두 번째 클릭부터 셀 선택/편집 진입
+                  if (!wasSelectedBeforePointerRef.current || locked) return;
                   event.stopPropagation();
 
                   if (event.shiftKey && selectedCells.length > 0) {

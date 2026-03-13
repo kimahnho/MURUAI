@@ -2,6 +2,7 @@
  * 요소 우클릭 시 노출되는 컨텍스트 메뉴 액션을 제공하는 컴포넌트.
  */
 import { useRef, type Dispatch, type SetStateAction } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpFromLine,
   ArrowUpToLine,
@@ -148,7 +149,8 @@ export const DesignPaperContextMenu = ({
     },
   ];
 
-  return (
+  // transform된 부모 안에서 position:fixed가 깨지므로 portal로 body에 마운트한다.
+  return createPortal(
     <div
       className="fixed z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
@@ -260,6 +262,7 @@ export const DesignPaperContextMenu = ({
           mainMenuRef={mainMenuRef}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   );
 };
