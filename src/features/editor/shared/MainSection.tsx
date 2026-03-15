@@ -18,6 +18,8 @@ import type { SpellCheckResult } from "../ai/checkSpelling";
 import { applyCorrections } from "../utils/applySpellCorrections";
 import { useSpellCheckStore } from "../store/spellCheckStore";
 import CanvasStage from "../sections/canvas/CanvasStage";
+import EmotionSceneBanner from "../sections/canvas/EmotionSceneBanner";
+import VocabTracingBanner from "../sections/canvas/VocabTracingBanner";
 import SpellCheckPanel from "./SpellCheckPanel";
 import SpellCheckToast from "./SpellCheckToast";
 import { useTemplateStore } from "../store/templateStore";
@@ -727,6 +729,8 @@ const MainSection = () => {
         onDeleteElements={handleDeleteElements}
         aiTipKey={location.key}
       />
+      <EmotionSceneBanner pages={pages} />
+      <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
       <SpellCheckPanel />
       <SpellCheckToast />
       <Suspense fallback={null}>
