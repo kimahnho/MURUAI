@@ -99,6 +99,23 @@ elements.map((el) => {
 
 새 오버레이/컨트롤 추가 시 이 레이어 순서를 준수해야 한다.
 
+## 복사/붙여넣기 labelId 리맵
+
+`useDesignPaperClipboard.ts`의 `pasteElements`에서 2-pass ID 매핑으로 `labelId` 참조 무결성을 유지한다.
+
+```typescript
+// 1st pass: 모든 클립보드 요소에 새 UUID 할당 → idMap 구성
+const idMap = new Map<string, string>();
+clipboard.forEach((el) => idMap.set(el.id, crypto.randomUUID()));
+
+// 2nd pass: idMap으로 labelId 리맵 (참조 대상이 클립보드에 없으면 원본 유지)
+const nextLabelId = idMap.get(element.labelId) ?? element.labelId;
+```
+
+- `groupId`도 동일한 `groupIdMap` 패턴으로 리맵 (기존 로직)
+- `lockHeight: true`인 text 요소는 높이 재측정을 스킵해 원본 크기를 유지한다
+- 어휘 학습 카드의 `imageSlot(labelId)` ↔ `text(id)` 연결이 복사 후에도 유지됨
+
 ## 컨텍스트 메뉴 portal 패턴
 
 `DesignPaperContextMenu`는 `createPortal(menu, document.body)`로 렌더링한다. DesignPaper 내부에 두면 `overflow-hidden`(readOnly)이나 상위 `transform: scale()`에 의해 `position: fixed`가 깨진다.
