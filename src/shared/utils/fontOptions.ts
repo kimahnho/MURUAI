@@ -1,6 +1,8 @@
 /**
  * 에디터 폰트 옵션 목록과 폰트 메타데이터 유틸을 제공하는 모듈.
  */
+import { CDN_FONT_ENTRIES } from "./cdnFontRegistry";
+
 export type FontWeightOption = {
   label: string;
   value: number;
@@ -11,13 +13,21 @@ export type FontOption = {
   label: string;
   family: string;
   weights: FontWeightOption[];
+  source?: "builtin" | "cdn";
 };
 
 // 숫자 weight를 사용자 표시용 한국어 라벨로 매핑한다.
 const weightLabelMap: Record<number, string> = {
+  100: "가장 얇은",
+  200: "매우 얇은",
+  300: "얇은",
   400: "보통",
+  500: "중간",
+  600: "반 굵은",
   700: "굵은",
   800: "매우 굵은",
+  900: "가장 굵은",
+  950: "극굵은",
 };
 
 export const FONT_OPTIONS: FontOption[] = [
@@ -197,6 +207,16 @@ export const FONT_OPTIONS: FontOption[] = [
       { label: weightLabelMap[700], value: 700 },
     ],
   },
+  ...CDN_FONT_ENTRIES.map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    family: entry.family,
+    source: "cdn" as const,
+    weights: entry.files.map((f) => ({
+      label: weightLabelMap[f.weight] ?? `${f.weight}`,
+      value: f.weight,
+    })),
+  })),
 ];
 
 // 문서의 모든 페이지에서 사용 중인 fontFamily를 수집한다.

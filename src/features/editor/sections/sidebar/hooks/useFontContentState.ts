@@ -6,6 +6,7 @@ import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
+import { loadCdnFont } from "@/shared/utils/cdnFontLoader";
 
 export const useFontContentState = () => {
   const panelFontFamily = useFontStore((state) => state.panelFontFamily);
@@ -34,35 +35,52 @@ export const useFontContentState = () => {
       ? panelFontWeight
       : (font.weights[0]?.value ?? 400);
 
-    // 편집 중이면 선택 범위에만 인라인 적용
-    if (textEditingCallbacks) {
-      textEditingCallbacks.onFontFamilyChange(font.family, nextWeight);
-      setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
-    } else {
-      applyFont({ fontFamily: font.family, fontWeight: nextWeight });
-    }
-    addRecentFont(font.family);
-    setExpandedFontIds((prev) =>
-      prev.includes(font.id) ? prev : [...prev, font.id],
-    );
-    setHasTouchedExpand(true);
-  };
-
-  const handleWeightSelect = (family: string, weight: number) => {
-    if (textEditingCallbacks) {
-      textEditingCallbacks.onFontFamilyChange(family, weight);
-      setPanelFont({ fontFamily: family, fontWeight: weight });
-    } else {
-      applyFont({ fontFamily: family, fontWeight: weight });
-    }
-    addRecentFont(family);
-    const font = FONT_OPTIONS.find((item) => item.family === family);
-    if (font) {
+    const applySelection = () => {
+      if (textEditingCallbacks) {
+        textEditingCallbacks.onFontFamilyChange(font.family, nextWeight);
+        setPanelFont({ fontFamily: font.family, fontWeight: nextWeight });
+      } else {
+        applyFont({ fontFamily: font.family, fontWeight: nextWeight });
+      }
+      addRecentFont(font.family);
       setExpandedFontIds((prev) =>
         prev.includes(font.id) ? prev : [...prev, font.id],
       );
+      setHasTouchedExpand(true);
+    };
+
+    // CDN 폰트는 로드 후 적용
+    if (font.source === "cdn") {
+      void loadCdnFont(font.family).then(applySelection);
+    } else {
+      applySelection();
     }
-    setHasTouchedExpand(true);
+  };
+
+  const handleWeightSelect = (family: string, weight: number) => {
+    const applySelection = () => {
+      if (textEditingCallbacks) {
+        textEditingCallbacks.onFontFamilyChange(family, weight);
+        setPanelFont({ fontFamily: family, fontWeight: weight });
+      } else {
+        applyFont({ fontFamily: family, fontWeight: weight });
+      }
+      addRecentFont(family);
+      const font = FONT_OPTIONS.find((item) => item.family === family);
+      if (font) {
+        setExpandedFontIds((prev) =>
+          prev.includes(font.id) ? prev : [...prev, font.id],
+        );
+      }
+      setHasTouchedExpand(true);
+    };
+
+    const font = FONT_OPTIONS.find((item) => item.family === family);
+    if (font?.source === "cdn") {
+      void loadCdnFont(family, weight).then(applySelection);
+    } else {
+      applySelection();
+    }
   };
 
   const toggleExpand = (fontId: string) => {
