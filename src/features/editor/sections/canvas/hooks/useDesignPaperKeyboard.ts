@@ -67,6 +67,34 @@ export const useDesignPaperKeyboard = ({
       if (isEditableTarget(event.target)) return;
 
       const currentSelectedIds = selectedIdsRef.current;
+
+      // 선택된 텍스트 요소에 Ctrl+B → 전체 bold 토글
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "b" &&
+        currentSelectedIds.length === 1
+      ) {
+        const selectedId = currentSelectedIds[0];
+        const selectedElement = elements.find((el) => el.id === selectedId);
+        if (selectedElement?.type === "text" && !selectedElement.locked) {
+          event.preventDefault();
+          const isBold = selectedElement.style.fontWeight === "bold";
+          const updatedElements = elements.map((el) =>
+            el.id === selectedId && el.type === "text"
+              ? {
+                  ...el,
+                  style: {
+                    ...el.style,
+                    fontWeight: isBold ? ("normal" as const) : ("bold" as const),
+                  },
+                }
+              : el,
+          );
+          onElementsChange(updatedElements);
+          return;
+        }
+      }
+
       if (
         (event.key === "Process" || event.key === "Unidentified") &&
         !event.metaKey &&

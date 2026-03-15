@@ -8,6 +8,7 @@ import type { StoryItem } from "../ai/generateEmotionStory";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import { withLogoCanvasElements } from "./logoElement";
 import { calculateCoverImageBox } from "./imageFillUtils";
+import { bumpPageRevision } from "./pageRevision";
 import { emotionInferencePage1 } from "../templates/emotion_inference/page_1";
 import { emotionInferencePage2 } from "../templates/emotion_inference/page_2";
 import { emotionInferencePage3 } from "../templates/emotion_inference/page_3";
@@ -175,4 +176,43 @@ export const buildEmotionStoryPages = (
   const allPages = [...fixedPages, ...storyPages];
   // pageNumber는 MainSection에서 기존 pages와 합산 후 재계산하므로 여기선 임시값 사용
   return allPages.map((page, index) => ({ ...page, pageNumber: index + 1 }));
+};
+
+/**
+ * 기존 페이지의 히어로 박스를 이미지로 패치한다.
+ * 첫 생성(회색 플레이스홀더)과 재생성(기존 히어로 이미지 덮어쓰기) 모두 지원한다.
+ */
+export const patchHeroImagesOnPages = (
+  pages: Page[],
+  heroImageMap: Map<string, string>,
+): Page[] => {
+  return pages.map((page) => {
+    const heroUrl = heroImageMap.get(page.id);
+    if (!heroUrl) return page;
+
+    let didChange = false;
+    const nextElements = page.elements.map((el) => {
+      if (el.type !== "roundRect" || el.subType) return el;
+
+      const isGrayPlaceholder = el.fill === "#D1D5DB";
+      const isExistingHero =
+        typeof el.fill === "string" &&
+        el.fill.startsWith("url(") &&
+        el.isStandaloneImage;
+      if (!isGrayPlaceholder && !isExistingHero) return el;
+
+      didChange = true;
+      const imageBox = calculateCoverImageBox(el.w, el.h, 1024, 576);
+      return {
+        ...el,
+        fill: `url(${heroUrl})`,
+        imageBox,
+        isStandaloneImage: true,
+      };
+    });
+
+    return didChange
+      ? bumpPageRevision({ ...page, elements: nextElements })
+      : page;
+  });
 };

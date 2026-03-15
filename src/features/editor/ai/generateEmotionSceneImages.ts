@@ -27,44 +27,37 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env
 const SCENE_STYLE_PROMPT = `SCENE SETTING (Default: Modern South Korea, 2024):
 Background must depict ONE specific Korean everyday environment with enough detail for children to immediately recognize the setting. Choose the most contextually appropriate:
 
-- Korean apartment living room: sofa, low coffee table, TV on a stand, one framed picture on wall, wooden floor
+- Korean apartment living room: sofa, low coffee table, TV on a stand, framed picture on wall, wooden floor
 - Elementary school classroom: rows of desks, blackboard/whiteboard at front, windows on one side, teacher's desk, wall clock
 - Korean convenience store: refrigerator units along back wall, product shelves (2–3 rows), checkout counter with register
 - Neighborhood park: paved path, 1–2 benches, 2–3 trees, distant apartment buildings visible in background
 - School cafeteria: long tables with benches, food tray station visible, plain walls
 - Home kitchen/dining area: dining table with chairs, kitchen counter, refrigerator
 
-Background detail level: recognizable and contextually rich enough to set the scene, but NOT cluttered. Each background element must be simple and iconic — drawn in the same flat illustration style. Avoid micro-details (individual books on shelves, item labels, small decorations). Maximum 5–6 background elements total.
+Background detail level: recognizable and contextually rich, but NOT cluttered. Background should feel natural and lived-in with realistic lighting and depth.
 
 CHARACTERS:
 - MAXIMUM 4 characters. Only as many as the social situation requires — no extras.
 - No crowds, no bystanders, no partially-visible figures at scene edges.
-- Simple cartoon-style Korean children or adults (age appropriate to the scenario).
-- Each character shows ONE clear, unambiguous emotion — large, readable facial expression.
-- Clothing: solid single-color only (no patterns, no stripes, no logos, no text).
+- Realistic-looking Korean children or adults (age appropriate to the scenario) — NOT cartoon or illustrated.
+- Each character shows ONE clear, unambiguous emotion with a natural, realistic facial expression.
+- Clothing: casual, everyday Korean children's clothing with natural colors and textures.
 - No accessories unless directly required by the scenario.
 - Characters clearly grouped and centered — not scattered across the frame.
 
-COLOR PALETTE:
-- Maximum 6 distinct colors across the ENTIRE image.
-- Soft, muted tones — no saturated neon or harsh primary colors.
-- Background uses warm neutral tones (beige, light gray, soft wood tones) to feel Korean and grounded.
-- Characters use simple, distinct colors so each person is visually separated.
-
 STYLE:
-- Flat illustration with clean, confident outlines.
-- No gradients, no textures, no photorealism, no depth-of-field blur.
-- Optional: single flat drop shadow beneath characters only.
-- Light, airy feel — not dark or heavy.
+- Photorealistic style — the image should look like a real photograph or a high-quality 3D render.
+- Natural lighting with soft shadows and depth.
+- Warm, natural color tones — the scene should feel inviting and realistic.
+- Slight shallow depth-of-field is acceptable to keep focus on characters.
+- The overall mood should be warm, bright, and child-friendly.
 
 MANDATORY PROHIBITIONS:
-- NO light bloom, glow, sparkle, lens flare, shimmer, or luminance effects
-- NO specular highlights or reflective surfaces
-- NO busy patterns on any element (walls, floors, clothing, furniture)
-- NO text, labels, numbers, or symbols anywhere
-- NO motion blur or action lines
+- NO cartoon, illustration, flat art, or anime style — MUST be photorealistic
+- NO text, labels, numbers, or symbols anywhere in the image
 - NO decorative borders or frames
-- NO micro-details that fragment visual attention
+- NO overly dramatic lighting or dark atmosphere
+- NO uncanny valley — characters should look natural
 
 COMPOSITION:
 - Social interaction occupies the center of the frame.
@@ -186,8 +179,9 @@ const generateSingleSceneImage = async (
 
 Scene: ${sceneDescription}
 
-Use the attached character reference image as the main character in this scene.
-The character should show the appropriate emotion for the situation described.`;
+Use the attached character reference photo as the main character in this scene.
+The character must look like a real person matching the reference photo — same realistic style, NOT cartoon or illustrated.
+The character should show the appropriate emotion for the situation described with a natural facial expression.`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {

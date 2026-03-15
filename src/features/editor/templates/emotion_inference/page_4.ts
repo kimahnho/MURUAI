@@ -24,12 +24,12 @@ const dateYmm = 10;
 const titleWidthMm = 160;
 const titleHeightMm = 12;
 const titleXmm = (pageWidthMm - titleWidthMm) / 2;
-const titleYmm = 38;
+const titleYmm = 33;
 
 const heroWidthMm = 160;
 const heroHeightMm = 90;
 const heroXmm = (pageWidthMm - heroWidthMm) / 2;
-const heroYmm = 58;
+const heroYmm = 65;
 
 const questionWidthMm = 160;
 const questionHeightMm = 10;
