@@ -1,14 +1,18 @@
 /**
  * 폰트 패널에서 폰트/크기/정렬 옵션을 선택하고 선택 요소에 반영하는 컴포넌트.
- * "사용중인 글꼴" → "최근 사용 글꼴" → "모든 글꼴" 3섹션 구조로 표시한다.
+ * "사용중인 글꼴" → "최근 사용 글꼴" → "기본 글꼴" → "추가 글꼴" 구조로 표시한다.
  */
-import { Check, ChevronDown, ChevronRight, Star, Clock, Type } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Check, ChevronDown, ChevronRight, Star, Clock, Type, Search } from "lucide-react";
 import { FONT_OPTIONS, type FontOption } from "@/shared/utils/fontOptions";
 import { useFontStore } from "@/features/editor/store/fontStore";
 import { useRecentFontStore } from "@/features/editor/store/recentFontStore";
 import { useFontContentState } from "../hooks/useFontContentState";
+import { loadCdnFont, isFontLoaded } from "@/shared/utils/cdnFontLoader";
 
 const SAMPLE_TEXT = "가나다 ABC 123";
+const BUILTIN_FONTS = FONT_OPTIONS.filter((f) => f.source !== "cdn");
+const CDN_FONTS = FONT_OPTIONS.filter((f) => f.source === "cdn");
 
 type FontRowProps = {
   font: FontOption;
@@ -32,8 +36,27 @@ const FontRow = ({
   onSelectWeight,
 }: FontRowProps) => {
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [isFontReady, setIsFontReady] = useState(font.source !== "cdn" || isFontLoaded(font.family));
+
+  // CDN 폰트가 뷰포트에 들어오면 로드해서 샘플 텍스트를 표시한다.
+  useEffect(() => {
+    if (font.source !== "cdn" || isFontReady) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          void loadCdnFont(font.family, 400).then(() => setIsFontReady(true));
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100px" },
+    );
+    if (rowRef.current) observer.observe(rowRef.current);
+    return () => observer.disconnect();
+  }, [font.family, font.source, isFontReady]);
+
   return (
-    <div className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
+    <div ref={rowRef} className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
       <div className="flex items-start gap-2 px-3 py-3 hover:bg-black-20 rounded-lg">
         <button
           type="button"
@@ -52,13 +75,13 @@ const FontRow = ({
         >
           <span
             className="text-14-semibold text-black-90"
-            style={{ fontFamily: font.family, fontWeight: 400 }}
+            style={{ fontFamily: isFontReady ? font.family : "inherit", fontWeight: 400 }}
           >
             {font.label}
           </span>
           <span
             className="text-12-regular text-black-60"
-            style={{ fontFamily: font.family, fontWeight: 400 }}
+            style={{ fontFamily: isFontReady ? font.family : "inherit", fontWeight: 400, opacity: isFontReady ? 1 : 0.5 }}
           >
             {SAMPLE_TEXT}
           </span>
@@ -176,6 +199,7 @@ const FontContent = () => {
 
   const usedFontFamilies = useFontStore((s) => s.usedFontFamilies);
   const recentFonts = useRecentFontStore((s) => s.recentFonts);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const usedFontOptions = FONT_OPTIONS.filter((f) =>
     usedFontFamilies.includes(f.family),
@@ -183,6 +207,15 @@ const FontContent = () => {
   const recentFontOptions = recentFonts
     .map((family) => FONT_OPTIONS.find((f) => f.family === family))
     .filter((f): f is FontOption => f !== undefined);
+
+  const isSearching = searchQuery.trim().length > 0;
+  const filteredFonts = isSearching
+    ? FONT_OPTIONS.filter(
+        (f) =>
+          f.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.family.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : null;
 
   const sharedProps = {
     selectedFontId,
@@ -201,35 +234,77 @@ const FontContent = () => {
       </div>
       <div className="flex flex-1 flex-col gap-2 min-h-0">
         <div className="text-14-semibold text-black-90">글꼴</div>
-        <div className="flex flex-1 flex-col min-h-0 overflow-y-auto rounded-lg bg-white-100">
-          {usedFontOptions.length > 0 && (
-            <>
-              <FontSection
-                icon={Star}
-                title="사용중인 글꼴"
-                fonts={usedFontOptions}
-                {...sharedProps}
-              />
-              <div className="mx-3 border-b border-black-15" />
-            </>
-          )}
-          {recentFontOptions.length > 0 && (
-            <>
-              <FontSection
-                icon={Clock}
-                title="최근 사용 글꼴"
-                fonts={recentFontOptions}
-                {...sharedProps}
-              />
-              <div className="mx-3 border-b border-black-15" />
-            </>
-          )}
-          <FontSection
-            icon={Type}
-            title="모든 글꼴"
-            fonts={FONT_OPTIONS}
-            {...sharedProps}
+        {/* 검색 입력 */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black-40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onMouseDown={(e) => e.preventDefault()}
+            onFocus={(e) => e.target.removeAttribute("readonly")}
+            placeholder="글꼴 검색"
+            className="w-full rounded-lg border border-black-15 bg-white-100 py-2 pl-8 pr-3 text-13-regular text-black-90 placeholder:text-black-40 focus:border-primary focus:outline-none"
           />
+        </div>
+        <div className="flex flex-1 flex-col min-h-0 overflow-y-auto rounded-lg bg-white-100">
+          {isSearching ? (
+            // 검색 결과
+            filteredFonts!.length > 0 ? (
+              <FontSection
+                icon={Search}
+                title={`검색 결과 (${filteredFonts!.length})`}
+                fonts={filteredFonts!}
+                {...sharedProps}
+              />
+            ) : (
+              <div className="px-3 py-8 text-center text-13-regular text-black-50">
+                검색 결과가 없습니다.
+              </div>
+            )
+          ) : (
+            <>
+              {usedFontOptions.length > 0 && (
+                <>
+                  <FontSection
+                    icon={Star}
+                    title="사용중인 글꼴"
+                    fonts={usedFontOptions}
+                    {...sharedProps}
+                  />
+                  <div className="mx-3 border-b border-black-15" />
+                </>
+              )}
+              {recentFontOptions.length > 0 && (
+                <>
+                  <FontSection
+                    icon={Clock}
+                    title="최근 사용 글꼴"
+                    fonts={recentFontOptions}
+                    {...sharedProps}
+                  />
+                  <div className="mx-3 border-b border-black-15" />
+                </>
+              )}
+              <FontSection
+                icon={Type}
+                title="기본 글꼴"
+                fonts={BUILTIN_FONTS}
+                {...sharedProps}
+              />
+              {CDN_FONTS.length > 0 && (
+                <>
+                  <div className="mx-3 border-b border-black-15" />
+                  <FontSection
+                    icon={Type}
+                    title="추가 글꼴"
+                    fonts={CDN_FONTS}
+                    {...sharedProps}
+                  />
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -106,9 +106,15 @@ export const useDesignPaperClipboard = ({
       position && bounds && Number.isFinite(bounds.minY)
         ? position.y - bounds.minY
         : offset;
+    // 1st pass: 모든 요소에 새 ID를 할당하고 매핑을 구성한다 (labelId 리맵용)
+    const idMap = new Map<string, string>();
+    for (const el of clipboard) {
+      idMap.set(el.id, crypto.randomUUID());
+    }
+
     const groupIdMap = new Map<string, string>();
     const nextElements = clipboard.map((element) => {
-      const id = crypto.randomUUID();
+      const id = idMap.get(element.id) ?? crypto.randomUUID();
       const nextGroupId =
         element.groupId != null
           ? groupIdMap.get(element.groupId) ??
@@ -117,6 +123,13 @@ export const useDesignPaperClipboard = ({
               groupIdMap.set(element.groupId, newId);
               return newId;
             })()
+          : undefined;
+      // labelId 리맵: 참조 대상이 클립보드에 포함된 경우 새 ID로 교체한다
+      const nextLabelId =
+        "labelId" in element &&
+        typeof element.labelId === "string" &&
+        element.labelId
+          ? idMap.get(element.labelId) ?? element.labelId
           : undefined;
       if (element.type === "line" || element.type === "arrow") {
         return {
@@ -153,7 +166,7 @@ export const useDesignPaperClipboard = ({
             x: element.x + offsetX,
             y: element.y + offsetY,
             w: widthMode === "fixed" ? element.w : Math.max(width, 1),
-            h: Math.max(height, 1),
+            h: element.lockHeight ? element.h : Math.max(height, 1),
             widthMode,
           };
         }
@@ -161,6 +174,7 @@ export const useDesignPaperClipboard = ({
           ...element,
           id,
           groupId: nextGroupId,
+          ...(nextLabelId !== undefined ? { labelId: nextLabelId } : {}),
           x: element.x + offsetX,
           y: element.y + offsetY,
         };

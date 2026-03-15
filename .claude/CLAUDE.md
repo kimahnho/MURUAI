@@ -5,11 +5,12 @@ MuruAI: 교육 자료 제작을 위한 캔버스 기반 디자인 에디터 (Rea
 ## 명령어
 
 ```bash
-yarn dev          # 개발 서버 시작
-yarn build        # TypeScript 검사 + Vite 빌드
-yarn typecheck    # TypeScript 타입 검사만 (tsc -b --noEmit)
-yarn lint         # ESLint + TypeScript 검사
-yarn preview      # 프로덕션 빌드 미리보기
+yarn dev              # 개발 서버 시작
+yarn build            # TypeScript 검사 + Vite 빌드
+yarn typecheck        # TypeScript 타입 검사만 (tsc -b --noEmit)
+yarn lint             # ESLint + TypeScript 검사
+yarn preview          # 프로덕션 빌드 미리보기
+yarn generate:fonts   # CDN 폰트 레지스트리 재생성 (batch/font-map.json → cdnFontRegistry.ts)
 ```
 
 ## 아키텍처
@@ -81,6 +82,7 @@ src/
 9. **Mixpanel**: `mp` 래퍼만 사용 (`import { mp } from "@/shared/utils/mixpanel"`) — `mixpanel-browser` 직접 import 금지
 10. **이벤트 추적**: DB 이벤트(`trackEvents.ts`)는 비차단 패턴 필수 (`void` + `console.warn`, `await` 금지)
 11. **사이드바 탭 추가**: `SideBarMenu` 타입 + `MENU_LABELS` + `MENU_ITEMS` + `CONTENT_COMPONENTS` 4곳 동시 수정 필수
+12. **CDN 폰트**: CDN 폰트 선택/사용 시 `loadCdnFont()` 호출 필수 — 로드 후 적용. `cdnFontRegistry.ts`는 자동 생성 파일이므로 직접 수정 금지 (`yarn generate:fonts`로 재생성)
 
 ## 지침 모듈화 원칙
 
@@ -110,4 +112,5 @@ src/
 | 홈페이지 | `.claude/rules/home-page.md`, `.claude/rules/home.md` |
 | 내 문서 | `.claude/rules/mydoc.md` |
 | 관리자 | `.claude/rules/admin.md` |
+| 폰트 시스템 | `.claude/rules/font.md` |
 | shared 모듈 | `.claude/rules/shared.md` |

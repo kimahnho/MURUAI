@@ -10,26 +10,16 @@ export type EmotionImageStyle = "photo-boy" | "photo-girl";
 interface EmotionInferenceChoiceModalProps {
   isOpen: boolean;
   isGenerating?: boolean;
-  generatingProgress?: { current: number; total: number } | null;
   /** true이면 선택 화면을 건너뛰고 바로 주제 입력을 표시한다. */
   skipChoice?: boolean;
   onClose: () => void;
   onSelectTemplate: () => void;
-  onSelectAi: (topic: string, imageStyle: EmotionImageStyle) => void;
+  onSelectAi: (topic: string) => void;
 }
-
-const IMAGE_STYLE_OPTIONS: Array<{
-  id: EmotionImageStyle;
-  label: string;
-}> = [
-  { id: "photo-boy", label: "사진 (남아)" },
-  { id: "photo-girl", label: "사진 (여아)" },
-];
 
 const EmotionInferenceChoiceModal = ({
   isOpen,
   isGenerating = false,
-  generatingProgress,
   skipChoice = false,
   onClose,
   onSelectTemplate,
@@ -37,7 +27,6 @@ const EmotionInferenceChoiceModal = ({
 }: EmotionInferenceChoiceModalProps) => {
   const [showTopicInput, setShowTopicInput] = useState(skipChoice);
   const [topic, setTopic] = useState("");
-  const [imageStyle, setImageStyle] = useState<EmotionImageStyle>("photo-boy");
 
   if (!isOpen) return null;
 
@@ -49,7 +38,7 @@ const EmotionInferenceChoiceModal = ({
   };
 
   const handleAiConfirm = () => {
-    onSelectAi(topic, imageStyle);
+    onSelectAi(topic);
   };
 
   return (
@@ -143,29 +132,6 @@ const EmotionInferenceChoiceModal = ({
               />
             </div>
 
-            {/* 감정 이미지 스타일 선택 */}
-            <div>
-              <span className="block text-14-semibold text-black-80 mb-2">
-                감정 이미지 스타일
-              </span>
-              <div className="flex gap-2">
-                {IMAGE_STYLE_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setImageStyle(option.id)}
-                    className={`flex-1 rounded-lg border py-2 text-13-semibold transition ${
-                      imageStyle === option.id
-                        ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                        : "border-black-20 bg-white text-black-60 hover:bg-black-5"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex gap-2">
               <button
                 type="button"
@@ -214,11 +180,7 @@ const EmotionInferenceChoiceModal = ({
                     />
                   </svg>
                 )}
-                {isGenerating
-                  ? generatingProgress
-                    ? `이미지 생성 중 (${generatingProgress.current}/${generatingProgress.total})`
-                    : "생성 중..."
-                  : "생성하기"}
+                {isGenerating ? "텍스트 생성 중..." : "텍스트 생성하기"}
               </button>
             </div>
           </div>

@@ -18,6 +18,8 @@ import type { SpellCheckResult } from "../ai/checkSpelling";
 import { applyCorrections } from "../utils/applySpellCorrections";
 import { useSpellCheckStore } from "../store/spellCheckStore";
 import CanvasStage from "../sections/canvas/CanvasStage";
+import EmotionSceneBanner from "../sections/canvas/EmotionSceneBanner";
+import VocabTracingBanner from "../sections/canvas/VocabTracingBanner";
 import SpellCheckPanel from "./SpellCheckPanel";
 import SpellCheckToast from "./SpellCheckToast";
 import { useTemplateStore } from "../store/templateStore";
@@ -44,6 +46,7 @@ import { moveLayerByDirection } from "../utils/layerUtils";
 import { updateElementsByPageId } from "../utils/pageMutation";
 import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 import { collectUsedFontFamilies } from "@/shared/utils/fontOptions";
+import { isCdnFont, loadCdnFont } from "@/shared/utils/cdnFontLoader";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
@@ -135,9 +138,13 @@ const MainSection = () => {
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
 
-  // 페이지 요소의 폰트 변경을 감지해 "사용중인 글꼴" 목록을 갱신한다.
+  // 페이지 요소의 폰트 변경을 감지해 "사용중인 글꼴" 목록을 갱신하고 CDN 폰트를 사전 로드한다.
   useEffect(() => {
-    setUsedFontFamilies(collectUsedFontFamilies(pages));
+    const families = collectUsedFontFamilies(pages);
+    setUsedFontFamilies(families);
+    families.forEach((family) => {
+      if (isCdnFont(family)) void loadCdnFont(family);
+    });
   }, [pages, setUsedFontFamilies]);
 
   // 자동 저장 시작 조건:
@@ -727,6 +734,8 @@ const MainSection = () => {
         onDeleteElements={handleDeleteElements}
         aiTipKey={location.key}
       />
+      <EmotionSceneBanner pages={pages} />
+      <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
       <SpellCheckPanel />
       <SpellCheckToast />
       <Suspense fallback={null}>

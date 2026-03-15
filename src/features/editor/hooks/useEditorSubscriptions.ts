@@ -18,6 +18,14 @@ import { useTemplateNotifications } from "./useTemplateNotifications";
 import { usePageSettingsSubscription } from "./usePageSettingsSubscription";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 import { useTemplateStore } from "../store/templateStore";
+import { useEmotionSceneStore } from "../store/emotionSceneStore";
+import { useVocabTracingStore } from "../store/vocabTracingStore";
+import { useToastStore } from "../store/toastStore";
+import { patchHeroImagesOnPages } from "../utils/buildEmotionStoryPages";
+import {
+  extractVocabLabels,
+  buildVocabTracingPages,
+} from "../utils/tracingGridUtils";
 
 type TextPreset = {
   text: string;
@@ -232,6 +240,70 @@ export const useEditorSubscriptions = ({
       useTemplateStore.getState().clearInsertPagesRequest();
     },
     deps: [setPages, recordHistory],
+  });
+
+  // 히어로 이미지 패치 요청을 감지해 기존 페이지의 플레이스홀더를 이미지로 교체한다.
+  useStoreSubscription({
+    subscribe: useEmotionSceneStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.heroImageRequest !== null &&
+      state.heroImageRequest !== prevState.heroImageRequest,
+    onChange: (state) => {
+      if (!state.heroImageRequest) return;
+      const { heroImageUrls } = state.heroImageRequest;
+      setPages((prev) => patchHeroImagesOnPages(prev, heroImageUrls));
+      recordHistory("AI 장면 이미지 생성");
+      useEmotionSceneStore.getState().clearHeroImageRequest();
+    },
+    deps: [setPages, recordHistory],
+  });
+
+  // 어휘 따라쓰기 페이지 생성 요청을 감지해 소스 페이지 바로 뒤에 삽입한다.
+  useStoreSubscription({
+    subscribe: useVocabTracingStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId &&
+      state.sourcePageId !== null,
+    onChange: (state) => {
+      const { sourcePageId } = state;
+      if (!sourcePageId) return;
+
+      const currentPages = pagesRef.current;
+      const sourcePageIndex = currentPages.findIndex(
+        (p) => p.id === sourcePageId,
+      );
+      if (sourcePageIndex < 0) {
+        useVocabTracingStore.getState().clearRequest();
+        return;
+      }
+
+      const sourcePage = currentPages[sourcePageIndex];
+      const words = extractVocabLabels(sourcePage.elements);
+      if (words.length === 0) {
+        useToastStore
+          .getState()
+          .showToast("어휘 카드에 목표 어휘를 입력해주세요.");
+        useVocabTracingStore.getState().clearRequest();
+        return;
+      }
+
+      const orientation = sourcePage.orientation ?? "vertical";
+      const tracingPages = buildVocabTracingPages(words, orientation);
+      const firstTracingPageId = tracingPages[0].id;
+
+      setPages((prev) => {
+        const next = [...prev];
+        const insertIndex =
+          next.findIndex((p) => p.id === sourcePageId) + 1;
+        next.splice(insertIndex, 0, ...tracingPages);
+        return next.map((p, i) => ({ ...p, pageNumber: i + 1 }));
+      });
+
+      recordHistory("어휘 따라쓰기 생성");
+      setActivePage(firstTracingPageId, orientation);
+      useVocabTracingStore.getState().clearRequest();
+    },
+    deps: [setPages, recordHistory, setActivePage, pagesRef],
   });
 
   return { showEmotionInferenceToast };

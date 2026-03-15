@@ -7,28 +7,23 @@ import type { LucideIcon } from "lucide-react";
 
 import type { Template } from "@/features/editor/model/canvasTypes";
 import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
-import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotionSceneImages";
 import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStoryPages";
 import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageMap";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
+import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
 import {
   TEMPLATE_REGISTRY,
 } from "@/features/editor/templates/templateRegistry";
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
 
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
-import type { EmotionImageStyle } from "./EmotionInferenceChoiceModal";
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 
 const AiTemplateContent = () => {
   const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
   const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [generatingProgress, setGeneratingProgress] = useState<{
-    current: number;
-    total: number;
-  } | null>(null);
 
   // 기존 템플릿 미리보기
   const previewTemplate = useTemplateStore((s) => s.previewTemplate);
@@ -112,7 +107,6 @@ const AiTemplateContent = () => {
       <EmotionInferenceChoiceModal
         isOpen={isEmotionChoiceModalOpen}
         isGenerating={isAiGenerating}
-        generatingProgress={generatingProgress}
         skipChoice
         onClose={() => {
           if (!isAiGenerating) setIsEmotionChoiceModalOpen(false);
@@ -121,27 +115,33 @@ const AiTemplateContent = () => {
           setIsEmotionChoiceModalOpen(false);
           openPreview("emotionInference");
         }}
-        onSelectAi={async (topic: string, imageStyle: EmotionImageStyle) => {
+        onSelectAi={async (topic: string) => {
           setIsAiGenerating(true);
           try {
-            const emotionImageMap = await fetchEmotionImageMap(imageStyle);
+            // Phase 1에서는 감정 카드 이미지만 필요 — 기본 스타일로 조회
+            const emotionImageMap = await fetchEmotionImageMap("photo-boy");
             const availableLabels = [...emotionImageMap.keys()];
             const stories = await generateEmotionStory(topic, availableLabels);
-            // 히어로 이미지 생성 (10장 모두 필수 — 실패 시 전체 에러)
-            const heroImageUrls = await generateEmotionSceneImages(
-              stories, imageStyle,
-              (current, total) => { setGeneratingProgress({ current, total }); },
-            );
-            const pages = buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls);
+            // Phase 1: 텍스트만 생성 — 히어로 이미지 없이 페이지 삽입
+            const pages = buildEmotionStoryPages(stories, emotionImageMap);
             useTemplateStore.getState().requestInsertPages(pages);
+            // Phase 2를 위해 스토어에 생성 데이터 저장
+            const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
+            useEmotionSceneStore.getState().setPendingGeneration({
+              stories,
+              storyPageIds,
+              bannerPhase: "ready",
+            });
             setIsEmotionChoiceModalOpen(false);
+            useToastStore
+              .getState()
+              .showToast("텍스트가 생성되었어요. 내용을 확인 후 이미지를 생성하세요.");
           } catch {
             useToastStore
               .getState()
               .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");
           } finally {
             setIsAiGenerating(false);
-            setGeneratingProgress(null);
           }
         }}
       />

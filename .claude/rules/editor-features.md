@@ -117,3 +117,53 @@ export const resolveMarkers = (element: LineElement): { start: boolean; end: boo
 | 사이드바 패널 | `src/features/editor/sections/sidebar/content/LinePropsContent.tsx` |
 | 선 렌더러 | `src/features/editor/sections/canvas/elements/line/Line.tsx` |
 | 화살표 렌더러 | `src/features/editor/sections/canvas/elements/arrow/Arrow.tsx` |
+
+## 어휘 카드 따라쓰기 자동 생성
+
+### 기능 흐름
+
+1. 어휘 학습 카드 페이지(`templateId === "vocabularyLearningCard"`) 선택 시 캔버스 상단에 플로팅 배너 표시
+2. 모든 카드의 목표 어휘가 기본값(`"목표 어휘"`)에서 실제 단어로 변경되면 버튼 활성화
+3. 버튼 클릭 → `vocabTracingStore.requestVocabTracing(pageId)` → 구독이 감지
+4. `extractVocabLabels()`로 imageSlot의 labelId 참조를 통해 어휘 텍스트 추출
+5. `buildVocabTracingPages()`로 따라쓰기 그리드 페이지 생성 (가이드 1묶음 + 빈 칸 2묶음 × 단어 수)
+6. 현재 어휘 카드 페이지 바로 뒤에 삽입 → 첫 생성 페이지로 자동 이동
+7. `recordHistory("어휘 따라쓰기 생성")`으로 Undo 지원
+
+### 어휘 추출 방식
+
+```typescript
+// imageSlot(subType === "imageSlot")의 labelId → 매칭 text 요소의 text 속성
+const imageSlots = elements.filter(isImageSlotWithLabel);
+const textEl = elements.find(el => el.type === "text" && el.id === slot.labelId);
+```
+
+- 기본값 `"목표 어휘"` 및 빈 문자열은 제외
+- 복사/붙여넣기로 추가한 카드도 labelId 리맵 덕분에 정상 인식
+
+### 그리드 레이아웃 상수
+
+```typescript
+TRACING_FONT_FAMILY = "Hakgyoansim Badasseugi"  // 학교안심 받아쓰기, weight 700
+VOCAB_CELL_SIZE_MM = 13      // 셀 크기
+REPEAT_COUNT = 3             // 가이드 1 + 빈칸 2
+REP_GAP_MM = 3               // 묶음 간 간격
+PAGE_TOP_MARGIN_MM = 16      // 상단 여백
+PAGE_BOTTOM_MARGIN_MM = 16   // 하단 여백
+DYNAMIC_GAP_MAX_MM = 20      // 동적 간격 최대값
+```
+
+### 버튼 활성화 조건
+
+`isAllVocabFilled(elements)`: 페이지 내 **모든** imageSlot에 연결된 라벨 텍스트가 기본값이 아닌 실제 단어로 변경되었을 때만 `true`.
+
+### 관련 파일
+
+| 역할 | 경로 |
+|------|------|
+| 플로팅 배너 | `src/features/editor/sections/canvas/VocabTracingBanner.tsx` |
+| 생성 요청 스토어 | `src/features/editor/store/vocabTracingStore.ts` |
+| 어휘 추출 + 그리드 빌더 | `src/features/editor/utils/tracingGridUtils.ts` |
+| 구독 (페이지 삽입) | `src/features/editor/hooks/useEditorSubscriptions.ts` |
+| 배너 렌더링 | `src/features/editor/shared/MainSection.tsx` |
+| 어휘 카드 템플릿 | `src/features/editor/templates/vocabularyLearningCardTemplate.ts` |

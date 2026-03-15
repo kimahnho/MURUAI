@@ -1,0 +1,224 @@
+/**
+ * 감정추론 AI 이미지 생성 플로팅 배너.
+ * 텍스트 생성 후 캔버스 상단에 표시되어 이미지 생성/재생성/확정 플로우를 안내한다.
+ */
+import { useState } from "react";
+import { Check, ImageIcon, Loader2, RefreshCw, X } from "lucide-react";
+
+import type { Page } from "@/features/editor/model/pageTypes";
+import type { EmotionImageStyle } from "@/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal";
+import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotionSceneImages";
+import {
+  useEmotionSceneStore,
+  type BannerPhase,
+} from "@/features/editor/store/emotionSceneStore";
+import { useToastStore } from "@/features/editor/store/toastStore";
+import EmotionSceneImageModal from "./EmotionSceneImageModal";
+
+interface EmotionSceneBannerProps {
+  pages: Page[];
+}
+
+const EmotionSceneBanner = ({ pages }: EmotionSceneBannerProps) => {
+  const pendingGeneration = useEmotionSceneStore((s) => s.pendingGeneration);
+  const generatingProgress = useEmotionSceneStore(
+    (s) => s.generatingProgress,
+  );
+  const [isRegenModalOpen, setIsRegenModalOpen] = useState(false);
+  const [imageStyle, setImageStyle] =
+    useState<EmotionImageStyle>("photo-boy");
+
+  if (!pendingGeneration || pendingGeneration.storyPageIds.length === 0) {
+    return null;
+  }
+
+  const { stories, storyPageIds, bannerPhase } = pendingGeneration;
+
+  const handleGenerateImages = async () => {
+    const store = useEmotionSceneStore.getState();
+    store.setBannerPhase("generating");
+
+    try {
+      const heroImageUrls = await generateEmotionSceneImages(
+        stories,
+        imageStyle,
+        (current, total) => {
+          useEmotionSceneStore.getState().setGeneratingProgress({
+            current,
+            total,
+          });
+        },
+      );
+
+      // pageId → URL 매핑 생성
+      const urlMap = new Map<string, string>();
+      storyPageIds.forEach((pageId, index) => {
+        if (heroImageUrls[index]) {
+          urlMap.set(pageId, heroImageUrls[index]);
+        }
+      });
+
+      useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
+      useEmotionSceneStore.getState().setBannerPhase("completed");
+    } catch {
+      useToastStore
+        .getState()
+        .showToast("이미지 생성에 실패했어요. 다시 시도해 주세요.");
+      useEmotionSceneStore.getState().setBannerPhase("ready");
+    } finally {
+      useEmotionSceneStore.getState().setGeneratingProgress(null);
+    }
+  };
+
+  const handleDismiss = () => {
+    useEmotionSceneStore.getState().setPendingGeneration(null);
+  };
+
+  const handleConfirm = () => {
+    useEmotionSceneStore.getState().setPendingGeneration(null);
+  };
+
+  return (
+    <>
+      <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <BannerContent
+              phase={bannerPhase}
+              progress={generatingProgress}
+              imageStyle={imageStyle}
+              onImageStyleChange={setImageStyle}
+              onGenerate={handleGenerateImages}
+              onRegenerate={() => setIsRegenModalOpen(true)}
+              onConfirm={handleConfirm}
+              onDismiss={handleDismiss}
+            />
+          </div>
+          {bannerPhase === "generating" && (
+            <span className="text-12-regular text-amber-600">
+              이미지 생성 중에는 내용을 수정하지 마세요
+            </span>
+          )}
+        </div>
+      </div>
+
+      <EmotionSceneImageModal
+        isOpen={isRegenModalOpen}
+        stories={stories}
+        storyPageIds={storyPageIds}
+        pages={pages}
+        onClose={() => setIsRegenModalOpen(false)}
+        onComplete={() => setIsRegenModalOpen(false)}
+      />
+    </>
+  );
+};
+
+// 배너 상태별 내부 콘텐츠
+const BannerContent = ({
+  phase,
+  progress,
+  imageStyle,
+  onImageStyleChange,
+  onGenerate,
+  onRegenerate,
+  onConfirm,
+  onDismiss,
+}: {
+  phase: BannerPhase;
+  progress: { current: number; total: number } | null;
+  imageStyle: EmotionImageStyle;
+  onImageStyleChange: (style: EmotionImageStyle) => void;
+  onGenerate: () => void;
+  onRegenerate: () => void;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) => {
+  if (phase === "generating") {
+    return (
+      <>
+        <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+        <span className="text-14-semibold text-amber-800">
+          {progress
+            ? `이미지 생성 중 (${progress.current}/${progress.total})`
+            : "이미지 생성 중..."}
+        </span>
+      </>
+    );
+  }
+
+  if (phase === "completed") {
+    return (
+      <>
+        <Check className="h-4 w-4 text-amber-600" />
+        <span className="text-14-semibold text-amber-800">
+          이미지가 생성되었어요!
+        </span>
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-13-semibold text-amber-700 transition hover:bg-amber-100"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          이미지 재생성하기
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="rounded-lg bg-[#F59E0B] px-3 py-1.5 text-13-semibold text-white-100 transition hover:bg-[#D97706]"
+        >
+          확정하기
+        </button>
+      </>
+    );
+  }
+
+  // phase === "ready" — 남아/여아 선택 + 이미지 생성하기
+  return (
+    <>
+      <ImageIcon className="h-4 w-4 text-amber-600" />
+      <span className="text-14-semibold text-amber-800">
+        텍스트를 확인 후 이미지를 생성하세요
+      </span>
+      <div className="flex items-center gap-1.5">
+        <label className="flex cursor-pointer items-center gap-1 rounded-md border border-amber-300 px-2 py-1 text-13-semibold transition hover:bg-amber-100">
+          <input
+            type="radio"
+            name="imageStyle"
+            checked={imageStyle === "photo-boy"}
+            onChange={() => onImageStyleChange("photo-boy")}
+            className="h-3.5 w-3.5 accent-[#F59E0B]"
+          />
+          <span className="text-amber-800">남아</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-1 rounded-md border border-amber-300 px-2 py-1 text-13-semibold transition hover:bg-amber-100">
+          <input
+            type="radio"
+            name="imageStyle"
+            checked={imageStyle === "photo-girl"}
+            onChange={() => onImageStyleChange("photo-girl")}
+            className="h-3.5 w-3.5 accent-[#F59E0B]"
+          />
+          <span className="text-amber-800">여아</span>
+        </label>
+      </div>
+      <button
+        type="button"
+        onClick={onGenerate}
+        className="rounded-lg bg-[#F59E0B] px-3 py-1.5 text-13-semibold text-white-100 transition hover:bg-[#D97706]"
+      >
+        이미지 생성하기
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="rounded-lg p-1 text-amber-500 transition hover:bg-amber-100 hover:text-amber-700"
+        aria-label="닫기"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </>
+  );
+};
+
+export default EmotionSceneBanner;

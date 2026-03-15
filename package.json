@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint . && yarn typecheck",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:fonts": "node batch/generate-cdn-fonts.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
@@ -37,6 +38,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@yarnpkg/sdks": "^3.2.3",
     "babel-plugin-react-compiler": "^1.0.0",
+    "cloudinary": "^2.9.0",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

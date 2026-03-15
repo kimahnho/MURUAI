@@ -43,6 +43,7 @@ const RAW_RUNTIME_STATE =
           ["@vitejs/plugin-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:5.1.2"],\
           ["@yarnpkg/sdks", "npm:3.2.3"],\
           ["babel-plugin-react-compiler", "npm:1.0.0"],\
+          ["cloudinary", "npm:2.9.0"],\
           ["dotenv", "npm:17.2.3"],\
           ["eslint", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:9.39.2"],\
           ["eslint-plugin-react-hooks", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.0.1"],\
@@ -3155,6 +3156,16 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["cloudinary", [\
+      ["npm:2.9.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/cloudinary-npm-2.9.0-e89a036364-10c0.zip/node_modules/cloudinary/",\
+        "packageDependencies": [\
+          ["cloudinary", "npm:2.9.0"],\
+          ["lodash", "npm:4.17.23"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["color-convert", [\
       ["npm:2.0.1", {\
         "packageLocation": "../../../.yarn/berry/cache/color-convert-npm-2.0.1-79730e935b-10c0.zip/node_modules/color-convert/",\
@@ -4659,6 +4670,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["lodash", [\
+      ["npm:4.17.23", {\
+        "packageLocation": "../../../.yarn/berry/cache/lodash-npm-4.17.23-50bdb1c01a-10c0.zip/node_modules/lodash/",\
+        "packageDependencies": [\
+          ["lodash", "npm:4.17.23"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["lodash.merge", [\
       ["npm:4.6.2", {\
         "packageLocation": "../../../.yarn/berry/cache/lodash.merge-npm-4.6.2-77cb4416bf-10c0.zip/node_modules/lodash.merge/",\
@@ -4985,6 +5005,7 @@ const RAW_RUNTIME_STATE =
           ["@vitejs/plugin-react", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:5.1.2"],\
           ["@yarnpkg/sdks", "npm:3.2.3"],\
           ["babel-plugin-react-compiler", "npm:1.0.0"],\
+          ["cloudinary", "npm:2.9.0"],\
           ["dotenv", "npm:17.2.3"],\
           ["eslint", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:9.39.2"],\
           ["eslint-plugin-react-hooks", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.0.1"],\

@@ -3,6 +3,7 @@
  */
 import { supabase } from "@/shared/api/supabase";
 import { logPerf, measurePerf } from "./perfLogger";
+import { isCdnFont, loadCdnFont } from "@/shared/utils/cdnFontLoader";
 
 type SaveUserMadeOptions = {
   userId: string;
@@ -188,6 +189,16 @@ export const generatePdfFromDomPages = async ({
       onProgress?.({ current: 0, total: pages.length });
 
       const waitForFonts = async () => {
+        // PDF 페이지 DOM에서 사용된 CDN 폰트를 감지하고 사전 로드한다.
+        const fontFamilies = new Set<string>();
+        pages.forEach((page) => {
+          page.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+            const ff = el.style.fontFamily;
+            if (ff) fontFamilies.add(ff.replace(/["']/g, "").split(",")[0].trim());
+          });
+        });
+        const cdnLoads = [...fontFamilies].filter(isCdnFont).map((f) => loadCdnFont(f));
+        if (cdnLoads.length > 0) await Promise.all(cdnLoads);
         if (document.fonts?.ready) {
           await document.fonts.ready;
         }

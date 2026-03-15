@@ -65,6 +65,9 @@ src/features/editor/
       CanvasStage.tsx               # 캔버스 컨테이너 (viewport, zoom, pan)
       DesignPaper.tsx               # A4 문서 렌더러 (핵심)
       DesignPaperContextMenu.tsx    # 우클릭 메뉴
+      EmotionSceneBanner.tsx        # 감정추론 AI 이미지 생성 플로팅 배너
+      EmotionSceneImageModal.tsx    # 감정추론 이미지 재생성 모달
+      VocabTracingBanner.tsx        # 어휘 카드 따라쓰기 생성 플로팅 버튼
       DesignPaperOverlays.tsx       # 선택 오버레이
       GuideRenderer.tsx             # 정렬 가이드 렌더러
       ResizeHandles.tsx             # 리사이즈 핸들
@@ -141,12 +144,15 @@ src/features/editor/
 
   store/                            # Zustand 스토어
     elementPanelStore.ts            # 선택 요소 속성 패널 데이터 + 콜백 (Table 제외)
+    emotionSceneStore.ts            # 감정추론 AI 2단계 생성 플로우 상태
+    vocabTracingStore.ts            # 어휘 따라쓰기 페이지 생성 요청
     recentColorStore.ts             # 최근 사용한 색상 (세션 동안 최대 5개)
   model/                            # 타입/도메인 모델
   utils/                            # 유틸리티
     pageMutation.ts                 # updatePageById/updateElementsByPageId
     documentPersistence.ts          # buildPersistPayload/save 헬퍼
     layerUtils.ts                   # moveLayerByDirection 레이어 이동 유틸
+    tracingGridUtils.ts             # 어휘 추출 + 따라쓰기 그리드 페이지 빌더
   templates/                        # 템플릿 정의 (변경 없음)
   constants/                        # 상수 정의 (변경 없음)
 ```
@@ -205,7 +211,7 @@ onPointerUp={() => setFinalPosition(posRef.current)}
 ## 요소 타입
 
 ```typescript
-type CanvasElement = TextElement | ShapeElement | LineElement | TableElement;
+type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement | EmotionCardElement;
 ```
 
 - 각 요소는 `id`, `type`, `position`, `size` 필수
