@@ -55,6 +55,9 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 | `ui/ErrorFallback.tsx` | 에러 바운더리 폴백 |
 | `utils/initSentry.ts` | Sentry 초기화 |
 | `utils/initMixpanel.ts` | Mixpanel 초기화 |
+| `utils/fontOptions.ts` | 폰트 옵션 목록 (builtin 22 + CDN 184, `FontOption` 타입) |
+| `utils/cdnFontRegistry.ts` | CDN 폰트 메타데이터 (자동 생성, 직접 수정 금지 — `yarn generate:fonts`) |
+| `utils/cdnFontLoader.ts` | CDN 폰트 동적 로더 (`loadCdnFont`, `isCdnFont`, `isFontLoaded`) |
 | `assets/index.ts` | 에셋 barrel export (`mainLogo`, `characterBoy`, `characterGirl`) |
 
 ## 새 공용 코드 추가 기준
