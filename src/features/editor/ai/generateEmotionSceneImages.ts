@@ -165,28 +165,78 @@ ${JSON.stringify(scenes)}`;
   return parsed.map((item) => (typeof item === "string" ? item : String(item)));
 };
 
+// ─── 적응형 앵커 리셋 판단 ───
+
+// 같은 앵커(이전 생성 이미지)로 연속 생성할 최대 횟수 — 초과 시 품질 보호를 위해 자동 리셋
+const MAX_ANCHOR_CHAIN = 3;
+
+// 이전 장면과 현재 장면의 물리적 배경이 바뀌었는지 AI가 판단
+const shouldResetAnchor = async (
+  ai: GoogleGenAI,
+  prevScene: string,
+  currentScene: string,
+): Promise<boolean> => {
+  const prompt = `You are evaluating two consecutive scenes in a children's social story.
+
+Previous scene: "${prevScene}"
+Current scene: "${currentScene}"
+
+Should the current scene use a completely NEW background/setting?
+Answer YES if:
+- The physical location has clearly changed (e.g., classroom → playground, home → school)
+- The scene composition needs to be fundamentally different
+
+Answer NO if:
+- The scenes share the same or similar setting
+- Only the character's action/emotion changes, not the environment
+
+Answer ONLY "YES" or "NO".`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseModalities: ["Text"] },
+    });
+
+    const text =
+      response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
+    return text.trim().toUpperCase().startsWith("YES");
+  } catch {
+    // 판단 실패 시 연속 사용 — MAX_ANCHOR_CHAIN에서 안전하게 리셋됨
+    return false;
+  }
+};
+
 // ─── 단일 장면 이미지 생성 ───
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
-// 그룹 첫 장면: 캐릭터 레퍼런스 사용
-const FIRST_IN_GROUP_SUFFIX = `Use the attached character reference photo as the main character in this scene.
+// 리셋 시: 캐릭터 레퍼런스로 새 이미지 생성
+const RESET_SUFFIX = `Use the attached character reference photo as the main character in this scene.
 The character must look like a real person matching the reference photo — same realistic style, NOT cartoon or illustrated.
 The character should show the appropriate emotion for the situation described with a natural facial expression.`;
 
-// 그룹 후속 장면: 첫 장면 이미지를 레퍼런스로 일관성 유지
-const SUBSEQUENT_SUFFIX = `Maintain the same character appearance, art style, and background setting as the reference image.
-Only change the character's pose and emotion to match the new scene description.
+// 연속 시: 이전 생성 이미지를 레퍼런스로 일관성 유지
+const CONTINUATION_SUFFIX = `The attached image is a previous scene from the same story.
+Maintain the exact same:
+- Character appearance (face, body, clothing)
+- Art style, lighting, and color palette
+- Visual consistency with the reference
+
+Change only:
+- Background/setting as described in the scene
+- Character's pose and facial expression to match the current situation
 The character must look like a real person — same realistic style, NOT cartoon or illustrated.`;
 
 const generateSingleSceneImage = async (
   ai: GoogleGenAI,
   sceneDescription: string,
   referenceBase64: string,
-  isGroupFirst: boolean,
+  isReset: boolean,
 ): Promise<string> => {
-  const suffix = isGroupFirst ? FIRST_IN_GROUP_SUFFIX : SUBSEQUENT_SUFFIX;
+  const suffix = isReset ? RESET_SUFFIX : CONTINUATION_SUFFIX;
   const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\n${suffix}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -256,41 +306,39 @@ export const generateEmotionSceneImages = async (
     englishScenes = koreanScenes;
   }
 
-  // ── Phase 1: 그룹별 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
-  // sceneGroup별로 그룹핑하여 첫 장면 이미지를 후속 장면의 레퍼런스로 재활용
+  // ── Phase 1: 적응형 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
+  // AI가 장면 간 맥락 변화를 실시간 판단하여 앵커를 리셋하거나 연속 사용
   const base64Images: string[] = new Array(stories.length);
-  const groupFirstImages = new Map<number, string>();
-  let completedCount = 0;
+  let currentAnchor: string = characterBase64;
+  let anchorIsCharacterRef = true;
+  let chainLength = 0;
 
-  // sceneGroup → 원본 인덱스 배열로 그룹핑
-  const groupMap = new Map<number, number[]>();
   for (let i = 0; i < stories.length; i++) {
-    const group = stories[i].sceneGroup;
-    const indices = groupMap.get(group) ?? [];
-    indices.push(i);
-    groupMap.set(group, indices);
-  }
+    const scene = englishScenes[i] ?? koreanScenes[i];
+    let needsReset = false;
 
-  // 각 그룹 순차 처리
-  for (const indices of groupMap.values()) {
-    for (let j = 0; j < indices.length; j++) {
-      const idx = indices[j];
-      const scene = englishScenes[idx] ?? koreanScenes[idx];
-      const isGroupFirst = j === 0;
-      const reference = isGroupFirst
-        ? characterBase64
-        : groupFirstImages.get(stories[idx].sceneGroup)!;
-
-      const base64 = await generateSingleSceneImage(ai, scene, reference, isGroupFirst);
-      base64Images[idx] = base64;
-
-      if (isGroupFirst) {
-        groupFirstImages.set(stories[idx].sceneGroup, base64);
-      }
-
-      completedCount++;
-      onProgress?.(completedCount, stories.length);
+    if (i === 0) {
+      needsReset = true;
+    } else if (chainLength >= MAX_ANCHOR_CHAIN) {
+      needsReset = true;
+    } else if (!anchorIsCharacterRef) {
+      const prevScene = englishScenes[i - 1] ?? koreanScenes[i - 1];
+      needsReset = await shouldResetAnchor(ai, prevScene, scene);
     }
+
+    let base64: string;
+    if (needsReset) {
+      base64 = await generateSingleSceneImage(ai, scene, characterBase64, true);
+      currentAnchor = base64;
+      anchorIsCharacterRef = false;
+      chainLength = 0;
+    } else {
+      base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false);
+      chainLength++;
+    }
+
+    base64Images[i] = base64;
+    onProgress?.(i + 1, stories.length);
   }
 
   // ── Phase 2: 일괄 Cloudinary 업로드 ──

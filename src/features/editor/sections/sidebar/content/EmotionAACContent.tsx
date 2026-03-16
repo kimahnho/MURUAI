@@ -2,19 +2,19 @@
  * 감정 이미지, AAC 카드, 이미지 라이브러리를 탭으로 전환해 제공하는 통합 패널 컴포넌트.
  */
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { MessageSquarePlus } from "lucide-react";
-import EmotionContent from "./EmotionContent";
-import AACContent from "./AACContent";
-import AacPropsContent from "./AacPropsContent";
-import ImageLibraryContent from "./ImageLibraryContent";
+
 import {
   useElementPanelStore,
   type AacPanelData,
 } from "@/features/editor/store/elementPanelStore";
-import { useToastStore } from "@/features/editor/store/toastStore";
-import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+
+import EmotionContent from "./EmotionContent";
+import AACContent from "./AACContent";
+import AacPropsContent from "./AacPropsContent";
+import ImageLibraryContent from "./ImageLibraryContent";
+import ImageRequestModal from "./ImageRequestModal";
 
 type Tab = "emotion" | "aac" | "image";
 
@@ -29,34 +29,13 @@ const EmotionAACContent = () => {
   const isAacSelected = panelData?.type === "aac";
   const aacHasImage = isAacSelected && (panelData as AacPanelData).hasImage;
   const [activeTab, setActiveTab] = useState<Tab>(isAacSelected ? "aac" : "emotion");
-  // AAC 카드 선택 시 AAC 탭으로 자동 전환 (이전 상태와 비교)
   const [prevAacSelected, setPrevAacSelected] = useState(isAacSelected);
   if (isAacSelected !== prevAacSelected) {
     setPrevAacSelected(isAacSelected);
     if (isAacSelected) setActiveTab("aac");
   }
   const userId = useAuthStore((s) => s.user?.id);
-  const showToast = useToastStore((s) => s.showToast);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [requestKeyword, setRequestKeyword] = useState("");
-  const [isRequesting, setIsRequesting] = useState(false);
-
-  const handleImageRequest = async () => {
-    const keyword = requestKeyword.trim();
-    if (!userId || !keyword) return;
-    setIsRequesting(true);
-    const { error } = await supabase
-      .from("image_request")
-      .insert({ user_id: userId, keyword });
-    setIsRequesting(false);
-    if (error) {
-      showToast("요청에 실패했어요. 다시 시도해주세요.");
-      return;
-    }
-    showToast("이미지 요청이 접수되었어요");
-    setRequestKeyword("");
-    setIsModalOpen(false);
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -114,60 +93,10 @@ const EmotionAACContent = () => {
         {activeTab === "image" && <ImageLibraryContent />}
       </div>
 
-      {/* 이미지 요청 모달 */}
-      {isModalOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40"
-            onClick={() => setIsModalOpen(false)}
-          >
-            <div
-              className="w-80 rounded-2xl bg-white-100 p-6 shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-16-semibold text-black-90 mb-1">
-                이미지 요청
-              </h3>
-              <p className="text-13-regular text-black-50 mb-4">
-                필요한 이미지 이름을 입력해주세요.
-              </p>
-              <input
-                type="text"
-                value={requestKeyword}
-                onChange={(e) => setRequestKeyword(e.target.value)}
-                placeholder="예: 거위, 소방차"
-                className="w-full rounded-lg border border-black-25 px-3 py-2 text-14-regular text-black-90 outline-none focus:border-primary mb-4"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && requestKeyword.trim()) {
-                    handleImageRequest();
-                  }
-                }}
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setRequestKeyword("");
-                  }}
-                  className="rounded-lg px-4 py-2 text-13-semibold text-black-60 transition hover:bg-black-5"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={handleImageRequest}
-                  disabled={!requestKeyword.trim() || isRequesting}
-                  className="rounded-lg bg-primary px-4 py-2 text-13-semibold text-white-100 transition hover:opacity-90 disabled:opacity-50"
-                >
-                  {isRequesting ? "요청 중..." : "요청하기"}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <ImageRequestModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };

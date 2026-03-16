@@ -7,11 +7,12 @@ import {
   useState,
   type DragEvent as ReactDragEvent,
 } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, MessageSquarePlus } from "lucide-react";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { useRecentImageSearchStore } from "@/features/editor/store/recentImageSearchStore";
 import { useImageLibrary } from "../hooks/useImageLibrary";
 import { getThumbnailUrl } from "@/shared/api/getThumbnailUrl";
+import ImageRequestModal from "./ImageRequestModal";
 
 const STYLE_OPTIONS = [
   { label: "전체", value: "" },
@@ -59,6 +60,7 @@ const ImageLibraryContent = () => {
   const selectedTags = useRecentImageSearchStore((s) => s.selectedTags);
   const setSelectedTags = useRecentImageSearchStore((s) => s.setSelectedTags);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   useEffect(() => {
     // 검색 입력은 디바운스로 묶어 연속 입력 시 쿼리 폭주를 방지한다.
@@ -233,8 +235,18 @@ const ImageLibraryContent = () => {
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
-            검색 결과가 없어요
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <span className="text-14-regular text-black-50">
+              검색 결과가 없어요
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsRequestModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3.5 py-2 text-13-semibold text-indigo-600 transition hover:bg-indigo-100"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              이미지 요청하기
+            </button>
           </div>
         )}
 
@@ -254,6 +266,12 @@ const ImageLibraryContent = () => {
         )}
 
       </div>
+
+      <ImageRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        defaultKeyword={searchInput}
+      />
     </div>
   );
 };

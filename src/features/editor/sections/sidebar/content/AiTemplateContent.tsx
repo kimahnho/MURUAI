@@ -2,7 +2,7 @@
  * AI 템플릿 패널 — 스토리북/감정추론을 카드 형태로 나열하고, 클릭 시 모달을 연다.
  */
 import { useState } from "react";
-import { BookOpen, Brain, Sparkles } from "lucide-react";
+import { BookOpen, Brain, Sparkles, AlertCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import type { Template } from "@/features/editor/model/canvasTypes";
@@ -19,6 +19,9 @@ import StorybookWizardModal from "@/features/storybook/components/StorybookWizar
 
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
+
+// TODO: Google AI 복원 시 false로 변경
+const IS_AI_DISABLED = true;
 
 const AiTemplateContent = () => {
   const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
@@ -64,6 +67,16 @@ const AiTemplateContent = () => {
   return (
     <>
       <div className="flex flex-col w-full gap-6">
+        {/* AI 점검 안내 */}
+        {IS_AI_DISABLED && (
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-2.5">
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+            <span className="text-13-regular text-amber-700">
+              현재 AI 기능을 점검 중이에요. 곧 다시 사용할 수 있어요.
+            </span>
+          </div>
+        )}
+
         {/* 스토리북 */}
         <div className="flex flex-col w-full gap-3">
           <SectionHeader icon={Sparkles} title="AI 스토리북" />
@@ -76,6 +89,7 @@ const AiTemplateContent = () => {
             title="AI 스토리북"
             description="아동 맞춤형 10페이지 그림책 자동 생성"
             onClick={() => { setIsStorybookModalOpen(true); }}
+            disabled={IS_AI_DISABLED}
           />
         </div>
 
@@ -95,6 +109,7 @@ const AiTemplateContent = () => {
             title="AI 감정추론 활동"
             description="주제를 입력하면 AI가 스토리를 만들어요"
             onClick={() => { setIsEmotionChoiceModalOpen(true); }}
+            disabled={IS_AI_DISABLED}
           />
         </div>
       </div>

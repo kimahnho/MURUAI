@@ -169,8 +169,15 @@ const DesignLayout = () => {
     }
   };
 
+  // TODO: Google AI 복원 시 IS_AI_DISABLED 가드 제거
+  const IS_AI_DISABLED = true;
+
   // 맞춤법 검사 버튼 클릭: 결과 있으면 패널 토글, 없으면 검사 실행
   const handleSpellCheckClick = () => {
+    if (IS_AI_DISABLED) {
+      showToast("맞춤법 검사 기능을 점검 중이에요.");
+      return;
+    }
     if (spellCheckResults) {
       if (isPanelOpen) {
         closeSpellCheckPanel();
