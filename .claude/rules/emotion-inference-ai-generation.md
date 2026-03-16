@@ -173,6 +173,9 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 모든 페이지 생성 시 `withLogoCanvasElements()`로 감싸야 로고 요소가 포함된다.
 (`pageFactory.ts`의 모든 페이지 생성 경로 동일 적용)
 
+### 6. 배너 페이지 필터링
+`EmotionSceneBanner`는 `selectedPageId`를 받아 현재 선택된 페이지가 `storyPageIds`에 포함될 때만 표시. 다른 페이지로 이동하면 배너가 숨겨진다.
+
 ## 감정 이미지 자동 채우기
 
 ### 호출 체인 (AiTemplateContent.tsx)
@@ -233,7 +236,23 @@ generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
 - **재시도**: `MAX_RETRIES = 5`, `RETRY_DELAY_MS = 3000`
 - **Cloudinary 폴더**: `muru_emotion_scene/{userId}`
 
-### 생성 메타데이터 (`emotionSceneStore.ts`)
+### 다중 생성 세트 관리 (`emotionSceneStore.ts`)
+
+감정추론 활동을 여러 번 실행해도 각 세트가 독립적으로 추적된다.
+
+```typescript
+// 배열로 다중 세트 관리 — 단일 값이 아님
+pendingGenerations: PendingGeneration[];
+addPendingGeneration: (data: PendingGeneration) => void;
+removePendingGeneration: (storyPageIds: string[]) => void;
+setBannerPhase: (storyPageIds: string[], phase: BannerPhase) => void;
+```
+
+- **세트 식별**: `storyPageIds[0]`(첫 번째 pageId)로 세트를 구분
+- **dismiss/confirm**: 해당 세트만 제거 (`removePendingGeneration`)
+- **페이지 삭제 동기화**: 배너 렌더 시 실제 존재하는 pageId만 필터링, 모두 삭제되면 세트 자동 제거
+
+### 생성 메타데이터
 
 생성 완료 시 `PageGenerationMeta[]`를 스토어에 저장 — 추후 페이지별 재생성(C.2) 구현 시 활용.
 

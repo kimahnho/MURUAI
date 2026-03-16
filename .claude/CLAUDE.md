@@ -118,6 +118,7 @@ src/
 | TextBox                    | `.claude/rules/textbox.md`                            |
 | Table                      | `.claude/rules/table.md`                              |
 | Zustand                    | `.claude/rules/zustand.md`                            |
+| 반응형 UI                  | `.claude/rules/responsive.md`                         |
 | 코드 스타일                | `.claude/rules/code-style.md`                         |
 | DB/Supabase                | `.claude/rules/database.md`                           |
 | 모니터링 (Sentry/Mixpanel) | `.claude/rules/monitoring.md`                         |

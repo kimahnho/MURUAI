@@ -653,7 +653,7 @@ const TemplateContent = () => {
             useTemplateStore.getState().requestInsertPages(pages);
             // Phase 2를 위해 스토어에 생성 데이터 저장
             const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
-            useEmotionSceneStore.getState().setPendingGeneration({
+            useEmotionSceneStore.getState().addPendingGeneration({
               stories,
               storyPageIds,
               bannerPhase: "ready",

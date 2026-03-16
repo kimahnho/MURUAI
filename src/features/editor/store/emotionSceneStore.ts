@@ -1,6 +1,7 @@
 /**
  * 감정추론 AI 2단계 생성 플로우 상태를 관리하는 스토어.
  * Phase 1(텍스트 생성) 결과를 보관하고, Phase 2(이미지 생성/재생성) 상태를 추적한다.
+ * 다중 생성 세트를 동시에 추적할 수 있도록 배열로 관리한다.
  */
 import { create } from "zustand";
 
@@ -26,7 +27,7 @@ export interface PageGenerationMeta {
 }
 
 interface EmotionSceneState {
-  pendingGeneration: PendingGeneration | null;
+  pendingGenerations: PendingGeneration[];
   generatingProgress: { current: number; total: number } | null;
   generationMeta: PageGenerationMeta[];
 
@@ -35,8 +36,9 @@ interface EmotionSceneState {
     requestId: number;
   } | null;
 
-  setPendingGeneration: (data: PendingGeneration | null) => void;
-  setBannerPhase: (phase: BannerPhase) => void;
+  addPendingGeneration: (data: PendingGeneration) => void;
+  removePendingGeneration: (storyPageIds: string[]) => void;
+  setBannerPhase: (storyPageIds: string[], phase: BannerPhase) => void;
   setGeneratingProgress: (
     v: { current: number; total: number } | null,
   ) => void;
@@ -45,23 +47,38 @@ interface EmotionSceneState {
   clearHeroImageRequest: () => void;
 }
 
+/** storyPageIds 배열의 첫 번째 요소로 세트를 식별한다 */
+const isSameSet = (a: string[], b: string[]): boolean =>
+  a.length > 0 && b.length > 0 && a[0] === b[0];
+
 export const useEmotionSceneStore = create<EmotionSceneState>((set) => ({
-  pendingGeneration: null,
+  pendingGenerations: [],
   generatingProgress: null,
   generationMeta: [],
   heroImageRequest: null,
 
-  setPendingGeneration: (data) => {
-    set({ pendingGeneration: data });
+  addPendingGeneration: (data) => {
+    set((state) => ({
+      pendingGenerations: [...state.pendingGenerations, data],
+    }));
   },
 
-  setBannerPhase: (phase) => {
-    set((state) => {
-      if (!state.pendingGeneration) return state;
-      return {
-        pendingGeneration: { ...state.pendingGeneration, bannerPhase: phase },
-      };
-    });
+  removePendingGeneration: (storyPageIds) => {
+    set((state) => ({
+      pendingGenerations: state.pendingGenerations.filter(
+        (pg) => !isSameSet(pg.storyPageIds, storyPageIds),
+      ),
+    }));
+  },
+
+  setBannerPhase: (storyPageIds, phase) => {
+    set((state) => ({
+      pendingGenerations: state.pendingGenerations.map((pg) =>
+        isSameSet(pg.storyPageIds, storyPageIds)
+          ? { ...pg, bannerPhase: phase }
+          : pg,
+      ),
+    }));
   },
 
   setGeneratingProgress: (v) => {

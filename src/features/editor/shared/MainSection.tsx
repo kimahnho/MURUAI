@@ -734,7 +734,7 @@ const MainSection = () => {
         onDeleteElements={handleDeleteElements}
         aiTipKey={location.key}
       />
-      <EmotionSceneBanner pages={pages} />
+      <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} />
       <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
       <SpellCheckPanel />
       <SpellCheckToast />

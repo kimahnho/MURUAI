@@ -57,6 +57,12 @@ buildCorrectionKey(elementId, field, correctionIdx)
 - `replaceAll()`로 순서 무관 텍스트 패칭
 - `actionMap`에서 `"applied"` 상태인 교정만 적용
 
+## 텍스트 추출 규칙
+
+- **`locked` 요소 제외**: 템플릿 고정 요소(`el.locked === true`)는 맞춤법 검사에서 자동 제외. "월", "일", "요일" 등 템플릿 레이블이 검사 대상에 포함되지 않음.
+- 빈 문자열(`text.trim() === ""`)은 제외
+- 테이블 셀: 각 셀을 `cell-{row}-{col}` 필드로 개별 추출
+
 ## 실수 방지
 
 1. **배치 크기 초과 금지** — 50개 초과 시 자동 분할
