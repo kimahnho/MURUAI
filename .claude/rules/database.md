@@ -20,6 +20,7 @@
 | `activity_events` | 사용자 활동 추적 (로그인 등) | `user_id` | — |
 | `download_events` | 문서 다운로드 추적 | `user_id` | — |
 | `template_usage_events` | 템플릿 사용 추적 | `user_id` | — |
+| `image_request` | 이미지 상징 요청 (사용자가 원하는 이미지 키워드) | `user_id` | — |
 
 ### RPC 통해서만 접근 (직접 `.from()` 없음)
 

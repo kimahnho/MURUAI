@@ -10,6 +10,12 @@ interface RecentImageSearchStore {
   recentSearches: string[];
   addRecentSearch: (keyword: string) => void;
   removeRecentSearch: (keyword: string) => void;
+  searchInput: string;
+  selectedStyle: string;
+  selectedTags: string[];
+  setSearchInput: (value: string) => void;
+  setSelectedStyle: (value: string) => void;
+  setSelectedTags: (value: string[]) => void;
 }
 
 export const useRecentImageSearchStore = create<RecentImageSearchStore>((set) => ({
@@ -25,4 +31,10 @@ export const useRecentImageSearchStore = create<RecentImageSearchStore>((set) =>
     set((state) => ({
       recentSearches: state.recentSearches.filter((k) => k !== keyword),
     })),
+  searchInput: "",
+  selectedStyle: "",
+  selectedTags: [],
+  setSearchInput: (value) => set({ searchInput: value }),
+  setSelectedStyle: (value) => set({ selectedStyle: value }),
+  setSelectedTags: (value) => set({ selectedTags: value }),
 }));

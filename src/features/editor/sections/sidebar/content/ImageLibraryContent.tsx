@@ -52,22 +52,23 @@ const ImageLibraryContent = () => {
   const recentSearches = useRecentImageSearchStore((s) => s.recentSearches);
   const addRecentSearch = useRecentImageSearchStore((s) => s.addRecentSearch);
   const removeRecentSearch = useRecentImageSearchStore((s) => s.removeRecentSearch);
-  const [selectedStyle, setSelectedStyle] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [searchInput, setSearchInput] = useState("");
+  const searchInput = useRecentImageSearchStore((s) => s.searchInput);
+  const setSearchInput = useRecentImageSearchStore((s) => s.setSearchInput);
+  const selectedStyle = useRecentImageSearchStore((s) => s.selectedStyle);
+  const setSelectedStyle = useRecentImageSearchStore((s) => s.setSelectedStyle);
+  const selectedTags = useRecentImageSearchStore((s) => s.selectedTags);
+  const setSelectedTags = useRecentImageSearchStore((s) => s.setSelectedTags);
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
     // 검색 입력은 디바운스로 묶어 연속 입력 시 쿼리 폭주를 방지한다.
     const timer = window.setTimeout(() => {
-      const trimmed = searchInput.trim();
-      setDebouncedSearch(trimmed);
-      if (trimmed) addRecentSearch(trimmed);
+      setDebouncedSearch(searchInput.trim());
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       window.clearTimeout(timer);
     };
-  }, [searchInput, addRecentSearch]);
+  }, [searchInput]);
 
   const filters = useMemo(
     () => ({
@@ -91,13 +92,16 @@ const ImageLibraryContent = () => {
   const items = data?.pages.flat() ?? [];
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    setSelectedTags(
+      selectedTags.includes(tag)
+        ? selectedTags.filter((t) => t !== tag)
+        : [...selectedTags, tag],
     );
   };
 
   const handleSelectImage = (url: string, name: string) => {
-    // 라이브러리 이미지는 선택 즉시 새 요소로 삽입해 탐색-적용 흐름을 단축한다.
+    // 이미지 클릭 시에만 검색어를 최근 검색에 저장한다.
+    if (debouncedSearch) addRecentSearch(debouncedSearch);
     requestImageFill(url, name, INSERT_SIZE, {
       forceInsert: true,
       source: "library",
@@ -248,6 +252,7 @@ const ImageLibraryContent = () => {
             </button>
           </div>
         )}
+
       </div>
     </div>
   );

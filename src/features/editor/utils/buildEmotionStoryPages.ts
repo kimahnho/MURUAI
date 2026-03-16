@@ -93,19 +93,10 @@ const patchStoryElements = (
           EMOTION_IMAGE_SIZE.width,
           EMOTION_IMAGE_SIZE.height,
         );
-        const borderWidth = el.border?.enabled ? el.border.width : 0;
-        const correctedImageBox = borderWidth > 0
-          ? {
-              ...imageBox,
-              x: Math.round(
-                (Math.max(0, el.w - borderWidth * 2) - imageBox.w) / 2,
-              ),
-            }
-          : imageBox;
         return {
           ...el,
           fill: `url(${imageUrl})`,
-          imageBox: correctedImageBox,
+          imageBox,
           text: "",
         };
       }

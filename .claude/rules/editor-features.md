@@ -155,7 +155,11 @@ DYNAMIC_GAP_MAX_MM = 20      // 동적 간격 최대값
 
 ### 버튼 활성화 조건
 
-`isAllVocabFilled(elements)`: 페이지 내 **모든** imageSlot에 연결된 라벨 텍스트가 기본값이 아닌 실제 단어로 변경되었을 때만 `true`.
+`isAllVocabFilled(elements)`: 페이지 내 **모든** imageSlot이 다음 두 조건을 동시에 충족해야 `true`:
+1. 이미지 삽입됨 (`fill.startsWith("url(")` 또는 `fill.startsWith("data:")`)
+2. 연결된 라벨 텍스트가 기본값(`"목표 어휘"`)이 아닌 실제 단어로 변경됨
+
+`getVocabUnfilledReason(elements)`: 미충족 사유를 반환 (`"missing-image"` / `"missing-label"` / `"filled"`). `VocabTracingBanner`에서 사유별 안내 문구를 분기 표시한다.
 
 ### 관련 파일
 

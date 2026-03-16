@@ -115,7 +115,7 @@ type ArtStyleId =
 ### 모델 및 설정
 
 - **텍스트 생성**: `gemini-2.5-flash` (`@google/genai` SDK)
-- **이미지 생성**: `gemini-2.5-flash-image`, `imageConfig: { aspectRatio: "16:9" }`
+- **이미지 생성**: `gemini-2.5-flash-image`, `imageConfig: { aspectRatio }` — 레이아웃별 다름 (가로형 `"3:4"`, 세로형 `"16:9"`)
 
 ### 2단계 파이프라인 (`generateStoryImages.ts`)
 
@@ -131,7 +131,8 @@ Phase 2: 일괄 Cloudinary 업로드 → URL 배열 반환
 ### Progress 콜백
 
 ```typescript
-generateStoryImages(pages, artStyleId, onProgress?): Promise<string[]>
+generateStoryImages(pages, artStyleId, layout, onProgress?): Promise<string[]>
+// layout: "vertical" | "horizontal" — aspectRatio 결정에 사용
 // onProgress(current, total) — 이미지 1장 생성 완료마다 호출
 ```
 
@@ -143,12 +144,13 @@ generateStoryImages(pages, artStyleId, onProgress?): Promise<string[]>
 | 항목 | 세로형 | 가로형 |
 |------|--------|--------|
 | A4 크기 | 792×1122px | 1122×792px |
-| 이미지:텍스트 분할 | 상단 50% : 하단 50% | 좌측 50% : 우측 50% |
+| 이미지 크기 | 780×500px | 540×680px |
+| 이미지 위치 | 수평 중앙, y=mmToPx(5) | x=0, 세로 중앙 |
+| aspectRatio | `"16:9"` | `"3:4"` |
 | fontSize | 36 | 32 |
 | lineHeight | 1.8 | 1.8 |
 
 - `MM_TO_PX = 3.7795` (mm → px 변환 상수)
-- `IMAGE_NATURAL_W = 1024`, `IMAGE_NATURAL_H = 576` (Gemini 16:9 출력 기준)
 - 모든 페이지 생성 시 `withLogoCanvasElements()` 필수 래핑
 - 캔버스 삽입: `useTemplateStore.requestInsertPages(pages)`
 
@@ -168,7 +170,7 @@ generateStoryImages(pages, artStyleId, onProgress?): Promise<string[]>
 4. **소유권 필터**: `.eq("user_id", session.user.id)` 필수
 5. **모달 닫기 방지**: 생성 중(`isLoading`) 닫기 버튼 비활성화
 6. **Phase 1 실패 시 throw**: base64 수집 중 실패하면 Cloudinary 업로드를 시도하지 않음 (비용 방지)
-7. **이미지 aspectRatio**: `"16:9"` 유지 필수
+7. **이미지 aspectRatio**: 레이아웃별 다름 — 가로형 `"3:4"`, 세로형 `"16:9"` (`generateStoryImages`에 `layout` 전달 필수)
 8. **한→영 번역 실패**: fallback으로 한국어 사용 (throw 아님)
 
 ## 관련 파일

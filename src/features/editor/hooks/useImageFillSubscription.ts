@@ -119,7 +119,14 @@ export const useImageFillSubscription = ({
           ),
         );
 
-        setSelectedIds([newElementId]);
+        // 그림 탭(감정/AAC/이미지 상징)에서 삽입 시 자동 선택하지 않음
+        const skipAutoSelect =
+          state.source === "emotion" ||
+          state.source === "aac" ||
+          state.source === "library";
+        if (!skipAutoSelect) {
+          setSelectedIds([newElementId]);
+        }
         if (shouldForceInsert) {
           setEditingTextId(null);
         }
@@ -196,22 +203,10 @@ export const useImageFillSubscription = ({
             // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
             const baseImageBox = element.imageBox ??
               calculateCoverImageBox(element.w, element.h, state.width, state.height);
-            const borderWidth =
-              element.border?.enabled ? element.border.width : 0;
             const isAacCard = isAacCardElement(page.elements, element);
-            const needsBorderCorrection =
-              borderWidth > 0 && (isAacCard || isEmotionInferenceCard(element));
-            const nextImageBox = needsBorderCorrection
-              ? {
-                  ...baseImageBox,
-                  x: Math.round(
-                    (Math.max(0, element.w - borderWidth * 2) -
-                      baseImageBox.w) /
-                      2
-                  ),
-                  // AAC 카드는 라벨 영역을 고려해 이미지를 위로 5px 올린다.
-                  y: isAacCard ? baseImageBox.y - 5 : baseImageBox.y,
-                }
+            // AAC 카드는 라벨 영역을 고려해 이미지를 위로 5px 올린다.
+            const nextImageBox = isAacCard
+              ? { ...baseImageBox, y: baseImageBox.y - 5 }
               : baseImageBox;
             const shouldClearPlaceholder =
               (isEmotionSlotShape(element) &&
