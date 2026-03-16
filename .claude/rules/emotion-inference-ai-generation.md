@@ -86,7 +86,7 @@ import { emotionInferencePage3 } from "@/features/editor/templates/emotion_infer
 import { emotionInferencePage4 } from "@/features/editor/templates/emotion_inference/page_4";
 import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
 
-type StoryItem = { title: string; sentence: string; emotions: [string, string, string] };
+type StoryItem = { title: string; sentence: string; emotions: [string, string, string]; sceneGroup: number };
 
 // buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls?)로 호출
 // emotionImageMap: Map<string, string> — 감정 라벨 → 이미지 URL
@@ -128,7 +128,7 @@ ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
 - emotions: 감정 선택지 3개 배열 (위 감정 라벨 목록에서만 선택)
 
 JSON만 출력:
-[{ "title": "...", "sentence": "친구는 ...", "emotions": ["...", "...", "..."] }, ...]
+[{ "title": "...", "sentence": "친구는 ...", "emotions": ["...", "...", "..."], "sceneGroup": 1 }, ...]
 `;
 ```
 
@@ -224,12 +224,29 @@ generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
 ```
 
 - **모델**: `gemini-2.5-flash-image`, `aspectRatio: "16:9"`
-- **2단계 파이프라인**: Phase 1에서 10장 base64 수집 (모두 성공해야 진행) → Phase 2에서 일괄 Cloudinary 업로드
+- **sceneGroup 기반 그룹별 순차 생성**: 같은 `sceneGroup`의 연속 장면은 첫 장면 이미지를 레퍼런스로 재활용하여 캐릭터/배경 일관성을 유지
+  - 그룹 첫 장: 캐릭터 레퍼런스(boy/girl) + 프롬프트
+  - 그룹 후속: 첫 장면 생성 이미지를 레퍼런스 + 일관성 유지 프롬프트
+- **2단계 파이프라인**: Phase 1에서 그룹별 순차 base64 수집 (모두 성공해야 진행) → Phase 2에서 일괄 Cloudinary 업로드
 - **캐릭터 참조 이미지**: `imageStyle`에 따라 `characterBoy` / `characterGirl` 로드 → Gemini에 인라인 이미지로 전달
-- **캐릭터 이미지 위치**: `src/shared/assets/characters/{boy.png, girl.png}` → `src/shared/assets/index.ts`에서 export
 - **한→영 번역**: `translateScenesToEnglish()` — 10개 장면을 1회 Gemini 호출로 일괄 번역 (실패 시 한국어 fallback)
 - **재시도**: `MAX_RETRIES = 5`, `RETRY_DELAY_MS = 3000`
 - **Cloudinary 폴더**: `muru_emotion_scene/{userId}`
+
+### 생성 메타데이터 (`emotionSceneStore.ts`)
+
+생성 완료 시 `PageGenerationMeta[]`를 스토어에 저장 — 추후 페이지별 재생성(C.2) 구현 시 활용.
+
+```typescript
+interface PageGenerationMeta {
+  pageIndex: number;
+  originalPrompt: string;
+  sceneGroup: number;
+  isGroupFirst: boolean;
+  groupFirstImageBase64: string | null;
+  generatedImageUrl: string;
+}
+```
 
 ### Progress 콜백
 
@@ -267,6 +284,9 @@ const emotionCards = elements.filter(
 | 선택 모달 | `src/features/editor/sections/sidebar/content/EmotionInferenceChoiceModal.tsx` (`skipChoice` prop으로 선택 화면 스킵 가능) |
 | AI 스토리 생성 | `src/features/editor/ai/generateEmotionStory.ts` |
 | AI 히어로 이미지 생성 | `src/features/editor/ai/generateEmotionSceneImages.ts` |
+| 생성 메타데이터 스토어 | `src/features/editor/store/emotionSceneStore.ts` |
+| 히어로 이미지 배너 | `src/features/editor/sections/canvas/EmotionSceneBanner.tsx` |
+| 히어로 이미지 모달 | `src/features/editor/sections/canvas/EmotionSceneImageModal.tsx` |
 | 페이지 빌더 | `src/features/editor/utils/buildEmotionStoryPages.ts` |
 | 감정 이미지 조회 | `src/features/editor/utils/fetchEmotionImageMap.ts` |
 | 이미지 채우기 유틸 | `src/features/editor/utils/imageFillUtils.ts` |
