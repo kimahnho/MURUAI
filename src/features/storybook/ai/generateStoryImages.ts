@@ -102,23 +102,65 @@ ${JSON.stringify(scenes)}`;
   return parsed.map((item) => (typeof item === "string" ? item : String(item)));
 };
 
+// ─── 적응형 앵커 리셋 판단 ───
+
+// 같은 앵커(이전 생성 이미지)로 연속 생성할 최대 횟수 — 초과 시 품질 보호를 위해 자동 리셋
+const MAX_ANCHOR_CHAIN = 3;
+
+// 이전 장면과 현재 장면의 물리적 배경이 바뀌었는지 AI가 판단
+const shouldResetAnchor = async (
+  ai: GoogleGenAI,
+  prevScene: string,
+  currentScene: string,
+): Promise<boolean> => {
+  const prompt = `You are evaluating two consecutive scenes in a children's story book.
+
+Previous scene: "${prevScene}"
+Current scene: "${currentScene}"
+
+Should the current scene use a completely NEW background/setting?
+Answer YES if:
+- The physical location has clearly changed (e.g., forest → village, home → school)
+- The scene composition needs to be fundamentally different
+
+Answer NO if:
+- The scenes share the same or similar setting
+- Only the character's action/emotion changes, not the environment
+
+Answer ONLY "YES" or "NO".`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseModalities: ["Text"] },
+    });
+
+    const text =
+      response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
+    return text.trim().toUpperCase().startsWith("YES");
+  } catch {
+    // 판단 실패 시 연속 사용 — MAX_ANCHOR_CHAIN에서 안전하게 리셋됨
+    return false;
+  }
+};
+
 // ─── 단일 페이지 이미지 생성 ───
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
-// 그룹 후속 장면에서 일관성 유지를 위한 레퍼런스 프롬프트 접미어
-const CONSISTENCY_SUFFIX =
-  "Maintain the same character appearance, art style, and background setting as the reference image. Only change the character's pose and expression to match the new scene description.";
+// 연속 생성 시: 이전 이미지를 레퍼런스로 일관성 유지
+const CONSISTENCY_SUFFIX = `The attached image is a previous scene from the same story.
+Maintain the exact same character appearance, art style, lighting, and color palette.
+Only change the scene details as described.`;
 
-// 최대 3회 재시도 + 재시도 간 2초 지연으로 간헐적 빈 응답 대응
 const generateSingleImage = async (
   ai: GoogleGenAI,
   imagePrompt: string,
   aspectRatio: string,
   referenceBase64?: string,
 ): Promise<string> => {
-  // 레퍼런스 이미지가 있으면 inlineData + 일관성 프롬프트 추가
   const contents = referenceBase64
     ? [
         { inlineData: { mimeType: "image/png" as const, data: referenceBase64 } },
@@ -195,42 +237,40 @@ export const generateStoryImages = async (
   const stylePostfix = preset.promptTemplate;
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
-  // ── Phase 1: sceneGroup 기반 그룹별 순차 생성 ──
+  // ── Phase 1: 적응형 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
+  // AI가 장면 간 맥락 변화를 실시간 판단하여 앵커를 리셋하거나 연속 사용
   const base64Images: string[] = new Array(pages.length);
-  const groupFirstImages = new Map<number, string>();
-  let completedCount = 0;
+  let currentAnchor: string | undefined = referenceImageBase64;
+  let chainLength = 0;
 
-  // sceneGroup → 원본 인덱스 배열로 그룹핑
-  const groupMap = new Map<number, number[]>();
   for (let i = 0; i < pages.length; i++) {
-    const group = pages[i].sceneGroup;
-    const indices = groupMap.get(group) ?? [];
-    indices.push(i);
-    groupMap.set(group, indices);
-  }
+    const scene = englishScenes[i] ?? koreanScenes[i];
+    const imagePrompt = `${scene}, ${stylePostfix}`;
+    let needsReset = false;
 
-  for (const indices of groupMap.values()) {
-    for (let j = 0; j < indices.length; j++) {
-      const idx = indices[j];
-      const scene = englishScenes[idx] ?? koreanScenes[idx];
-      const imagePrompt = `${scene}, ${stylePostfix}`;
-      const isGroupFirst = j === 0;
-
-      // 그룹 첫 장: 캐릭터 레퍼런스 사용, 후속: 그룹 첫 장 생성 이미지 사용
-      const reference = isGroupFirst
-        ? referenceImageBase64
-        : groupFirstImages.get(pages[idx].sceneGroup);
-
-      const base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, reference);
-      base64Images[idx] = base64;
-
-      if (isGroupFirst) {
-        groupFirstImages.set(pages[idx].sceneGroup, base64);
-      }
-
-      completedCount++;
-      onProgress?.(completedCount, pages.length);
+    if (i === 0 || !currentAnchor) {
+      needsReset = true;
+    } else if (chainLength >= MAX_ANCHOR_CHAIN) {
+      needsReset = true;
+    } else {
+      const prevScene = englishScenes[i - 1] ?? koreanScenes[i - 1];
+      needsReset = await shouldResetAnchor(ai, prevScene, scene);
     }
+
+    let base64: string;
+    if (needsReset) {
+      // 리셋: 캐릭터 레퍼런스로 생성 (없으면 텍스트 전용)
+      base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, referenceImageBase64);
+      currentAnchor = base64;
+      chainLength = 0;
+    } else {
+      // 연속: 현재 앵커(이전 생성 이미지)를 레퍼런스로 사용
+      base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, currentAnchor);
+      chainLength++;
+    }
+
+    base64Images[i] = base64;
+    onProgress?.(i + 1, pages.length);
   }
 
   // ── Phase 2: 일괄 Cloudinary 업로드 ──
