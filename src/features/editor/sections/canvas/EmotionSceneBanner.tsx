@@ -245,9 +245,10 @@ const BannerContent = ({
       <button
         type="button"
         onClick={onGenerate}
-        className="rounded-lg bg-[#F59E0B] px-3 py-1.5 text-13-semibold text-white-100 transition hover:bg-[#D97706]"
+        disabled
+        className="rounded-lg bg-[#F59E0B] px-3 py-1.5 text-13-semibold text-white-100 transition hover:bg-[#D97706] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        이미지 생성하기
+        점검 중
       </button>
       <button
         type="button"
