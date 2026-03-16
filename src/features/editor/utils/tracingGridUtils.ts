@@ -73,7 +73,7 @@ export const extractVocabLabels = (elements: CanvasElement[]): string[] => {
 };
 
 /**
- * 모든 imageSlot에 연결된 라벨 텍스트가 기본값에서 변경되었는지 확인한다.
+ * 모든 imageSlot에 이미지가 삽입되고, 연결된 라벨 텍스트가 기본값에서 변경되었는지 확인한다.
  * 버튼 활성화 조건 판별용.
  */
 export const isAllVocabFilled = (elements: CanvasElement[]): boolean => {
@@ -81,6 +81,10 @@ export const isAllVocabFilled = (elements: CanvasElement[]): boolean => {
   if (imageSlots.length === 0) return false;
 
   return imageSlots.every((slot) => {
+    const hasImage =
+      slot.fill.startsWith("url(") || slot.fill.startsWith("data:");
+    if (!hasImage) return false;
+
     const textEl = elements.find(
       (el) => el.type === "text" && el.id === slot.labelId,
     );
@@ -91,6 +95,38 @@ export const isAllVocabFilled = (elements: CanvasElement[]): boolean => {
       textEl.text !== DEFAULT_LABEL_TEXT
     );
   });
+};
+
+/**
+ * 어휘 카드 미충족 사유를 반환한다.
+ * 배너 안내 문구 분기용.
+ */
+export const getVocabUnfilledReason = (
+  elements: CanvasElement[],
+): "filled" | "missing-image" | "missing-label" => {
+  const imageSlots = elements.filter(isImageSlotWithLabel);
+  if (imageSlots.length === 0) return "missing-label";
+
+  const hasEmptyImage = imageSlots.some(
+    (slot) =>
+      !slot.fill.startsWith("url(") && !slot.fill.startsWith("data:"),
+  );
+  if (hasEmptyImage) return "missing-image";
+
+  const hasEmptyLabel = imageSlots.some((slot) => {
+    const textEl = elements.find(
+      (el) => el.type === "text" && el.id === slot.labelId,
+    );
+    return (
+      !textEl ||
+      textEl.type !== "text" ||
+      textEl.text.trim() === "" ||
+      textEl.text === DEFAULT_LABEL_TEXT
+    );
+  });
+  if (hasEmptyLabel) return "missing-label";
+
+  return "filled";
 };
 
 // 단어 하나의 섹션 높이(mm)

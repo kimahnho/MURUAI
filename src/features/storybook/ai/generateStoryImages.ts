@@ -7,7 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 
-import type { ArtStyleId } from "../model/storybookTypes";
+import type { ArtStyleId, PageLayout } from "../model/storybookTypes";
 import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 
 const GOOGLE_API_KEY = sanitizeEnvKey(
@@ -111,6 +111,7 @@ const RETRY_DELAY_MS = 2000;
 const generateSingleImage = async (
   ai: GoogleGenAI,
   imagePrompt: string,
+  aspectRatio: string,
 ): Promise<string> => {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -122,7 +123,7 @@ const generateSingleImage = async (
       config: {
         responseModalities: ["Text", "Image"],
         imageConfig: {
-          aspectRatio: "16:9",
+          aspectRatio,
         },
       },
     });
@@ -145,6 +146,7 @@ const generateSingleImage = async (
 export const generateStoryImages = async (
   pages: Array<{ sceneDescription: string }>,
   artStyleId: ArtStyleId,
+  layout: PageLayout,
   onProgress?: (current: number, total: number) => void,
 ): Promise<string[]> => {
   if (!GOOGLE_API_KEY) {
@@ -177,6 +179,8 @@ export const generateStoryImages = async (
 
   // 프롬프트 조합: [영문 장면] + ", " + [promptTemplate]
   const stylePostfix = preset.promptTemplate;
+  // 가로형은 3:4 (540×680 이미지 박스), 세로형은 16:9 (780×500 이미지 박스)
+  const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
   // ── Phase 1: 모든 이미지 base64 수집 (하나라도 실패 시 throw) ──
   const base64Images: string[] = [];
@@ -184,7 +188,7 @@ export const generateStoryImages = async (
   for (let i = 0; i < pages.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
     const imagePrompt = `${scene}, ${stylePostfix}`;
-    const base64Image = await generateSingleImage(ai, imagePrompt);
+    const base64Image = await generateSingleImage(ai, imagePrompt, aspectRatio);
     base64Images.push(base64Image);
     onProgress?.(i + 1, pages.length);
   }

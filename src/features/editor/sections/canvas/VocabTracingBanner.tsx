@@ -6,7 +6,7 @@ import { PenLine } from "lucide-react";
 
 import type { Page } from "@/features/editor/model/pageTypes";
 import { useVocabTracingStore } from "@/features/editor/store/vocabTracingStore";
-import { isAllVocabFilled } from "@/features/editor/utils/tracingGridUtils";
+import { getVocabUnfilledReason } from "@/features/editor/utils/tracingGridUtils";
 
 interface VocabTracingBannerProps {
   pages: Page[];
@@ -23,7 +23,12 @@ const VocabTracingBanner = ({
     return null;
   }
 
-  const isFilled = isAllVocabFilled(selectedPage.elements);
+  const reason = getVocabUnfilledReason(selectedPage.elements);
+  const isFilled = reason === "filled";
+  const guideText =
+    reason === "missing-image"
+      ? "모든 카드에 이미지를 삽입해주세요"
+      : "모든 카드에 목표 어휘를 입력해주세요";
 
   const handleClick = () => {
     useVocabTracingStore.getState().requestVocabTracing(selectedPageId);
@@ -43,7 +48,7 @@ const VocabTracingBanner = ({
           </button>
         ) : (
           <span className="text-13-semibold text-indigo-400">
-            모든 카드에 목표 어휘를 입력해주세요
+            {guideText}
           </span>
         )}
       </div>

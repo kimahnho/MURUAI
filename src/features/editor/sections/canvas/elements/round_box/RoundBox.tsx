@@ -410,17 +410,25 @@ const RoundBox = ({
         touchAction: "none",
         pointerEvents: selectable ? "auto" : "none",
         outlineColor: showOutline ? selectionColor : "transparent",
-        // 이미지 편집 모드에서는 border를 제거해 clip 없이 이미지가 프레임 밖으로 보이도록 한다.
-        border: isImageEditing
-          ? "none"
-          : border?.enabled
-            ? `${border.width}px ${borderStyle} ${border.color}`
-            : "none",
         overflow: "visible",
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}
     >
+      {/* Border overlay — 요소 크기에 영향 없이 안쪽으로 그려짐 */}
+      {border?.enabled && !isImageEditing && (
+        <div
+          className="absolute"
+          style={{
+            inset: 0,
+            border: `${border.width}px ${borderStyle} ${border.color}`,
+            borderRadius,
+            pointerEvents: "none",
+            boxSizing: "border-box",
+            zIndex: 1,
+          }}
+        />
+      )}
       <div
         className={`absolute flex items-center justify-center ${
           showImageOverflow ? "overflow-visible" : "overflow-hidden"

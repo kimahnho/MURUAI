@@ -20,14 +20,7 @@ const A4_V_H = mmToPx(297);
 const A4_H_W = mmToPx(297);
 const A4_H_H = mmToPx(210);
 
-// 미리보기(PagePreviewPanel)와 동일한 정확히 50:50 분할
-const HALF_V = Math.floor(A4_V_H / 2); // 세로형: 상단 이미지 높이 = 페이지 높이의 절반
-const HALF_H = Math.floor(A4_H_W / 2); // 가로형: 좌측 이미지 너비 = 페이지 너비의 절반
 const PADDING = mmToPx(10);
-
-// 이미지 기본 크기 (Gemini 이미지 출력 기준)
-const IMAGE_NATURAL_W = 1024;
-const IMAGE_NATURAL_H = 576;
 
 // ─── 세로형 레이아웃: 상단 이미지 + 하단 텍스트 (1:1 비율) ───
 
@@ -38,32 +31,34 @@ const buildVerticalElements = (
 
   const elements: CanvasElement[] = [];
 
-  // 이미지 영역 (상단 50% — 비율 유지, 세로 기준 맞춤)
+  // 이미지 영역 (상단 — 780×500, 로고 아래로 약간 내림)
+  const vImageW = 780;
+  const vImageH = 500;
+  const vImageX = Math.round((A4_V_W - vImageW) / 2);
+  const vImageY = mmToPx(5);
   if (page.imageUrl) {
-    const fitW = Math.round(HALF_V * (IMAGE_NATURAL_W / IMAGE_NATURAL_H));
-    const imageW = Math.min(fitW, A4_V_W);
-    const imageX = Math.round((A4_V_W - imageW) / 2);
     elements.push({
       id: crypto.randomUUID(),
       type: "rect",
-      x: imageX,
-      y: 0,
-      w: imageW,
-      h: HALF_V,
+      x: vImageX,
+      y: vImageY,
+      w: vImageW,
+      h: vImageH,
       fill: `url(${page.imageUrl})`,
-      imageBox: { x: 0, y: 0, w: imageW, h: HALF_V },
+      imageBox: { x: 0, y: 0, w: vImageW, h: vImageH },
       isStandaloneImage: true,
     });
   }
 
-  // 텍스트 영역 (하단 50% — 세로 중앙 정렬)
+  // 텍스트 영역 (이미지 아래 — 세로 중앙 정렬)
+  const vTextY = vImageY + vImageH + PADDING;
   elements.push({
     id: crypto.randomUUID(),
     type: "text",
     x: PADDING,
-    y: HALF_V + PADDING,
+    y: vTextY,
     w: A4_V_W - PADDING * 2,
-    h: A4_V_H - HALF_V - PADDING * 2,
+    h: A4_V_H - vTextY - PADDING,
     text: page.text,
     widthMode: "fixed",
     lockHeight: true,
@@ -89,31 +84,31 @@ const buildHorizontalElements = (
 ): CanvasElement[] => {
   const elements: CanvasElement[] = [];
 
-  // 이미지 영역 (좌측 50% — 비율 유지, 너비 기준 맞춤)
+  // 이미지 영역 (좌측 — 540×680, 세로 중앙 정렬)
+  const hImageW = 540;
+  const hImageH = 680;
+  const hImageY = Math.round((A4_H_H - hImageH) / 2);
   if (page.imageUrl) {
-    const fitH = Math.round(HALF_H * (IMAGE_NATURAL_H / IMAGE_NATURAL_W));
-    const imageH = Math.min(fitH, A4_H_H);
-    const imageY = Math.round((A4_H_H - imageH) / 2);
     elements.push({
       id: crypto.randomUUID(),
       type: "rect",
       x: 0,
-      y: imageY,
-      w: HALF_H,
-      h: imageH,
+      y: hImageY,
+      w: hImageW,
+      h: hImageH,
       fill: `url(${page.imageUrl})`,
-      imageBox: { x: 0, y: 0, w: HALF_H, h: imageH },
+      imageBox: { x: 0, y: 0, w: hImageW, h: hImageH },
       isStandaloneImage: true,
     });
   }
 
-  // 텍스트 영역 (우측 50% — 세로 중앙 정렬)
+  // 텍스트 영역 (이미지 우측 — 세로 중앙 정렬)
   elements.push({
     id: crypto.randomUUID(),
     type: "text",
-    x: HALF_H + PADDING,
+    x: hImageW + PADDING,
     y: PADDING,
-    w: A4_H_W - HALF_H - PADDING * 2,
+    w: A4_H_W - hImageW - PADDING * 2,
     h: A4_H_H - PADDING * 2,
     text: page.text,
     widthMode: "fixed",

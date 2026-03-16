@@ -137,7 +137,7 @@ export const generateStorybook = async (
 
   // 이미지 생성 + Cloudinary 업로드
   try {
-    const imageUrls = await generateStoryImages(pages, artStyle, onImageProgress);
+    const imageUrls = await generateStoryImages(pages, artStyle, layout, onImageProgress);
     pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
   } catch (error) {
     console.error("Story image generation failed:", error);

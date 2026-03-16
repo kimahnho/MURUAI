@@ -75,6 +75,30 @@ elements.map((el) => {
 
 감정 슬롯 요소(`isEmotionSlotShape`)의 rect 업데이트는 이동/리사이즈 **중** `handleRectChange`에서만 실시간 적용한다. 드래그 **종료** 시점(`handleDragStateChange`)에서는 중복 호출하지 않고 정리(activeInteraction 초기화, 가이드 클리어)만 수행한다.
 
+## RoundBox border overlay 패턴
+
+RoundBox 외부 div에 CSS `border`를 직접 적용하면 `border-box`에서 콘텐츠가 줄어들고 `content-box`에서 요소가 커진다. 따라서 border는 별도 overlay div로 렌더링한다.
+
+```typescript
+// ✅ 올바른 방식: border overlay div
+<div style={{ width: rect.width, height: rect.height /* border 없음 */ }}>
+  {border?.enabled && !isImageEditing && (
+    <div style={{
+      position: "absolute", inset: 0,
+      border: `${border.width}px ${borderStyle} ${border.color}`,
+      borderRadius, pointerEvents: "none", boxSizing: "border-box", zIndex: 1,
+    }} />
+  )}
+  <div style={{ inset: 0 }}>...</div>  {/* 콘텐츠 — border 영향 없음 */}
+</div>
+
+// ❌ 금지: 외부 div에 border 직접 적용
+<div style={{ width: rect.width, border: "3px solid #000" }}>...</div>
+```
+
+- border가 콘텐츠 영역에 영향을 주지 않으므로 `imageBox` border 보정 로직 불필요
+- 이미지 편집 모드에서는 overlay를 렌더링하지 않음 (기존 동작 유지)
+
 ## DesignPaper overflow 규칙
 
 - 편집 모드(`readOnly=false`): `overflow-visible` — 요소가 페이지 바깥으로 나가도 보임
