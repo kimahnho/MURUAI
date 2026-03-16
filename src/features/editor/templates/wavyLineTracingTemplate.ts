@@ -128,6 +128,7 @@ const headerElements: TemplateElement[] = [
     w: mmToPx(CONTENT_W * 0.65),
     h: mmToPx(TITLE_H),
     text: "점선 따라그리기 (구불구불 선)",
+    locked: true,
     style: {
       fontSize: 28,
       fontWeight: "bold",
@@ -145,6 +146,7 @@ const headerElements: TemplateElement[] = [
     w: mmToPx(CONTENT_W * 0.35 + 30),
     h: mmToPx(DATE_H),
     text: "월    일   이름 :",
+    locked: true,
     style: {
       fontSize: 16,
       fontWeight: "normal",
@@ -169,6 +171,7 @@ const headerElements: TemplateElement[] = [
     w: mmToPx(CONTENT_W),
     h: mmToPx(GUIDE_H),
     text: "※ 점선을 따라 선을 그어보세요.",
+    locked: true,
     style: {
       fontSize: 18,
       fontWeight: "normal",
