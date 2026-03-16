@@ -46,11 +46,12 @@ ${pagesBlock}
 2. 장면 묘사(sceneDescription)를 그림 작가가 그릴 수 있도록 구체적으로 보강 (배경, 인물 표정, 색감, 구도 포함)
 3. ${STORYBOOK_PAGE_COUNT}페이지 전체의 이야기 흐름이 자연스럽게 이어지도록 조정
 4. 아이 이름(${childInfo.name})을 자연스럽게 사용
+5. 각 페이지가 어떤 장소/배경에서 벌어지는지 판단하여 sceneGroup 번호를 부여하세요 (1부터 시작). 같은 장소에서 연속되는 페이지는 같은 sceneGroup을 가집니다.
 
 JSON만 출력 (설명, 마크다운 없음):
 [
-  { "pageNumber": 1, "sceneDescription": "...", "text": "..." },
-  { "pageNumber": 2, "sceneDescription": "...", "text": "..." }
+  { "pageNumber": 1, "sceneDescription": "...", "text": "...", "sceneGroup": 1 },
+  { "pageNumber": 2, "sceneDescription": "...", "text": "...", "sceneGroup": 1 }
 ]`;
 };
 
@@ -58,6 +59,7 @@ type ParsedPage = {
   pageNumber: number;
   sceneDescription: string;
   text: string;
+  sceneGroup?: number;
 };
 
 const parseStorybookResponse = (raw: string): ParsedPage[] => {
@@ -90,6 +92,7 @@ const buildFallbackPages = (proposal: StoryProposal): StoryBookPage[] =>
     imageUrl: "",
     text: p.textContent,
     sceneDescription: p.sceneDescription,
+    sceneGroup: i + 1,
   }));
 
 export const generateStorybook = async (
@@ -98,6 +101,7 @@ export const generateStorybook = async (
   layout: PageLayout,
   fontFamily: string,
   childInfo: ChildInfo,
+  referenceImageBase64?: string,
   onImageProgress?: (current: number, total: number) => void,
 ): Promise<StoryBook> => {
   if (!GOOGLE_API_KEY) {
@@ -123,12 +127,13 @@ export const generateStorybook = async (
   let pages: StoryBookPage[];
   try {
     const parsed = parseStorybookResponse(textPart.text);
-    pages = parsed.map((p) => ({
+    pages = parsed.map((p, i) => ({
       id: crypto.randomUUID(),
       pageNumber: p.pageNumber,
       imageUrl: "",
       text: p.text,
       sceneDescription: p.sceneDescription,
+      sceneGroup: typeof p.sceneGroup === "number" ? p.sceneGroup : i + 1,
     }));
   } catch {
     // 파싱 실패 시 원본 기획서 텍스트를 그대로 사용
@@ -137,7 +142,7 @@ export const generateStorybook = async (
 
   // 이미지 생성 + Cloudinary 업로드
   try {
-    const imageUrls = await generateStoryImages(pages, artStyle, layout, onImageProgress);
+    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress);
     pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
   } catch (error) {
     console.error("Story image generation failed:", error);

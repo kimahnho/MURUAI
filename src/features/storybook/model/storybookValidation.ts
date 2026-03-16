@@ -59,6 +59,8 @@ export const canAdvance = (
     }
     case 4:
       return validateArtStyle(formData.artStyle) === null;
+    case 45:
+      return true; // 기본 캐릭터 이미지가 자동 설정되므로 항상 통과
     case 5:
       return false; // 생성 중 — 자동 전환
     case 6:

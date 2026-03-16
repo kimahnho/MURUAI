@@ -170,18 +170,24 @@ ${JSON.stringify(scenes)}`;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
+// 그룹 첫 장면: 캐릭터 레퍼런스 사용
+const FIRST_IN_GROUP_SUFFIX = `Use the attached character reference photo as the main character in this scene.
+The character must look like a real person matching the reference photo — same realistic style, NOT cartoon or illustrated.
+The character should show the appropriate emotion for the situation described with a natural facial expression.`;
+
+// 그룹 후속 장면: 첫 장면 이미지를 레퍼런스로 일관성 유지
+const SUBSEQUENT_SUFFIX = `Maintain the same character appearance, art style, and background setting as the reference image.
+Only change the character's pose and emotion to match the new scene description.
+The character must look like a real person — same realistic style, NOT cartoon or illustrated.`;
+
 const generateSingleSceneImage = async (
   ai: GoogleGenAI,
   sceneDescription: string,
-  characterBase64: string,
+  referenceBase64: string,
+  isGroupFirst: boolean,
 ): Promise<string> => {
-  const fullPrompt = `${SCENE_STYLE_PROMPT}
-
-Scene: ${sceneDescription}
-
-Use the attached character reference photo as the main character in this scene.
-The character must look like a real person matching the reference photo — same realistic style, NOT cartoon or illustrated.
-The character should show the appropriate emotion for the situation described with a natural facial expression.`;
+  const suffix = isGroupFirst ? FIRST_IN_GROUP_SUFFIX : SUBSEQUENT_SUFFIX;
+  const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\n${suffix}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -192,7 +198,7 @@ The character should show the appropriate emotion for the situation described wi
       model: "gemini-2.5-flash-image",
       contents: [
         {
-          inlineData: { mimeType: "image/png", data: characterBase64 },
+          inlineData: { mimeType: "image/png", data: referenceBase64 },
         },
         { text: fullPrompt },
       ],
@@ -250,14 +256,41 @@ export const generateEmotionSceneImages = async (
     englishScenes = koreanScenes;
   }
 
-  // ── Phase 1: 10장 base64 수집 (모두 성공해야 진행) ──
-  const base64Images: string[] = [];
+  // ── Phase 1: 그룹별 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
+  // sceneGroup별로 그룹핑하여 첫 장면 이미지를 후속 장면의 레퍼런스로 재활용
+  const base64Images: string[] = new Array(stories.length);
+  const groupFirstImages = new Map<number, string>();
+  let completedCount = 0;
 
+  // sceneGroup → 원본 인덱스 배열로 그룹핑
+  const groupMap = new Map<number, number[]>();
   for (let i = 0; i < stories.length; i++) {
-    const scene = englishScenes[i] ?? koreanScenes[i];
-    const base64 = await generateSingleSceneImage(ai, scene, characterBase64);
-    base64Images.push(base64);
-    onProgress?.(i + 1, stories.length);
+    const group = stories[i].sceneGroup;
+    const indices = groupMap.get(group) ?? [];
+    indices.push(i);
+    groupMap.set(group, indices);
+  }
+
+  // 각 그룹 순차 처리
+  for (const indices of groupMap.values()) {
+    for (let j = 0; j < indices.length; j++) {
+      const idx = indices[j];
+      const scene = englishScenes[idx] ?? koreanScenes[idx];
+      const isGroupFirst = j === 0;
+      const reference = isGroupFirst
+        ? characterBase64
+        : groupFirstImages.get(stories[idx].sceneGroup)!;
+
+      const base64 = await generateSingleSceneImage(ai, scene, reference, isGroupFirst);
+      base64Images[idx] = base64;
+
+      if (isGroupFirst) {
+        groupFirstImages.set(stories[idx].sceneGroup, base64);
+      }
+
+      completedCount++;
+      onProgress?.(completedCount, stories.length);
+    }
   }
 
   // ── Phase 2: 일괄 Cloudinary 업로드 ──

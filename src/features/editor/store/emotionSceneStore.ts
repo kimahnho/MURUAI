@@ -15,9 +15,20 @@ export interface PendingGeneration {
   bannerPhase: BannerPhase;
 }
 
+/** 페이지별 이미지 생성 메타데이터 — 재생성 시 레퍼런스/프롬프트 복원용 */
+export interface PageGenerationMeta {
+  pageIndex: number;
+  originalPrompt: string;
+  sceneGroup: number;
+  isGroupFirst: boolean;
+  groupFirstImageBase64: string | null;
+  generatedImageUrl: string;
+}
+
 interface EmotionSceneState {
   pendingGeneration: PendingGeneration | null;
   generatingProgress: { current: number; total: number } | null;
+  generationMeta: PageGenerationMeta[];
 
   heroImageRequest: {
     heroImageUrls: Map<string, string>;
@@ -29,6 +40,7 @@ interface EmotionSceneState {
   setGeneratingProgress: (
     v: { current: number; total: number } | null,
   ) => void;
+  setGenerationMeta: (meta: PageGenerationMeta[]) => void;
   requestHeroImagePatch: (urls: Map<string, string>) => void;
   clearHeroImageRequest: () => void;
 }
@@ -36,6 +48,7 @@ interface EmotionSceneState {
 export const useEmotionSceneStore = create<EmotionSceneState>((set) => ({
   pendingGeneration: null,
   generatingProgress: null,
+  generationMeta: [],
   heroImageRequest: null,
 
   setPendingGeneration: (data) => {
@@ -53,6 +66,10 @@ export const useEmotionSceneStore = create<EmotionSceneState>((set) => ({
 
   setGeneratingProgress: (v) => {
     set({ generatingProgress: v });
+  },
+
+  setGenerationMeta: (meta) => {
+    set({ generationMeta: meta });
   },
 
   requestHeroImagePatch: (urls) => {

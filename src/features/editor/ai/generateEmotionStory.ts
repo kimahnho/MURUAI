@@ -8,6 +8,7 @@ export type StoryItem = {
   title: string;
   sentence: string;
   emotions: [string, string, string];
+  sceneGroup: number;
 };
 
 const GOOGLE_API_KEY = sanitizeEnvKey(
@@ -118,10 +119,12 @@ ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
   - 첫 번째(emotions[0]): 상황에 가장 적절한 정답 감정
   - 두 번째, 세 번째(emotions[1], emotions[2]): 상황과 맞지 않는 오답 감정
   - 반드시 위 감정 라벨 목록에서만 선택, 목록에 없는 감정은 절대 사용하지 마세요
+- sceneGroup: 같은 장소/배경에서 벌어지는 이야기끼리 같은 번호를 부여하세요 (1부터 시작)
+  - 예: 1~4번이 교실이면 sceneGroup: 1, 5~6번이 운동장이면 sceneGroup: 2
 
 JSON만 출력하세요 (설명, 마크다운 없음):
 [
-  { "title": "...", "sentence": "친구는 ...", "emotions": ["정답감정", "오답감정1", "오답감정2"] },
+  { "title": "...", "sentence": "친구는 ...", "emotions": ["정답감정", "오답감정1", "오답감정2"], "sceneGroup": 1 },
   ...
 ]`;
 };
@@ -151,13 +154,15 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
     return rec.emotions.slice(0, 3).every((e) => typeof e === "string");
   });
   if (valid.length === 0) throw new Error("유효한 스토리 데이터가 없습니다.");
-  return valid.slice(0, 10).map((item) => ({
+  return valid.slice(0, 10).map((item, i) => ({
     ...item,
     emotions: shuffleEmotions([
       item.emotions[0],
       item.emotions[1],
       item.emotions[2],
     ]),
+    // sceneGroup 누락 시 각 이야기마다 고유 번호 fallback
+    sceneGroup: typeof item.sceneGroup === "number" ? item.sceneGroup : i + 1,
   }));
 };
 

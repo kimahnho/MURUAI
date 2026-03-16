@@ -37,6 +37,7 @@ export interface StoryBookPage {
   imageUrl: string;
   text: string;
   sceneDescription: string;
+  sceneGroup: number;
 }
 
 export interface StoryBook {
@@ -80,7 +81,7 @@ export interface LayoutOption {
 
 // ─── 위자드 ───
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
+export type WizardStep = 1 | 2 | 3 | 4 | 45 | 5 | 6;
 
 export interface WizardFormData {
   childInfo: ChildInfo | null;
@@ -91,6 +92,7 @@ export interface WizardFormData {
   proposals: StoryProposal[];
   artStyle: ArtStyleId | null;
   editedProposal: StoryProposal | null;
+  referenceImageBase64?: string;
 }
 
 // ─── 상수 ───
@@ -129,6 +131,7 @@ export const STEP_LABELS: Record<WizardStep, string> = {
   2: "주제 입력",
   3: "기획서 선택",
   4: "스타일 설정",
+  45: "참고 이미지",
   5: "생성 중",
   6: "완료",
 };
@@ -152,4 +155,5 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   proposals: [],
   artStyle: null,
   editedProposal: null,
+  referenceImageBase64: undefined,
 };

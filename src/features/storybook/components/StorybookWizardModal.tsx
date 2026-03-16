@@ -39,7 +39,7 @@ const StorybookWizardModal = ({ isOpen, onClose }: StorybookWizardModalProps) =>
     onClose();
   };
 
-  const hasPreview = currentStep === 4;
+  const hasPreview = currentStep === 4 || currentStep === 45;
 
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden">

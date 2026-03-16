@@ -102,6 +102,7 @@ export const generateMockStorybook = async (
       imageUrl: "",
       text: outline.textContent,
       sceneDescription: outline.sceneDescription,
+      sceneGroup: i + 1,
     }));
 
   return {

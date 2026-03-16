@@ -112,6 +112,24 @@ const EmotionSceneImageModal = ({
       });
 
       useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
+
+      // 재생성용 메타데이터 저장
+      const groupFirstUrls = new Map<number, string>();
+      const meta = selectedStories.map((story, i) => {
+        const isFirst = !groupFirstUrls.has(story.sceneGroup);
+        if (isFirst && heroImageUrls[i]) {
+          groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
+        }
+        return {
+          pageIndex: i,
+          originalPrompt: `${story.title} ${story.sentence}`,
+          sceneGroup: story.sceneGroup,
+          isGroupFirst: isFirst,
+          groupFirstImageBase64: null,
+          generatedImageUrl: heroImageUrls[i] ?? "",
+        };
+      });
+      useEmotionSceneStore.getState().setGenerationMeta(meta);
       onComplete();
     } catch {
       useToastStore
