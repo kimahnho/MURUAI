@@ -18,12 +18,24 @@ import { useToastStore } from "@/features/editor/store/toastStore";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 
 import { generateStoryProposals } from "../ai/generateStoryProposals";
+import { generateCharacterReference } from "../ai/generateCharacterReference";
 import { generateStorybook } from "../ai/generateStorybook";
 import { buildStoryPages } from "../utils/buildStoryPages";
 import {
   updateStudentGender,
   createStudentFromWizard,
 } from "../data/studentService";
+
+// 위자드 단계 순서 — 45(참고 이미지)가 4와 5 사이에 위치
+const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
+const nextStep = (current: WizardStep): WizardStep | null => {
+  const idx = STEP_ORDER.indexOf(current);
+  return idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
+};
+const prevStep = (current: WizardStep): WizardStep | null => {
+  const idx = STEP_ORDER.indexOf(current);
+  return idx > 0 ? STEP_ORDER[idx - 1] : null;
+};
 
 interface StorybookWizardState {
   currentStep: WizardStep;
@@ -44,6 +56,7 @@ interface StorybookWizardState {
   setLayout: (layout: PageLayout) => void;
   setFontFamily: (font: string) => void;
   setArtStyle: (style: ArtStyleId) => void;
+  setReferenceImageBase64: (base64: string) => void;
   selectProposal: (id: string) => void;
   updateProposalPage: (
     proposalId: string,
@@ -54,6 +67,7 @@ interface StorybookWizardState {
 
   // 비동기 액션
   fetchProposals: () => Promise<void>;
+  generateCharacterRef: () => Promise<void>;
   generateBook: () => Promise<void>;
 
   // 초기화
@@ -73,7 +87,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
     goNext: () => {
       const { currentStep, formData } = get();
-      if (currentStep >= 6) return;
+      const next = nextStep(currentStep);
+      if (!next) return;
       if (!canAdvance(currentStep, formData)) return;
 
       // Step 1→2: 아동 정보 DB 동기화 (비차단)
@@ -97,13 +112,14 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         }
       }
 
-      set({ currentStep: (currentStep + 1) as WizardStep, error: null });
+      set({ currentStep: next, error: null });
     },
 
     goBack: () => {
       const { currentStep } = get();
-      if (currentStep <= 1) return;
-      set({ currentStep: (currentStep - 1) as WizardStep, error: null });
+      const prev = prevStep(currentStep);
+      if (!prev) return;
+      set({ currentStep: prev, error: null });
     },
 
     goToStep: (step) => {
@@ -130,6 +146,10 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
     setArtStyle: (style) => {
       set((s) => ({ formData: { ...s.formData, artStyle: style } }));
+    },
+
+    setReferenceImageBase64: (base64) => {
+      set((s) => ({ formData: { ...s.formData, referenceImageBase64: base64 } }));
     },
 
     selectProposal: (id) => {
@@ -196,6 +216,28 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       }
     },
 
+    generateCharacterRef: async () => {
+      const { formData } = get();
+      if (!formData.artStyle || !formData.childInfo) return;
+
+      set({ isLoading: true, error: null });
+      try {
+        const base64 = await generateCharacterReference(
+          formData.artStyle,
+          formData.childInfo,
+        );
+        set((s) => ({
+          formData: { ...s.formData, referenceImageBase64: base64 },
+          isLoading: false,
+        }));
+      } catch {
+        set({
+          isLoading: false,
+          error: "캐릭터 생성에 실패했어요. 다시 시도해 주세요.",
+        });
+      }
+    },
+
     generateBook: async () => {
       const { formData } = get();
       const proposal = formData.editedProposal;
@@ -209,6 +251,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           formData.layout,
           formData.fontFamily,
           formData.childInfo,
+          formData.referenceImageBase64,
           (current, total) => { set({ imageProgress: { current, total } }); },
         );
         set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
@@ -222,7 +265,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           isLoading: false,
           imageProgress: null,
           error: "스토리북 생성에 실패했어요. 다시 시도해 주세요.",
-          currentStep: 4,
+          currentStep: 45,
         });
       }
     },

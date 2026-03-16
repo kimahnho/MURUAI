@@ -107,19 +107,32 @@ ${JSON.stringify(scenes)}`;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
+// 그룹 후속 장면에서 일관성 유지를 위한 레퍼런스 프롬프트 접미어
+const CONSISTENCY_SUFFIX =
+  "Maintain the same character appearance, art style, and background setting as the reference image. Only change the character's pose and expression to match the new scene description.";
+
 // 최대 3회 재시도 + 재시도 간 2초 지연으로 간헐적 빈 응답 대응
 const generateSingleImage = async (
   ai: GoogleGenAI,
   imagePrompt: string,
   aspectRatio: string,
+  referenceBase64?: string,
 ): Promise<string> => {
+  // 레퍼런스 이미지가 있으면 inlineData + 일관성 프롬프트 추가
+  const contents = referenceBase64
+    ? [
+        { inlineData: { mimeType: "image/png" as const, data: referenceBase64 } },
+        { text: `${imagePrompt}\n\n${CONSISTENCY_SUFFIX}` },
+      ]
+    : imagePrompt;
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
       await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
     }
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
-      contents: imagePrompt,
+      contents,
       config: {
         responseModalities: ["Text", "Image"],
         imageConfig: {
@@ -144,9 +157,10 @@ const generateSingleImage = async (
  * Phase 2: 전부 성공 후 일괄 Cloudinary 업로드
  */
 export const generateStoryImages = async (
-  pages: Array<{ sceneDescription: string }>,
+  pages: Array<{ sceneDescription: string; sceneGroup: number }>,
   artStyleId: ArtStyleId,
   layout: PageLayout,
+  referenceImageBase64?: string,
   onProgress?: (current: number, total: number) => void,
 ): Promise<string[]> => {
   if (!GOOGLE_API_KEY) {
@@ -179,18 +193,44 @@ export const generateStoryImages = async (
 
   // 프롬프트 조합: [영문 장면] + ", " + [promptTemplate]
   const stylePostfix = preset.promptTemplate;
-  // 가로형은 3:4 (540×680 이미지 박스), 세로형은 16:9 (780×500 이미지 박스)
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
-  // ── Phase 1: 모든 이미지 base64 수집 (하나라도 실패 시 throw) ──
-  const base64Images: string[] = [];
+  // ── Phase 1: sceneGroup 기반 그룹별 순차 생성 ──
+  const base64Images: string[] = new Array(pages.length);
+  const groupFirstImages = new Map<number, string>();
+  let completedCount = 0;
 
+  // sceneGroup → 원본 인덱스 배열로 그룹핑
+  const groupMap = new Map<number, number[]>();
   for (let i = 0; i < pages.length; i++) {
-    const scene = englishScenes[i] ?? koreanScenes[i];
-    const imagePrompt = `${scene}, ${stylePostfix}`;
-    const base64Image = await generateSingleImage(ai, imagePrompt, aspectRatio);
-    base64Images.push(base64Image);
-    onProgress?.(i + 1, pages.length);
+    const group = pages[i].sceneGroup;
+    const indices = groupMap.get(group) ?? [];
+    indices.push(i);
+    groupMap.set(group, indices);
+  }
+
+  for (const indices of groupMap.values()) {
+    for (let j = 0; j < indices.length; j++) {
+      const idx = indices[j];
+      const scene = englishScenes[idx] ?? koreanScenes[idx];
+      const imagePrompt = `${scene}, ${stylePostfix}`;
+      const isGroupFirst = j === 0;
+
+      // 그룹 첫 장: 캐릭터 레퍼런스 사용, 후속: 그룹 첫 장 생성 이미지 사용
+      const reference = isGroupFirst
+        ? referenceImageBase64
+        : groupFirstImages.get(pages[idx].sceneGroup);
+
+      const base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, reference);
+      base64Images[idx] = base64;
+
+      if (isGroupFirst) {
+        groupFirstImages.set(pages[idx].sceneGroup, base64);
+      }
+
+      completedCount++;
+      onProgress?.(completedCount, pages.length);
+    }
   }
 
   // ── Phase 2: 일괄 Cloudinary 업로드 ──

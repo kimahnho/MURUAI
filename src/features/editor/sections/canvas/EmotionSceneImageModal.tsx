@@ -112,6 +112,24 @@ const EmotionSceneImageModal = ({
       });
 
       useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
+
+      // 재생성용 메타데이터 저장
+      const groupFirstUrls = new Map<number, string>();
+      const meta = selectedStories.map((story, i) => {
+        const isFirst = !groupFirstUrls.has(story.sceneGroup);
+        if (isFirst && heroImageUrls[i]) {
+          groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
+        }
+        return {
+          pageIndex: i,
+          originalPrompt: `${story.title} ${story.sentence}`,
+          sceneGroup: story.sceneGroup,
+          isGroupFirst: isFirst,
+          groupFirstImageBase64: null,
+          generatedImageUrl: heroImageUrls[i] ?? "",
+        };
+      });
+      useEmotionSceneStore.getState().setGenerationMeta(meta);
       onComplete();
     } catch {
       useToastStore
@@ -191,7 +209,7 @@ const EmotionSceneImageModal = ({
 
         {/* 썸네일 그리드 */}
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {storyPageIds.map((pageId, index) => {
               const story = stories[index];
               if (!story) return null;
@@ -262,14 +280,16 @@ const EmotionSceneImageModal = ({
                   : "bg-[#F59E0B] hover:bg-[#D97706]"
             }`}
           >
-            {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isGenerating
-              ? progress
-                ? `이미지 생성 중 (${progress.current}/${progress.total})`
-                : "이미지 생성 중..."
-              : selectedIds.size > 0
-                ? `${selectedIds.size}장 재생성하기`
-                : "페이지를 선택하세요"}
+            {isGenerating && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+            <span className="truncate">
+              {isGenerating
+                ? progress
+                  ? `이미지 생성 중 (${progress.current}/${progress.total})`
+                  : "이미지 생성 중..."
+                : selectedIds.size > 0
+                  ? `${selectedIds.size}장 재생성하기`
+                  : "페이지를 선택하세요"}
+            </span>
           </button>
         </div>
       </div>

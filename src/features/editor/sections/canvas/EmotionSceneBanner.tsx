@@ -1,6 +1,7 @@
 /**
  * 감정추론 AI 이미지 생성 플로팅 배너.
  * 텍스트 생성 후 캔버스 상단에 표시되어 이미지 생성/재생성/확정 플로우를 안내한다.
+ * 다중 생성 세트를 지원하며, 현재 선택된 페이지에 해당하는 세트만 표시한다.
  */
 import { useState } from "react";
 import { Check, ImageIcon, Loader2, RefreshCw, X } from "lucide-react";
@@ -11,16 +12,18 @@ import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotion
 import {
   useEmotionSceneStore,
   type BannerPhase,
+  type PendingGeneration,
 } from "@/features/editor/store/emotionSceneStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import EmotionSceneImageModal from "./EmotionSceneImageModal";
 
 interface EmotionSceneBannerProps {
   pages: Page[];
+  selectedPageId: string;
 }
 
-const EmotionSceneBanner = ({ pages }: EmotionSceneBannerProps) => {
-  const pendingGeneration = useEmotionSceneStore((s) => s.pendingGeneration);
+const EmotionSceneBanner = ({ pages, selectedPageId }: EmotionSceneBannerProps) => {
+  const pendingGenerations = useEmotionSceneStore((s) => s.pendingGenerations);
   const generatingProgress = useEmotionSceneStore(
     (s) => s.generatingProgress,
   );
@@ -28,15 +31,37 @@ const EmotionSceneBanner = ({ pages }: EmotionSceneBannerProps) => {
   const [imageStyle, setImageStyle] =
     useState<EmotionImageStyle>("photo-boy");
 
-  if (!pendingGeneration || pendingGeneration.storyPageIds.length === 0) {
-    return null;
+  if (pendingGenerations.length === 0) return null;
+
+  // 실제 존재하는 페이지 ID 셋
+  const existingPageIds = new Set(pages.map((p) => p.id));
+
+  // 현재 선택된 페이지를 포함하는 세트 찾기
+  let matchedGeneration: PendingGeneration | null = null;
+  let validStoryPageIds: string[] = [];
+
+  for (const pg of pendingGenerations) {
+    const validIds = pg.storyPageIds.filter((id) => existingPageIds.has(id));
+    if (validIds.length === 0) {
+      // 모든 페이지가 삭제된 세트 → 제거
+      useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
+      continue;
+    }
+    if (validIds.includes(selectedPageId)) {
+      matchedGeneration = pg;
+      validStoryPageIds = validIds;
+      break;
+    }
   }
 
-  const { stories, storyPageIds, bannerPhase } = pendingGeneration;
+  if (!matchedGeneration) return null;
+
+  const { stories, storyPageIds: originalIds, bannerPhase } = matchedGeneration;
+  const storyPageIds = validStoryPageIds;
 
   const handleGenerateImages = async () => {
     const store = useEmotionSceneStore.getState();
-    store.setBannerPhase("generating");
+    store.setBannerPhase(originalIds, "generating");
 
     try {
       const heroImageUrls = await generateEmotionSceneImages(
@@ -50,7 +75,6 @@ const EmotionSceneBanner = ({ pages }: EmotionSceneBannerProps) => {
         },
       );
 
-      // pageId → URL 매핑 생성
       const urlMap = new Map<string, string>();
       storyPageIds.forEach((pageId, index) => {
         if (heroImageUrls[index]) {
@@ -59,30 +83,47 @@ const EmotionSceneBanner = ({ pages }: EmotionSceneBannerProps) => {
       });
 
       useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
-      useEmotionSceneStore.getState().setBannerPhase("completed");
+
+      const groupFirstUrls = new Map<number, string>();
+      const meta = stories.map((story, i) => {
+        const isFirst = !groupFirstUrls.has(story.sceneGroup);
+        if (isFirst && heroImageUrls[i]) {
+          groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
+        }
+        return {
+          pageIndex: i,
+          originalPrompt: `${story.title} ${story.sentence}`,
+          sceneGroup: story.sceneGroup,
+          isGroupFirst: isFirst,
+          groupFirstImageBase64: null,
+          generatedImageUrl: heroImageUrls[i] ?? "",
+        };
+      });
+      useEmotionSceneStore.getState().setGenerationMeta(meta);
+      useEmotionSceneStore.getState().setBannerPhase(originalIds, "completed");
     } catch {
       useToastStore
         .getState()
         .showToast("이미지 생성에 실패했어요. 다시 시도해 주세요.");
-      useEmotionSceneStore.getState().setBannerPhase("ready");
+      useEmotionSceneStore.getState().setBannerPhase(originalIds, "ready");
     } finally {
       useEmotionSceneStore.getState().setGeneratingProgress(null);
     }
   };
 
   const handleDismiss = () => {
-    useEmotionSceneStore.getState().setPendingGeneration(null);
+    useEmotionSceneStore.getState().removePendingGeneration(originalIds);
   };
 
   const handleConfirm = () => {
-    useEmotionSceneStore.getState().setPendingGeneration(null);
+    useEmotionSceneStore.getState().removePendingGeneration(originalIds);
   };
 
   return (
     <>
       <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2">
         <div className="flex flex-col items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-lg">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 whitespace-nowrap">
             <BannerContent
               phase={bannerPhase}
               progress={generatingProgress}
@@ -173,11 +214,10 @@ const BannerContent = ({
     );
   }
 
-  // phase === "ready" — 남아/여아 선택 + 이미지 생성하기
   return (
     <>
       <ImageIcon className="h-4 w-4 text-amber-600" />
-      <span className="text-14-semibold text-amber-800">
+      <span className="text-14-semibold text-amber-800 whitespace-nowrap">
         텍스트를 확인 후 이미지를 생성하세요
       </span>
       <div className="flex items-center gap-1.5">

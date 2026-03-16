@@ -124,6 +124,7 @@ export const normal_2: Template = {
       w: mmToPx(labelWidthMm),
       h: mmToPx(headerTextHeightMm),
       text: "월",
+      locked: true,
       style: {
         fontSize: 25,
         fontWeight: "bold",
@@ -168,6 +169,7 @@ export const normal_2: Template = {
       w: mmToPx(labelWidthMm),
       h: mmToPx(headerTextHeightMm),
       text: "일",
+      locked: true,
       style: {
         fontSize: 25,
         fontWeight: "bold",

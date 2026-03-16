@@ -1,14 +1,17 @@
 /**
  * 감정 이미지, AAC 카드, 이미지 라이브러리를 탭으로 전환해 제공하는 통합 패널 컴포넌트.
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquarePlus } from "lucide-react";
 import EmotionContent from "./EmotionContent";
 import AACContent from "./AACContent";
 import AacPropsContent from "./AacPropsContent";
 import ImageLibraryContent from "./ImageLibraryContent";
-import { useElementPanelStore, type AacPanelData } from "@/features/editor/store/elementPanelStore";
+import {
+  useElementPanelStore,
+  type AacPanelData,
+} from "@/features/editor/store/elementPanelStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
@@ -18,24 +21,25 @@ type Tab = "emotion" | "aac" | "image";
 const TAB_ITEMS: Array<{ id: Tab; label: string }> = [
   { id: "emotion", label: "감정" },
   { id: "aac", label: "AAC" },
-  { id: "image", label: "이미지 상징" },
+  { id: "image", label: "이미지" },
 ];
 
 const EmotionAACContent = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("emotion");
   const panelData = useElementPanelStore((s) => s.panelData);
   const isAacSelected = panelData?.type === "aac";
   const aacHasImage = isAacSelected && (panelData as AacPanelData).hasImage;
+  const [activeTab, setActiveTab] = useState<Tab>(isAacSelected ? "aac" : "emotion");
+  // AAC 카드 선택 시 AAC 탭으로 자동 전환 (이전 상태와 비교)
+  const [prevAacSelected, setPrevAacSelected] = useState(isAacSelected);
+  if (isAacSelected !== prevAacSelected) {
+    setPrevAacSelected(isAacSelected);
+    if (isAacSelected) setActiveTab("aac");
+  }
   const userId = useAuthStore((s) => s.user?.id);
   const showToast = useToastStore((s) => s.showToast);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [requestKeyword, setRequestKeyword] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
-
-  // AAC 카드 선택 시 AAC 탭으로 자동 전환
-  useEffect(() => {
-    if (isAacSelected) setActiveTab("aac");
-  }, [isAacSelected]);
 
   const handleImageRequest = async () => {
     const keyword = requestKeyword.trim();
@@ -79,7 +83,9 @@ const EmotionAACContent = () => {
           <button
             key={tab.id}
             type="button"
-            onClick={() => { setActiveTab(tab.id); }}
+            onClick={() => {
+              setActiveTab(tab.id);
+            }}
             className={`flex-1 py-2 text-14-semibold transition-all border-b-2 ${
               activeTab === tab.id
                 ? "border-primary text-primary"

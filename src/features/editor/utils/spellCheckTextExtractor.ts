@@ -17,6 +17,9 @@ const extractFromElement = (
   pageId: string,
   pageNumber: number,
 ): TextItem[] => {
+  // 템플릿 고정 요소(locked)는 맞춤법 검사에서 제외
+  if (el.locked) return [];
+
   const items: TextItem[] = [];
 
   if (el.type === "text") {

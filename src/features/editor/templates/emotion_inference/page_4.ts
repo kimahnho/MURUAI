@@ -72,6 +72,7 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(dateWidthMm),
       h: mmToPx(dateHeightMm),
       text: "월&nbsp;&nbsp;&nbsp;&nbsp;일&nbsp;&nbsp;&nbsp;&nbsp;요일",
+      locked: true,
       style: {
         fontSize: 24,
         fontWeight: "normal",
@@ -119,6 +120,7 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(questionWidthMm),
       h: mmToPx(questionHeightMm),
       text: "기분이 어떨까요?",
+      locked: true,
       style: {
         fontSize: 25,
         fontWeight: "bold",

@@ -80,11 +80,11 @@ const EmotionInferenceChoiceModal = ({
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                 <FileText className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="text-14-semibold text-black-90">
+              <div className="min-w-0">
+                <p className="text-14-semibold text-black-90 truncate">
                   기존 템플릿 생성하기
                 </p>
-                <p className="mt-0.5 text-12-regular text-black-50">
+                <p className="mt-0.5 text-12-regular text-black-50 truncate">
                   4페이지 감정 추론 활동 템플릿 적용
                 </p>
               </div>
@@ -99,11 +99,11 @@ const EmotionInferenceChoiceModal = ({
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
                 <Brain className="h-5 w-5 text-[#7C3AED]" />
               </div>
-              <div>
-                <p className="text-14-semibold text-black-90">
+              <div className="min-w-0">
+                <p className="text-14-semibold text-black-90 truncate">
                   AI 스토리라인 생성하기
                 </p>
-                <p className="mt-0.5 text-12-regular text-black-50">
+                <p className="mt-0.5 text-12-regular text-black-50 truncate">
                   주제를 입력하면 AI가 스토리를 만들어요
                 </p>
               </div>

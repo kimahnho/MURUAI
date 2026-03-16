@@ -57,6 +57,7 @@ src/
 ## 환경 변수
 
 필수 (`VITE_` 접두사):
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
@@ -94,23 +95,37 @@ src/
 
 ## 도메인별 상세 지침
 
-| 도메인 | 규칙 파일 |
-|--------|----------|
-| 에디터 전반 | `.claude/rules/editor.md` |
-| 에디터 사이드바 패널 | `.claude/rules/editor-sidebar-panel.md` |
-| 에디터 기능별 상세 | `.claude/rules/editor-features.md` |
-| 캔버스 아키텍처 | `.claude/rules/canvas-architecture.md` |
-| PDF 출력 | `.claude/rules/pdf-export.md` |
-| TextBox | `.claude/rules/textbox.md` |
-| Table | `.claude/rules/table.md` |
-| Zustand | `.claude/rules/zustand.md` |
-| 코드 스타일 | `.claude/rules/code-style.md` |
-| DB/Supabase | `.claude/rules/database.md` |
-| 모니터링 (Sentry/Mixpanel) | `.claude/rules/monitoring.md` |
-| AI 감정 추론 생성 | `.claude/rules/emotion-inference-ai-generation.md` |
-| 스토리북 AI 생성기 | `.claude/rules/storybook.md` |
-| 홈페이지 | `.claude/rules/home-page.md`, `.claude/rules/home.md` |
-| 내 문서 | `.claude/rules/mydoc.md` |
-| 관리자 | `.claude/rules/admin.md` |
-| 폰트 시스템 | `.claude/rules/font.md` |
-| shared 모듈 | `.claude/rules/shared.md` |
+| 도메인                     | 규칙 파일                                             |
+| -------------------------- | ----------------------------------------------------- |
+| 에디터 전반                | `.claude/rules/editor.md`                             |
+| 에디터 사이드바 패널       | `.claude/rules/editor-sidebar-panel.md`               |
+| 에디터 기능별 상세         | `.claude/rules/editor-features.md`                    |
+| 캔버스 아키텍처            | `.claude/rules/canvas-architecture.md`                |
+| 캔버스 인터랙션            | `.claude/rules/canvas-interaction.md`                 |
+| 도형 요소                  | `.claude/rules/shape-elements.md`                     |
+| 히스토리/Undo-Redo         | `.claude/rules/history-undo.md`                       |
+| 페이지 팩토리/템플릿       | `.claude/rules/page-factory-templates.md`             |
+| 이미지 채우기 시스템       | `.claude/rules/image-fill-system.md`                  |
+| 맞춤법 검사                | `.claude/rules/spell-check.md`                        |
+| 구독 패턴                  | `.claude/rules/subscriptions.md`                      |
+| 복사/붙여넣기              | `.claude/rules/copy-paste.md`                         |
+| 하단 바                    | `.claude/rules/bottom-bar.md`                         |
+| AAC 카드 요소              | `.claude/rules/aac-card-element.md`                   |
+| 선/화살표 요소             | `.claude/rules/line-arrow-elements.md`                |
+| 스마트 가이드              | `.claude/rules/smart-guides.md`                       |
+| 요소 패널 스토어           | `.claude/rules/element-panel-store.md`                |
+| PDF 출력                   | `.claude/rules/pdf-export.md`                         |
+| TextBox                    | `.claude/rules/textbox.md`                            |
+| Table                      | `.claude/rules/table.md`                              |
+| Zustand                    | `.claude/rules/zustand.md`                            |
+| 반응형 UI                  | `.claude/rules/responsive.md`                         |
+| 코드 스타일                | `.claude/rules/code-style.md`                         |
+| DB/Supabase                | `.claude/rules/database.md`                           |
+| 모니터링 (Sentry/Mixpanel) | `.claude/rules/monitoring.md`                         |
+| AI 감정 추론 생성          | `.claude/rules/emotion-inference-ai-generation.md`    |
+| 스토리북 AI 생성기         | `.claude/rules/storybook.md`                          |
+| 홈페이지                   | `.claude/rules/home-page.md`, `.claude/rules/home.md` |
+| 내 문서                    | `.claude/rules/mydoc.md`                              |
+| 관리자                     | `.claude/rules/admin.md`                              |
+| 폰트 시스템                | `.claude/rules/font.md`                               |
+| shared 모듈                | `.claude/rules/shared.md`                             |

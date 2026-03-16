@@ -77,6 +77,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(dateWidthMm),
       h: mmToPx(dateHeightMm),
       text: "월&nbsp;&nbsp;&nbsp;&nbsp;일&nbsp;&nbsp;&nbsp;&nbsp;요일",
+      locked: true,
       style: {
         fontSize: 24,
         fontWeight: "normal",
@@ -124,6 +125,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(instructionHeightMm),
       text: "1. 표정을 따라 그려보아요",
+      locked: true,
       style: {
         fontSize: 14,
         fontWeight: "normal",
@@ -140,6 +142,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(questionHeightMm),
       text: "2. 아이는 어떤 기분일까요?",
+      locked: true,
       style: {
         fontSize: 14,
         fontWeight: "normal",
@@ -192,6 +195,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(questionHeightMm),
       text: "3. 내 기분은 어떨까요?",
+      locked: true,
       style: {
         fontSize: 14,
         fontWeight: "normal",
@@ -244,6 +248,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(questionHeightMm),
       text: "4. 왜 그렇게 생각했나요?",
+      locked: true,
       style: {
         fontSize: 14,
         fontWeight: "normal",

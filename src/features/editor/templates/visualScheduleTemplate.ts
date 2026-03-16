@@ -118,6 +118,7 @@ export const visualScheduleTemplate: Template = {
       w: mmToPx(leftColWidthMm),
       h: mmToPx(headerHeightMm),
       text: "순서",
+      locked: true,
       style: {
         fontSize: 30,
         fontWeight: "bold" as const,
@@ -134,6 +135,7 @@ export const visualScheduleTemplate: Template = {
       w: mmToPx(taskColWidthMm),
       h: mmToPx(headerHeightMm),
       text: "할일",
+      locked: true,
       style: {
         fontSize: 30,
         fontWeight: "bold" as const,
@@ -150,6 +152,7 @@ export const visualScheduleTemplate: Template = {
       w: mmToPx(taskColWidthMm),
       h: mmToPx(headerHeightMm),
       text: "끝!",
+      locked: true,
       style: {
         fontSize: 30,
         fontWeight: "bold" as const,
@@ -185,6 +188,7 @@ export const visualScheduleTemplate: Template = {
           w: mmToPx(leftColWidthMm),
           h: mmToPx(rowHeightMm),
           text: numberText,
+          locked: true,
           style: {
             fontSize: 30,
             fontWeight: "bold" as const,

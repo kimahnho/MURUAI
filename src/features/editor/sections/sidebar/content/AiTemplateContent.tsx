@@ -127,7 +127,7 @@ const AiTemplateContent = () => {
             useTemplateStore.getState().requestInsertPages(pages);
             // Phase 2를 위해 스토어에 생성 데이터 저장
             const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
-            useEmotionSceneStore.getState().setPendingGeneration({
+            useEmotionSceneStore.getState().addPendingGeneration({
               stories,
               storyPageIds,
               bannerPhase: "ready",
@@ -215,15 +215,15 @@ const TemplateCard = ({
     onClick={disabled ? undefined : onClick}
   >
     <div
-      className="flex w-12 h-12 items-center justify-center rounded-lg shadow-sm"
+      className="flex w-12 h-12 items-center justify-center rounded-lg shadow-sm shrink-0"
       style={{ backgroundColor: disabled ? "#D1D5DB" : iconBgColor }}
     >
       <Icon className="icon-m text-white" />
     </div>
 
-    <div className="flex flex-col justify-center gap-1">
-      <span className="text-title-18-semibold text-black-100">{title}</span>
-      <span className="text-12-regular text-black-60">{description}</span>
+    <div className="flex flex-col justify-center gap-1 min-w-0">
+      <span className="text-title-18-semibold text-black-100 truncate">{title}</span>
+      <span className="text-12-regular text-black-60 truncate">{description}</span>
     </div>
   </div>
 );

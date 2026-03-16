@@ -104,6 +104,7 @@ const headerElements: TemplateElement[] = [
     w: mmToPx(PERIOD_COL_W),
     h: mmToPx(HEADER_H / 2),
     text: "요일",
+    locked: true,
     style: {
       fontSize: 11,
       fontWeight: "normal" as const,
@@ -121,6 +122,7 @@ const headerElements: TemplateElement[] = [
     w: mmToPx(PERIOD_COL_W),
     h: mmToPx(HEADER_H / 2),
     text: "교시",
+    locked: true,
     style: {
       fontSize: 11,
       fontWeight: "normal" as const,
@@ -150,6 +152,7 @@ const headerElements: TemplateElement[] = [
         w: mmToPx(DAY_COL_W),
         h: mmToPx(HEADER_H),
         text: day,
+        locked: true,
         style: {
           fontSize: 24,
           fontWeight: "bold" as const,
@@ -189,6 +192,7 @@ const periodRows: TemplateElement[] = PERIODS.flatMap(
         w: mmToPx(PERIOD_COL_W),
         h: mmToPx(ROW_H * 0.55),
         text: periodLabel,
+        locked: true,
         style: {
           fontSize: lunch ? 20 : 22,
           fontWeight: "bold" as const,
@@ -206,6 +210,7 @@ const periodRows: TemplateElement[] = PERIODS.flatMap(
         w: mmToPx(PERIOD_COL_W),
         h: mmToPx(ROW_H * 0.45),
         text: timeLabel,
+        locked: true,
         style: {
           fontSize: 9,
           fontWeight: "normal" as const,
