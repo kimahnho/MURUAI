@@ -129,4 +129,5 @@ src/
 | 관리자                     | `.claude/rules/admin.md`                              |
 | 폰트 시스템                | `.claude/rules/font.md`                               |
 | shared 모듈                | `.claude/rules/shared.md`                             |
+| 디자인 시스템              | `.claude/rules/design-system.md`                      |
 | AI 이미지 생성 중단/복원   | `.claude/rules/ai-image-generation-disabled.md`       |

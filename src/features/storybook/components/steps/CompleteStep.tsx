@@ -29,7 +29,7 @@ const CompleteStep = () => {
       </div>
 
       {/* 요약 카드 */}
-      <div className="flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <div className="flex flex-col gap-2 rounded-lg border border-primary-200 bg-primary-50 p-3">
         <SummaryRow label="제목" value={book.title} />
         <SummaryRow label="대상" value={`${book.childInfo.name} (${book.childInfo.age}세)`} />
         <SummaryRow label="그림체" value={styleName} />

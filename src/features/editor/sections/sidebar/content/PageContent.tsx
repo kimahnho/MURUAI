@@ -156,7 +156,7 @@ const PageContent = () => {
                 }
                 className={`rounded-lg border px-2 py-2 text-12-semibold transition ${
                   isActive
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-25 text-black-70 hover:bg-black-5"
                 }`}
               >
@@ -246,7 +246,7 @@ const PageContent = () => {
                           }}
                           className={`overflow-hidden rounded-lg border transition ${
                             isActive
-                              ? "border-primary ring-1 ring-primary/50"
+                              ? "border-primary ring-1 ring-primary-300"
                               : "border-black-20 hover:border-black-40"
                           }`}
                           aria-label="업로드 이미지 배경으로 선택"
@@ -278,7 +278,7 @@ const PageContent = () => {
             }}
             className={`rounded-full border px-3 py-1 text-12-semibold transition ${
               numbering.enabled
-                ? "border-primary bg-primary/10 text-primary"
+                ? "border-primary bg-primary-100 text-primary"
                 : "border-black-25 text-black-60"
             }`}
           >
@@ -299,7 +299,7 @@ const PageContent = () => {
                 }}
                 className={`rounded-lg border px-2 py-2 text-12-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                   isActive
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-25 text-black-70 hover:bg-black-5"
                 }`}
               >
@@ -322,7 +322,7 @@ const PageContent = () => {
                 }}
                 className={`rounded-lg border px-2 py-2 text-11-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                   isActive
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-25 text-black-70 hover:bg-black-5"
                 }`}
               >

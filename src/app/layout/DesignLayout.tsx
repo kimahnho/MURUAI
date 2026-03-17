@@ -260,7 +260,7 @@ const DesignLayout = () => {
                 onChange={(event) => {
                   setDocName(event.target.value);
                 }}
-                className="flex w-72 min-w-0 shrink h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
+                className="flex w-72 min-w-0 shrink h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-primary focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
               />
             </div>
 
@@ -459,7 +459,7 @@ const DesignLayout = () => {
                 className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-14-semibold shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
                   isPanelOpen
                     ? "bg-primary text-white-100"
-                    : "border border-primary bg-primary/10 text-primary hover:bg-primary/20"
+                    : "border border-primary bg-primary-100 text-primary hover:bg-primary-200"
                 }`}
                 aria-label="맞춤법 검사"
               >

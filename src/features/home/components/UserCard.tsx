@@ -45,7 +45,7 @@ const UserCard = ({ student, onClick }: UserCardProps) => {
       </div>
 
       <div className="grid grid-rows-2 gap-2 w-full h-full">
-        <div className="flex flex-col p-3 gap-1 rounded-xl w-full bg-[#5500ff]/10">
+        <div className="flex flex-col p-3 gap-1 rounded-xl w-full bg-primary-100">
           <div className="flex text-start items-center">
             <span className="flex text-title-14-semibold text-black-80">
               특이사항
@@ -59,7 +59,7 @@ const UserCard = ({ student, onClick }: UserCardProps) => {
           </div>
         </div>
 
-        <div className="flex flex-col p-3 gap-1 rounded-xl w-full bg-[#5500ff]/10">
+        <div className="flex flex-col p-3 gap-1 rounded-xl w-full bg-primary-100">
           <div className="flex text-start items-center">
             <span className="flex text-title-14-semibold text-black-80">
               학습목표

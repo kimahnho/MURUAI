@@ -146,7 +146,7 @@ const StorybookWizard = () => {
             type="button"
             onClick={handleNext}
             disabled={!isAdvanceable || isLoading}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-14-semibold text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-14-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {isLoading ? (
               <>

@@ -187,7 +187,7 @@ const MultiPageTemplateDialog = ({
                   onClick={selectAll}
                   disabled={allSelected}
                   className={`px-2 py-1 text-12-medium rounded transition ${
-                    allSelected ? "text-black-25 cursor-not-allowed" : "text-primary hover:bg-primary/5"
+                    allSelected ? "text-black-25 cursor-not-allowed" : "text-primary hover:bg-primary-50"
                   }`}
                 >
                   전체 선택
@@ -269,7 +269,7 @@ const MultiPageTemplateDialog = ({
               <button
                 type="button"
                 onClick={onApplyAll}
-                className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary/90"
+                className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700"
               >
                 전체 적용 ({pages.length}페이지)
               </button>
@@ -280,7 +280,7 @@ const MultiPageTemplateDialog = ({
                 className={`w-full rounded-xl border py-2.5 text-14-semibold transition ${
                   noneSelected
                     ? "border-black-10 text-black-25 cursor-not-allowed"
-                    : "border-primary text-primary hover:bg-primary/5"
+                    : "border-primary text-primary hover:bg-primary-50"
                 }`}
               >
                 선택 적용 ({selectedPages.size}페이지)

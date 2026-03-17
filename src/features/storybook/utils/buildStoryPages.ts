@@ -6,6 +6,7 @@
 import type { Page } from "@/features/editor/model/pageTypes";
 import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
+import { measureTextBoxSize } from "@/features/editor/utils/textMeasure";
 
 import type { StoryBook, StoryBookPage } from "../model/storybookTypes";
 
@@ -61,26 +62,37 @@ const buildVerticalElements = (
     });
   }
 
-  // 텍스트 영역 (이미지 아래 — 세로 중앙 정렬)
-  const vTextY = vImageY + vImageH + PADDING;
+  // 텍스트 영역 (이미지 아래 — 가용 공간 세로 중앙 배치)
+  const vTextStartY = vImageY + vImageH + PADDING;
+  const vTextW = A4_V_W - PADDING * 2;
+  const vAvailableH = A4_V_H - vTextStartY - PADDING;
+  const vMeasured = measureTextBoxSize(page.text, 36, "normal", {
+    maxWidth: vTextW,
+    lineHeight: 1.8,
+    fontFamily,
+    wordBreak: "keep-all",
+  });
+  const vTextH = Math.min(vMeasured.height, vAvailableH);
+  const vTextY = vTextStartY + Math.max(0, (vAvailableH - vTextH) / 2);
+
   elements.push({
     id: crypto.randomUUID(),
     type: "text",
     x: PADDING,
-    y: vTextY,
-    w: A4_V_W - PADDING * 2,
-    h: A4_V_H - vTextY - PADDING,
+    y: Math.round(vTextY),
+    w: vTextW,
+    h: vTextH,
     text: page.text,
     widthMode: "fixed",
-    lockHeight: true,
     style: {
       fontSize: 36,
       fontWeight: "normal",
       fontFamily,
       color: "#333333",
       alignX: "left",
-      alignY: "middle",
+      alignY: "top",
       lineHeight: 1.8,
+      wordBreak: "keep-all",
     },
   });
 
@@ -124,25 +136,36 @@ const buildHorizontalElements = (
     });
   }
 
-  // 텍스트 영역 (이미지 우측 — 세로 중앙 정렬)
+  // 텍스트 영역 (이미지 우측 — 가용 공간 세로 중앙 배치)
+  const hTextW = A4_H_W - hImageW - PADDING * 2;
+  const hAvailableH = A4_H_H - PADDING * 2;
+  const hMeasured = measureTextBoxSize(page.text, 32, "normal", {
+    maxWidth: hTextW,
+    lineHeight: 1.8,
+    fontFamily,
+    wordBreak: "keep-all",
+  });
+  const hTextH = Math.min(hMeasured.height, hAvailableH);
+  const hTextY = PADDING + Math.max(0, (hAvailableH - hTextH) / 2);
+
   elements.push({
     id: crypto.randomUUID(),
     type: "text",
     x: hImageW + PADDING,
-    y: PADDING,
-    w: A4_H_W - hImageW - PADDING * 2,
-    h: A4_H_H - PADDING * 2,
+    y: Math.round(hTextY),
+    w: hTextW,
+    h: hTextH,
     text: page.text,
     widthMode: "fixed",
-    lockHeight: true,
     style: {
       fontSize: 32,
       fontWeight: "normal",
       fontFamily,
       color: "#333333",
       alignX: "left",
-      alignY: "middle",
+      alignY: "top",
       lineHeight: 1.8,
+      wordBreak: "keep-all",
     },
   });
 

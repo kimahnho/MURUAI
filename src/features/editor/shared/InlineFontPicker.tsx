@@ -236,14 +236,14 @@ const InlineFontPicker = ({ fontFamily, preventFocus, isMixed }: InlineFontPicke
 
           {/* 하단 고정: 같은 글꼴 일괄 변경 */}
           {showBatchChange && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-2">
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-2">
               <span className="shrink-0 text-12-regular text-black-70 truncate max-w-16" style={{ fontFamily: originalFont }}>{originalFontLabel}</span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0 text-black-40" />
               <span className="shrink-0 text-12-regular text-black-70 truncate max-w-16" style={{ fontFamily }}>{fontLabel}</span>
               <button
                 type="button"
                 onMouseDown={mouseDownHandler}
-                className="ml-auto shrink-0 rounded bg-primary px-2 py-1 text-11-semibold text-white-100 hover:bg-primary/90 transition-colors"
+                className="ml-auto shrink-0 rounded bg-primary px-2 py-1 text-11-semibold text-white-100 hover:bg-primary-700 transition-colors"
                 onClick={() => changeAllMatchingFonts!(originalFont, fontFamily)}
               >
                 같은 글꼴 변경
@@ -298,7 +298,7 @@ const InlineFontRow = ({
   }, [font.family, font.source, isFontReady]);
 
   return (
-    <div ref={rowRef} className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
+    <div ref={rowRef} className={`transition ${isSelected ? "bg-primary-100" : ""}`}>
       <div className="flex items-start gap-2 px-3 py-2.5 hover:bg-black-20">
         <button
           type="button"
@@ -334,7 +334,7 @@ const InlineFontRow = ({
                   onMouseDown={mouseDownHandler}
                   onClick={() => onSelectWeight(font.family, weight.value)}
                   className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-1.5 text-13-regular transition ${
-                    isActive ? "bg-primary/10 text-primary" : "text-black-70 hover:bg-black-10"
+                    isActive ? "bg-primary-100 text-primary" : "text-black-70 hover:bg-black-10"
                   }`}
                 >
                   <span className="grid flex-1 min-w-0 grid-cols-2 items-center text-left">

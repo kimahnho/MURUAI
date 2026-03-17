@@ -17,7 +17,7 @@ export const SelectionRectOverlay = ({
   if (!selectionRect) return null;
   return (
     <div
-      className="absolute z-40 border border-primary/60 bg-primary/10 pointer-events-none"
+      className="absolute z-40 border border-primary-400 bg-primary-100 pointer-events-none"
       style={{
         left: selectionRect.x,
         top: selectionRect.y,

@@ -39,7 +39,7 @@ const TopicStep = () => {
               onClick={() => { setTopic(preset); }}
               className={`rounded-full border px-3 py-1.5 text-13-medium transition ${
                 topic === preset
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-primary-100 text-primary"
                   : "border-black-25 text-black-60 hover:bg-black-10"
               }`}
             >

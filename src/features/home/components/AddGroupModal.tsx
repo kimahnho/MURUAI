@@ -137,7 +137,7 @@ const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
                       key={memberId}
                       className={`flex items-center gap-3 rounded-lg border p-3 transition ${
                         isSelected
-                          ? "border-primary bg-primary/5"
+                          ? "border-primary bg-primary-50"
                           : "border-black-30 hover:bg-black-5"
                       }`}
                     >
@@ -184,7 +184,7 @@ const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
             className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
               isSubmitDisabled
                 ? "bg-black-40 cursor-not-allowed"
-                : "bg-primary hover:bg-primary/90"
+                : "bg-primary hover:bg-primary-700"
             }`}
           >
             {loading ? "추가 중..." : "추가하기"}

@@ -143,7 +143,7 @@ const ImageLibraryContent = () => {
                 }}
                 className={`rounded-full border px-3 py-1.5 text-12-semibold transition-colors ${
                   isActive
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-25 text-black-70 hover:border-black-40 hover:bg-black-5"
                 }`}
               >
@@ -220,7 +220,7 @@ const ImageLibraryContent = () => {
                 onClick={() => {
                   handleSelectImage(item.cloudinary_url, item.name_ko);
                 }}
-                className="flex flex-col items-center justify-center rounded-lg border border-black-25 p-3 text-left hover:border-primary hover:bg-primary/5 transition-all"
+                className="flex flex-col items-center justify-center rounded-lg border border-black-25 p-3 text-left hover:border-primary hover:bg-primary-50 transition-all"
               >
                 <img
                   src={getThumbnailUrl(item.cloudinary_url)}

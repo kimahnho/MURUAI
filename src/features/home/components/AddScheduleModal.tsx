@@ -299,7 +299,7 @@ const AddScheduleModal = () => {
               }}
               className={`flex-1 rounded-full px-4 py-2 text-title-14-semibold transition ${
                 formData.targetType === "individual"
-                  ? "bg-linear-to-br from-[#5500ff]/40 to-[#7700ff]/40 text-black-100 shadow-sm"
+                  ? "bg-linear-to-br from-primary-400 to-primary-700 text-black-100 shadow-sm"
                   : "text-black-70 hover:bg-black-15"
               }`}
             >
@@ -316,7 +316,7 @@ const AddScheduleModal = () => {
               }}
               className={`flex-1 rounded-full px-4 py-2 text-title-14-semibold transition ${
                 formData.targetType === "group"
-                  ? "bg-linear-to-br from-[#5500ff]/40 to-[#7700ff]/40 text-black-100 shadow-sm"
+                  ? "bg-linear-to-br from-primary-400 to-primary-700 text-black-100 shadow-sm"
                   : "text-black-70 hover:bg-black-15"
               }`}
             >
@@ -367,7 +367,7 @@ const AddScheduleModal = () => {
             className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
               isSubmitDisabled
                 ? "bg-black-40 cursor-not-allowed"
-                : "bg-primary hover:bg-primary/90"
+                : "bg-primary hover:bg-primary-700"
             }`}
           >
             {isEditMode ? "수정하기" : "추가하기"}

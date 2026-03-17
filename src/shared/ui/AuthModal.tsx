@@ -233,7 +233,7 @@ const AuthModal = () => {
               className={`mt-2 rounded-2xl py-3 text-title-16-semibold text-white-100 shadow-sm transition ${
                 isSubmitDisabled
                   ? "bg-black-40 cursor-not-allowed"
-                  : "bg-primary hover:bg-primary/90 cursor-pointer"
+                  : "bg-primary hover:bg-primary-700 cursor-pointer"
               }`}
             >
               {isLoginMode ? "로그인" : "회원가입"}

@@ -104,7 +104,7 @@ const ArtStyleStep = () => {
                   type="button"
                   onClick={() => { setFontFamily(font.family); setIsFontOpen(false); }}
                   className={`flex w-full items-center justify-between px-3 py-2 text-left transition hover:bg-black-5 ${
-                    fontFamily === font.family ? "bg-primary/5" : ""
+                    fontFamily === font.family ? "bg-primary-50" : ""
                   }`}
                 >
                   <span
@@ -172,7 +172,7 @@ const Section = ({
 //     type="button"
 //     onClick={onClick}
 //     className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-black-5 ${
-//       isSelected ? "bg-primary/5" : ""
+//       isSelected ? "bg-primary-50" : ""
 //     }`}
 //   >
 //     <img
@@ -211,7 +211,7 @@ const LayoutCard = ({
       onClick={onClick}
       className={`flex flex-1 flex-col items-center gap-2.5 rounded-lg border p-3 transition ${
         isSelected
-          ? "border-primary bg-primary/5"
+          ? "border-primary bg-primary-50"
           : "border-black-25 hover:bg-black-5"
       }`}
     >

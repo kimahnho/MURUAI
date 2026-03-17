@@ -110,7 +110,7 @@ const SideBar = () => {
               // 같은 아이콘을 다시 누르면 닫히고, 다른 아이콘을 누르면 즉시 패널이 교체된다.
               className={`flex flex-col rounded-xl items-center justify-center gap-1 w-full h-16 cursor-pointer transition ${
                 selectedMenu === item.id
-                  ? "bg-[#5500ff]/20"
+                  ? "bg-primary-200"
                   : "hover:bg-black-10"
               }`}
             >

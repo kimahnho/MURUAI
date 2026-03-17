@@ -29,7 +29,7 @@ const resolveBorderWidth = (line: TableBorderLine | null | undefined): number =>
 
 const HANDLE_SIZE = 10;
 const HALF_HANDLE = HANDLE_SIZE / 2;
-const SELECTION_COLOR = "#5500ff";
+const SELECTION_COLOR = "#7C3AED";
 // 열/행 분리선 드래그 감지 영역 너비(px) — 히트 영역
 const DIVIDER_HIT = 6;
 // 행/열 헤더 버튼 크기 및 표와의 간격
@@ -567,11 +567,11 @@ export const TableBox = ({
               const hasLeft = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex - 1);
               const hasRight = selectedCells.some((c) => c.row === rowIndex && c.col === colIndex + 1);
               const shadows: string[] = [];
-              if (!hasTop) shadows.push("inset 0 2px 0 0 #5500ff");
-              if (!hasBottom) shadows.push("inset 0 -2px 0 0 #5500ff");
-              if (!hasLeft) shadows.push("inset 2px 0 0 0 #5500ff");
-              if (!hasRight) shadows.push("inset -2px 0 0 0 #5500ff");
-              shadows.push("inset 0 0 0 9999px rgba(85, 0, 255, 0.08)");
+              if (!hasTop) shadows.push("inset 0 2px 0 0 #7C3AED");
+              if (!hasBottom) shadows.push("inset 0 -2px 0 0 #7C3AED");
+              if (!hasLeft) shadows.push("inset 2px 0 0 0 #7C3AED");
+              if (!hasRight) shadows.push("inset -2px 0 0 0 #7C3AED");
+              shadows.push("inset 0 0 0 9999px rgba(124, 58, 237, 0.08)");
               cellBoxShadow = shadows.join(", ");
             }
 

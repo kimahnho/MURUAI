@@ -231,7 +231,7 @@ const AacCardPropsContent = () => {
                 onClick={() => handleLabelStyleChange({ fontWeight: label.style.fontWeight === "bold" ? "normal" : "bold" })}
                 className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
                   label.style.fontWeight === "bold"
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-30 text-black-70 hover:border-primary hover:text-primary"
                 }`}
                 aria-label="굵게"
@@ -345,7 +345,7 @@ const AacCardPropsContent = () => {
               const isActive = activeStyle === styleOption;
               const cls = `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
                 isActive
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-primary-100 text-primary"
                   : "border-black-30 text-black-70 hover:border-black-50"
               }`;
               if (styleOption === "none") {

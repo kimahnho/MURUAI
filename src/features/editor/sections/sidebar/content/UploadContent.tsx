@@ -59,7 +59,7 @@ const UploadContentView = ({
     <button
       type="button"
       onClick={onUploadClick}
-      className="flex items-center justify-center w-full px-4 py-3 bg-[#5500ff]/40 rounded-xl transition hover:bg-[#5500ff]/50 disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex items-center justify-center w-full px-4 py-3 bg-primary-400 rounded-xl transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
       disabled={isLoading}
     >
       <span className="flex text-title-16-semibold text-white-100">

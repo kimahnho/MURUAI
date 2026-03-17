@@ -43,7 +43,7 @@ const ToggleButton = ({
     onClick={onClick}
     className={`flex-1 px-4 py-2 rounded-md text-14-semibold transition-all ${
       isActive
-        ? "bg-white-100 text-primary shadow-sm bg-[#5500ff]/15"
+        ? "bg-white-100 text-primary shadow-sm bg-primary-100"
         : "text-black-60 hover:text-black-90"
     }`}
   >
@@ -66,7 +66,7 @@ const TypeButton = ({
     onClick={onClick}
     className={`flex-1 flex items-center justify-center gap-2 px-2 py-2.5 rounded-lg border transition-all ${
       isActive
-        ? "border-primary bg-primary/5 text-primary"
+        ? "border-primary bg-primary-50 text-primary"
         : "border-black-25 text-black-70 hover:border-black-40 hover:bg-black-5"
     }`}
   >
@@ -123,7 +123,7 @@ const EmotionList = ({
               draggable
               onDragStart={(event) => { setDragImageData(event, emotion.url); }}
               onClick={() => { onSelectEmotion(emotion.url, emotion.label); }}
-              className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+              className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group"
             >
               <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
                 <img
@@ -160,7 +160,7 @@ const GenderToggle = ({
       onClick={() => { onGenderChange("boy"); }}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-14-semibold transition-all ${
         gender === "boy"
-          ? "bg-white-100 text-primary shadow-sm bg-[#5500ff]/15"
+          ? "bg-white-100 text-primary shadow-sm bg-primary-100"
           : "text-black-60 hover:text-black-90"
       }`}
     >
@@ -171,7 +171,7 @@ const GenderToggle = ({
       onClick={() => { onGenderChange("girl"); }}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-14-semibold transition-all ${
         gender === "girl"
-          ? "bg-white-100 text-primary shadow-sm bg-[#5500ff]/15"
+          ? "bg-white-100 text-primary shadow-sm bg-primary-100"
           : "text-black-60 hover:text-black-90"
       }`}
     >
@@ -303,7 +303,7 @@ const PhotoEmotionContent = ({
                 draggable
                 onDragStart={(event) => { setDragImageData(event, emotion.url); }}
                 onClick={() => { onSelectEmotion(emotion.url, emotion.label); }}
-                className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+                className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
                   <img

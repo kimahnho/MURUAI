@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { AppRouterProvider } from "./app/providers/AppRouterProvider";
+import ToastProvider from "./app/providers/ToastProvider";
 import "@/app/styles/global.css";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
@@ -12,6 +13,7 @@ initMixpanel();
 createRoot(document.getElementById("root")!).render(
   <>
     <AppRouterProvider />
+    <ToastProvider />
     <SpeedInsights />
     <Analytics />
   </>,

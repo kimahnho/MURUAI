@@ -530,7 +530,7 @@ const TableContent = () => {
                   onClick={() => setBorderTarget(key)}
                   className={`flex-1 rounded-lg border py-1.5 text-13-medium transition ${
                     borderTarget === key
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary-100 text-primary"
                       : "border-black-30 text-black-70 hover:border-black-50"
                   }`}
                 >
@@ -546,7 +546,7 @@ const TableContent = () => {
                   onClick={() => setBorderTarget(key)}
                   className={`flex-1 rounded-lg border py-1.5 text-13-medium transition ${
                     borderTarget === key
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary-100 text-primary"
                       : "border-black-30 text-black-70 hover:border-black-50"
                   }`}
                 >
@@ -562,7 +562,7 @@ const TableContent = () => {
               const isActive = activeBorderStyle === styleOption;
               const cls = `flex h-10 flex-1 items-center justify-center rounded-lg border transition-colors ${
                 isActive
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-primary-100 text-primary"
                   : "border-black-30 text-black-70 hover:border-black-50"
               }`;
               if (styleOption === "none") {
@@ -628,7 +628,7 @@ const TableContent = () => {
               onClick={() => toggleDiagonal("backslash")}
               className={`flex h-10 flex-1 items-center justify-center rounded-lg border transition-colors ${
                 resolvedDiagonal === "backslash" || resolvedDiagonal === "cross"
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-primary-100 text-primary"
                   : "border-black-30 text-black-70 hover:border-black-50"
               }`}
             >
@@ -642,7 +642,7 @@ const TableContent = () => {
               onClick={() => toggleDiagonal("slash")}
               className={`flex h-10 flex-1 items-center justify-center rounded-lg border transition-colors ${
                 resolvedDiagonal === "slash" || resolvedDiagonal === "cross"
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-primary-100 text-primary"
                   : "border-black-30 text-black-70 hover:border-black-50"
               }`}
             >

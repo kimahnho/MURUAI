@@ -198,7 +198,7 @@ const SpellCheckPanel = () => {
             <button
               type="button"
               onClick={isAllChecked ? () => setCheckedKeys(new Set()) : () => setCheckedKeys(new Set(pendingKeys))}
-              className="text-12-regular text-primary hover:text-primary/80"
+              className="text-12-regular text-primary hover:text-primary-700"
             >
               {isAllChecked ? "전체 해제" : "전체 선택"}
             </button>
@@ -258,7 +258,7 @@ const SpellCheckPanel = () => {
               type="button"
               onClick={handleApplySelected}
               disabled={checkedPendingKeys.length === 0}
-              className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {checkedPendingKeys.length === pendingCount
                 ? `모두 수정 (${pendingCount}건)`
@@ -279,7 +279,7 @@ const SpellCheckPanel = () => {
             <button
               type="button"
               onClick={requestRecheck}
-              className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary/90 active:scale-[0.98]"
+              className="w-full rounded-xl bg-primary py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700 active:scale-[0.98]"
             >
               새로 검사하기
             </button>

@@ -61,6 +61,7 @@ export type TextElement = ElementBase & {
     alignY: "top" | "middle" | "bottom";
     lineHeight?: number;
     letterSpacing?: number;
+    wordBreak?: "normal" | "break-all" | "keep-all";
   };
 };
 

@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
+type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
+type ModalBackdrop = "blur" | "dark" | "none";
+
 interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -8,7 +11,24 @@ interface BaseModalProps {
   closeOnBackdropClick?: boolean;
   title: string | ReactNode;
   children: ReactNode;
+  size?: ModalSize;
+  showCloseButton?: boolean;
+  backdrop?: ModalBackdrop;
 }
+
+const SIZE_CLASS: Record<ModalSize, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-3xl",
+  full: "max-w-4xl",
+};
+
+const BACKDROP_CLASS: Record<ModalBackdrop, string> = {
+  blur: "backdrop-blur-sm",
+  dark: "bg-black-90/30",
+  none: "",
+};
 
 const BaseModal = ({
   isOpen,
@@ -17,6 +37,9 @@ const BaseModal = ({
   closeOnBackdropClick = true,
   title,
   children,
+  size = "md",
+  showCloseButton = true,
+  backdrop = "blur",
 }: BaseModalProps) => {
   useEffect(() => {
     if (isOpen) {
@@ -45,7 +68,7 @@ const BaseModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden"
+      className={`fixed inset-0 z-9999 flex items-center justify-center overflow-hidden ${BACKDROP_CLASS[backdrop]}`}
       onClick={handleBackdropClick}
     >
       {/* 모달 배경 */}
@@ -53,18 +76,20 @@ const BaseModal = ({
 
       {/* 모달 콘텐츠 */}
       <div
-        className="relative z-10 w-full max-w-md rounded-2xl bg-white-100 p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        className={`relative z-10 w-full ${SIZE_CLASS[size]} rounded-2xl bg-white-100 p-6 shadow-xl max-h-[90vh] overflow-y-auto`}
         onClick={(event) => { event.stopPropagation(); }}
       >
         {/* 닫기 버튼 */}
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute top-6 right-6 z-20 rounded-lg p-1 text-black-70 transition hover:bg-black-10 hover:text-black-100"
-          aria-label="닫기"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        {showCloseButton && (
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute top-6 right-6 z-20 rounded-lg p-1 text-black-70 transition hover:bg-black-10 hover:text-black-100"
+            aria-label="닫기"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
 
         {/* 헤더 */}
         <div className="mb-6">

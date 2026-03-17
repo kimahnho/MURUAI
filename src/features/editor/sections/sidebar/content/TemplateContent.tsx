@@ -540,10 +540,10 @@ const TemplateContent = () => {
           <SectionHeader icon={Grid3x3} title="AAC 의사소통 판" />
           <TemplateCard
             icon={Grid}
-            iconBgColor="#5500ff"
-            borderColor="rgba(85, 0, 255, 0.2)"
-            bgColor="rgba(85, 0, 255, 0.05)"
-            hoverBgColor="rgba(85, 0, 255, 0.08)"
+            iconBgColor="#7C3AED"
+            borderColor="rgba(124, 58, 237, 0.2)"
+            bgColor="rgba(124, 58, 237, 0.05)"
+            hoverBgColor="rgba(124, 58, 237, 0.08)"
             title="AAC 의사소통 판"
             description="1~8 그리드, 가로/세로 방향 선택"
             onClick={() => {

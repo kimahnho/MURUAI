@@ -251,7 +251,7 @@ const ColorPickerPopover = ({
       }}
       className={`h-7 w-7 rounded-full border transition-transform hover:scale-110 ${
         value.toUpperCase() === color.toUpperCase()
-          ? "border-primary ring-2 ring-primary/30 scale-110"
+          ? "border-primary ring-2 ring-primary-200 scale-110"
           : "border-black-25"
       }`}
       style={{ backgroundColor: color }}
@@ -310,14 +310,14 @@ const ColorPickerPopover = ({
                     }}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-12-semibold transition-colors ${
                       isTransparent
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary-100 text-primary"
                         : "text-black-70 hover:bg-black-5"
                     }`}
                   >
                     <span
                       className={`h-5 w-5 shrink-0 rounded-full border ${
                         isTransparent
-                          ? "border-primary ring-2 ring-primary/30"
+                          ? "border-primary ring-2 ring-primary-200"
                           : "border-black-25"
                       }`}
                       style={CHECKERBOARD_BG}
@@ -440,7 +440,7 @@ const ColorPickerPopover = ({
                 />
                 <button
                   type="button"
-                  className="ml-auto shrink-0 rounded bg-primary px-2 py-1 text-11-semibold text-white-100 hover:bg-primary/90 transition-colors"
+                  className="ml-auto shrink-0 rounded bg-primary px-2 py-1 text-11-semibold text-white-100 hover:bg-primary-700 transition-colors"
                   onMouseDown={(event) => {
                     event.preventDefault();
                   }}
