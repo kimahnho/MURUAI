@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import AdminDashboardView from "@/features/admin/components/AdminDashboardView";
 import AdminLoginView from "@/features/admin/components/AdminLoginView";
 import UnauthorizedView from "@/features/admin/components/UnauthorizedView";
 import { useAdminAuth } from "@/features/admin/hooks/useAdminAuth";
 import { useAdminDashboard } from "@/features/admin/hooks/useAdminDashboard";
+import { mp } from "@/shared/utils/mixpanel";
 
 const AdminDashboardContainer = ({
   onSignOut,
@@ -12,6 +14,10 @@ const AdminDashboardContainer = ({
   adminEmail: string | null;
 }) => {
   const dashboard = useAdminDashboard();
+
+  useEffect(() => {
+    mp.track("관리자 대시보드 접속");
+  }, []);
 
   return (
     <AdminDashboardView

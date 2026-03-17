@@ -33,6 +33,7 @@ import { useOrientationControl } from "@/features/editor/hooks/useOrientationCon
 import { extractTextsFromPages } from "@/features/editor/utils/spellCheckTextExtractor";
 import { checkSpelling } from "@/features/editor/ai/checkSpelling";
 import type { Page } from "@/features/editor/model/pageTypes";
+import { mp } from "@/shared/utils/mixpanel";
 
 const ExportModal = lazy(
   () => import("@/features/editor/shared/ExportModal"),
@@ -139,6 +140,7 @@ const DesignLayout = () => {
   const runSpellCheck = async () => {
     setIsSpellChecking(true);
     openSpellCheckPanel();
+    mp.track("맞춤법 검사 시작");
     try {
       const data = getCanvasData() as { pages?: Page[] } | null;
       const pages = Array.isArray(data?.pages) ? data.pages : [];

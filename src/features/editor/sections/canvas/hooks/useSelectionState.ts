@@ -24,6 +24,7 @@ import {
   applySelectedBorderPatch,
   applySelectedFontSize,
 } from "../utils/selectionPatches";
+import { mp } from "@/shared/utils/mixpanel";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -311,6 +312,7 @@ export const useSelectionState = ({
         elements.map((el) => applyPositionToElement(el, "x", positionMap)),
       ),
     );
+    mp.track("요소 정렬 분배", { direction: "horizontal" });
   };
 
   const distributeVertical = () => {
@@ -323,6 +325,7 @@ export const useSelectionState = ({
         elements.map((el) => applyPositionToElement(el, "y", positionMap)),
       ),
     );
+    mp.track("요소 정렬 분배", { direction: "vertical" });
   };
 
   return {

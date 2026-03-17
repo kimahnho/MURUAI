@@ -17,6 +17,7 @@ import {
   Trash2,
   Ungroup,
 } from "lucide-react";
+import { mp } from "@/shared/utils/mixpanel";
 import type { CanvasElement } from "../../model/canvasTypes";
 
 export type LayerDirection = "forward" | "front" | "backward" | "back";
@@ -183,28 +184,28 @@ export const DesignPaperContextMenu = ({
           label: "위에 행 추가",
           Icon: ArrowUpFromLine,
           enabled: true,
-          action: tableContext.onInsertRowAbove,
+          action: () => { tableContext.onInsertRowAbove(); mp.track("테이블 행 추가"); },
         },
         {
           key: "insert-row-below",
           label: "아래에 행 추가",
           Icon: ArrowUpToLine,
           enabled: true,
-          action: tableContext.onInsertRowBelow,
+          action: () => { tableContext.onInsertRowBelow(); mp.track("테이블 행 추가"); },
         },
         {
           key: "insert-col-left",
           label: "왼쪽에 열 추가",
           Icon: ArrowUpFromLine,
           enabled: true,
-          action: tableContext.onInsertColLeft,
+          action: () => { tableContext.onInsertColLeft(); mp.track("테이블 열 추가"); },
         },
         {
           key: "insert-col-right",
           label: "오른쪽에 열 추가",
           Icon: ArrowUpToLine,
           enabled: true,
-          action: tableContext.onInsertColRight,
+          action: () => { tableContext.onInsertColRight(); mp.track("테이블 열 추가"); },
         },
         {
           key: "delete-row",

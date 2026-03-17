@@ -2,6 +2,7 @@
  * 페이지 변경 스냅샷을 기록하고 undo/redo를 수행하는 통합 히스토리 스토어.
  */
 import { create } from "zustand";
+import { mp } from "@/shared/utils/mixpanel";
 import type { Page } from "../model/pageTypes";
 
 // 현재 시점 복원을 위해 전체 페이지 스냅샷을 저장한다.
@@ -318,6 +319,7 @@ export const useUnifiedHistoryStore = create<UnifiedHistoryState>((set, get) => 
   requestUndo: () => {
     const state = get();
     if (state.past.length === 0 || !state.present) return;
+    mp.track("실행 취소");
 
     const patch = state.past[state.past.length - 1];
     const newPast = state.past.slice(0, -1);
@@ -343,6 +345,7 @@ export const useUnifiedHistoryStore = create<UnifiedHistoryState>((set, get) => 
   requestRedo: () => {
     const state = get();
     if (state.future.length === 0 || !state.present) return;
+    mp.track("다시 실행");
 
     const patch = state.future[0];
     const newFuture = state.future.slice(1);

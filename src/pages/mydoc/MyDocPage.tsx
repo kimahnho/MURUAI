@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -17,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
+import { mp } from "@/shared/utils/mixpanel";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import Spinner from "@/shared/ui/Spinner";
@@ -82,7 +84,8 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
     try {
       const parsed = JSON.parse(value) as CanvasDocument;
       return Array.isArray(parsed.pages) ? parsed : null;
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       return null;
     }
   }
@@ -203,8 +206,14 @@ const MyDocPage = () => {
 
       if (cancelled) return;
 
-      if (studentsResult.error) setErrorMessage("학습자 목록을 불러오지 못했어요.");
-      if (groupsResult.error) setErrorMessage("그룹 목록을 불러오지 못했어요.");
+      if (studentsResult.error) {
+        Sentry.captureException(studentsResult.error);
+        setErrorMessage("학습자 목록을 불러오지 못했어요.");
+      }
+      if (groupsResult.error) {
+        Sentry.captureException(groupsResult.error);
+        setErrorMessage("그룹 목록을 불러오지 못했어요.");
+      }
 
       setStudents((studentsResult.data as SimpleTarget[] | null) ?? []);
       setGroups((groupsResult.data as SimpleTarget[] | null) ?? []);
@@ -255,6 +264,7 @@ const MyDocPage = () => {
       if (cancelled) return;
 
       if (error) {
+        Sentry.captureException(error);
         setErrorMessage("학습자료를 불러오지 못했어요.");
         setDocs([]);
         setIsLoading(false);
@@ -281,7 +291,10 @@ const MyDocPage = () => {
         .is("deleted_at", null);
 
       if (cancelled) return;
-      if (targetError) setErrorMessage("등록 대상을 불러오지 못했어요.");
+      if (targetError) {
+        Sentry.captureException(targetError);
+        setErrorMessage("등록 대상을 불러오지 못했어요.");
+      }
 
       const targetsByDoc = buildTargetMap(targetData as TargetRow[] | null);
 
@@ -323,6 +336,7 @@ const MyDocPage = () => {
       .limit(PAGE_SIZE + 1);
 
     if (error) {
+      Sentry.captureException(error);
       setErrorMessage("학습자료를 더 불러오지 못했어요.");
       setIsLoadingMore(false);
       return;
@@ -396,6 +410,7 @@ const MyDocPage = () => {
       .update({ deleted_at: now })
       .eq("user_made_id", docId);
     if (targetError) {
+      Sentry.captureException(targetError);
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
     }
@@ -405,9 +420,11 @@ const MyDocPage = () => {
       .eq("id", docId)
       .eq("user_id", user.id);
     if (error) {
+      Sentry.captureException(error);
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
     }
+    mp.track("문서 삭제");
     setDocs((prev) => prev.filter((doc) => doc.id !== docId));
   };
 
@@ -439,6 +456,7 @@ const MyDocPage = () => {
       .select("id,name,created_at,canvas_data")
       .single();
     if (error || !data) {
+      if (error) Sentry.captureException(error);
       setErrorMessage("학습자료를 복제하지 못했어요.");
       return false;
     }
@@ -454,11 +472,13 @@ const MyDocPage = () => {
         .from("user_made_targets_n")
         .insert(targetPayload);
       if (targetError) {
+        Sentry.captureException(targetError);
         setErrorMessage("학습자료를 복제하지 못했어요.");
         nextTargets = [];
       }
     }
 
+    mp.track("문서 복제");
     setDocs((prev) => [{ ...data, targets: nextTargets, canvasData: parseCanvasData(data.canvas_data) }, ...prev]);
     return true;
   };

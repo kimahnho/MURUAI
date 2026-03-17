@@ -3,9 +3,11 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import { ChevronRight, FileText } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+import { mp } from "@/shared/utils/mixpanel";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 
@@ -23,7 +25,8 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
     try {
       const parsed = JSON.parse(value) as CanvasDocument;
       return Array.isArray(parsed.pages) ? parsed : null;
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       return null;
     }
   }
@@ -76,6 +79,7 @@ const RecentDocumentsSection = () => {
 
       if (error) {
         console.error("최근 학습자료 조회 실패", error);
+        Sentry.captureException(error);
         setDocs([]);
         setIsLoading(false);
         return;
@@ -184,10 +188,11 @@ const RecentDocumentsSection = () => {
                 key={doc.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/${doc.id}/edit`)}
+                onClick={() => { mp.track("최근 자료 클릭"); navigate(`/${doc.id}/edit`); }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
+                    mp.track("최근 자료 클릭");
                     navigate(`/${doc.id}/edit`);
                   }
                 }}

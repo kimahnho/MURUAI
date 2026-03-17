@@ -2,22 +2,23 @@
  * 요소 레이어(z-index) 이동 버튼을 제공하는 공통 패널 컴포넌트.
  */
 import {
-  ArrowUpFromLine,
-  ArrowUpToLine,
-  ChevronsDown,
+  ArrowUp,
+  ArrowDown,
   ChevronsUp,
+  ChevronsDown,
 } from "lucide-react";
+import { mp } from "@/shared/utils/mixpanel";
 import type { LayerDirection } from "@/features/editor/utils/layerUtils";
 
 const LAYER_ITEMS: Array<{
   direction: LayerDirection;
   label: string;
-  Icon: typeof ArrowUpFromLine;
+  Icon: typeof ArrowUp;
 }> = [
-  { direction: "forward", label: "앞으로 가져오기", Icon: ArrowUpFromLine },
-  { direction: "front", label: "맨 앞으로 가져오기", Icon: ChevronsUp },
-  { direction: "backward", label: "뒤로 보내기", Icon: ArrowUpToLine },
-  { direction: "back", label: "맨 뒤로 보내기", Icon: ChevronsDown },
+  { direction: "front", label: "맨 앞", Icon: ChevronsUp },
+  { direction: "forward", label: "앞으로", Icon: ArrowUp },
+  { direction: "backward", label: "뒤로", Icon: ArrowDown },
+  { direction: "back", label: "맨 뒤", Icon: ChevronsDown },
 ];
 
 interface LayerPanelProps {
@@ -27,16 +28,17 @@ interface LayerPanelProps {
 const LayerPanel = ({ onMoveLayer }: LayerPanelProps) => (
   <div className="flex flex-col gap-2">
     <div className="text-14-semibold text-black-90">레이어</div>
-    <div className="flex flex-wrap gap-1">
+    <div className="grid grid-cols-4 gap-1">
       {LAYER_ITEMS.map(({ direction, label, Icon }) => (
         <button
           key={direction}
           type="button"
-          onClick={() => onMoveLayer(direction)}
-          className="flex items-center gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+          onClick={() => { onMoveLayer(direction); mp.track("레이어 순서 변경"); }}
+          className="flex flex-col items-center justify-center gap-1 rounded-lg border border-black-30 py-2 text-black-70 transition hover:border-primary hover:text-primary hover:bg-primary-50 cursor-pointer"
+          title={label}
         >
           <Icon className="h-4 w-4" />
-          {label}
+          <span className="text-12-regular">{label}</span>
         </button>
       ))}
     </div>

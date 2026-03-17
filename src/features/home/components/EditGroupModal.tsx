@@ -7,6 +7,7 @@ import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import Button from "@/shared/ui/Button";
+import { mp } from "@/shared/utils/mixpanel";
 import { groupModel } from "../model/group.model";
 import { useStudentStore } from "../store/useStudentStore";
 
@@ -83,6 +84,7 @@ const EditGroupModalContent = ({ groupId, onClose }: EditGroupModalContentProps)
       return;
     }
 
+    mp.track("그룹 수정");
     await refreshGroups();
     handleReset();
     onClose();
@@ -101,6 +103,7 @@ const EditGroupModalContent = ({ groupId, onClose }: EditGroupModalContentProps)
       return;
     }
 
+    mp.track("그룹 삭제");
     await refreshGroups();
     setIsDeleteOpen(false);
     onClose();
