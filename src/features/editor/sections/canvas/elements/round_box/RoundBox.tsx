@@ -400,7 +400,7 @@ const RoundBox = ({
       onMouseLeave={() => {
         setIsHovered(false);
       }}
-      className={`absolute select-none outline-2 ${className}`}
+      className={`absolute select-none ${className}`}
       style={{
         left: rect.x,
         top: rect.y,
@@ -409,12 +409,23 @@ const RoundBox = ({
         borderRadius,
         touchAction: "none",
         pointerEvents: selectable ? "auto" : "none",
-        outlineColor: showOutline ? selectionColor : "transparent",
         overflow: "visible",
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}
     >
+      {/* Selection overlay — 요소 안쪽으로 그려져 캔버스 edge 스냅 시 밖으로 삐져나가지 않음 */}
+      {showOutline && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            inset: 0,
+            border: `2px solid ${selectionColor}`,
+            borderRadius,
+            zIndex: 2,
+          }}
+        />
+      )}
       {/* Border overlay — 요소 크기에 영향 없이 안쪽으로 그려짐 */}
       {border?.enabled && !isImageEditing && (
         <div

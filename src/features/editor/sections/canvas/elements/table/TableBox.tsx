@@ -508,8 +508,6 @@ export const TableBox = ({
         top: element.y,
         width: element.w,
         height: element.h,
-        outline: isSelected ? `2px solid ${SELECTION_COLOR}` : "none",
-        outlineOffset: isSelected ? 1 : 0,
         cursor: locked ? "default" : "move",
         userSelect: "none",
         boxSizing: "border-box",
@@ -540,6 +538,10 @@ export const TableBox = ({
         onContextMenu?.(event);
       }}
     >
+      {/* Selection overlay — 안쪽으로 그려져 캔버스 edge 스냅 시 밖으로 삐져나가지 않음 */}
+      {isSelected && (
+        <div style={{ position: "absolute", inset: 0, border: `2px solid ${SELECTION_COLOR}`, pointerEvents: "none", zIndex: 2 }} />
+      )}
       {/* 셀 그리드 */}
       <div
         style={{
