@@ -54,22 +54,18 @@ const QuickStartSection = () => {
   };
 
   return (
-    <section className="flex flex-col w-full pt-8 md:pt-16 gap-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-title-22-semibold md:text-headline-28-bold text-black-90">
-          안녕하세요! 오늘은 어떤 자료를 만들어볼까요?
-        </h1>
-        <p className="text-16-regular text-black-60">
-          빈 문서로 시작하거나 템플릿을 선택해보세요.
-        </p>
+    <section className="flex flex-col w-full gap-5 rounded-2xl border border-black-20 bg-white-100 p-3 md:p-5 shadow-sm">
+      <div className="flex items-center gap-2">
+        <BookOpen className="icon-s text-primary" />
+        <span className="text-title-22-semibold text-black-90">빠른 시작</span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         {/* 빈 문서 카드 */}
         <button
           onClick={handleBlankDoc}
           disabled={isCreatingDoc}
-          className="flex flex-col items-center justify-center gap-3 h-28 md:h-36 rounded-2xl border-2 border-dashed border-black-30 cursor-pointer transition-colors hover:border-primary hover:bg-primary-50 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex flex-col items-center justify-center gap-2 h-24 md:h-28 rounded-xl border-2 border-dashed border-black-30 cursor-pointer transition-colors hover:border-primary hover:bg-primary-50 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Plus className="w-8 h-8 text-black-50" />
           <span className="text-title-16-semibold text-black-60">
@@ -83,7 +79,7 @@ const QuickStartSection = () => {
             key={tmpl.templateId}
             onClick={() => handleTemplateClick(tmpl.templateId)}
             disabled={isCreatingDoc}
-            className="flex flex-col items-center justify-center gap-3 h-28 md:h-36 rounded-2xl border border-black-25 cursor-pointer transition-colors hover:border-primary hover:bg-primary-50 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex flex-col items-center justify-center gap-2 h-24 md:h-28 rounded-xl border border-black-25 cursor-pointer transition-colors hover:border-primary hover:bg-primary-50 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div
               className="flex w-11 h-11 items-center justify-center rounded-xl"

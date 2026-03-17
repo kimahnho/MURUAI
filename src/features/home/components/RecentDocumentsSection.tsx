@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileText } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
@@ -48,11 +48,7 @@ const RecentDocumentsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setDocs([]);
-      setIsLoading(false);
-      return;
-    }
+    if (!isAuthenticated) return;
 
     let cancelled = false;
 
@@ -74,7 +70,7 @@ const RecentDocumentsSection = () => {
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(4);
 
       if (cancelled) return;
 
@@ -103,20 +99,25 @@ const RecentDocumentsSection = () => {
 
     void fetchRecentDocs();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   const pageWidthPx = 210 * 3.7795;
   const pageHeightPx = 297 * 3.7795;
-  const previewScale = 0.18;
+  const previewScale = 0.15;
 
   return (
-    <section className="flex flex-col w-full px-4 md:px-10 gap-6">
+    <section className="flex flex-col w-full gap-5 rounded-2xl border border-black-20 bg-white-100 p-3 md:p-5 shadow-sm">
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between">
-        <span className="text-title-18-semibold md:text-title-22-semibold text-black-90">
-          최근 작업한 학습자료
-        </span>
+        <div className="flex items-center gap-2">
+          <FileText className="icon-s text-primary" />
+          <span className="text-title-22-semibold text-black-90">
+            최근 작업한 학습자료
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => navigate("/mydoc")}
@@ -129,11 +130,11 @@ const RecentDocumentsSection = () => {
 
       {/* 카드 그리드 */}
       {isLoading ? (
-        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className={`${i >= 2 ? "hidden md:flex" : "flex"} flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm`}
+              className={`flex flex-col gap-2 rounded-xl border border-black-20 bg-white-100 p-2 shadow-sm`}
             >
               <div className="aspect-3/4 w-full animate-pulse rounded-xl bg-black-10" />
               <div className="flex flex-col gap-1">
@@ -144,11 +145,11 @@ const RecentDocumentsSection = () => {
           ))}
         </div>
       ) : docs.length === 0 ? (
-        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className={`${i >= 2 ? "hidden md:flex" : "flex"} flex-col gap-3 rounded-2xl border border-dashed border-black-20 bg-black-5 p-3`}
+              className={`flex flex-col gap-2 rounded-xl border border-dashed border-black-20 bg-black-5 p-2`}
             >
               <div className="aspect-3/4 w-full rounded-xl bg-black-10" />
               <div className="flex flex-col gap-1">
@@ -159,8 +160,8 @@ const RecentDocumentsSection = () => {
           ))}
         </div>
       ) : (
-        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
-          {docs.map((doc, docIndex) => {
+        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
+          {docs.map((doc) => {
             const previewPage = doc.canvasData?.pages?.[0];
             const rawOrientation = previewPage?.orientation;
             const previewOrientation =
@@ -190,7 +191,7 @@ const RecentDocumentsSection = () => {
                     navigate(`/${doc.id}/edit`);
                   }
                 }}
-                className={`${docIndex >= 2 ? "hidden md:flex" : "flex"} cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm transition hover:border-primary hover:shadow-md`}
+                className={`flex cursor-pointer flex-col gap-2 rounded-xl border border-black-20 bg-white-100 p-2 shadow-sm transition hover:border-primary hover:shadow-md`}
               >
                 {/* 미리보기 */}
                 <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">

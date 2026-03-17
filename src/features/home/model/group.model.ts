@@ -212,4 +212,33 @@ export const groupModel = {
       };
     }
   },
+
+  async delete(id: string): Promise<{ error: Error | null }> {
+    try {
+      const now = new Date().toISOString();
+
+      // 멤버 소프트 삭제
+      const { error: membersError } = await supabase
+        .from("groups_members_n")
+        .update({ deleted_at: now })
+        .eq("group_id", id);
+
+      if (membersError) throw membersError;
+
+      // 그룹 소프트 삭제
+      const { error } = await supabase
+        .from("groups_n")
+        .update({ deleted_at: now })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      return { error: null };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error ? err : new Error("그룹 삭제에 실패했습니다."),
+      };
+    }
+  },
 };

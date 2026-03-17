@@ -40,7 +40,7 @@ const AiFeatureSection = () => {
   };
 
   return (
-    <section className="flex flex-col w-full gap-6">
+    <section className="flex flex-col w-full gap-5 rounded-2xl border border-black-20 bg-white-100 p-3 md:p-5 shadow-sm">
       <div className="flex items-center gap-2">
         <Sparkles className="icon-s text-primary" />
         <span className="text-title-22-semibold text-black-90">
@@ -48,7 +48,7 @@ const AiFeatureSection = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {AI_FEATURES.map((feature) => (
           <AiFeatureCard
             key={feature.key}

@@ -8,7 +8,13 @@ HomePage (src/pages/home/HomePage.tsx)
   └─ 인증:  DashboardPage (대시보드)
 ```
 
-### 랜딩페이지 (`src/features/home/components/landing/`)
+## 헤더
+
+- 로그인 후: "내 학습자료" 링크(`/mydoc`) + "로그아웃" 버튼
+- 비인증: "로그인" + "가입하기" 버튼
+- 반응형 패딩: `px-4 md:px-15`
+
+## 랜딩페이지 (`src/features/home/components/landing/`)
 
 ```
 LandingPage
@@ -17,66 +23,69 @@ LandingPage
   └─ CtaSection         — 하단 CTA 배너
 ```
 
-- 이미지: `images.mainImage` (src/shared/assets/main_image.png)
+- 이미지: `images.mainImage` (`src/shared/assets/main_image.png`)
 - 모바일 반응형 적용 (`md:` 브레이크포인트)
 
-### 대시보드 (`src/features/home/components/dashboard/`)
+## 대시보드 (`src/features/home/components/dashboard/`)
+
+### 좌우 스플릿 레이아웃
 
 ```
-DashboardPage
-  ├─ QuickStartSection        — 빈 문서/템플릿 빠른 시작
-  ├─ AiFeatureSection         — AI 기능 카드 2개
-  ├─ RecentDocumentsSection   — 최근 작업한 학습자료 5개
-  └─ ChoiceUserSection        — 개별 아동 / 그룹 수업 선택 + 캐러셀
+┌─────────────────────────────────────────────────┐
+│ 안녕하세요! 오늘은 어떤 자료를 만들어볼까요?      │ 상단 인사말
+├────────────────────┬────────────────────────────┤
+│ 빠른 시작          │ 최근 학습자료    전체보기 → │
+│ [빈문서][감정추론]…│ ┌──┐┌──┐┌──┐┌──┐           │
+│                    │ └──┘└──┘└──┘└──┘           │
+│ AI로 만들기        │                            │
+│ [스토리북][감정추론]│ 내 학습자                   │
+│                    │ [아동|그룹] 탭 + 리스트     │
+└────────────────────┴────────────────────────────┘
 ```
 
-## 모바일 반응형 규칙
+- 모바일: 세로 1열 (좌 → 우)
+- 데스크탑: `flex-col lg:flex-row`, 양쪽 `flex-1`
 
-### 그리드
+### 섹션 타이틀 규칙
 
-```typescript
-// ❌ 금지: 데스크탑 전용 고정 그리드
-className="grid grid-cols-5 gap-5"
-
-// ✅ 필수: 모바일 → 데스크탑 점진적 확장
-className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5"
-```
-
-### 패딩/간격
-
-- 섹션 래퍼: `px-4 md:px-10`
-- 섹션 간 간격: `gap-6 md:gap-10`
-
-### 카드 높이
-
-- `h-auto md:h-85` — 모바일에서 유연, 데스크탑에서 고정
-
-## 데이터 페칭 패턴
-
-- TanStack Query 미사용 — `useEffect` + 직접 Supabase 호출 + `useState`
-- 인증 상태(`isAuthenticated`) 변경 시 데이터 재로드
+모든 섹션 타이틀은 동일 크기 + 아이콘:
+- `text-title-22-semibold` + `icon-s text-primary`
+- 빠른 시작: `BookOpen`, AI로 만들기: `Sparkles`, 최근 학습자료: `FileText`, 내 학습자: `Users`
 
 ## RecentDocumentsSection 규칙
 
-- `user_made_n` 테이블에서 최근 5개 조회, `.is("deleted_at", null)` 소프트 삭제 필터 필수
-- 카드 미리보기: `DesignPaper` 컴포넌트를 `readOnly` + 18% 스케일로 렌더
-- 카드 클릭 → `/${doc.id}/edit`로 이동
-- "전체보기" 링크 → `/mydoc`으로 이동
-- 그리드: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5`
-- 로딩/빈 데이터 시 스켈레톤 카드로 레이아웃 점프 방지
+- `user_made_n` 테이블에서 최근 **4개** 조회
+- 카드 미리보기: `DesignPaper readOnly` + **15% 스케일** (`previewScale = 0.15`)
+- 그리드: `grid-cols-4 gap-3`
+- 카드 클릭 → `/${doc.id}/edit`
+- "전체보기" → `/mydoc`
 
 ## ChoiceUserSection 규칙
 
+- **컴팩트 리스트** 방식 (캐러셀 아님)
+- 아동/그룹 탭 전환 (아동: 보라, 그룹: 초록 색상 분리)
+- 페이지네이션: 4개씩, `← 1/3 →` 형태
+- 페이지네이션 영역은 `invisible`로 항상 공간 유지
+- 블록 컨테이너: `rounded-2xl border shadow-sm p-5`
+- 블록 border 색상: 아동 탭 `border-primary-200`, 그룹 탭 `border-emerald-200`
 - 데이터: `useStudentStore` (Zustand, 5분 캐시)
-- 캐러셀: 항목 5개 이상일 때 활성화 (4개/페이지 + 추가 버튼)
-- 그리드: `grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5`
-- 카드 높이: `h-auto md:h-85`
+
+## EditUserModal / EditGroupModal
+
+- `showCloseButton={false}` — 커스텀 헤더에서 수정(Pencil) + 닫기(X) 버튼 직접 배치
+- 읽기 모드: 하단에 삭제 버튼(destructive) + 닫기 버튼
+- 삭제 확인: `ConfirmDialog` variant="danger"
+- 출생 연도 + 성별: 한 행에 나란히 배치
+- 읽기 모드 출생 연도: `2015년 (만 11세)` 형태
+- 수정 모드 출생 연도: input 옆에 `만 N세` 표시 (4자리 입력 시)
+- `groupModel.delete(id)`: 소프트 삭제 (멤버 + 그룹)
 
 ## 관련 파일
 
 | 역할 | 경로 |
 |------|------|
 | 홈 페이지 | `src/pages/home/HomePage.tsx` |
+| 헤더 | `src/shared/ui/layout/Header.tsx` |
 | 랜딩 페이지 | `src/features/home/components/landing/LandingPage.tsx` |
 | 히어로 섹션 | `src/features/home/components/landing/HeroSection.tsx` |
 | 기능 소개 | `src/features/home/components/landing/FeatureSection.tsx` |
@@ -85,9 +94,11 @@ className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5"
 | 빠른 시작 | `src/features/home/components/dashboard/QuickStartSection.tsx` |
 | AI 기능 | `src/features/home/components/dashboard/AiFeatureSection.tsx` |
 | 최근 자료 | `src/features/home/components/RecentDocumentsSection.tsx` |
-| 아동/그룹 | `src/features/home/components/ChoiceUserSection.tsx` |
-| 학생 카드 | `src/features/home/components/UserCard.tsx` |
-| 그룹 카드 | `src/features/home/components/GroupCard.tsx` |
+| 아동/그룹 리스트 | `src/features/home/components/ChoiceUserSection.tsx` |
+| 아동 편집 모달 | `src/features/home/components/EditUserModal.tsx` |
+| 그룹 편집 모달 | `src/features/home/components/EditGroupModal.tsx` |
+| 학생 모델 | `src/features/home/model/student.model.ts` |
+| 그룹 모델 | `src/features/home/model/group.model.ts` |
 | 학생 스토어 | `src/features/home/store/useStudentStore.ts` |
 | 내 학습자료 | `src/pages/mydoc/MyDocPage.tsx` |
 | 메인 이미지 | `src/shared/assets/main_image.png` |
