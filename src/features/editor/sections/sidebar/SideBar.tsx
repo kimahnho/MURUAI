@@ -114,6 +114,11 @@ const SideBar = () => {
                   : "hover:bg-black-10"
               }`}
             >
+              {item.id === "ai-template" && (
+                <span className="rounded-sm bg-primary px-1 py-px text-[9px] font-bold leading-tight text-white-100 -mb-0.5">
+                  NEW
+                </span>
+              )}
               <Icon
                 className={`w-5 h-5 ${
                   selectedMenu === item.id ? "text-primary" : "text-black-60"

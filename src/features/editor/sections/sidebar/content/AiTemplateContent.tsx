@@ -1,32 +1,65 @@
 /**
  * AI 템플릿 패널 — 스토리북/감정추론을 카드 형태로 나열하고, 클릭 시 모달을 연다.
  */
-import { useState } from "react";
-import { BookOpen, Brain, Sparkles, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/react";
+import { BookOpen, Brain, Sparkles, AlertCircle, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { mp } from "@/shared/utils/mixpanel";
 import type { Template } from "@/features/editor/model/canvasTypes";
 import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
 import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStoryPages";
 import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageMap";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-// import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";  // 이미지 생성 임시 중단
+import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
 import {
   TEMPLATE_REGISTRY,
 } from "@/features/editor/templates/templateRegistry";
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
+import {
+  MONTHLY_AI_TEMPLATE_LIMIT,
+  fetchMonthlyAiTemplateUsage,
+  recordAiTemplateUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
-
-// TODO: AI 이미지 생성 복원 시 true로 변경하여 점검 모드 활성화
-const IS_AI_DISABLED = false;
 
 const AiTemplateContent = () => {
   const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
   const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+
+  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
+  const isQuotaExhausted = remaining !== null && remaining <= 0;
+
+  // 월간 사용량 조회
+  useEffect(() => {
+    void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+  }, []);
+
+  // 대시보드에서 전달된 AI intent를 소비하여 해당 모달을 자동으로 연다.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("pendingEditorIntent");
+    if (!raw) return;
+    let intent: { type: string; feature?: string };
+    try {
+      intent = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (intent.type !== "ai") return;
+    sessionStorage.removeItem("pendingEditorIntent");
+
+    if (intent.feature === "storybook") {
+      setIsStorybookModalOpen(true);
+    } else if (intent.feature === "emotion") {
+      setIsEmotionChoiceModalOpen(true);
+    }
+  }, []);
 
   // 기존 템플릿 미리보기
   const previewTemplate = useTemplateStore((s) => s.previewTemplate);
@@ -67,12 +100,36 @@ const AiTemplateContent = () => {
   return (
     <>
       <div className="flex flex-col w-full gap-6">
-        {/* AI 점검 안내 */}
-        {IS_AI_DISABLED && (
-          <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-2.5">
-            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-            <span className="text-13-regular text-amber-700">
-              현재 AI 기능을 점검 중이에요. 곧 다시 사용할 수 있어요.
+        {/* 월간 사용량 표시 */}
+        {monthlyUsed !== null && (
+          <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+            isQuotaExhausted
+              ? "bg-error-50 border-error-100"
+              : "bg-primary-50 border-primary-200"
+          }`}>
+            <div className="flex flex-col">
+              <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : "text-primary-700"}`}>
+                이번 달 AI 사용량
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
+                  {monthlyUsed}
+                </span>
+                <span className="text-14-regular text-black-50">
+                  / {MONTHLY_AI_TEMPLATE_LIMIT}
+                </span>
+              </div>
+            </div>
+            <Zap className={`h-6 w-6 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
+          </div>
+        )}
+
+        {/* 소진 안내 */}
+        {isQuotaExhausted && (
+          <div className="flex items-center gap-2 rounded-lg bg-error-50 border border-error-100 px-3.5 py-2.5">
+            <AlertCircle className="h-4 w-4 text-error-500 shrink-0" />
+            <span className="text-13-regular text-error-700">
+              이번 달 사용량을 모두 사용했어요. 다음 달에 다시 이용해 주세요.
             </span>
           </div>
         )}
@@ -88,8 +145,8 @@ const AiTemplateContent = () => {
             hoverBgColor="rgba(139, 92, 246, 0.08)"
             title="AI 스토리북"
             description="아동 맞춤형 10페이지 그림책 자동 생성"
-            onClick={() => { setIsStorybookModalOpen(true); }}
-            disabled={IS_AI_DISABLED}
+            onClick={() => { mp.track("AI 스토리북 시작"); setIsStorybookModalOpen(true); }}
+            disabled={isQuotaExhausted}
           />
         </div>
 
@@ -108,8 +165,8 @@ const AiTemplateContent = () => {
             hoverBgColor="rgba(245, 158, 11, 0.08)"
             title="AI 감정추론 활동"
             description="주제를 입력하면 AI가 스토리를 만들어요"
-            onClick={() => { setIsEmotionChoiceModalOpen(true); }}
-            disabled={IS_AI_DISABLED}
+            onClick={() => { mp.track("AI 감정추론 시작"); setIsEmotionChoiceModalOpen(true); }}
+            disabled={isQuotaExhausted}
           />
         </div>
       </div>
@@ -131,28 +188,40 @@ const AiTemplateContent = () => {
           openPreview("emotionInference");
         }}
         onSelectAi={async (topic: string) => {
+          // 월간 사용량 서버 재확인
+          const currentUsage = await fetchMonthlyAiTemplateUsage();
+          if (currentUsage >= MONTHLY_AI_TEMPLATE_LIMIT) {
+            setMonthlyUsed(currentUsage);
+            useToastStore.getState().showToast("이번 달 AI 사용량을 모두 사용했어요.");
+            return;
+          }
+
           setIsAiGenerating(true);
           try {
-            // Phase 1에서는 감정 카드 이미지만 필요 — 기본 스타일로 조회
             const emotionImageMap = await fetchEmotionImageMap("photo-boy");
             const availableLabels = [...emotionImageMap.keys()];
             const stories = await generateEmotionStory(topic, availableLabels);
-            // Phase 1: 텍스트만 생성 — 히어로 이미지 없이 페이지 삽입
             const pages = buildEmotionStoryPages(stories, emotionImageMap);
             useTemplateStore.getState().requestInsertPages(pages);
-            // ── 이미지 생성 임시 중단: 배너 표시용 데이터 저장 스킵 ──
-            // const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
-            // useEmotionSceneStore.getState().addPendingGeneration({
-            //   stories,
-            //   storyPageIds,
-            //   bannerPhase: "ready",
-            // });
+            const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
+            useEmotionSceneStore.getState().addPendingGeneration({
+              stories,
+              storyPageIds,
+              bannerPhase: "ready",
+            });
+
+            // 사용량 기록 + UI 업데이트
+            void recordAiTemplateUsage("emotion");
+            setMonthlyUsed((prev) => (prev ?? 0) + 1);
+
             setIsEmotionChoiceModalOpen(false);
             useToastStore
               .getState()
-              .showToast("감정추론 활동이 생성되었어요!");
+              .showToast("텍스트가 생성되었어요. 내용을 확인 후 이미지를 생성하세요.");
+            mp.track("AI 감정추론 스토리 생성", { topic_length: topic.length });
           } catch (error) {
             console.error("[AI 감정추론] 스토리 생성 실패:", error);
+            Sentry.captureException(error);
             useToastStore
               .getState()
               .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");

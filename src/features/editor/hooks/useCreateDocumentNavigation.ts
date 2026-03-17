@@ -4,10 +4,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/shared/api/supabase";
+import type { Page } from "../model/pageTypes";
 import { saveNewDocument } from "../utils/documentPersistence";
 
 type CreateDocumentOptions = {
   replace?: boolean;
+  pages?: Page[];
   onUnauthorized?: () => void;
   onError?: () => void;
 };
@@ -18,6 +20,7 @@ export const useCreateDocumentNavigation = () => {
 
   const createAndOpenDocument = async ({
     replace = true,
+    pages,
     onUnauthorized,
     onError,
   }: CreateDocumentOptions = {}) => {
@@ -33,7 +36,7 @@ export const useCreateDocumentNavigation = () => {
       const { id } = await saveNewDocument({
         userId: user.id,
         name: "제목 없음",
-        pages: [],
+        pages: pages ?? [],
       });
       navigate(`/${id}/edit`, { replace });
       return id;

@@ -1,10 +1,15 @@
 /**
  * 대시보드 AI 기능 카드 섹션 — 스토리북/감정추론 진입점.
  */
-import { Sparkles, BookOpen, Brain, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sparkles, BookOpen, Brain, ChevronRight, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
+import {
+  MONTHLY_AI_TEMPLATE_LIMIT,
+  fetchMonthlyAiTemplateUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 import { mp } from "@/shared/utils/mixpanel";
 
 const AI_FEATURES: {
@@ -33,19 +38,44 @@ const AI_FEATURES: {
 const AiFeatureSection = () => {
   const { isCreatingDoc, createAndOpenDocument } =
     useCreateDocumentNavigation();
+  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+
+  useEffect(() => {
+    void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+  }, []);
+
+  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
+  const isQuotaExhausted = remaining !== null && remaining <= 0;
 
   const handleClick = async (feature: string) => {
     mp.track("대시보드 AI 카드 클릭", { feature });
-    await createAndOpenDocument({ replace: true });
+    sessionStorage.setItem(
+      "pendingEditorIntent",
+      JSON.stringify({ type: "ai", feature }),
+    );
+    await createAndOpenDocument({ replace: false });
   };
 
   return (
-    <section className="flex flex-col w-full gap-5 rounded-2xl border border-black-20 bg-white-100 p-3 md:p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Sparkles className="icon-s text-primary" />
-        <span className="text-title-22-semibold text-black-90">
-          AI로 만들기
-        </span>
+    <section className="flex flex-col w-full gap-5 rounded-2xl border-2 border-primary-200 bg-primary-50 p-3 md:p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="icon-s text-primary" />
+          <span className="text-title-22-semibold text-black-90">
+            AI로 만들기
+          </span>
+          <span className="rounded bg-primary px-2 py-0.5 text-[11px] font-bold leading-tight text-white-100 animate-pulse">
+            NEW
+          </span>
+        </div>
+        {monthlyUsed !== null && (
+          <div className="flex items-center gap-1.5">
+            <Zap className={`h-4 w-4 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
+            <span className={`text-13-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
+              {monthlyUsed}/{MONTHLY_AI_TEMPLATE_LIMIT}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,7 +86,7 @@ const AiFeatureSection = () => {
             accentColor={feature.accentColor}
             title={feature.title}
             description={feature.description}
-            disabled={isCreatingDoc}
+            disabled={isCreatingDoc || isQuotaExhausted}
             onClick={() => handleClick(feature.key)}
           />
         ))}
