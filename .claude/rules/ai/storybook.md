@@ -104,7 +104,7 @@ type ArtStyleId =
 - `STORYBOOK_PAGE_COUNT = 10`
 - `TOPIC_PRESETS`: 6개 추천 주제
 - `DEFAULT_FONT_FAMILY = "Pretendard"`
-- `TOPIC_MIN_LENGTH = 2`, `TOPIC_MAX_LENGTH = 200`
+- `TOPIC_MIN_LENGTH = 2`, `TOPIC_MAX_LENGTH = 500`
 
 ## 의존성 규칙
 
@@ -157,7 +157,7 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 |------|--------|--------|
 | A4 크기 | 792×1122px | 1122×792px |
 | 이미지 크기 | 780×500px | 540×680px |
-| 이미지 위치 | 수평 중앙, y=mmToPx(5) | x=0, 세로 중앙 |
+| 이미지 위치 | 수평 중앙, y=mmToPx(30) | x=0, 세로 중앙 |
 | aspectRatio | `"16:9"` | `"3:4"` |
 | fontSize | 36 | 32 |
 | lineHeight | 1.8 | 1.8 |
@@ -177,14 +177,16 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 
 ## 현재 상태
 
-- ✅ Gemini API 연동 완료 (기획서 생성 + 이미지 생성)
+- ✅ Gemini API 연동 완료 (기획서 생성 + 이미지 생성) — Google AI API Key 인증 (`VITE_GOOGLE_API_KEY`)
 - ✅ 레이아웃별 이미지 생성 (가로 3:4, 세로 16:9) + Cloudinary 업로드 (Phase 1/2 파이프라인)
 - ✅ AI 캐릭터 레퍼런스 생성 (Step 4.5) + 사용자 컨펌/재생성
 - ✅ sceneGroup 기반 그룹별 순차 생성 + 캐릭터 레퍼런스 재활용
 - ✅ 에디터 캔버스 삽입 구현 (`requestInsertPages()`)
 - ✅ Progress callback + UI 표시 ("이미지 생성 중 3/10")
+- ✅ 크레딧 보호: 월 30회 제한 (`ai_template_usage` 테이블, `aiTemplateUsage.ts`)
+- ✅ Mixpanel 퍼널 추적: 시작/스텝이동/기획서선택/캐릭터생성/완료
+- ✅ Sentry 에러 추적: 모든 catch 블록에 captureException 적용
 - ❌ DB 저장 미구현 — 스토어에만 존재
-- ❌ 크레딧 보호 (C.1) 미구현 — 후속 작업
 - ❌ 페이지별 재생성 (C.2) 미구현 — 후속 작업
 
 ## 주의사항

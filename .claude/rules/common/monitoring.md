@@ -65,22 +65,74 @@ mixpanel.track("이벤트명");
 
 | 이벤트명 | 파일 | 속성 |
 |----------|------|------|
+| **에디터 — 요소** | | |
 | `요소 생성` | `elementStore.ts` | `element_type` |
-| `사이드바 열기` | `sideBarStore.ts` | `panel` |
-| `이야기순서 보드 생성` | `storyBoardStore.ts` | `count`, `direction` |
-| `AAC 보드 생성` | `aacBoardStore.ts` | `rows`, `columns` |
-| `이미지 추가` | `imageFillStore.ts` | `source` |
+| `요소 삭제` | `usePageActions.ts` | `count` |
+| `요소 복사` | `useDesignPaperClipboard.ts` | `element_count` |
+| `요소 붙여넣기` | `useDesignPaperClipboard.ts`, `useDesignPaperPaste.ts` | `element_count` |
+| `실행 취소` | `unifiedHistoryStore.ts` | — |
+| `다시 실행` | `unifiedHistoryStore.ts` | — |
+| `레이어 순서 변경` | `LayerPanel.tsx` | — |
+| `요소 정렬 분배` | `useSelectionState.ts` | `direction` |
+| **에디터 — 페이지** | | |
 | `페이지 추가` | `usePageActions.ts` | — |
 | `페이지 복제` | `usePageActions.ts` | — |
 | `페이지 삭제` | `usePageActions.ts` | — |
-| `요소 삭제` | `usePageActions.ts` | `count` |
-| `대상에 저장` | `ExportModal.tsx` | `target_type` |
-| `PDF 다운로드` | `ExportModal.tsx` | `page_mode` |
+| **에디터 — 사이드바** | | |
+| `사이드바 열기` | `sideBarStore.ts` | `panel` |
+| **에디터 — 이미지** | | |
+| `이미지 추가` | `imageFillStore.ts` | `source` |
+| `이미지 업로드` | `useImageUploadToCloudinary.ts` | `file_type` |
+| `이미지 파일 드롭` | `useCanvasFileDrop.ts` | — |
+| `AI 이미지 생성` | `useAiImageGeneration.ts` | `style`, `prompt_length` |
+| **에디터 — 테이블** | | |
+| `테이블 행 추가` | `DesignPaperContextMenu.tsx` | — |
+| `테이블 열 추가` | `DesignPaperContextMenu.tsx` | — |
+| **에디터 — 보드** | | |
+| `이야기순서 보드 생성` | `storyBoardStore.ts` | `count`, `direction` |
+| `AAC 보드 생성` | `aacBoardStore.ts` | `rows`, `columns` |
+| `어휘 따라쓰기 생성` | `vocabTracingStore.ts` | — |
+| **에디터 — 템플릿** | | |
 | `{label} 템플릿 적용` | `useTemplateApplyActions.ts` | `template_id`, `template_name`, `target` |
 | `{label} 템플릿 클릭` | `useTemplateContentState.ts` | `template_id`, `template_name` |
-| `AI 이미지 생성` | `useAiImageGeneration.ts` | `style`, `prompt_length` |
-| `이미지 업로드` | `useImageUploadToCloudinary.ts` | `file_type` |
-| `맞춤법 검사` | `ExportModal.tsx` | `correction_count` |
+| **에디터 — 내보내기** | | |
+| `대상에 저장` | `ExportModal.tsx` | `target_type` |
+| `PDF 다운로드` | `ExportModal.tsx` | `page_mode` |
+| `맞춤법 검사` | `SpellCheckPanel.tsx` | `correction_count` |
+| `맞춤법 검사 시작` | `DesignLayout.tsx` | — |
+| **에디터 — 문서** | | |
+| `문서 저장` | `useAutoSave.ts` | `mode`, `page_count` |
+| `문서 열기` | `useDocumentLoader.ts` | `page_count` |
+| **AI 스토리북** | | |
+| `AI 스토리북 시작` | `AiTemplateContent.tsx` | — |
+| `AI 스토리북 스텝 이동` | `StorybookWizard.tsx` | `from`, `to` |
+| `AI 스토리북 기획서 선택` | `useStorybookWizardStore.ts` | — |
+| `AI 스토리북 캐릭터 생성` | `useStorybookWizardStore.ts` | — |
+| `AI 스토리북 생성 완료` | `useStorybookWizardStore.ts` | `art_style`, `layout` |
+| **AI 감정추론** | | |
+| `AI 감정추론 시작` | `AiTemplateContent.tsx` | — |
+| `AI 감정추론 스토리 생성` | `AiTemplateContent.tsx` | `topic_length` |
+| **대시보드** | | |
+| `대시보드 빈 문서 생성` | `QuickStartSection.tsx` | — |
+| `대시보드 템플릿 바로가기 클릭` | `QuickStartSection.tsx` | `template_id` |
+| `대시보드 AI 카드 클릭` | `AiFeatureSection.tsx` | `feature` |
+| `최근 자료 클릭` | `RecentDocumentsSection.tsx` | — |
+| `아동 수정` | `EditUserModal.tsx` | — |
+| `아동 삭제` | `EditUserModal.tsx` | — |
+| `그룹 수정` | `EditGroupModal.tsx` | — |
+| `그룹 삭제` | `EditGroupModal.tsx` | — |
+| **내 학습자료** | | |
+| `문서 삭제` | `MyDocPage.tsx` | — |
+| `문서 복제` | `MyDocPage.tsx` | — |
+| **인증** | | |
+| `Google 로그인` | `useAuth.ts` | — |
+| `카카오 로그인` | `useAuth.ts` | — |
+| `이메일 가입` | `useAuth.ts` | — |
+| **랜딩** | | |
+| `랜딩 CTA 클릭` | `HeroSection.tsx` | — |
+| `랜딩 하단 CTA 클릭` | `CtaSection.tsx` | — |
+| **관리자** | | |
+| `관리자 대시보드 접속` | `AdminPage.tsx` | — |
 
 ### 새 이벤트 추가 시
 
