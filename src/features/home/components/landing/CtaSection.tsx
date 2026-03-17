@@ -17,7 +17,8 @@ const CtaSection = () => {
         </p>
         <button
           onClick={openAuthModal}
-          className="flex h-12 px-6 items-center justify-center rounded-xl bg-primary cursor-pointer md:h-14 md:px-8"
+          className="flex h-12 px-6 items-center justify-center rounded-xl cursor-pointer hover:opacity-90 transition md:h-14 md:px-8 shadow-md"
+          style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
         >
           <span className="text-title-16-semibold text-white-100 md:text-title-18-semibold">
             무료로 가입하기

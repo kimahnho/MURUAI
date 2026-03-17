@@ -33,7 +33,8 @@ const HeroSection = ({ featureSectionRef }: HeroSectionProps) => {
         <div className="flex flex-col items-center gap-3 mt-2 w-full md:flex-row md:justify-center md:gap-4 md:mt-4">
           <button
             onClick={openAuthModal}
-            className="flex w-full h-14 items-center justify-center rounded-xl bg-primary cursor-pointer md:w-50"
+            className="flex w-full h-14 items-center justify-center rounded-xl cursor-pointer hover:opacity-90 transition md:w-50 shadow-md"
+            style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
           >
             <span className="text-title-18-semibold text-white-100">
               바로 시작하기

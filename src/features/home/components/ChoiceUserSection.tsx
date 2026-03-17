@@ -62,11 +62,12 @@ const ChoiceUserSection = () => {
         <button
           type="button"
           onClick={handleAddClick}
-          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-13-semibold text-white-100 transition cursor-pointer shadow-sm ${
-            lessonType === "individual"
-              ? "bg-primary hover:bg-primary-700"
-              : "bg-emerald-500 hover:bg-emerald-600"
-          }`}
+          className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-13-semibold text-white-100 transition cursor-pointer shadow-sm hover:opacity-90"
+          style={{
+            background: lessonType === "individual"
+              ? "linear-gradient(135deg, #7C3AED, #8b5cf6)"
+              : "linear-gradient(135deg, #059669, #10b981)",
+          }}
         >
           <Plus className="h-3.5 w-3.5" />
           추가
@@ -167,7 +168,7 @@ const TabButton = ({
   <button
     type="button"
     aria-pressed={isActive}
-    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-13-semibold cursor-pointer transition ${
+    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-13-bold cursor-pointer transition ${
       isActive
         ? TAB_ACTIVE_CLASS[variant]
         : "text-black-60 hover:bg-black-15"
