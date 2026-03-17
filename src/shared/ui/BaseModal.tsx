@@ -94,9 +94,9 @@ const BaseModal = ({
         {/* 헤더 */}
         <div className="mb-6">
           {typeof title === "string" ? (
-            <h2 className="text-title-20-semibold text-black-100 pr-8">{title}</h2>
+            <h2 className={`text-title-20-semibold text-black-100 ${showCloseButton ? "pr-8" : ""}`}>{title}</h2>
           ) : (
-            <div className="pr-8">{title}</div>
+            <div className={showCloseButton ? "pr-8" : ""}>{title}</div>
           )}
         </div>
 

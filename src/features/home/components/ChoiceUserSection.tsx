@@ -1,26 +1,19 @@
 /**
- * 학생 선택 목록과 선택 상태 전환 UI를 제공하는 컴포넌트.
+ * 아동/그룹 관리 섹션 — 탭 전환 + 페이지네이션 리스트.
  */
-import {
-  PlusCircleIcon,
-  User,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, User, Users } from "lucide-react";
 import { useState, useEffect } from "react";
-import UserCard from "./UserCard";
-import GroupCard from "./GroupCard";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useStudentStore } from "../store/useStudentStore";
+import type { Student } from "../model/student.model";
+import type { Group } from "../model/group.model";
+
+const PAGE_SIZE = 4;
 
 const ChoiceUserSection = () => {
-  const [lessonType, setLessonType] = useState<"individual" | "group">(
-    "individual"
-  );
-  const [currentStudentPage, setCurrentStudentPage] = useState(0);
-  const [currentGroupPage, setCurrentGroupPage] = useState(0);
+  const [lessonType, setLessonType] = useState<"individual" | "group">("individual");
+  const [page, setPage] = useState(0);
   const {
     openAddUserModal,
     openAddGroupModal,
@@ -29,314 +22,271 @@ const ChoiceUserSection = () => {
     openAuthModal,
   } = useModalStore();
   const { isAuthenticated } = useAuthStore();
-
-  // Store에서 데이터 가져오기
   const { students, groups, fetchAll, clear } = useStudentStore();
 
-  // 인증 상태에 따라 데이터 로드
   useEffect(() => {
     if (!isAuthenticated) {
       clear();
       return;
     }
-
-    // 캐시된 데이터가 있으면 즉시 표시되고, 백그라운드에서 새로고침
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  // 탭 전환 시 페이지 리셋
+  useEffect(() => { setPage(0); }, [lessonType]);
 
   const handleAddClick = () => {
     if (!isAuthenticated) {
       openAuthModal();
       return;
     }
-    if (lessonType === "individual") {
-      openAddUserModal();
-    } else {
-      openAddGroupModal();
-    }
+    if (lessonType === "individual") openAddUserModal();
+    else openAddGroupModal();
   };
 
-  // 캐러셀 로직 (개별 아동/그룹 모드 공통)
-  const itemsPerPage = 4; // grid-cols-5에서 추가 버튼 1개를 제외한 4개
-  const totalStudentPages = Math.ceil(students.length / itemsPerPage);
-  const totalGroupPages = Math.ceil(groups.length / itemsPerPage);
-  const currentStudents = students.slice(
-    currentStudentPage * itemsPerPage,
-    (currentStudentPage + 1) * itemsPerPage
-  );
-  const currentGroups = groups.slice(
-    currentGroupPage * itemsPerPage,
-    (currentGroupPage + 1) * itemsPerPage
-  );
-
-  const handleStudentPrev = () => {
-    setCurrentStudentPage((prev) =>
-      prev > 0 ? prev - 1 : totalStudentPages - 1
-    );
-  };
-
-  const handleStudentNext = () => {
-    setCurrentStudentPage((prev) =>
-      prev < totalStudentPages - 1 ? prev + 1 : 0
-    );
-  };
-
-  const handleStudentPageChange = (page: number) => {
-    setCurrentStudentPage(page);
-  };
-
-  const handleGroupPrev = () => {
-    setCurrentGroupPage((prev) => (prev > 0 ? prev - 1 : totalGroupPages - 1));
-  };
-
-  const handleGroupNext = () => {
-    setCurrentGroupPage((prev) => (prev < totalGroupPages - 1 ? prev + 1 : 0));
-  };
-
-  const handleGroupPageChange = (page: number) => {
-    setCurrentGroupPage(page);
-  };
-
-  const showCarousel = lessonType === "individual" && students.length > 4;
-  const showGroupCarousel = lessonType === "group" && groups.length > 4;
+  const items = lessonType === "individual" ? students : groups;
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const visibleItems = items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <section className="flex flex-col w-full px-4 md:px-10 gap-6 md:gap-10">
-      <div className="flex flex-col w-full gap-6 md:gap-10 items-center justify-center">
-        <div className="flex flex-col itme-center justify-center">
-          <span className="flex text-title-18-semibold md:text-title-22-semibold items-center justify-center text-center">
-            개별 아동 또는 그룹 수업을 선택하여 맞춤형 수업 자료를 만들어보세요.
-          </span>
+    <section className={`flex flex-col w-full gap-4 rounded-2xl border bg-white-100 p-3 md:p-5 shadow-sm transition-colors ${
+      lessonType === "individual" ? "border-primary-200" : "border-emerald-200"
+    }`}>
+      {/* 블록 헤더 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="icon-s text-primary" />
+          <span className="text-title-22-semibold text-black-90">내 학습자</span>
         </div>
-
-        <div className="flex w-full items-center justify-center">
-          <div className="flex items-center gap-1 rounded-full border border-black-20 bg-black-10 p-1">
-            <button
-              type="button"
-              aria-pressed={lessonType === "individual"}
-              className={`flex items-center justify-center gap-2 rounded-full px-5 py-2 text-title-16-semibold cursor-pointer transition ${
-                lessonType === "individual"
-                  ? "bg-white-100 text-black-100 shadow-sm"
-                  : "text-black-70 hover:bg-black-15"
-              }`}
-              onClick={() => { setLessonType("individual"); }}
-            >
-              <User className="h-4 w-4" aria-hidden="true" />
-              개별 아동
-            </button>
-            <button
-              type="button"
-              aria-pressed={lessonType === "group"}
-              className={`flex items-center justify-center gap-2 rounded-full px-5 py-2 text-title-16-semibold cursor-pointer transition ${
-                lessonType === "group"
-                  ? "bg-white-100 text-black-100 shadow-sm"
-                  : "text-black-70 hover:bg-black-15"
-              }`}
-              onClick={() => { setLessonType("group"); }}
-            >
-              <Users className="h-4 w-4" aria-hidden="true" />
-              그룹 수업
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={handleAddClick}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-13-semibold text-white-100 transition cursor-pointer shadow-sm ${
+            lessonType === "individual"
+              ? "bg-primary hover:bg-primary-700"
+              : "bg-emerald-500 hover:bg-emerald-600"
+          }`}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          추가
+        </button>
       </div>
 
-      <div className="flex flex-col w-full gap-3" key={lessonType}>
-        {showCarousel ? (
-          // 캐러셀 모드 (학생이 5명 이상일 때)
-          <>
-            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 overflow-hidden">
-              {/* 추가하기 버튼 */}
-              <button
-                type="button"
-                onClick={handleAddClick}
-                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
-              >
-                <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
-                <div className="flex flex-col gap-4 items-center justify-center">
-                  <PlusCircleIcon className="icon-xl text-black-70 transition group-hover:text-primary" />
-                  <span className="flex text-title-16-semibold text-black-60 transition group-hover:text-primary">
-                    아동 추가하기
-                  </span>
-                </div>
-              </button>
+      {/* 탭 전환 */}
+      <div className="flex items-center gap-1 rounded-full border border-black-20 bg-black-10 p-0.5 self-start">
+        <TabButton
+          isActive={lessonType === "individual"}
+          onClick={() => setLessonType("individual")}
+          icon={<User className="h-3.5 w-3.5" />}
+          label={`아동 ${students.length}`}
+          variant="primary"
+        />
+        <TabButton
+          isActive={lessonType === "group"}
+          onClick={() => setLessonType("group")}
+          icon={<Users className="h-3.5 w-3.5" />}
+          label={`그룹 ${groups.length}`}
+          variant="success"
+        />
+      </div>
 
-              {currentStudents.map((student, index) => (
-                <div key={student.id} className="relative">
-                  <UserCard
-                    student={student}
-                    onClick={() => {
-                      if (!student.id) return;
-                      openEditUserModal(student.id);
-                    }}
-                  />
-
-                  {/* 첫 번째 학생 카드에 좌측 화살표 */}
-                  {index === 0 && currentStudentPage > 0 && (
-                    <button
-                      onClick={handleStudentPrev}
-                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
-                      aria-label="이전 아동"
-                    >
-                      <ChevronLeft className="icon-xs text-black-90" />
-                    </button>
-                  )}
-
-                  {/* 마지막 학생 카드에 우측 화살표 */}
-                  {index === currentStudents.length - 1 &&
-                    currentStudentPage < totalStudentPages - 1 && (
-                      <button
-                        onClick={handleStudentNext}
-                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
-                        aria-label="다음 아동"
-                      >
-                        <ChevronRight className="icon-xs text-black-90" />
-                      </button>
-                    )}
-                </div>
-              ))}
-            </div>
-
-            {/* 페이지 인디케이터 */}
-            <div className="flex min-h-4 items-center justify-center gap-2">
-              {Array.from({ length: totalStudentPages }).map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => { handleStudentPageChange(index); }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentStudentPage
-                      ? "bg-primary w-6"
-                      : "bg-black-30 hover:bg-black-40"
-                  }`}
-                  aria-label={`${index + 1}페이지로 이동`}
-                />
-              ))}
-            </div>
-          </>
-        ) : showGroupCarousel ? (
-          // 캐러셀 모드 (그룹이 5개 이상일 때)
-          <>
-            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 overflow-hidden">
-              {/* 추가하기 버튼 */}
-              <button
-                type="button"
-                onClick={handleAddClick}
-                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
-              >
-                <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
-                <div className="flex flex-col gap-4 items-center justify-center">
-                  <PlusCircleIcon className="icon-xl text-black-70 transition group-hover:text-primary" />
-                  <span className="flex text-title-16-semibold text-black-60 transition group-hover:text-primary">
-                    그룹 추가하기
-                  </span>
-                </div>
-              </button>
-
-              {currentGroups.map((group, index) => (
-                <div key={group.id} className="relative">
-                  <GroupCard
-                    group={group}
-                    onClick={() => { openEditGroupModal(group.id); }}
-                  />
-
-                  {/* 첫 번째 그룹 카드에 좌측 화살표 */}
-                  {index === 0 && currentGroupPage > 0 && (
-                    <button
-                      onClick={handleGroupPrev}
-                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
-                      aria-label="이전 그룹"
-                    >
-                      <ChevronLeft className="icon-xs text-black-90" />
-                    </button>
-                  )}
-
-                  {/* 마지막 그룹 카드에 우측 화살표 */}
-                  {index === currentGroups.length - 1 &&
-                    currentGroupPage < totalGroupPages - 1 && (
-                      <button
-                        onClick={handleGroupNext}
-                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
-                        aria-label="다음 그룹"
-                      >
-                        <ChevronRight className="icon-xs text-black-90" />
-                      </button>
-                    )}
-                </div>
-              ))}
-            </div>
-
-            {/* 페이지 인디케이터 */}
-            <div className="flex min-h-4 items-center justify-center gap-2">
-              {Array.from({ length: totalGroupPages }).map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => { handleGroupPageChange(index); }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentGroupPage
-                      ? "bg-primary w-6"
-                      : "bg-black-30 hover:bg-black-40"
-                  }`}
-                  aria-label={`${index + 1}페이지로 이동`}
-                />
-              ))}
-            </div>
-          </>
+      {/* 리스트 — 고정 높이 */}
+      <div className="flex flex-col gap-2 min-h-70">
+        {items.length === 0 ? (
+          <EmptyState
+            label={lessonType === "individual" ? "등록된 아동이 없습니다" : "등록된 그룹이 없습니다"}
+            ctaLabel={lessonType === "individual" ? "아동 추가하기" : "그룹 추가하기"}
+            onCtaClick={handleAddClick}
+          />
         ) : (
-          // 일반 모드 (학생이 4명 이하이거나 그룹 모드일 때)
-          <>
-            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
-              {/* 추가하기 버튼 */}
-              <button
-                type="button"
-                onClick={handleAddClick}
-                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
-              >
-                <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
-                <div className="flex flex-col gap-4 items-center justify-center">
-                  <PlusCircleIcon className="icon-xl text-black-70 transition group-hover:text-primary" />
-                  <span className="flex text-title-16-semibold text-black-60 transition group-hover:text-primary">
-                    {lessonType === "individual"
-                      ? "아동 추가하기"
-                      : "그룹 추가하기"}
-                  </span>
-                </div>
-              </button>
-
-              {lessonType === "individual" ? (
-                <>
-                  {students.map((student) => (
-                    <UserCard
-                      key={student.id}
-                      student={student}
-                      onClick={() => {
-                        if (!student.id) return;
-                        openEditUserModal(student.id);
-                      }}
-                    />
-                  ))}
-                </>
-              ) : (
-                <>
-                  {groups.map((group) => (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      onClick={() => { openEditGroupModal(group.id); }}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
-            <div
-              className="flex min-h-4 items-center justify-center gap-2"
-              aria-hidden="true"
-            />
-          </>
+          visibleItems.map((item) =>
+            lessonType === "individual" ? (
+              <StudentRow
+                key={item.id}
+                student={item as Student}
+                onClick={() => openEditUserModal(item.id!)}
+              />
+            ) : (
+              <GroupRow
+                key={item.id}
+                group={item as Group}
+                onClick={() => openEditGroupModal(item.id!)}
+              />
+            ),
+          )
         )}
+      </div>
+
+      {/* 페이지네이션 — 항상 공간 유지, 1페이지면 숨김 */}
+      <div className={`flex items-center justify-center gap-3 ${items.length <= PAGE_SIZE ? "invisible" : ""}`}>
+        <button
+          type="button"
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-black-50 hover:bg-black-10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-13-regular text-black-50 tabular-nums min-w-10 text-center">
+          {page + 1} / {totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+          disabled={page >= totalPages - 1}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-black-50 hover:bg-black-10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </section>
   );
 };
+
+// ─── 서브 컴포넌트 ───
+
+const TAB_ACTIVE_CLASS = {
+  primary: "bg-primary-50 text-primary shadow-sm",
+  success: "bg-emerald-50 text-emerald-700 shadow-sm",
+};
+
+const TabButton = ({
+  isActive,
+  onClick,
+  icon,
+  label,
+  variant = "primary",
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  variant?: "primary" | "success";
+}) => (
+  <button
+    type="button"
+    aria-pressed={isActive}
+    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-13-semibold cursor-pointer transition ${
+      isActive
+        ? TAB_ACTIVE_CLASS[variant]
+        : "text-black-60 hover:bg-black-15"
+    }`}
+    onClick={onClick}
+  >
+    {icon}
+    {label}
+  </button>
+);
+
+const StudentRow = ({
+  student,
+  onClick,
+}: {
+  student: Student;
+  onClick: () => void;
+}) => {
+  const age = new Date().getFullYear() - parseInt(student.birth_year);
+  const genderLabel = student.gender === "male" ? "남" : student.gender === "female" ? "여" : "";
+  const meta = [
+    `만 ${age}세`,
+    genderLabel,
+  ].filter(Boolean).join(" · ");
+
+  const details = [
+    student.significant ? `특이사항: ${student.significant}` : null,
+    student.learning_goal ? `목표: ${student.learning_goal}` : null,
+  ].filter(Boolean);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-xl border border-black-20 bg-white-100 px-4 py-3 shadow-sm text-left transition hover:border-primary-200 hover:bg-primary-50 hover:shadow-md cursor-pointer"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary">
+        <User className="h-4 w-4" />
+      </div>
+      <div className="flex flex-col min-w-0 gap-0.5">
+        <div className="flex items-baseline gap-2">
+          <span className="text-14-semibold text-black-90 truncate">{student.name}</span>
+          <span className="text-12-regular text-black-50 shrink-0">{meta}</span>
+        </div>
+        {details.length > 0 && (
+          <span className="text-12-regular text-black-50 truncate">
+            {details.join(" | ")}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+};
+
+const GroupRow = ({
+  group,
+  onClick,
+}: {
+  group: Group;
+  onClick: () => void;
+}) => {
+  const members =
+    group.groups_members_n?.flatMap((m) => {
+      const s = m.students_n;
+      if (!s) return [];
+      return Array.isArray(s) ? s : [s];
+    }) ?? [];
+  const memberNames = members.map((m) => m.name).join(", ");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-start gap-3 rounded-xl border border-black-20 bg-white-100 px-4 py-3 shadow-sm text-left transition hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md cursor-pointer"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mt-0.5">
+        <Users className="h-4 w-4" />
+      </div>
+      <div className="flex flex-col min-w-0 gap-0.5">
+        <div className="flex items-baseline gap-2">
+          <span className="text-14-semibold text-black-90 truncate">{group.name}</span>
+          <span className="text-12-regular text-black-50 shrink-0">멤버 {members.length}명</span>
+        </div>
+        {memberNames && (
+          <span className="text-12-regular text-black-50 truncate">{memberNames}</span>
+        )}
+        {group.description && (
+          <span className="text-12-regular text-black-40 truncate">{group.description}</span>
+        )}
+      </div>
+    </button>
+  );
+};
+
+const EmptyState = ({
+  label,
+  ctaLabel,
+  onCtaClick,
+}: {
+  label: string;
+  ctaLabel: string;
+  onCtaClick: () => void;
+}) => (
+  <div className="flex items-center justify-center rounded-xl border border-dashed border-black-20 bg-black-5 py-10">
+    <div className="flex flex-col items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50">
+        <User className="h-5 w-5 text-primary-300" />
+      </div>
+      <span className="text-14-regular text-black-50">{label}</span>
+      <button
+        type="button"
+        onClick={onCtaClick}
+        className="flex items-center gap-1 text-14-semibold text-primary hover:text-primary-700 transition cursor-pointer"
+      >
+        <Plus className="h-4 w-4" />
+        {ctaLabel}
+      </button>
+    </div>
+  </div>
+);
 
 export default ChoiceUserSection;
