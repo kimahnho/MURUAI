@@ -58,7 +58,8 @@ export const canAdvance = (
       return validateProposal(activeProposal) === null;
     }
     case 4:
-      return validateArtStyle(formData.artStyle) === null;
+      // return validateArtStyle(formData.artStyle) === null;  // 이미지 생성 임시 중단
+      return true;
     case 45:
       return true; // 기본 캐릭터 이미지가 자동 설정되므로 항상 통과
     case 5:

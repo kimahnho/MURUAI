@@ -1,16 +1,17 @@
 /**
  * Gemini를 사용해 아동 맞춤형 스토리북 기획서 2개를 생성하는 모듈.
  */
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
 
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 
 import type { ChildInfo, StoryProposal, StoryPageOutline } from "../model/storybookTypes";
 import { STORYBOOK_PAGE_COUNT } from "../model/storybookTypes";
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 const sanitizeTopic = (topic: string): string =>
   topic
@@ -122,11 +123,11 @@ export const generateStoryProposals = async (
   childInfo: ChildInfo,
   topic: string,
 ): Promise<StoryProposal[]> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",

@@ -1,13 +1,14 @@
 /**
  * Gemini 2.5 Flash를 사용해 한국어 맞춤법/띄어쓰기/문법을 검사하는 모듈.
  */
-import { GoogleGenAI } from "@google/genai";
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { GoogleGenAI } from "@google/genai";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 import type { TextItem } from "../utils/spellCheckTextExtractor";
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 export type SpellCorrection = {
   original: string;
@@ -33,17 +34,17 @@ type RawSpellResult = {
 
 const BATCH_SIZE = 50;
 
-// GoogleGenAI 인스턴스 lazy 초기화
-let genAiInstance: GoogleGenAI | null = null;
-const getGenAI = (): GoogleGenAI => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
-  if (!genAiInstance) {
-    genAiInstance = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
-  }
-  return genAiInstance;
-};
+// ── 기존 Google AI lazy singleton ──
+// let genAiInstance: GoogleGenAI | null = null;
+// const getGenAI = (): GoogleGenAI => {
+//   if (!GOOGLE_API_KEY) {
+//     throw new Error("Google API key is not configured");
+//   }
+//   if (!genAiInstance) {
+//     genAiInstance = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+//   }
+//   return genAiInstance;
+// };
 
 const buildPrompt = (items: TextItem[]) =>
   `당신은 한국어 맞춤법, 띄어쓰기, 문법 검사 전문가입니다.

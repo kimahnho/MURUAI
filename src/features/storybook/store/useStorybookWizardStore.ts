@@ -26,8 +26,9 @@ import {
   createStudentFromWizard,
 } from "../data/studentService";
 
-// 위자드 단계 순서 — 45(참고 이미지)가 4와 5 사이에 위치
-const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
+// ── 이미지 생성 임시 중단: Step 45(캐릭터 레퍼런스) 스킵 ──
+// const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
+const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 5, 6];
 const nextStep = (current: WizardStep): WizardStep | null => {
   const idx = STEP_ORDER.indexOf(current);
   return idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
@@ -241,13 +242,15 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     generateBook: async () => {
       const { formData } = get();
       const proposal = formData.editedProposal;
-      if (!proposal || !formData.artStyle || !formData.childInfo) return;
+      // if (!proposal || !formData.artStyle || !formData.childInfo) return;
+      if (!proposal || !formData.childInfo) return;
+      const artStyle = formData.artStyle ?? "watercolor-fairytale"; // 이미지 생성 임시 중단: 기본값
 
       set({ isLoading: true, error: null, currentStep: 5, imageProgress: null });
       try {
         const book = await generateStorybook(
           proposal,
-          formData.artStyle,
+          artStyle,
           formData.layout,
           formData.fontFamily,
           formData.childInfo,
@@ -265,7 +268,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           isLoading: false,
           imageProgress: null,
           error: "스토리북 생성에 실패했어요. 다시 시도해 주세요.",
-          currentStep: 45,
+          // currentStep: 45,
+          currentStep: 4,
         });
       }
     },

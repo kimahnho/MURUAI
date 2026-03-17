@@ -48,6 +48,17 @@ const buildVerticalElements = (
       imageBox: { x: 0, y: 0, w: vImageW, h: vImageH },
       isStandaloneImage: true,
     });
+  } else {
+    // 이미지 미생성 시 플레이스홀더 박스
+    elements.push({
+      id: crypto.randomUUID(),
+      type: "rect",
+      x: vImageX,
+      y: vImageY,
+      w: vImageW,
+      h: vImageH,
+      fill: "#E5E7EB",
+    });
   }
 
   // 텍스트 영역 (이미지 아래 — 세로 중앙 정렬)
@@ -99,6 +110,17 @@ const buildHorizontalElements = (
       fill: `url(${page.imageUrl})`,
       imageBox: { x: 0, y: 0, w: hImageW, h: hImageH },
       isStandaloneImage: true,
+    });
+  } else {
+    // 이미지 미생성 시 플레이스홀더 박스
+    elements.push({
+      id: crypto.randomUUID(),
+      type: "rect",
+      x: 0,
+      y: hImageY,
+      w: hImageW,
+      h: hImageH,
+      fill: "#E5E7EB",
     });
   }
 

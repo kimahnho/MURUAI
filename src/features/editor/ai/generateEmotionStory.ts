@@ -1,8 +1,9 @@
 /**
  * Gemini를 사용해 감정 추론 활동용 스토리 텍스트 10개를 생성하는 모듈.
  */
-import { GoogleGenAI } from "@google/genai";
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { GoogleGenAI } from "@google/genai";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 
 export type StoryItem = {
   title: string;
@@ -11,9 +12,9 @@ export type StoryItem = {
   sceneGroup: number;
 };
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 type FewShotExample = {
   title: string;
@@ -170,11 +171,11 @@ export const generateEmotionStory = async (
   topic: string,
   availableLabels: string[],
 ): Promise<StoryItem[]> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
