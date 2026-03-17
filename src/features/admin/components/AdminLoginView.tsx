@@ -31,7 +31,7 @@ const AdminLoginView = () => {
     <div className="flex min-h-[70vh] w-full items-center justify-center px-6 py-12">
       <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl border border-black-10 bg-white-100 p-8 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-100 text-primary">
             <Shield className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
@@ -90,7 +90,7 @@ const AdminLoginView = () => {
             className={`mt-2 h-11 rounded-2xl text-title-16-semibold text-white-100 transition ${
               isSubmitDisabled
                 ? "cursor-not-allowed bg-black-30"
-                : "bg-primary hover:bg-primary/90"
+                : "bg-primary hover:bg-primary-700"
             }`}
           >
             {loading ? "로그인 중..." : "관리자 로그인"}

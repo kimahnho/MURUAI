@@ -134,7 +134,7 @@ const AddUserModal = () => {
                 onClick={() => { setGender(gender === value ? null : value); }}
                 className={`flex-1 rounded-lg border py-2.5 text-14-medium transition ${
                   gender === value
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary-100 text-primary"
                     : "border-black-30 text-black-60 hover:bg-black-10"
                 }`}
               >
@@ -196,7 +196,7 @@ const AddUserModal = () => {
             className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
               isSubmitDisabled
                 ? "bg-black-40 cursor-not-allowed"
-                : "bg-primary hover:bg-primary/90"
+                : "bg-primary hover:bg-primary-700"
             }`}
           >
             {loading ? "추가 중..." : "추가하기"}

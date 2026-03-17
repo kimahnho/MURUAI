@@ -48,7 +48,7 @@ const GroupCard = ({ group, onClick }: GroupCardProps) => {
         </span>
       </div>
 
-      <div className="flex w-full flex-1 min-h-0 rounded-xl bg-[#5500ff]/10 p-2">
+      <div className="flex w-full flex-1 min-h-0 rounded-xl bg-primary-100 p-2">
         <div className="flex flex-col w-full h-full gap-1.5">
           {visibleMembers.length > 0 ? (
             visibleMembers.map((member) => (

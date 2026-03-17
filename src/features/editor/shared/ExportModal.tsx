@@ -267,7 +267,7 @@ const ExportModal = ({
                 }}
                 className={`flex-1 rounded-lg border px-3 py-2 text-14-semibold transition ${
                   targetType === type
-                    ? "border-primary bg-primary/5 text-primary"
+                    ? "border-primary bg-primary-50 text-primary"
                     : "border-black-25 text-black-70 hover:border-black-40"
                 }`}
               >
@@ -301,7 +301,7 @@ const ExportModal = ({
                       onClick={() => { setTargetId(target.id); }}
                       className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-14-regular transition ${
                         isSelected
-                          ? "border-primary bg-primary/5 text-primary"
+                          ? "border-primary bg-primary-50 text-primary"
                           : "border-black-25 text-black-70 hover:border-black-40"
                       }`}
                     >
@@ -331,7 +331,7 @@ const ExportModal = ({
                 onClick={() => { setPdfPageMode(mode); }}
                 className={`flex-1 rounded-lg border px-3 py-2 text-14-semibold transition ${
                   pdfPageMode === mode
-                    ? "border-primary bg-primary/5 text-primary"
+                    ? "border-primary bg-primary-50 text-primary"
                     : "border-black-25 text-black-70 hover:border-black-40"
                 }`}
               >
@@ -399,7 +399,7 @@ const ExportModal = ({
             type="button"
             onClick={handleSaveToTarget}
             disabled={isSaving || !targetId || isLoadingTargets}
-            className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "저장 중..." : "대상에 저장"}
           </button>

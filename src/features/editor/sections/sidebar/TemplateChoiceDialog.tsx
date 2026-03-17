@@ -25,7 +25,7 @@ const TemplateChoiceDialog = ({
         <button
           type="button"
           onClick={onApplyCurrent}
-          className="w-full px-4 py-3 text-14-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition"
+          className="w-full px-4 py-3 text-14-medium text-white bg-primary rounded-lg hover:bg-primary-700 transition"
         >
           현재 페이지에 적용하기
         </button>

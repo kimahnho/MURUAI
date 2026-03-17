@@ -17,7 +17,7 @@ export const ErrorFallback = ({ error, resetError }: ErrorFallbackProps) => {
       )}
       <button
         onClick={resetError}
-        className="mt-4 rounded-lg bg-primary px-6 py-3 text-14-medium text-white-100 hover:bg-primary/90 transition-colors"
+        className="mt-4 rounded-lg bg-primary px-6 py-3 text-14-medium text-white-100 hover:bg-primary-700 transition-colors"
       >
         다시 시도
       </button>

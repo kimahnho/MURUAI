@@ -404,7 +404,7 @@ const MyDocPage = () => {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-100 text-primary">
               <Folder className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
@@ -436,7 +436,7 @@ const MyDocPage = () => {
             });
           }}
           disabled={isCreatingDoc}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-14-semibold text-white-100 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-14-semibold text-white-100 transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />새 자료 만들기
         </button>
@@ -527,7 +527,7 @@ const MyDocPage = () => {
                       });
                     }}
                     disabled={isCreatingDoc}
-                    className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary/5"
+                    className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary-50"
                   >
                     학습자료 만들어보기
                   </button>
@@ -598,7 +598,7 @@ const MyDocPage = () => {
                             event.stopPropagation();
                             setPendingDuplicateDoc(doc);
                           }}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-primary/40 hover:text-primary"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-primary-300 hover:text-primary"
                           aria-label="학습자료 복제"
                         >
                           <Copy className="h-4 w-4" />
@@ -703,7 +703,7 @@ const MyDocPage = () => {
             <button
               type="button"
               onClick={() => { void handleConfirmDelete(); }}
-              className="flex-1 rounded-lg bg-primary px-4 py-3 text-title-14-semibold text-white-100 transition hover:bg-primary/90"
+              className="flex-1 rounded-lg bg-primary px-4 py-3 text-title-14-semibold text-white-100 transition hover:bg-primary-700"
             >
               삭제하기
             </button>
@@ -743,7 +743,7 @@ const MyDocPage = () => {
               className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
                 isDuplicating
                   ? "cursor-not-allowed bg-black-40"
-                  : "bg-primary hover:bg-primary/90"
+                  : "bg-primary hover:bg-primary-700"
               }`}
             >
               {isDuplicating ? "복제 중..." : "복제하기"}

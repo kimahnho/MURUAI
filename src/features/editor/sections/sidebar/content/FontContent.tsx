@@ -56,7 +56,7 @@ const FontRow = ({
   }, [font.family, font.source, isFontReady]);
 
   return (
-    <div ref={rowRef} className={`transition ${isSelected ? "bg-primary/10" : ""}`}>
+    <div ref={rowRef} className={`transition ${isSelected ? "bg-primary-100" : ""}`}>
       <div className="flex items-start gap-2 px-3 py-3 hover:bg-black-20 rounded-lg">
         <button
           type="button"
@@ -102,7 +102,7 @@ const FontRow = ({
                   onMouseDown={(e) => e.preventDefault()}
                   className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-2 text-14-regular transition ${
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary-100 text-primary"
                       : "text-black-70 hover:bg-black-10"
                   }`}
                 >

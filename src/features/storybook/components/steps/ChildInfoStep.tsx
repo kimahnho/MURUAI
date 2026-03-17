@@ -179,7 +179,7 @@ const ChildInfoStep = () => {
                       onClick={() => { handleSelectStudent(student); }}
                       className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition ${
                         isSelected
-                          ? "border-primary bg-primary/5"
+                          ? "border-primary bg-primary-50"
                           : "border-black-20 hover:bg-black-5"
                       }`}
                     >
@@ -272,7 +272,7 @@ const ChildInfoStep = () => {
                   }}
                   className={`flex-1 rounded-lg border py-2 text-14-medium transition ${
                     gender === g
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary-100 text-primary"
                       : "border-black-25 text-black-60 hover:bg-black-10"
                   }`}
                 >

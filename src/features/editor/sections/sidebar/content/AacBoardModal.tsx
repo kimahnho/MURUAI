@@ -107,7 +107,7 @@ const AacBoardModal = ({
                   }}
                   className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
                     orientation === value
-                      ? "border-primary bg-primary/5 text-primary"
+                      ? "border-primary bg-primary-50 text-primary"
                       : "border-black-25 text-black-70 hover:border-black-40"
                   }`}
                 >
@@ -138,7 +138,7 @@ const AacBoardModal = ({
                   }}
                   className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                     labelPosition === option.value
-                      ? "border-primary bg-primary/5 text-primary"
+                      ? "border-primary bg-primary-50 text-primary"
                       : "border-black-25 text-black-70 hover:border-black-40"
                   }`}
                 >
@@ -163,7 +163,7 @@ const AacBoardModal = ({
             type="button"
             onClick={onApply}
             // 미리보기와 동일한 생성 설정으로 보드 요소를 캔버스에 추가한다.
-            className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary/90"
+            className="w-full rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary-700"
           >
             캔버스에 추가
           </button>

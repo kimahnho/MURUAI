@@ -81,7 +81,7 @@ const ElementContent = () => {
                 key={shape.id}
                 // 도형 선택 이벤트는 type만 전달하고, 기본 크기/위치는 스토어 생성 규칙으로 일관 처리한다.
                 onClick={() => { onSelectShape(shape.type); }}
-                className="flex flex-col items-center justify-center gap-2 px-2 py-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+                className="flex flex-col items-center justify-center gap-2 px-2 py-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group"
               >
                 <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
                 <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
@@ -100,7 +100,7 @@ const ElementContent = () => {
         <div className="relative">
           <button
             onClick={() => { setShowTablePopup((prev) => !prev); }}
-            className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group w-full"
+            className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group w-full"
           >
             <Table2 className="icon-m text-black-70 group-hover:text-primary transition-colors" />
             <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
@@ -183,7 +183,7 @@ const ElementContent = () => {
                 <button
                   type="button"
                   onClick={handleTableConfirm}
-                  className="flex-1 rounded bg-primary py-2 text-14-regular text-white-100 hover:bg-primary/90"
+                  className="flex-1 rounded bg-primary py-2 text-14-regular text-white-100 hover:bg-primary-700"
                 >
                   추가
                 </button>

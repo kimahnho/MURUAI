@@ -122,7 +122,7 @@ const SpellCheckReviewPanel = ({
           <button
             type="button"
             onClick={selectAll}
-            className="text-primary hover:text-primary/80"
+            className="text-primary hover:text-primary-700"
           >
             전체 선택
           </button>
@@ -176,7 +176,7 @@ const SpellCheckReviewPanel = ({
           type="button"
           onClick={handleApply}
           disabled={checkedCount === 0}
-          className="flex-1 rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-lg bg-primary py-3 text-14-semibold text-white-100 transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           반영하기
         </button>

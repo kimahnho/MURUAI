@@ -34,7 +34,7 @@ const ProposalStep = () => {
               onClick={() => { selectProposal(proposal.id); }}
               className={`relative flex flex-col gap-1 rounded-lg border p-3 text-left transition ${
                 isSelected
-                  ? "border-primary bg-primary/5"
+                  ? "border-primary bg-primary-50"
                   : "border-black-25 hover:bg-black-5"
               }`}
             >

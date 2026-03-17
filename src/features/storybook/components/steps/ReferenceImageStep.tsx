@@ -85,7 +85,7 @@ const ReferenceImageStep = () => {
           <button
             type="button"
             onClick={handleRegenerate}
-            className="flex items-center gap-1.5 rounded-lg border border-primary px-4 py-2 text-13-semibold text-primary transition hover:bg-primary/5"
+            className="flex items-center gap-1.5 rounded-lg border border-primary px-4 py-2 text-13-semibold text-primary transition hover:bg-primary-50"
           >
             <RefreshCw className="h-4 w-4" />
             다시 생성

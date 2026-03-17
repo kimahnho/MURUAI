@@ -82,7 +82,7 @@ const AiTemplateContent = () => {
           <SectionHeader icon={Sparkles} title="AI 스토리북" />
           <TemplateCard
             icon={BookOpen}
-            iconBgColor="#8B5CF6"
+            iconBgColor="#8b5cf6"
             borderColor="rgba(139, 92, 246, 0.2)"
             bgColor="rgba(139, 92, 246, 0.05)"
             hoverBgColor="rgba(139, 92, 246, 0.08)"

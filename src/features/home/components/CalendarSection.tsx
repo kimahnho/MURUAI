@@ -25,7 +25,7 @@ const CalendarSection = () => {
     <div className="flex flex-col w-full p-10 gap-10">
       <div className="flex items-center justify-between">
         <div className="flex gap-4 items-center">
-          <div className="flex p-3 items-center justify-center bg-[#5500ff]/10 rounded-xl">
+          <div className="flex p-3 items-center justify-center bg-primary-100 rounded-xl">
             <Calendar className="icons-m text-primary" />
           </div>
           <div className="flex flex-col justify-center">
@@ -70,7 +70,7 @@ const CalendarSection = () => {
           <button
             type="button"
             onClick={handleAddScheduleClick}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white-100 text-title-14-semibold shadow-md transition hover:bg-primary/90 hover:shadow-lg"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white-100 text-title-14-semibold shadow-md transition hover:bg-primary-700 hover:shadow-lg"
           >
             <Plus className="h-5 w-5" />
             일정 등록

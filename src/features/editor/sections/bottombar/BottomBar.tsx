@@ -194,7 +194,7 @@ const PageThumbnail = ({
             isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
           } ${
             isSelected
-              ? "border-primary bg-primary/5"
+              ? "border-primary bg-primary-50"
               : "border-black-25 bg-white hover:border-black-40"
           }`}
         >
@@ -307,7 +307,7 @@ const PageInsertDivider = ({ isVisible, onAdd, onDragOver, onDrop }: PageInsertD
           {!isDragOver && (
             <button
               onClick={onAdd}
-              className="flex items-center justify-center w-6 h-6 rounded-full bg-primary opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-primary/90 cursor-pointer"
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-primary opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-primary-700 cursor-pointer"
             >
               <Plus className="w-4 h-4 text-white" />
             </button>
@@ -335,7 +335,7 @@ const AddPageButton = ({ onAdd }: AddPageButtonProps) => (
   >
     <button
       onClick={onAdd}
-      className="flex box-border flex-col items-center justify-center w-16 h-22.5 rounded-lg border-2 border-dashed border-black-30 hover:border-primary hover:bg-primary/5 transition cursor-pointer"
+      className="flex box-border flex-col items-center justify-center w-16 h-22.5 rounded-lg border-2 border-dashed border-black-30 hover:border-primary hover:bg-primary-50 transition cursor-pointer"
     >
       <Plus className="w-5 h-5 text-black-60" />
     </button>

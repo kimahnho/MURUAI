@@ -224,7 +224,7 @@ const ShapePropsContent = () => {
           <div className="flex items-center gap-2">
             {borderStyleOptions.map((styleOption) => {
               const isActive = activeStyle === styleOption;
-              const cls = `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${isActive ? "border-primary bg-primary/10 text-primary" : "border-black-30 text-black-70 hover:border-black-50"}`;
+              const cls = `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${isActive ? "border-primary bg-primary-100 text-primary" : "border-black-30 text-black-70 hover:border-black-50"}`;
               if (styleOption === "none") {
                 return <button key={styleOption} type="button" onClick={() => handleBorderStyleSelect(styleOption)} className={cls}><Ban className="h-4 w-4" /></button>;
               }

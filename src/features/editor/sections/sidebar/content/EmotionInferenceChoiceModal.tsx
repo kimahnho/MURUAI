@@ -75,9 +75,9 @@ const EmotionInferenceChoiceModal = ({
             <button
               type="button"
               onClick={onSelectTemplate}
-              className="flex items-center gap-4 w-full rounded-xl border border-black-15 bg-black-5 px-4 py-4 text-left transition hover:border-primary/40 hover:bg-primary/5"
+              className="flex items-center gap-4 w-full rounded-xl border border-black-15 bg-black-5 px-4 py-4 text-left transition hover:border-primary-300 hover:bg-primary-50"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-100">
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
@@ -94,10 +94,10 @@ const EmotionInferenceChoiceModal = ({
             <button
               type="button"
               onClick={() => setShowTopicInput(true)}
-              className="flex items-center gap-4 w-full rounded-xl border border-black-15 bg-black-5 px-4 py-4 text-left transition hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/5"
+              className="flex items-center gap-4 w-full rounded-xl border border-black-15 bg-black-5 px-4 py-4 text-left transition hover:border-primary-300 hover:bg-primary-50"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
-                <Brain className="h-5 w-5 text-[#7C3AED]" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-100">
+                <Brain className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="text-14-semibold text-black-90 truncate">
@@ -127,7 +127,7 @@ const EmotionInferenceChoiceModal = ({
                   if (e.key === "Enter" && topic.trim()) handleAiConfirm();
                 }}
                 placeholder="주제를 입력하세요 (예: 생일 파티, 병원 방문 등)"
-                className="w-full rounded-xl border border-black-20 px-4 py-3 text-14-regular text-black-90 placeholder:text-black-30 outline-none transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/10"
+                className="w-full rounded-xl border border-black-20 px-4 py-3 text-14-regular text-black-90 placeholder:text-black-30 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-100"
                 autoFocus
               />
             </div>
@@ -155,8 +155,8 @@ const EmotionInferenceChoiceModal = ({
                   !topic.trim()
                     ? "bg-black-20 cursor-not-allowed"
                     : isGenerating
-                      ? "bg-[#7C3AED]/70 cursor-not-allowed"
-                      : "bg-[#7C3AED] hover:bg-[#6D28D9]"
+                      ? "bg-primary-400 cursor-not-allowed"
+                      : "bg-primary hover:bg-primary-700"
                 }`}
               >
                 {isGenerating && (

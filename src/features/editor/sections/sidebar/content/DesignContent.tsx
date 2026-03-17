@@ -28,7 +28,7 @@ const StyleButton = ({
     onClick={onClick}
     className={`flex-1 flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg border transition-all ${
       isActive
-        ? "border-primary bg-primary/5 text-primary"
+        ? "border-primary bg-primary-50 text-primary"
         : "border-black-25 text-black-70 hover:border-black-40 hover:bg-black-5"
     }`}
   >
@@ -75,7 +75,7 @@ const GeneratedImageGrid = ({
             onClick={() => {
               onImageClick(image.url);
             }}
-            className="flex items-center justify-center p-2 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+            className="flex items-center justify-center p-2 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer"
           >
             <img
               src={image.url}
@@ -174,7 +174,7 @@ const DesignContentView = ({
         disabled={!canGenerate || true /* TODO: Google AI 복원 시 || true 제거 */}
         className={`flex items-center justify-center gap-1.5 w-full py-3 rounded-lg text-14-semibold transition-all ${
           canGenerate && false /* TODO: Google AI 복원 시 && false 제거 */
-            ? "bg-primary text-white-100 hover:bg-primary/90"
+            ? "bg-primary text-white-100 hover:bg-primary-700"
             : "bg-black-20 text-black-50 cursor-not-allowed"
         }`}
       >

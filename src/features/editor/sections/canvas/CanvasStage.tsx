@@ -176,7 +176,7 @@ const AiTip = ({ padding }: { padding: number }) => {
       <div className="relative rounded-2xl bg-primary px-4 py-3 text-14-medium text-white-100 shadow-lg">
         Ai로 맞춤형 이미지를 만들어보세요.
         <span
-          className="absolute right-4 -bottom-2.5 h-0 w-0 border-l-10 border-l-transparent border-t-10 border-t-[#5500ff]"
+          className="absolute right-4 -bottom-2.5 h-0 w-0 border-l-10 border-l-transparent border-t-10 border-t-[#7C3AED]"
           aria-hidden
         />
       </div>

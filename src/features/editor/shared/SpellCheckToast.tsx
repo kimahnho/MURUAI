@@ -50,7 +50,7 @@ const SpellCheckToast = () => {
       }`}
       style={{
         animation: "spellcheck-bounce 2s ease-in-out infinite",
-        backgroundColor: "#5500ff",
+        backgroundColor: "#7C3AED",
       }}
     >
       <div
