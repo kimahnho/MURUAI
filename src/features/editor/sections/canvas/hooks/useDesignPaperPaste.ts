@@ -6,6 +6,7 @@ import {
   type MutableRefObject,
   type RefObject,
 } from "react";
+import { mp } from "@/shared/utils/mixpanel";
 import type { CanvasElement, TextElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
 import {
@@ -107,6 +108,7 @@ export const useDesignPaperPaste = ({
       const newElement: TextElement = { ...newTextElement, id: newId };
 
       onElementsChange([...elements, newElement]);
+      mp.track("요소 붙여넣기", { element_count: 1 });
       selectedIdsRef.current = [newId];
       onSelectedIdsChange?.([newId]);
       onEditingTextIdChange?.(null);

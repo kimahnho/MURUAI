@@ -36,7 +36,7 @@ const buildVerticalElements = (
   const vImageW = 780;
   const vImageH = 500;
   const vImageX = Math.round((A4_V_W - vImageW) / 2);
-  const vImageY = mmToPx(5);
+  const vImageY = mmToPx(30);
   if (page.imageUrl) {
     elements.push({
       id: crypto.randomUUID(),

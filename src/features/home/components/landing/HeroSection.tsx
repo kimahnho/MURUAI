@@ -2,6 +2,7 @@
  * 랜딩 히어로 섹션 — 서비스 헤드라인 + CTA + 에디터 미리보기.
  */
 import { useModalStore } from "@/shared/store/useModalStore";
+import { mp } from "@/shared/utils/mixpanel";
 import { images } from "@/shared/assets";
 
 interface HeroSectionProps {
@@ -32,7 +33,7 @@ const HeroSection = ({ featureSectionRef }: HeroSectionProps) => {
 
         <div className="flex flex-col items-center gap-3 mt-2 w-full md:flex-row md:justify-center md:gap-4 md:mt-4">
           <button
-            onClick={openAuthModal}
+            onClick={() => { mp.track("랜딩 CTA 클릭"); openAuthModal(); }}
             className="flex w-full h-14 items-center justify-center rounded-xl cursor-pointer hover:opacity-90 transition md:w-50 shadow-md"
             style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
           >

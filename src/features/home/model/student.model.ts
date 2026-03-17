@@ -1,6 +1,7 @@
 /**
  * 학생 도메인 데이터 구조와 입력 계약을 정의하는 모델 모듈.
  */
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/api/supabase";
 
 export interface Student {
@@ -55,6 +56,7 @@ export const studentModel = {
 
       return { data, error: null };
     } catch (err) {
+      Sentry.captureException(err);
       return {
         data: null,
         error: err instanceof Error ? err : new Error("아동 추가에 실패했습니다.")
@@ -81,6 +83,7 @@ export const studentModel = {
 
       return { data, error: null };
     } catch (err) {
+      Sentry.captureException(err);
       return {
         data: null,
         error: err instanceof Error ? err : new Error("아동 목록을 불러오는데 실패했습니다.")
@@ -133,6 +136,7 @@ export const studentModel = {
       return { data: updated, error: null };
     } catch (err) {
       console.error("Update 실패:", err);
+      Sentry.captureException(err);
       return {
         data: null,
         error:
@@ -152,6 +156,7 @@ export const studentModel = {
 
       return { error: null };
     } catch (err) {
+      Sentry.captureException(err);
       return {
         error: err instanceof Error ? err : new Error("아동 삭제에 실패했습니다.")
       };

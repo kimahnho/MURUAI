@@ -2,6 +2,7 @@
  * 랜딩 하단 CTA 배너 — 가입 유도.
  */
 import { useModalStore } from "@/shared/store/useModalStore";
+import { mp } from "@/shared/utils/mixpanel";
 
 const CtaSection = () => {
   const openAuthModal = useModalStore((s) => s.openAuthModal);
@@ -16,7 +17,7 @@ const CtaSection = () => {
           가입 후 모든 템플릿과 AI 기능을 바로 사용할 수 있어요.
         </p>
         <button
-          onClick={openAuthModal}
+          onClick={() => { mp.track("랜딩 하단 CTA 클릭"); openAuthModal(); }}
           className="flex h-12 px-6 items-center justify-center rounded-xl cursor-pointer hover:opacity-90 transition md:h-14 md:px-8 shadow-md"
           style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
         >

@@ -1,6 +1,7 @@
 /**
  * 에디터 전역 스토어 구독 훅들을 조합해 구독 생명주기를 통합 관리하는 훅.
  */
+import { useEffect } from "react";
 import type { Dispatch, SetStateAction, MutableRefObject } from "react";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
@@ -149,6 +150,26 @@ export const useEditorSubscriptions = ({
   addStoryBoardPage,
 }: EditorSubscriptionsParams) => {
   const { showEmotionInferenceToast } = useTemplateNotifications();
+
+  // 대시보드에서 전달된 AI intent 소비 (마운트 시 1회)
+  // 템플릿 intent는 문서 생성 시 canvas_data에 미리 포함되므로 여기서는 AI만 처리한다.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("pendingEditorIntent");
+    if (!raw) return;
+
+    let intent: { type: string; feature?: string };
+    try {
+      intent = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem("pendingEditorIntent");
+      return;
+    }
+
+    if (intent.type === "ai") {
+      setSideBarMenu("ai-template");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 이미지 채우기 요청은 선택 요소 교체/신규 삽입까지 포함하므로
   // 다른 구독보다 먼저 연결해 최신 선택 상태를 기준으로 동작하게 한다.

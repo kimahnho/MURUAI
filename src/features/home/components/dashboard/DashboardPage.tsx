@@ -48,8 +48,8 @@ const DashboardPage = () => {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
           {/* 왼쪽: 만들기 영역 */}
           <div className="flex flex-col gap-8 lg:flex-1 min-w-0">
-            <QuickStartSection />
             <AiFeatureSection />
+            <QuickStartSection />
           </div>
 
           {/* 오른쪽: 내 자료 영역 */}

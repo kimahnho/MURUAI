@@ -7,6 +7,7 @@ import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import Button from "@/shared/ui/Button";
+import { mp } from "@/shared/utils/mixpanel";
 import { studentModel } from "../model/student.model";
 import { useStudentStore } from "../store/useStudentStore";
 
@@ -73,6 +74,7 @@ const EditUserModalContent = ({ studentId, onClose }: EditUserModalContentProps)
       return;
     }
 
+    mp.track("아동 수정");
     await refreshStudents();
     handleReset();
     onClose();
@@ -91,6 +93,7 @@ const EditUserModalContent = ({ studentId, onClose }: EditUserModalContentProps)
       return;
     }
 
+    mp.track("아동 삭제");
     await refreshStudents();
     setIsDeleteOpen(false);
     onClose();

@@ -7,6 +7,7 @@ import type { CanvasElement } from "../model/canvasTypes";
 import { useImageUploadToCloudinary } from "../sections/sidebar/hooks/useImageUploadToCloudinary";
 import { useToastStore } from "../store/toastStore";
 import { useUploadListStore } from "../store/useUploadListStore";
+import { mp } from "@/shared/utils/mixpanel";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
 
@@ -96,6 +97,7 @@ export const useCanvasFileDrop = (
     }
 
     triggerRefetch();
+    mp.track("이미지 파일 드롭");
 
     // 요소가 아직 존재하면 fill을 Cloudinary URL로 교체
     const current = getElements();

@@ -4,6 +4,7 @@
  */
 // import { GoogleGenAI } from "@google/genai";
 import type { GoogleGenAI } from "@google/genai";
+import * as Sentry from "@sentry/react";
 
 import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
@@ -233,6 +234,7 @@ export const generateStoryImages = async (
     englishScenes = await translateScenesToEnglish(ai, koreanScenes);
   } catch (error) {
     console.error("Scene translation failed, using Korean descriptions:", error);
+    Sentry.captureException(error);
     englishScenes = koreanScenes;
   }
 

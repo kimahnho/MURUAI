@@ -1,5 +1,5 @@
 /**
- * 2단계: 주제 입력 — 자유 입력(2~200자) 또는 6개 프리셋 중 선택.
+ * 2단계: 주제 입력 — 자유 입력(2~500자) 또는 6개 프리셋 중 선택.
  */
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 import {
@@ -17,13 +17,14 @@ const TopicStep = () => {
       <div className="relative">
         <textarea
           value={topic}
-          onChange={(e) => { setTopic(e.target.value); }}
+          onChange={(e) => { setTopic(e.target.value.slice(0, TOPIC_MAX_LENGTH)); }}
           placeholder="예: 처음 유치원에 가는 날, 친구와 사이좋게 지내기"
-          maxLength={TOPIC_MAX_LENGTH}
           rows={3}
           className="w-full resize-none rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
         />
-        <span className="absolute bottom-2 right-3 text-12-medium text-black-40">
+        <span className={`absolute bottom-2 right-3 text-12-medium ${
+          topic.length >= TOPIC_MAX_LENGTH ? "text-error-500" : "text-black-40"
+        }`}>
           {topic.length}/{TOPIC_MAX_LENGTH}
         </span>
       </div>

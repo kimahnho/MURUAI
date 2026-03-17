@@ -49,6 +49,7 @@ const ShapePropsContent = () => {
   const data = panelData as ShapePanelData;
   const { element, rect, radius, minRadius, maxRadius, colorValue, borderEnabled, borderColor, borderWidth, borderStyle } = data;
   const isImageFill = element.fill.startsWith("url(") || element.fill.startsWith("data:");
+  const isMosaic = element.type === "mosaic" || element.type === "circleMosaic";
 
   const clampRadius = (value: number) => Math.min(maxRadius, Math.max(minRadius, value));
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
@@ -192,21 +193,23 @@ const ShapePropsContent = () => {
         </div>
       )}
 
-      {/* 박스 색상 */}
-      <div className="flex flex-col gap-2">
-        <div className="text-14-semibold text-black-90">박스 색상</div>
-        <div className="flex items-center gap-2">
-          <ColorPickerPopover value={colorValue} onChange={(color) => updateElement(element.id, { fill: color })} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} allowTransparent />
-          <span className="text-14-regular text-black-70 uppercase">{colorValue === "transparent" ? "투명" : colorValue}</span>
-          <button type="button" onClick={() => { void handleOpenEyeDropper(); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary" aria-label="색상 추출">
-            <Pipette className="h-4 w-4" />
-          </button>
-          <input ref={boxColorPickerRef} type="color" value={colorValue} onChange={(e) => { const c = e.target.value.toUpperCase(); updateElement(element.id, { fill: c }); addRecentColor(c); }} className="sr-only" tabIndex={-1} aria-hidden />
+      {/* 박스 색상 — 모자이크에서는 숨김 */}
+      {!isMosaic && (
+        <div className="flex flex-col gap-2">
+          <div className="text-14-semibold text-black-90">박스 색상</div>
+          <div className="flex items-center gap-2">
+            <ColorPickerPopover value={colorValue} onChange={(color) => updateElement(element.id, { fill: color })} onChangeAll={changeAllMatchingColors ?? undefined} hasMatchingColors={hasMatchingColors ?? undefined} allowTransparent />
+            <span className="text-14-regular text-black-70 uppercase">{colorValue === "transparent" ? "투명" : colorValue}</span>
+            <button type="button" onClick={() => { void handleOpenEyeDropper(); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary" aria-label="색상 추출">
+              <Pipette className="h-4 w-4" />
+            </button>
+            <input ref={boxColorPickerRef} type="color" value={colorValue} onChange={(e) => { const c = e.target.value.toUpperCase(); updateElement(element.id, { fill: c }); addRecentColor(c); }} className="sr-only" tabIndex={-1} aria-hidden />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 이미지 — 이미 이미지가 채워진 도형이거나 다중 선택에서는 숨긴다 */}
-      {!isImageFill && !data.isMultiShape && (
+      {/* 이미지 — 모자이크, 이미지 채워진 도형, 다중 선택에서는 숨김 */}
+      {!isMosaic && !isImageFill && !data.isMultiShape && (
         <div className="flex flex-col gap-2">
           <div className="text-14-semibold text-black-90">이미지</div>
           <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed" aria-disabled={isUploading}>

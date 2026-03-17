@@ -111,7 +111,7 @@ export const TOPIC_PRESETS = [
 ] as const;
 
 export const TOPIC_MIN_LENGTH = 2;
-export const TOPIC_MAX_LENGTH = 200;
+export const TOPIC_MAX_LENGTH = 500;
 
 export const LAYOUT_OPTIONS: LayoutOption[] = [
   {

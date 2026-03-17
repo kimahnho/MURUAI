@@ -5,6 +5,8 @@ import { Plus, FileText, BookOpen, Search, CalendarDays } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
+import { buildTemplatePages } from "@/features/editor/utils/pageFactory";
+import type { TemplateId } from "@/features/editor/templates/templateRegistry";
 import { mp } from "@/shared/utils/mixpanel";
 
 const TEMPLATE_SHORTCUTS: {
@@ -45,12 +47,13 @@ const QuickStartSection = () => {
 
   const handleBlankDoc = async () => {
     mp.track("대시보드 빈 문서 생성");
-    await createAndOpenDocument({ replace: true });
+    await createAndOpenDocument({ replace: false });
   };
 
   const handleTemplateClick = async (templateId: string) => {
     mp.track("대시보드 템플릿 바로가기 클릭", { template_id: templateId });
-    await createAndOpenDocument({ replace: true });
+    const pages = buildTemplatePages(templateId as TemplateId);
+    await createAndOpenDocument({ replace: false, pages });
   };
 
   return (

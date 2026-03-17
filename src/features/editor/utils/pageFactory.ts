@@ -176,6 +176,44 @@ export const applyTemplateToCurrentPage = ({
   return { id: currentPageId, orientation: nextOrientation };
 };
 
+/**
+ * 대시보드 빠른 시작용: 빈 1페이지 + 템플릿 페이지를 미리 생성하여 반환한다.
+ * 문서 저장 시 canvas_data에 포함되므로 DB 로드 후에도 유지된다.
+ */
+export const buildTemplatePages = (
+  templateId: TemplateId,
+  fallbackOrientation: "horizontal" | "vertical" = "vertical",
+): Page[] => {
+  const blank = buildInitialPages(null, fallbackOrientation);
+  const templateDef = TEMPLATE_REGISTRY[templateId];
+  const templates =
+    "pages" in templateDef && templateDef.pages?.length
+      ? templateDef.pages
+      : [templateDef.template];
+  const orientation =
+    templateDef.orientation === "vertical-only"
+      ? "vertical"
+      : templateDef.orientation === "horizontal-only"
+        ? "horizontal"
+        : fallbackOrientation;
+  const bg = getTemplateBackground(templateId);
+
+  const templatePages: Page[] = templates.map((t) => ({
+    id: crypto.randomUUID(),
+    pageNumber: 0,
+    templateId,
+    orientation,
+    background: bg,
+    elements: withLogoCanvasElements(instantiateTemplate(t)),
+    rev: 0,
+  }));
+
+  return [...blank, ...templatePages].map((p, i) => ({
+    ...p,
+    pageNumber: i + 1,
+  }));
+};
+
 export const addTemplatePage = ({
   templateId,
   fallbackOrientation,

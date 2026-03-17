@@ -2,6 +2,8 @@
  * 선택 요소 복사/붙여넣기 단축 동작을 캔버스 상태와 연결하는 훅.
  */
 import { useCallback, type MutableRefObject } from "react";
+import * as Sentry from "@sentry/react";
+import { mp } from "@/shared/utils/mixpanel";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
 import { DEFAULT_TEXT_LINE_HEIGHT } from "../../../utils/designPaperUtils";
@@ -34,8 +36,9 @@ export const useDesignPaperClipboard = ({
           JSON.stringify({ pageId })
         );
         sessionStorage.removeItem("copiedPageId");
-      } catch {
+      } catch (error) {
         // 저장소 접근 실패는 복사만 건너뛰고 편집 동작은 계속 유지한다.
+        Sentry.captureException(error);
       }
     },
     [pageId]
@@ -46,7 +49,8 @@ export const useDesignPaperClipboard = ({
       const raw = sessionStorage.getItem("copiedElements");
       if (!raw) return null;
       return JSON.parse(raw) as CanvasElement[];
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       return null;
     }
   }, []);
@@ -56,7 +60,8 @@ export const useDesignPaperClipboard = ({
       const raw = sessionStorage.getItem("copiedElementsMeta");
       if (!raw) return null;
       return JSON.parse(raw) as { pageId?: string };
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       return null;
     }
   }, []);
@@ -66,6 +71,7 @@ export const useDesignPaperClipboard = ({
     const selected = elements.filter((element) => ids.includes(element.id));
     if (selected.length === 0) return;
     setClipboard(selected);
+    mp.track("요소 복사", { element_count: selected.length });
     clearContextMenu();
   }, [elements, selectedIdsRef, setClipboard, clearContextMenu]);
 
@@ -182,6 +188,7 @@ export const useDesignPaperClipboard = ({
       return { ...element, id, groupId: nextGroupId };
     });
     onElementsChange([...elements, ...nextElements]);
+    mp.track("요소 붙여넣기", { element_count: nextElements.length });
     const nextSelectedIds = nextElements.map((element) => element.id);
     selectedIdsRef.current = nextSelectedIds;
     onSelectedIdsChange?.(nextSelectedIds);
