@@ -109,8 +109,7 @@ const StorybookWizard = () => {
           {/* 스텝 라벨 + 설명 */}
           <div className="flex items-center gap-2">
             <span className="shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-11-semibold text-white">
-              {/* {currentStep === 45 ? 5 : currentStep} */}
-              {currentStep}
+              {currentStep === 45 ? 5 : currentStep}
             </span>
             <span className="text-14-semibold text-black-80">
               {STEP_LABELS[currentStep]}
