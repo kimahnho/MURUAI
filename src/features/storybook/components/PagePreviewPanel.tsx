@@ -71,7 +71,7 @@ const PagePreviewPanel = () => {
               <div className="flex flex-1 flex-col justify-center px-5 py-4">
                 <p
                   className="text-14-regular text-black-80 leading-relaxed"
-                  style={{ fontFamily }}
+                  style={{ fontFamily, wordBreak: "keep-all" }}
                 >
                   {page?.textContent || "텍스트가 여기에 표시됩니다."}
                 </p>

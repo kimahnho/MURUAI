@@ -6,6 +6,7 @@ type MeasureOptions = {
   letterSpacing?: number;
   fontFamily?: string;
   maxWidth?: number;
+  wordBreak?: "normal" | "break-all" | "keep-all";
 };
 
 export const measureTextBoxSize = (
@@ -56,6 +57,9 @@ export const measureTextBoxSize = (
     options.fontFamily ?? getComputedStyle(document.body).fontFamily;
   if (computedFamily) {
     span.style.fontFamily = computedFamily;
+  }
+  if (options.wordBreak) {
+    span.style.wordBreak = options.wordBreak;
   }
   document.body.appendChild(span);
 

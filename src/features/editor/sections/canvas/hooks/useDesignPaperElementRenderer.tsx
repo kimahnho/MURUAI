@@ -207,6 +207,7 @@ export const useDesignPaperElementRenderer = ({
               .join(" ") || "none",
           lineHeight,
           letterSpacing,
+          wordBreak: element.style.wordBreak,
         }}
         textAlign={element.style.alignX}
         textAlignY={element.style.alignY}

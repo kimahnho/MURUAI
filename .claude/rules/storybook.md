@@ -166,6 +166,15 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 - 모든 페이지 생성 시 `withLogoCanvasElements()` 필수 래핑
 - 캔버스 삽입: `useTemplateStore.requestInsertPages(pages)`
 
+### 텍스트 배치 규칙
+
+- **높이**: `measureTextBoxSize()`로 실제 텍스트 높이를 측정하여 `h`에 설정. 가용 공간 전체를 `h`로 설정 금지.
+- **세로 위치**: 가용 공간의 세로 중앙에 배치 (`y = startY + (availableH - measuredH) / 2`)
+- **`lockHeight: true` 사용 금지** — 텍스트 박스는 자동 리사이즈가 동작해야 함
+- **`alignY: "top"`** — 박스가 텍스트 크기에 맞춰져 있으므로 세로 정렬은 top
+- **`wordBreak: "keep-all"` 필수** — 한국어 단어가 글자 단위로 잘리지 않도록 어절 단위 줄바꿈
+- **미리보기(`PagePreviewPanel`)에도 `wordBreak: "keep-all"` 적용** — 에디터 결과물과 동일하게 표시
+
 ## 현재 상태
 
 - ✅ Gemini API 연동 완료 (기획서 생성 + 이미지 생성)
@@ -188,6 +197,8 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 6. **Phase 1 실패 시 throw**: base64 수집 중 실패하면 Cloudinary 업로드를 시도하지 않음 (비용 방지)
 7. **이미지 aspectRatio**: 레이아웃별 다름 — 가로형 `"3:4"`, 세로형 `"16:9"` (`generateStoryImages`에 `layout` 전달 필수)
 8. **한→영 번역 실패**: fallback으로 한국어 사용 (throw 아님)
+9. **텍스트 박스 높이**: 가용 공간 전체로 설정 금지 — `measureTextBoxSize()`로 실제 크기 측정 후 설정. `lockHeight: true` 스토리북에서 사용 금지
+10. **`wordBreak: "keep-all"`**: 스토리북 텍스트 요소 + 미리보기 양쪽 모두 적용 필수
 
 ## 관련 파일
 
