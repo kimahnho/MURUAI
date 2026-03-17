@@ -19,7 +19,7 @@ const GroupCard = ({ group, onClick }: GroupCardProps) => {
 
   return (
     <div
-      className={`flex flex-col h-85 rounded-xl border border-black-30 p-3 gap-2 ${
+      className={`flex flex-col h-60 md:h-85 rounded-xl border border-black-30 p-3 gap-2 overflow-hidden ${
         onClick ? "cursor-pointer transition hover:border-primary" : ""
       }`}
       onClick={onClick}

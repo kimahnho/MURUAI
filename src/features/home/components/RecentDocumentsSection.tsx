@@ -106,17 +106,15 @@ const RecentDocumentsSection = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) return null;
-
   const pageWidthPx = 210 * 3.7795;
   const pageHeightPx = 297 * 3.7795;
   const previewScale = 0.18;
 
   return (
-    <section className="flex flex-col w-full px-10 gap-6">
+    <section className="flex flex-col w-full px-4 md:px-10 gap-6">
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between">
-        <span className="text-title-22-semibold text-black-90">
+        <span className="text-title-18-semibold md:text-title-22-semibold text-black-90">
           최근 작업한 학습자료
         </span>
         <button
@@ -131,11 +129,11 @@ const RecentDocumentsSection = () => {
 
       {/* 카드 그리드 */}
       {isLoading ? (
-        <div className="grid w-full grid-cols-5 gap-5">
+        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm"
+              className={`${i >= 2 ? "hidden md:flex" : "flex"} flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm`}
             >
               <div className="aspect-3/4 w-full animate-pulse rounded-xl bg-black-10" />
               <div className="flex flex-col gap-1">
@@ -146,11 +144,11 @@ const RecentDocumentsSection = () => {
           ))}
         </div>
       ) : docs.length === 0 ? (
-        <div className="grid w-full grid-cols-5 gap-5">
+        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-col gap-3 rounded-2xl border border-dashed border-black-20 bg-black-5 p-3"
+              className={`${i >= 2 ? "hidden md:flex" : "flex"} flex-col gap-3 rounded-2xl border border-dashed border-black-20 bg-black-5 p-3`}
             >
               <div className="aspect-3/4 w-full rounded-xl bg-black-10" />
               <div className="flex flex-col gap-1">
@@ -161,8 +159,8 @@ const RecentDocumentsSection = () => {
           ))}
         </div>
       ) : (
-        <div className="grid w-full grid-cols-5 gap-5">
-          {docs.map((doc) => {
+        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 md:gap-5">
+          {docs.map((doc, docIndex) => {
             const previewPage = doc.canvasData?.pages?.[0];
             const rawOrientation = previewPage?.orientation;
             const previewOrientation =
@@ -192,7 +190,7 @@ const RecentDocumentsSection = () => {
                     navigate(`/${doc.id}/edit`);
                   }
                 }}
-                className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm transition hover:border-primary hover:shadow-md"
+                className={`${docIndex >= 2 ? "hidden md:flex" : "flex"} cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 shadow-sm transition hover:border-primary hover:shadow-md`}
               >
                 {/* 미리보기 */}
                 <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
