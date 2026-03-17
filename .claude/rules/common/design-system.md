@@ -108,6 +108,8 @@ import BaseModal from "@/shared/ui/BaseModal";
 | `xl` | 768px | 다중 페이지 선택 |
 | `full` | 896px | 위자드 |
 
+- `showCloseButton={false}`: 기본 X 버튼 숨김 + 타이틀 `pr-8` 제거. 커스텀 헤더에서 직접 닫기 버튼을 배치할 때 사용.
+
 ### ConfirmDialog
 
 ```typescript
