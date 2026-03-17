@@ -2,6 +2,8 @@
  * 스토리북 6단계 위자드의 내부 상태를 관리하는 Zustand 스토어.
  */
 import { create } from "zustand";
+import * as Sentry from "@sentry/react";
+import { mp } from "@/shared/utils/mixpanel";
 
 import type {
   ChildInfo,
@@ -22,13 +24,16 @@ import { generateCharacterReference } from "../ai/generateCharacterReference";
 import { generateStorybook } from "../ai/generateStorybook";
 import { buildStoryPages } from "../utils/buildStoryPages";
 import {
+  MONTHLY_AI_TEMPLATE_LIMIT,
+  fetchMonthlyAiTemplateUsage,
+  recordAiTemplateUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
+import {
   updateStudentGender,
   createStudentFromWizard,
 } from "../data/studentService";
 
-// ── 이미지 생성 임시 중단: Step 45(캐릭터 레퍼런스) 스킵 ──
-// const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
-const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 5, 6];
+const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
 const nextStep = (current: WizardStep): WizardStep | null => {
   const idx = STEP_ORDER.indexOf(current);
   return idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
@@ -165,6 +170,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
             : null,
         },
       }));
+      mp.track("AI 스토리북 기획서 선택");
     },
 
     updateProposalPage: (proposalId, pageNumber, text) => {
@@ -209,7 +215,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           isLoading: false,
           currentStep: 3,
         }));
-      } catch {
+      } catch (error) {
+        Sentry.captureException(error);
         set({
           isLoading: false,
           error: "기획서 생성에 실패했어요. 다시 시도해 주세요.",
@@ -231,7 +238,9 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           formData: { ...s.formData, referenceImageBase64: base64 },
           isLoading: false,
         }));
-      } catch {
+        mp.track("AI 스토리북 캐릭터 생성");
+      } catch (error) {
+        Sentry.captureException(error);
         set({
           isLoading: false,
           error: "캐릭터 생성에 실패했어요. 다시 시도해 주세요.",
@@ -242,9 +251,16 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     generateBook: async () => {
       const { formData } = get();
       const proposal = formData.editedProposal;
-      // if (!proposal || !formData.artStyle || !formData.childInfo) return;
-      if (!proposal || !formData.childInfo) return;
-      const artStyle = formData.artStyle ?? "watercolor-fairytale"; // 이미지 생성 임시 중단: 기본값
+      if (!proposal || !formData.artStyle || !formData.childInfo) return;
+      const artStyle = formData.artStyle;
+
+      // 월간 사용량 서버 재확인
+      const currentUsage = await fetchMonthlyAiTemplateUsage();
+      if (currentUsage >= MONTHLY_AI_TEMPLATE_LIMIT) {
+        set({ error: "이번 달 AI 사용량을 모두 사용했어요." });
+        useToastStore.getState().showToast("이번 달 AI 사용량을 모두 사용했어요.");
+        return;
+      }
 
       set({ isLoading: true, error: null, currentStep: 5, imageProgress: null });
       try {
@@ -258,18 +274,22 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           (current, total) => { set({ imageProgress: { current, total } }); },
         );
         set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
+        mp.track("AI 스토리북 생성 완료", { art_style: artStyle, layout: formData.layout });
+
+        // 사용량 기록
+        void recordAiTemplateUsage("storybook");
 
         // 에디터 캔버스에 10페이지 삽입
         const pages = buildStoryPages(book);
         useTemplateStore.getState().requestInsertPages(pages);
         useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!");
-      } catch {
+      } catch (error) {
+        Sentry.captureException(error);
         set({
           isLoading: false,
           imageProgress: null,
           error: "스토리북 생성에 실패했어요. 다시 시도해 주세요.",
-          // currentStep: 45,
-          currentStep: 4,
+          currentStep: 45,
         });
       }
     },

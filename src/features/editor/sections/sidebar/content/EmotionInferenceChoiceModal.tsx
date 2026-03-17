@@ -2,8 +2,12 @@
  * 감정 추론 활동 생성 방식을 선택하는 모달.
  * "기존 템플릿 생성하기" 또는 "AI 스토리라인 생성하기"를 선택할 수 있다.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Brain, FileText, X } from "lucide-react";
+import {
+  MONTHLY_AI_TEMPLATE_LIMIT,
+  fetchMonthlyAiTemplateUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 
 export type EmotionImageStyle = "photo-boy" | "photo-girl";
 
@@ -27,6 +31,13 @@ const EmotionInferenceChoiceModal = ({
 }: EmotionInferenceChoiceModalProps) => {
   const [showTopicInput, setShowTopicInput] = useState(skipChoice);
   const [topic, setTopic] = useState("");
+  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isOpen) void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+  }, [isOpen]);
+
+  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
 
   if (!isOpen) return null;
 
@@ -183,6 +194,11 @@ const EmotionInferenceChoiceModal = ({
                 {isGenerating ? "텍스트 생성 중..." : "텍스트 생성하기"}
               </button>
             </div>
+            {remaining !== null && (
+              <p className="text-center text-12-regular text-black-40 mt-1">
+                1회 차감됩니다 (잔여 {remaining}회)
+              </p>
+            )}
           </div>
         )}
       </div>

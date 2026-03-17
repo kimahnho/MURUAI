@@ -15,7 +15,7 @@ import { STORYBOOK_PAGE_COUNT } from "../model/storybookTypes";
 
 const sanitizeTopic = (topic: string): string =>
   topic
-    .slice(0, 200)
+    .slice(0, 500)
     .replace(/[\n\r"\\]/g, " ")
     .trim();
 

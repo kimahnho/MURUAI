@@ -1,7 +1,7 @@
 /**
  * 디자인 요소(도형/선/아이콘 등) 선택 진입점을 제공하는 패널 컴포넌트.
  */
-import { Camera, Image, PenLine, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Camera, Image, PenLine, Sparkles, Loader2 } from "lucide-react";
 import {
   useAiImageGeneration,
   STYLE_OPTIONS,
@@ -119,14 +119,6 @@ const DesignContentView = ({
   onImageClick,
 }: DesignContentViewProps) => (
   <div className="flex flex-col w-full h-full gap-6">
-    {/* AI 점검 안내 */}
-    <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-2.5">
-      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-      <span className="text-13-regular text-amber-700">
-        AI 이미지 생성 기능을 점검 중이에요.
-      </span>
-    </div>
-
     <div className="flex items-center justify-between text-start">
       <span className="text-14-regular text-black-70">
         AI로 맞춤형 이미지를 만들어보세요.
