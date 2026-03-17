@@ -3,6 +3,7 @@
  */
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "../store/toastStore";
 import { measurePerf } from "../utils/perfLogger";
@@ -107,7 +108,8 @@ export const useDocumentSave = ({ docId, docName }: DocumentSaveParams) => {
         navigate(`/${id}/edit`, { replace: true });
         showToast("저장했습니다.");
       }
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       showToast("저장하지 못했어요.");
     } finally {
       setIsSaving(false);

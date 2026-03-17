@@ -3,6 +3,7 @@
  */
 // import { GoogleGenAI } from "@google/genai";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import * as Sentry from "@sentry/react";
 import { getGenAI } from "@/shared/api/genai";
 import type { TextItem } from "../utils/spellCheckTextExtractor";
 
@@ -91,8 +92,9 @@ const parseResponse = (raw: string, itemsMap: Map<string, TextItem>): SpellCheck
   let parsed: unknown[];
   try {
     parsed = JSON.parse(jsonMatch[0]) as unknown[];
-  } catch {
+  } catch (error) {
     console.error("[checkSpelling] AI 응답 JSON 파싱 실패:", jsonMatch[0]);
+    Sentry.captureException(error);
     return [];
   }
   if (!Array.isArray(parsed)) return [];

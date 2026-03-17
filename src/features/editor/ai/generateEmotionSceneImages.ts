@@ -6,6 +6,7 @@
 // import { GoogleGenAI } from "@google/genai";
 import type { GoogleGenAI } from "@google/genai";
 
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
@@ -204,7 +205,8 @@ Answer ONLY "YES" or "NO".`;
     const text =
       response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
     return text.trim().toUpperCase().startsWith("YES");
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error);
     // 판단 실패 시 연속 사용 — MAX_ANCHOR_CHAIN에서 안전하게 리셋됨
     return false;
   }
@@ -305,6 +307,7 @@ export const generateEmotionSceneImages = async (
   try {
     englishScenes = await translateScenesToEnglish(ai, koreanScenes);
   } catch (error) {
+    Sentry.captureException(error);
     console.error("Scene translation failed, using Korean descriptions:", error);
     englishScenes = koreanScenes;
   }
