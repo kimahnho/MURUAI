@@ -11,7 +11,7 @@ import { buildEmotionStoryPages } from "@/features/editor/utils/buildEmotionStor
 import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageMap";
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
-import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
+// import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";  // 이미지 생성 임시 중단
 import {
   TEMPLATE_REGISTRY,
 } from "@/features/editor/templates/templateRegistry";
@@ -20,8 +20,8 @@ import StorybookWizardModal from "@/features/storybook/components/StorybookWizar
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 
-// TODO: Google AI 복원 시 false로 변경
-const IS_AI_DISABLED = true;
+// TODO: AI 이미지 생성 복원 시 true로 변경하여 점검 모드 활성화
+const IS_AI_DISABLED = false;
 
 const AiTemplateContent = () => {
   const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
@@ -140,18 +140,19 @@ const AiTemplateContent = () => {
             // Phase 1: 텍스트만 생성 — 히어로 이미지 없이 페이지 삽입
             const pages = buildEmotionStoryPages(stories, emotionImageMap);
             useTemplateStore.getState().requestInsertPages(pages);
-            // Phase 2를 위해 스토어에 생성 데이터 저장
-            const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
-            useEmotionSceneStore.getState().addPendingGeneration({
-              stories,
-              storyPageIds,
-              bannerPhase: "ready",
-            });
+            // ── 이미지 생성 임시 중단: 배너 표시용 데이터 저장 스킵 ──
+            // const storyPageIds = pages.slice(-stories.length).map((p) => p.id);
+            // useEmotionSceneStore.getState().addPendingGeneration({
+            //   stories,
+            //   storyPageIds,
+            //   bannerPhase: "ready",
+            // });
             setIsEmotionChoiceModalOpen(false);
             useToastStore
               .getState()
-              .showToast("텍스트가 생성되었어요. 내용을 확인 후 이미지를 생성하세요.");
-          } catch {
+              .showToast("감정추론 활동이 생성되었어요!");
+          } catch (error) {
+            console.error("[AI 감정추론] 스토리 생성 실패:", error);
             useToastStore
               .getState()
               .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");

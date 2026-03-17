@@ -2,17 +2,19 @@
  * 각 페이지의 sceneDescription을 영문 번역 후 그림체 프롬프트와 조합하여
  * Gemini 이미지 모델로 삽화를 생성하고 Cloudinary에 업로드하는 모듈.
  */
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
+import type { GoogleGenAI } from "@google/genai";
 
 import { supabase } from "@/shared/api/supabase";
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 
 import type { ArtStyleId, PageLayout } from "../model/storybookTypes";
 import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | string
@@ -205,9 +207,9 @@ export const generateStoryImages = async (
   referenceImageBase64?: string,
   onProgress?: (current: number, total: number) => void,
 ): Promise<string[]> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
 
   const preset = ART_STYLE_PRESETS.find((p) => p.id === artStyleId);
   if (!preset) {
@@ -221,7 +223,8 @@ export const generateStoryImages = async (
     throw new Error("로그인이 필요합니다.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   // 10개 장면을 한 번에 영문 번역
   const koreanScenes = pages.map((p) => p.sceneDescription);

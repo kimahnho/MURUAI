@@ -2,12 +2,13 @@
  * AI 이미지 생성, 업로드, 사용량 제한, 생성 이력 상태를 통합 관리하는 훅.
  */
 import { useState, useEffect, useCallback } from "react";
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { mp } from "@/shared/utils/mixpanel";
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 import {
   type ImageStyle,
   type StyleOption,
@@ -35,37 +36,37 @@ export type UsageStatus = {
 
 const DAILY_LIMIT = 20;
 
-const RAW_GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
-  | string
-  | undefined;
+// const RAW_GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
+//   | string
+//   | undefined;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | string
   | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env
   .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
-const hasNonIso88591CodePoint = (value: string): boolean => {
-  for (const ch of value) {
-    if (ch.codePointAt(0)! > 0xff) return true;
-  }
-  return false;
-};
+// const hasNonIso88591CodePoint = (value: string): boolean => {
+//   for (const ch of value) {
+//     if (ch.codePointAt(0)! > 0xff) return true;
+//   }
+//   return false;
+// };
 
-const GOOGLE_API_KEY = sanitizeEnvKey(RAW_GOOGLE_API_KEY);
+// const GOOGLE_API_KEY = sanitizeEnvKey(RAW_GOOGLE_API_KEY);
 
-const collectNonIso88591Meta = (value: string): string => {
-  const issues: string[] = [];
-  for (let i = 0; i < value.length; i += 1) {
-    const codePoint = value.codePointAt(i);
-    if (codePoint === undefined) continue;
-    if (codePoint > 0xff) {
-      issues.push(`pos=${i + 1},U+${codePoint.toString(16).toUpperCase()}`);
-      if (issues.length >= 5) break;
-    }
-    if (codePoint > 0xffff) i += 1;
-  }
-  return issues.join(" ");
-};
+// const collectNonIso88591Meta = (value: string): string => {
+//   const issues: string[] = [];
+//   for (let i = 0; i < value.length; i += 1) {
+//     const codePoint = value.codePointAt(i);
+//     if (codePoint === undefined) continue;
+//     if (codePoint > 0xff) {
+//       issues.push(`pos=${i + 1},U+${codePoint.toString(16).toUpperCase()}`);
+//       if (issues.length >= 5) break;
+//     }
+//     if (codePoint > 0xffff) i += 1;
+//   }
+//   return issues.join(" ");
+// };
 
 const getCloudinaryUrl = (path: string): string => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -78,17 +79,18 @@ const getCloudinaryUrl = (path: string): string => {
 };
 
 const generateImageWithGemini = async (prompt: string): Promise<string> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
-  if (hasNonIso88591CodePoint(GOOGLE_API_KEY)) {
-    const issueMeta = collectNonIso88591Meta(GOOGLE_API_KEY);
-    throw new Error(
-      `Google API key contains unsupported characters. Re-enter VITE_GOOGLE_API_KEY using plain ASCII text. ${issueMeta}`,
-    );
-  }
-
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // ── 기존 Google AI API key 검증 ──
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
+  // if (hasNonIso88591CodePoint(GOOGLE_API_KEY)) {
+  //   const issueMeta = collectNonIso88591Meta(GOOGLE_API_KEY);
+  //   throw new Error(
+  //     `Google API key contains unsupported characters. Re-enter VITE_GOOGLE_API_KEY using plain ASCII text. ${issueMeta}`,
+  //   );
+  // }
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image",
@@ -256,11 +258,11 @@ export const useAiImageGeneration = () => {
         return;
       }
 
-      if (!GOOGLE_API_KEY) {
-        showToast("API 설정이 필요해요.");
-        setIsGenerating(false);
-        return;
-      }
+      // if (!GOOGLE_API_KEY) {
+      //   showToast("API 설정이 필요해요.");
+      //   setIsGenerating(false);
+      //   return;
+      // }
 
       // 서버 기준 사용량 체크를 먼저 수행해 클라이언트 상태 오차를 보정한다.
       try {

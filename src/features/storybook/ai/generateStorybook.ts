@@ -1,9 +1,10 @@
 /**
  * Gemini를 사용해 선택된 기획서를 바탕으로 최종 스토리북 텍스트를 다듬는 모듈.
  */
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
 
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 
 import type {
   ChildInfo,
@@ -14,11 +15,11 @@ import type {
   PageLayout,
 } from "../model/storybookTypes";
 import { STORYBOOK_PAGE_COUNT } from "../model/storybookTypes";
-import { generateStoryImages } from "./generateStoryImages";
+// import { generateStoryImages } from "./generateStoryImages";
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 const buildStorybookPrompt = (
   proposal: StoryProposal,
@@ -101,14 +102,14 @@ export const generateStorybook = async (
   layout: PageLayout,
   fontFamily: string,
   childInfo: ChildInfo,
-  referenceImageBase64?: string,
-  onImageProgress?: (current: number, total: number) => void,
+  _referenceImageBase64?: string,
+  _onImageProgress?: (current: number, total: number) => void,
 ): Promise<StoryBook> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -140,13 +141,13 @@ export const generateStorybook = async (
     pages = buildFallbackPages(proposal);
   }
 
-  // 이미지 생성 + Cloudinary 업로드
-  try {
-    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress);
-    pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
-  } catch (error) {
-    console.error("Story image generation failed:", error);
-  }
+  // ── 이미지 생성 임시 중단 (Vertex AI 전환 후 복원 예정) ──
+  // try {
+  //   const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress);
+  //   pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
+  // } catch (error) {
+  //   console.error("Story image generation failed:", error);
+  // }
 
   return {
     id: crypto.randomUUID(),

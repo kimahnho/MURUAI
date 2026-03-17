@@ -3,18 +3,20 @@
  * 2단계 파이프라인: Phase 1에서 10장 base64를 모두 수집한 뒤,
  * Phase 2에서 일괄 Cloudinary 업로드하여 불필요한 저장을 방지한다.
  */
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
+import type { GoogleGenAI } from "@google/genai";
 
 import { supabase } from "@/shared/api/supabase";
-import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
+import { getGenAI } from "@/shared/api/genai";
 import { characterBoy, characterGirl } from "@/shared/assets";
 
 import type { StoryItem } from "./generateEmotionStory";
 import type { EmotionImageStyle } from "../sections/sidebar/content/EmotionInferenceChoiceModal";
 
-const GOOGLE_API_KEY = sanitizeEnvKey(
-  import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
-);
+// const GOOGLE_API_KEY = sanitizeEnvKey(
+//   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
+// );
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | string
@@ -280,9 +282,9 @@ export const generateEmotionSceneImages = async (
   imageStyle: EmotionImageStyle,
   onProgress?: (current: number, total: number) => void,
 ): Promise<string[]> => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Google API key is not configured");
-  }
+  // if (!GOOGLE_API_KEY) {
+  //   throw new Error("Google API key is not configured");
+  // }
 
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
@@ -290,7 +292,8 @@ export const generateEmotionSceneImages = async (
     throw new Error("로그인이 필요합니다.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+  const ai = getGenAI();
 
   // 캐릭터 참조 이미지 로드
   const characterSrc = imageStyle === "photo-boy" ? characterBoy : characterGirl;
