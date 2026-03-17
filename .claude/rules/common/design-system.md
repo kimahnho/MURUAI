@@ -220,6 +220,7 @@ useToastStore.getState().showToast("생성 완료!", "primary");
 5. **shared/ui 규칙 준수** — 비즈니스 로직, Zustand store, API 호출, navigation 사용 금지. 모든 데이터는 props로 전달
 6. **에디터 전용 UI는 건드리지 않음** — `ColorPickerPopover`, `InlineFontPicker`, `SquareToolBar` 등 캔버스 인터랙션 특화 컴포넌트는 디자인 시스템 대상이 아님
 7. **토스트 에디터 전용 스토어** — `features/editor/store/toastStore.ts`는 에디터 전용. 공유 토스트는 `shared/store/useToastStore.ts` 사용
+8. **word-break 전역 적용** — `global.css`의 `:root`에 `word-break: keep-all` 전역 설정. 에디터 TextBox(`[data-textbox-content]`)에서는 `word-break: normal`로 복원. 서비스 UI 텍스트에 별도 `wordBreak` 설정 불필요
 
 ## 관련 파일
 

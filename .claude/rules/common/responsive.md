@@ -1,7 +1,64 @@
 # 반응형 UI 지침
 
-> 데스크탑 뷰에서 화면 크기가 줄어들더라도 텍스트 넘침, 레이아웃 깨짐을 방지하는 규칙.
-> 모바일 UI는 고려하지 않는다. `sm:` 등 모바일 분기점 불필요.
+> 텍스트 넘침, 레이아웃 깨짐을 방지하고 모바일/태블릿/데스크탑을 지원하는 규칙.
+
+## 모바일 반응형 규칙
+
+### 브레이크포인트
+
+| 접두사 | 최소 너비 | 용도 |
+|--------|-----------|------|
+| (없음) | 0px | 모바일 기본 |
+| `sm:` | 640px | 작은 태블릿 |
+| `md:` | 768px | 태블릿 |
+| `lg:` | 1024px | 데스크탑 |
+
+### 그리드 레이아웃
+
+```typescript
+// ❌ 금지: 데스크탑 전용 고정 그리드
+className="grid grid-cols-5 gap-5"
+
+// ✅ 필수: 모바일 → 태블릿 → 데스크탑 점진적 확장
+className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5"
+className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
+className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
+```
+
+### 패딩/간격
+
+```typescript
+// ❌ 금지: 모바일에서 과도한 패딩
+className="px-10 gap-10"
+
+// ✅ 필수: 모바일에서 축소
+className="px-4 md:px-10 gap-6 md:gap-10"
+```
+
+### 텍스트 크기
+
+```typescript
+// ❌ 금지: 모바일에서 너무 큰 제목
+className="text-headline-28-bold"
+
+// ✅ 필수: 모바일에서 축소
+className="text-title-22-semibold md:text-headline-28-bold"
+```
+
+### 고정 높이
+
+```typescript
+// ❌ 금지: 모바일에서 과도한 고정 높이
+className="h-85"
+
+// ✅ 필수: 모바일에서 유연하게
+className="h-auto md:h-85"
+```
+
+### 적용 범위
+
+- **홈페이지 (랜딩/대시보드)**: 모바일 반응형 필수
+- **에디터**: 데스크탑 전용 (모바일 대응 불필요) — 캔버스/사이드바는 데스크탑에서만 사용
 
 ## 필수 규칙
 
