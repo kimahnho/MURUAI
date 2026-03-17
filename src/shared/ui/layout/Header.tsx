@@ -15,14 +15,14 @@ const Header = () => {
   };
 
   return (
-    <header className="flex w-full h-18 px-15 justify-between items-center border-b border-b-black-25">
+    <header className="flex w-full h-18 px-4 md:px-15 justify-between items-center border-b border-b-black-25">
       <button
         type="button"
         onClick={() => navigate("/")}
         className="flex items-center justify-center cursor-pointer"
         aria-label="홈으로 이동"
       >
-        <img src={images.mainLogo} alt="Main Logo" className="w-40 h-auto" />
+        <img src={images.mainLogo} alt="Main Logo" className="w-28 md:w-40 h-auto" />
       </button>
 
       <div className="flex h-10 items-center justify-center gap-2">
@@ -48,7 +48,7 @@ const Header = () => {
             <button
               type="button"
               onClick={openAuthModal}
-              className="flex items-center justify-center p-4 cursor-pointer"
+              className="flex items-center justify-center px-3 py-2 md:p-4 cursor-pointer"
             >
               <span className="text-14-semibold text-black-100">로그인</span>
             </button>
@@ -56,7 +56,7 @@ const Header = () => {
             <button
               type="button"
               onClick={openAuthModal}
-              className="flex h-full items-center justify-center p-4 bg-[#5500ff] rounded-xl cursor-pointer"
+              className="flex h-full items-center justify-center px-3 py-2 md:p-4 bg-primary rounded-xl cursor-pointer"
             >
               <span className="text-14-semibold text-white-100">가입하기</span>
             </button>

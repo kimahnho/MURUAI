@@ -101,13 +101,11 @@ const ChoiceUserSection = () => {
   const showCarousel = lessonType === "individual" && students.length > 4;
   const showGroupCarousel = lessonType === "group" && groups.length > 4;
 
-  if (!isAuthenticated) return null;
-
   return (
-    <section className="flex flex-col w-full px-10 gap-10">
-      <div className="flex flex-col w-full gap-10 items-center justify-center">
+    <section className="flex flex-col w-full px-4 md:px-10 gap-6 md:gap-10">
+      <div className="flex flex-col w-full gap-6 md:gap-10 items-center justify-center">
         <div className="flex flex-col itme-center justify-center">
-          <span className="flex text-title-22-semibold items-center justify-center text-center">
+          <span className="flex text-title-18-semibold md:text-title-22-semibold items-center justify-center text-center">
             개별 아동 또는 그룹 수업을 선택하여 맞춤형 수업 자료를 만들어보세요.
           </span>
         </div>
@@ -148,12 +146,12 @@ const ChoiceUserSection = () => {
         {showCarousel ? (
           // 캐러셀 모드 (학생이 5명 이상일 때)
           <>
-            <div className="grid w-full h-auto grid-cols-5 gap-5 overflow-hidden">
+            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 overflow-hidden">
               {/* 추가하기 버튼 */}
               <button
                 type="button"
                 onClick={handleAddClick}
-                className="group relative flex flex-col h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
+                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
               >
                 <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
                 <div className="flex flex-col gap-4 items-center justify-center">
@@ -178,7 +176,7 @@ const ChoiceUserSection = () => {
                   {index === 0 && currentStudentPage > 0 && (
                     <button
                       onClick={handleStudentPrev}
-                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
+                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
                       aria-label="이전 아동"
                     >
                       <ChevronLeft className="icon-xs text-black-90" />
@@ -190,7 +188,7 @@ const ChoiceUserSection = () => {
                     currentStudentPage < totalStudentPages - 1 && (
                       <button
                         onClick={handleStudentNext}
-                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
+                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
                         aria-label="다음 아동"
                       >
                         <ChevronRight className="icon-xs text-black-90" />
@@ -219,12 +217,12 @@ const ChoiceUserSection = () => {
         ) : showGroupCarousel ? (
           // 캐러셀 모드 (그룹이 5개 이상일 때)
           <>
-            <div className="grid w-full h-auto grid-cols-5 gap-5 overflow-hidden">
+            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 overflow-hidden">
               {/* 추가하기 버튼 */}
               <button
                 type="button"
                 onClick={handleAddClick}
-                className="group relative flex flex-col h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
+                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
               >
                 <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
                 <div className="flex flex-col gap-4 items-center justify-center">
@@ -246,7 +244,7 @@ const ChoiceUserSection = () => {
                   {index === 0 && currentGroupPage > 0 && (
                     <button
                       onClick={handleGroupPrev}
-                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
+                      className="absolute left-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
                       aria-label="이전 그룹"
                     >
                       <ChevronLeft className="icon-xs text-black-90" />
@@ -258,7 +256,7 @@ const ChoiceUserSection = () => {
                     currentGroupPage < totalGroupPages - 1 && (
                       <button
                         onClick={handleGroupNext}
-                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
+                        className="absolute right-2 top-[calc(50%-1rem)] -translate-y-1/2 hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all"
                         aria-label="다음 그룹"
                       >
                         <ChevronRight className="icon-xs text-black-90" />
@@ -287,12 +285,12 @@ const ChoiceUserSection = () => {
         ) : (
           // 일반 모드 (학생이 4명 이하이거나 그룹 모드일 때)
           <>
-            <div className="grid w-full h-auto grid-cols-5 gap-5">
+            <div className="grid w-full h-auto grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5">
               {/* 추가하기 버튼 */}
               <button
                 type="button"
                 onClick={handleAddClick}
-                className="group relative flex flex-col h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
+                className="group relative flex flex-col h-60 md:h-85 rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-4 md:p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
               >
                 <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />
                 <div className="flex flex-col gap-4 items-center justify-center">
