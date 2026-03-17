@@ -48,11 +48,7 @@ const RecentDocumentsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setDocs([]);
-      setIsLoading(false);
-      return;
-    }
+    if (!isAuthenticated) return;
 
     let cancelled = false;
 
