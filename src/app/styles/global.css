@@ -66,6 +66,12 @@
 @layer base {
   :root {
     font-family: "Pretendard";
+    word-break: keep-all;
+  }
+
+  /* 에디터 캔버스 텍스트 요소는 사용자가 제어하므로 기본 word-break 복원 */
+  [data-textbox-content] {
+    word-break: normal;
   }
 }
 
