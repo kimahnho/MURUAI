@@ -1,7 +1,23 @@
 import { useState } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import { mp } from "@/shared/utils/mixpanel";
+
+const AUTH_ERROR_MAP: Record<string, string> = {
+  "Email not confirmed": "이메일 인증이 완료되지 않았어요. 메일함을 확인해 주세요.",
+  "Invalid login credentials": "이메일 또는 비밀번호가 올바르지 않아요.",
+  "User already registered": "이미 가입된 이메일이에요.",
+  "Password should be at least 6 characters": "비밀번호는 6자 이상이어야 해요.",
+  "Signup requires a valid password": "유효한 비밀번호를 입력해 주세요.",
+  "Unable to validate email address: invalid format": "올바른 이메일 형식을 입력해 주세요.",
+};
+
+const toKoreanError = (err: unknown, fallback: string): string => {
+  if (err instanceof Error) {
+    return AUTH_ERROR_MAP[err.message] ?? fallback;
+  }
+  return fallback;
+};
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -22,9 +38,9 @@ export const useAuth = () => {
       if (error) throw error;
       mp.track("Google 로그인");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google 로그인 실패");
+      setError(toKoreanError(err, "Google 로그인에 실패했어요."));
       console.error("Google login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "Google 로그인");
     } finally {
       setLoading(false);
     }
@@ -45,9 +61,9 @@ export const useAuth = () => {
       if (error) throw error;
       mp.track("카카오 로그인");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "카카오 로그인 실패");
+      setError(toKoreanError(err, "카카오 로그인에 실패했어요."));
       console.error("Kakao login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "카카오 로그인");
     } finally {
       setLoading(false);
     }
@@ -65,9 +81,9 @@ export const useAuth = () => {
 
       if (error) throw error;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "이메일 로그인 실패");
+      setError(toKoreanError(err, "이메일 로그인에 실패했어요."));
       console.error("Email login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "이메일 로그인");
       throw err;
     } finally {
       setLoading(false);
@@ -96,9 +112,9 @@ export const useAuth = () => {
       if (error) throw error;
       mp.track("이메일 가입");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "회원가입 실패");
+      setError(toKoreanError(err, "회원가입에 실패했어요."));
       console.error("Signup error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "이메일 가입");
       throw err;
     } finally {
       setLoading(false);
@@ -114,9 +130,9 @@ export const useAuth = () => {
 
       if (error) throw error;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "로그아웃 실패");
+      setError(toKoreanError(err, "로그아웃에 실패했어요."));
       console.error("Signout error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "로그아웃");
     } finally {
       setLoading(false);
     }

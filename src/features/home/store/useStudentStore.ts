@@ -3,7 +3,7 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { studentModel, type Student } from "../model/student.model";
 import { groupModel, type Group } from "../model/group.model";
 
@@ -80,7 +80,7 @@ export const useStudentStore = create<StudentStore>()(
           set({ lastFetched: Date.now() });
         } catch (error) {
           console.error("Failed to fetch data:", error);
-          Sentry.captureException(error);
+          captureSentryError(error, "학생/그룹 데이터 조회");
         } finally {
           set({ isLoading: false });
         }

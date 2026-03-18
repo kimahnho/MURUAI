@@ -2,7 +2,7 @@
  * 에디터 변경사항을 디바운스 기반으로 자동 저장하고 수동 저장 상태를 함께 관리하는 훅.
  */
 import { useEffect, useState, useCallback, useRef } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import { mp } from "@/shared/utils/mixpanel";
 import { measurePerf } from "../utils/perfLogger";
@@ -171,7 +171,7 @@ export const useAutoSave = ({
         if (myRevision !== clientRevisionRef.current) return;
 
         console.error("Save failed:", error);
-        Sentry.captureException(error);
+        captureSentryError(error, "자동 저장");
         if (isManual) {
           setSaveState("error");
           emitSaveState("error");

@@ -1,7 +1,7 @@
 /**
  * 그룹 도메인 데이터 구조와 관련 타입을 정의하는 모델 모듈.
  */
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import type { Student } from "./student.model";
 
@@ -77,7 +77,7 @@ export const groupModel = {
 
       return { data: group, error: null };
     } catch (err) {
-      Sentry.captureException(err);
+      captureSentryError(err, "그룹 추가");
       return {
         data: null,
         error:
@@ -109,7 +109,7 @@ export const groupModel = {
 
       return { data: data as Group[], error: null };
     } catch (err) {
-      Sentry.captureException(err);
+      captureSentryError(err, "그룹 목록 조회");
       return {
         data: null,
         error:
@@ -208,7 +208,7 @@ export const groupModel = {
       return { data: updated, error: null };
     } catch (err) {
       console.error("그룹 Update 실패:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "그룹 수정");
       return {
         data: null,
         error:
@@ -239,7 +239,7 @@ export const groupModel = {
 
       return { error: null };
     } catch (err) {
-      Sentry.captureException(err);
+      captureSentryError(err, "그룹 삭제");
       return {
         error:
           err instanceof Error ? err : new Error("그룹 삭제에 실패했습니다."),

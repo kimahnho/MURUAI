@@ -2,7 +2,7 @@
  * 선택 요소 복사/붙여넣기 단축 동작을 캔버스 상태와 연결하는 훅.
  */
 import { useCallback, type MutableRefObject } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
@@ -38,7 +38,7 @@ export const useDesignPaperClipboard = ({
         sessionStorage.removeItem("copiedPageId");
       } catch (error) {
         // 저장소 접근 실패는 복사만 건너뛰고 편집 동작은 계속 유지한다.
-        Sentry.captureException(error);
+        captureSentryError(error, "클립보드 접근");
       }
     },
     [pageId]
@@ -50,7 +50,7 @@ export const useDesignPaperClipboard = ({
       if (!raw) return null;
       return JSON.parse(raw) as CanvasElement[];
     } catch (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "클립보드 접근");
       return null;
     }
   }, []);
@@ -61,7 +61,7 @@ export const useDesignPaperClipboard = ({
       if (!raw) return null;
       return JSON.parse(raw) as { pageId?: string };
     } catch (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "클립보드 접근");
       return null;
     }
   }, []);

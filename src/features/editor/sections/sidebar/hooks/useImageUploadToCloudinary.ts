@@ -2,7 +2,7 @@
  * 이미지 파일을 Cloudinary에 업로드하고 결과 URL을 반환하는 훅.
  */
 import { useState, useCallback } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { mp } from "@/shared/utils/mixpanel";
@@ -94,7 +94,7 @@ export const useImageUploadToCloudinary = () => {
         mp.track("이미지 업로드", { file_type: file.type });
         return getImageUrl(imagePath);
       } catch (error) {
-        Sentry.captureException(error);
+        captureSentryError(error, "이미지 업로드");
         showToast("업로드에 실패했어요.");
         return null;
       } finally {

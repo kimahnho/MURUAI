@@ -2,7 +2,7 @@
  * 스토리북 6단계 위자드의 내부 상태를 관리하는 Zustand 스토어.
  */
 import { create } from "zustand";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
 
 import type {
@@ -216,7 +216,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           currentStep: 3,
         }));
       } catch (error) {
-        Sentry.captureException(error);
+        captureSentryError(error, "스토리북 기획서 생성");
         set({
           isLoading: false,
           error: "기획서 생성에 실패했어요. 다시 시도해 주세요.",
@@ -240,7 +240,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         }));
         mp.track("AI 스토리북 캐릭터 생성");
       } catch (error) {
-        Sentry.captureException(error);
+        captureSentryError(error, "스토리북 캐릭터 생성");
         set({
           isLoading: false,
           error: "캐릭터 생성에 실패했어요. 다시 시도해 주세요.",
@@ -284,7 +284,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         useTemplateStore.getState().requestInsertPages(pages);
         useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!");
       } catch (error) {
-        Sentry.captureException(error);
+        captureSentryError(error, "스토리북 생성");
         set({
           isLoading: false,
           imageProgress: null,

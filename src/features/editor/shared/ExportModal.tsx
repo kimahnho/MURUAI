@@ -3,7 +3,7 @@
  */
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import BaseModal from "@/shared/ui/BaseModal";
 import { useToastStore } from "../store/toastStore";
 import {
@@ -227,7 +227,7 @@ const ExportModal = ({
         return;
       }
       console.error("[PDF Export] 실패:", error);
-      Sentry.captureException(error);
+      captureSentryError(error, "PDF 내보내기");
       showToast("PDF를 만들지 못했어요.");
     } finally {
       abortControllerRef.current = null;
