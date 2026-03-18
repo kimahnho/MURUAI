@@ -5,7 +5,6 @@ import {
   Camera,
   Construction,
   Image,
-  PenLine,
   Search,
   Smile,
   User,
