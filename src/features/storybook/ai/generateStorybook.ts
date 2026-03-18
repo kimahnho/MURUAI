@@ -2,7 +2,7 @@
  * Gemini를 사용해 선택된 기획서를 바탕으로 최종 스토리북 텍스트를 다듬는 모듈.
  */
 // import { GoogleGenAI } from "@google/genai";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
@@ -147,7 +147,7 @@ export const generateStorybook = async (
     pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
   } catch (error) {
     console.error("Story image generation failed:", error);
-    Sentry.captureException(error);
+    captureSentryError(error, "스토리북 이미지 생성");
   }
 
   return {

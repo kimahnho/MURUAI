@@ -1,5 +1,5 @@
 import { useState } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import { mp } from "@/shared/utils/mixpanel";
 
@@ -24,7 +24,7 @@ export const useAuth = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Google 로그인 실패");
       console.error("Google login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "Google 로그인");
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export const useAuth = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "카카오 로그인 실패");
       console.error("Kakao login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "카카오 로그인");
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export const useAuth = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "이메일 로그인 실패");
       console.error("Email login error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "이메일 로그인");
       throw err;
     } finally {
       setLoading(false);
@@ -98,7 +98,7 @@ export const useAuth = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "회원가입 실패");
       console.error("Signup error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "이메일 가입");
       throw err;
     } finally {
       setLoading(false);
@@ -116,7 +116,7 @@ export const useAuth = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "로그아웃 실패");
       console.error("Signout error:", err);
-      Sentry.captureException(err);
+      captureSentryError(err, "로그아웃");
     } finally {
       setLoading(false);
     }

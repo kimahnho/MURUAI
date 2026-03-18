@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { ChevronRight, FileText } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
@@ -26,7 +26,7 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
       const parsed = JSON.parse(value) as CanvasDocument;
       return Array.isArray(parsed.pages) ? parsed : null;
     } catch (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "최근 학습자료 파싱");
       return null;
     }
   }
@@ -79,7 +79,7 @@ const RecentDocumentsSection = () => {
 
       if (error) {
         console.error("최근 학습자료 조회 실패", error);
-        Sentry.captureException(error);
+        captureSentryError(error, "최근 학습자료 조회");
         setDocs([]);
         setIsLoading(false);
         return;

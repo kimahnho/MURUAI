@@ -2,7 +2,7 @@
  * 문서 초기 로드와 로딩/오류 상태를 관리해 에디터 진입 데이터를 준비하는 훅.
  */
 import { useCallback, useEffect, useState } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
 import { mp } from "@/shared/utils/mixpanel";
 import { useOrientationStore } from "../store/orientationStore";
@@ -51,7 +51,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
         .single();
       if (!isMounted) return;
       if (error || !row) {
-        if (error) Sentry.captureException(error);
+        if (error) captureSentryError(error, "문서 로드");
         showToast("학습자료를 불러오지 못했어요.");
         return;
       }

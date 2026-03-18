@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import {
   ChevronDown,
   ChevronLeft,
@@ -85,7 +85,7 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
       const parsed = JSON.parse(value) as CanvasDocument;
       return Array.isArray(parsed.pages) ? parsed : null;
     } catch (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "MyDocPage canvas_data 파싱");
       return null;
     }
   }
@@ -207,11 +207,11 @@ const MyDocPage = () => {
       if (cancelled) return;
 
       if (studentsResult.error) {
-        Sentry.captureException(studentsResult.error);
+        captureSentryError(studentsResult.error, "MyDocPage 학습자 조회");
         setErrorMessage("학습자 목록을 불러오지 못했어요.");
       }
       if (groupsResult.error) {
-        Sentry.captureException(groupsResult.error);
+        captureSentryError(groupsResult.error, "MyDocPage 그룹 조회");
         setErrorMessage("그룹 목록을 불러오지 못했어요.");
       }
 
@@ -264,7 +264,7 @@ const MyDocPage = () => {
       if (cancelled) return;
 
       if (error) {
-        Sentry.captureException(error);
+        captureSentryError(error, "MyDocPage 문서 목록 조회");
         setErrorMessage("학습자료를 불러오지 못했어요.");
         setDocs([]);
         setIsLoading(false);
@@ -292,7 +292,7 @@ const MyDocPage = () => {
 
       if (cancelled) return;
       if (targetError) {
-        Sentry.captureException(targetError);
+        captureSentryError(targetError, "MyDocPage 대상 조회");
         setErrorMessage("등록 대상을 불러오지 못했어요.");
       }
 
@@ -336,7 +336,7 @@ const MyDocPage = () => {
       .limit(PAGE_SIZE + 1);
 
     if (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "MyDocPage 추가 로드");
       setErrorMessage("학습자료를 더 불러오지 못했어요.");
       setIsLoadingMore(false);
       return;
@@ -410,7 +410,7 @@ const MyDocPage = () => {
       .update({ deleted_at: now })
       .eq("user_made_id", docId);
     if (targetError) {
-      Sentry.captureException(targetError);
+      captureSentryError(targetError, "MyDocPage 대상 삭제");
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
     }
@@ -420,7 +420,7 @@ const MyDocPage = () => {
       .eq("id", docId)
       .eq("user_id", user.id);
     if (error) {
-      Sentry.captureException(error);
+      captureSentryError(error, "MyDocPage 문서 삭제");
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
     }
@@ -456,7 +456,7 @@ const MyDocPage = () => {
       .select("id,name,created_at,canvas_data")
       .single();
     if (error || !data) {
-      if (error) Sentry.captureException(error);
+      if (error) captureSentryError(error, "MyDocPage 문서 복제");
       setErrorMessage("학습자료를 복제하지 못했어요.");
       return false;
     }
@@ -472,7 +472,7 @@ const MyDocPage = () => {
         .from("user_made_targets_n")
         .insert(targetPayload);
       if (targetError) {
-        Sentry.captureException(targetError);
+        captureSentryError(targetError, "MyDocPage 대상 복제");
         setErrorMessage("학습자료를 복제하지 못했어요.");
         nextTargets = [];
       }

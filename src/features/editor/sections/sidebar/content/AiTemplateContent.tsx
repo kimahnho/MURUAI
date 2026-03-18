@@ -2,7 +2,7 @@
  * AI 템플릿 패널 — 스토리북/감정추론을 카드 형태로 나열하고, 클릭 시 모달을 연다.
  */
 import { useEffect, useState } from "react";
-import * as Sentry from "@sentry/react";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { BookOpen, Brain, Sparkles, AlertCircle, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -221,7 +221,7 @@ const AiTemplateContent = () => {
             mp.track("AI 감정추론 스토리 생성", { topic_length: topic.length });
           } catch (error) {
             console.error("[AI 감정추론] 스토리 생성 실패:", error);
-            Sentry.captureException(error);
+            captureSentryError(error, "AI 감정추론 스토리 생성");
             useToastStore
               .getState()
               .showToast("스토리 생성에 실패했어요. 다시 시도해 주세요.");
