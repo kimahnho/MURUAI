@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { images } from "@/shared/assets";
@@ -18,6 +18,7 @@ const AuthModal = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const isOpen = openModal === "auth";
 
@@ -218,15 +219,26 @@ const AuthModal = () => {
               className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
               required
             />
-            <input
-              type="password"
-              placeholder="비밀번호"
-              aria-label="비밀번호"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); }}
-              className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="비밀번호"
+                aria-label="비밀번호"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); }}
+                className="w-full rounded-2xl border border-black-20 px-4 py-3 pr-11 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => { setShowPassword((v) => !v); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-black-40 hover:text-black-70 transition"
+                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={isSubmitDisabled}
