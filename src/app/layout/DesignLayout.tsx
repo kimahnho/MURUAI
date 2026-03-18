@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Loader2,
   SpellCheck,
+  WifiOff,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -44,6 +45,18 @@ const DesignLayout = () => {
   const { docId } = useParams<{ docId?: string }>();
   const [zoom, setZoom] = useState<number>(100);
   const [isPdfPreviewActive, setIsPdfPreviewActive] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOffline(false); };
+    const handleOffline = () => { setIsOffline(true); };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument } =
     useDocumentLoader({ docId });
@@ -517,6 +530,14 @@ const DesignLayout = () => {
           {toastMessage}
         </div>
       )}
+      {isOffline && (
+        <div className="flex items-center justify-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 shrink-0">
+          <WifiOff className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-13-semibold text-amber-700">
+            인터넷 연결이 불안정해요. 연결 후 자동 저장됩니다.
+          </span>
+        </div>
+      )}
       <main className="flex-1 overflow-hidden">
         <Outlet
           context={{
@@ -531,6 +552,7 @@ const DesignLayout = () => {
             docId,
             docName,
             setAutoSaveState,
+            onNetworkError: () => { setIsOffline(true); },
             setRetryAutoSave,
             setManualSave,
           }}
