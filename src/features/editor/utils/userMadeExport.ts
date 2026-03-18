@@ -135,7 +135,7 @@ const getDevicePerformanceTier = (): DevicePerformanceTier => {
   return "high";
 };
 
-const getAdaptiveCaptureScale = ({
+export const getAdaptiveCaptureScale = ({
   requestedQuality,
   width,
   height,
@@ -154,6 +154,135 @@ const getAdaptiveCaptureScale = ({
   return clampNumber(Math.min(requested, maxByTier, areaLimited), 1, 3);
 };
 
+// PDF 페이지 DOM에서 사용된 CDN 폰트를 감지하고 사전 로드한다.
+export const waitForPdfFonts = async (pages: HTMLElement[]) => {
+  const fontFamilies = new Set<string>();
+  pages.forEach((page) => {
+    page.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+      const ff = el.style.fontFamily;
+      if (ff) fontFamilies.add(ff.replace(/["']/g, "").split(",")[0].trim());
+    });
+  });
+  const cdnLoads = [...fontFamilies].filter(isCdnFont).map((f) => loadCdnFont(f));
+  if (cdnLoads.length > 0) await Promise.all(cdnLoads);
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+};
+
+// 페이지 내 모든 이미지가 로드/디코드될 때까지 대기 (이미지당 최대 3초)
+export const waitForPdfImages = async (root: HTMLElement) => {
+  const images = Array.from(root.querySelectorAll("img"));
+  if (images.length === 0) return;
+  await Promise.all(
+    images.map(async (img) => {
+      if (img.complete && img.naturalWidth > 0) return;
+      try {
+        await Promise.race([
+          img.decode(),
+          new Promise<void>((resolve) => {
+            window.setTimeout(() => {
+              resolve();
+            }, 3000);
+          }),
+        ]);
+      } catch {
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            resolve();
+          };
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        });
+      }
+    }),
+  );
+};
+
+export const waitForNextFrame = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => {
+      resolve();
+    }),
+  );
+
+export const doubleRaf = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    }),
+  );
+
+export const resolvePageOrientation = (
+  page: HTMLElement,
+): "horizontal" | "vertical" => {
+  const datasetOrientation = page.dataset.orientation;
+  if (datasetOrientation === "horizontal") return "horizontal";
+  if (datasetOrientation === "vertical") return "vertical";
+  const rect = page.getBoundingClientRect();
+  return rect.width > rect.height ? "horizontal" : "vertical";
+};
+
+const getPageSize = (orientation: "horizontal" | "vertical") =>
+  orientation === "horizontal"
+    ? { width: 297, height: 210 }
+    : { width: 210, height: 297 };
+
+export type PdfPageCapture = {
+  dataUrl: string;
+  orientation: "horizontal" | "vertical";
+};
+
+// 캡처된 dataUrl 배열로 jsPDF Blob 조립
+export const assemblePdf = (
+  captures: PdfPageCapture[],
+  JsPDF: typeof import("jspdf").jsPDF,
+): Blob => {
+  if (captures.length === 0) throw new Error("No captured pages to assemble");
+
+  const firstSize = getPageSize(captures[0].orientation);
+  const pdf = new JsPDF({
+    unit: "mm",
+    format: [firstSize.width, firstSize.height],
+    orientation:
+      firstSize.width > firstSize.height ? "landscape" : "portrait",
+  });
+
+  for (let i = 0; i < captures.length; i += 1) {
+    const { dataUrl, orientation } = captures[i];
+    const { width: pdfW, height: pdfH } = getPageSize(orientation);
+
+    const props = pdf.getImageProperties(dataUrl);
+    let w = pdfW;
+    let h = (props.height * w) / props.width;
+    if (h > pdfH) {
+      h = pdfH;
+      w = (props.width * h) / props.height;
+    }
+    const x = (pdfW - w) / 2;
+    const y = 0;
+
+    if (i > 0) {
+      pdf.addPage([pdfW, pdfH], pdfW > pdfH ? "landscape" : "portrait");
+    }
+    pdf.addImage(dataUrl, "JPEG", x, y, w, h, undefined, "FAST");
+  }
+
+  logPerf("pdf.generate.summary", {
+    pageCount: captures.length,
+  });
+  return pdf.output("blob");
+};
+
+// JPEG dataUrl 크기로 빈 페이지를 감지 (빈 흰색 페이지는 ~2-5KB, 정상 페이지는 50KB+)
+export const isLikelyBlankCapture = (dataUrl: string): boolean => {
+  const estimatedBytes = dataUrl.length * 0.75;
+  return estimatedBytes < 8_000;
+};
+
+// 기존 API 하위 호환 — 내부에서 추출된 유틸을 사용
 export const generatePdfFromDomPages = async ({
   quality = 2,
   pageIds,
@@ -188,92 +317,18 @@ export const generatePdfFromDomPages = async ({
       }
       onProgress?.({ current: 0, total: pages.length });
 
-      const waitForFonts = async () => {
-        // PDF 페이지 DOM에서 사용된 CDN 폰트를 감지하고 사전 로드한다.
-        const fontFamilies = new Set<string>();
-        pages.forEach((page) => {
-          page.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
-            const ff = el.style.fontFamily;
-            if (ff) fontFamilies.add(ff.replace(/["']/g, "").split(",")[0].trim());
-          });
-        });
-        const cdnLoads = [...fontFamilies].filter(isCdnFont).map((f) => loadCdnFont(f));
-        if (cdnLoads.length > 0) await Promise.all(cdnLoads);
-        if (document.fonts?.ready) {
-          await document.fonts.ready;
-        }
-      };
-
-      const waitForImages = async (root: HTMLElement) => {
-        const images = Array.from(root.querySelectorAll("img"));
-        if (images.length === 0) return;
-        await Promise.all(
-          images.map(async (img) => {
-            if (img.complete && img.naturalWidth > 0) return;
-            try {
-              await Promise.race([
-                img.decode(),
-                new Promise<void>((resolve) => {
-                  window.setTimeout(() => {
-                    resolve();
-                  }, 3000);
-                }),
-              ]);
-            } catch {
-              await new Promise<void>((resolve) => {
-                const done = () => {
-                  resolve();
-                };
-                img.addEventListener("load", done, { once: true });
-                img.addEventListener("error", done, { once: true });
-              });
-            }
-          }),
-        );
-      };
-
-      const waitForNextFrame = () =>
-        new Promise<void>((resolve) =>
-          requestAnimationFrame(() => {
-            resolve();
-          }),
-        );
-
-      await waitForFonts();
+      await waitForPdfFonts(pages);
       await waitForNextFrame();
       await waitForNextFrame();
 
-      const getPageSize = (orientation: "horizontal" | "vertical") =>
-        orientation === "horizontal"
-          ? { width: 297, height: 210 }
-          : { width: 210, height: 297 };
-
-      const resolveOrientation = (
-        page: HTMLElement,
-      ): "horizontal" | "vertical" => {
-        const datasetOrientation = page.dataset.orientation;
-        if (datasetOrientation === "horizontal") return "horizontal";
-        if (datasetOrientation === "vertical") return "vertical";
-        const rect = page.getBoundingClientRect();
-        return rect.width > rect.height ? "horizontal" : "vertical";
-      };
-
-      const firstOrientation = resolveOrientation(pages[0]);
-      const firstSize = getPageSize(firstOrientation);
-      const pdf = new jsPDF({
-        unit: "mm",
-        format: [firstSize.width, firstSize.height],
-        orientation:
-          firstSize.width > firstSize.height ? "landscape" : "portrait",
-      });
+      const captures: PdfPageCapture[] = [];
 
       for (let i = 0; i < pages.length; i += 1) {
         if (signal?.aborted) {
           throw new DOMException("PDF generation aborted", "AbortError");
         }
         const page = pages[i];
-        const orientation = resolveOrientation(page);
-        const { width: pdfW, height: pdfH } = getPageSize(orientation);
+        const orientation = resolvePageOrientation(page);
         const rect = page.getBoundingClientRect();
         const width = Math.ceil(page.offsetWidth || rect.width);
         const height = Math.ceil(page.offsetHeight || rect.height);
@@ -283,7 +338,7 @@ export const generatePdfFromDomPages = async ({
           height,
         });
 
-        await waitForImages(page);
+        await waitForPdfImages(page);
         await waitForNextFrame();
 
         // html-to-image는 브라우저 엔진이 직접 SVG foreignObject로 렌더하므로
@@ -308,21 +363,8 @@ export const generatePdfFromDomPages = async ({
           },
         );
 
-        const props = pdf.getImageProperties(dataUrl);
+        captures.push({ dataUrl, orientation });
 
-        let w = pdfW;
-        let h = (props.height * w) / props.width;
-        if (h > pdfH) {
-          h = pdfH;
-          w = (props.width * h) / props.height;
-        }
-        const x = (pdfW - w) / 2;
-        const y = 0;
-
-        if (i > 0) {
-          pdf.addPage([pdfW, pdfH], pdfW > pdfH ? "landscape" : "portrait");
-        }
-        pdf.addImage(dataUrl, "JPEG", x, y, w, h, undefined, "FAST");
         if (i % 2 === 1) {
           await new Promise<void>((resolve) => {
             setTimeout(resolve, 0);
@@ -338,12 +380,7 @@ export const generatePdfFromDomPages = async ({
         onProgress?.({ current: i + 1, total: pages.length });
       }
 
-      logPerf("pdf.generate.summary", {
-        pageCount: pages.length,
-        selectedMode: Boolean(pageIds && pageIds.length > 0),
-        quality,
-      });
-      return pdf.output("blob");
+      return assemblePdf(captures, jsPDF);
     },
     {
       requestedPageCount: pageIds?.length ?? 0,

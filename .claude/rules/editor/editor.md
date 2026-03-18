@@ -24,7 +24,7 @@ src/features/editor/
         AACContent.tsx              # AAC 카드 라이브러리
         DesignContent.tsx           # AI 이미지 생성
         ElementContent.tsx          # 기본 도형/요소
-        EmotionContent.tsx          # 감정 사진/이모지
+        EmotionContent.tsx          # 감정 [실제 사진 | 그림 | 이모지] (선그림 임시 비활성화)
         EmotionAACContent.tsx       # 감정/AAC 통합 탭
         FontContent.tsx             # 폰트 선택
         ImageLibraryContent.tsx     # 이미지 라이브러리
@@ -55,6 +55,7 @@ src/features/editor/
         useEmotionContentState.ts
         useEmotionEmojis.ts
         useEmotionPhotos.ts
+        useEmotionStickers.ts       # 감정 이모지/스티커 (emotion_sticker 테이블)
         useFontContentState.ts
         useImageLibrary.ts
         useImageUploadToCloudinary.ts

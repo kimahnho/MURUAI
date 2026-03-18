@@ -14,13 +14,15 @@
 | `user_made_targets_n` | 문서 공유 대상(학습자/그룹) | — | `deleted_at` |
 | `user_uploads_n` | 사용자 업로드 이미지 | `user_id` | `deleted_at` |
 | `emotion_photo` | 감정 사진 (정적 리소스) | — | — |
-| `emotion_emoji` | 감정 이모지 (정적 리소스) | — | — |
+| `emotion_emoji` | 감정 그림 (정적 리소스) | — | — |
+| `emotion_sticker` | 감정 이모지/스티커 (정적 리소스) | — | — |
 | `aac_cards` | AAC 카드 (정적 리소스) | — | — |
 | `images` | 클라우드 이미지 라이브러리 | — | — |
 | `activity_events` | 사용자 활동 추적 (로그인 등) | `user_id` | — |
 | `download_events` | 문서 다운로드 추적 | `user_id` | — |
 | `template_usage_events` | 템플릿 사용 추적 | `user_id` | — |
 | `image_request` | 이미지 상징 요청 (사용자가 원하는 이미지 키워드) | `user_id` | — |
+| `ai_template_usage` | AI 템플릿 월간 사용량 추적 (스토리북/감정추론) | `user_id` | — |
 
 ### RPC 통해서만 접근 (직접 `.from()` 없음)
 

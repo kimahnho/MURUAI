@@ -88,6 +88,8 @@ src/
 14. **GenAI 클라이언트**: `getGenAI()` 사용 (`src/shared/api/genai.ts`) — Google AI API Key 인증 (`VITE_GOOGLE_API_KEY`). Vertex AI 사용 금지
 15. **이메일 회원가입 비활성화**: `AuthModal.tsx`에서 회원가입 UI 주석 처리됨. 소셜 로그인(Google/카카오) + 이메일 로그인만 활성. 복원 시 `이메일 회원가입 임시 비활성화` 키워드로 검색
 16. **Sentry 에러 캡처**: `captureSentryError(error, "컨텍스트")` 헬퍼 필수 사용 (`sentryUtils.ts`) — `Sentry.captureException` 직접 호출 금지 (Supabase 에러 객체 비호환)
+17. **선그림 탭 비활성화**: `EmotionContent.tsx`에서 선그림 TypeButton + ComingSoon 주석 처리됨. 복원 시 `선그림 임시 비활성화` 키워드로 검색
+18. **네트워크 끊김 배너**: 자동 저장 `Failed to fetch` 또는 브라우저 `offline` 이벤트 시 에디터 상단에 오프라인 배너 표시. `online` 이벤트로 자동 사라짐. 네트워크 에러는 Sentry 전송 스킵
 
 ## 지침 모듈화 원칙
 

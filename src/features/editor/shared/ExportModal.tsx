@@ -9,7 +9,6 @@ import { useToastStore } from "../store/toastStore";
 import {
   assignUserMadeToTarget,
   downloadBlob,
-  generatePdfFromDomPages,
   saveUserMadeVersion,
 } from "../utils/userMadeExport";
 import { trackDownloadEvent } from "@/shared/utils/trackEvents";
@@ -20,6 +19,13 @@ type TargetType = "child" | "group";
 type TargetOption = {
   id: string;
   name: string;
+};
+
+export type GeneratePdfOptions = {
+  quality?: number;
+  pageIds?: string[];
+  onProgress?: (progress: { current: number; total: number }) => void;
+  signal?: AbortSignal;
 };
 
 type ExportModalProps = {
@@ -35,8 +41,7 @@ type ExportModalProps = {
   students: TargetOption[];
   groups: TargetOption[];
   isLoadingTargets: boolean;
-  preparePdfPages?: () => Promise<void>;
-  cleanupPdfPages?: () => void;
+  generatePdf?: (options: GeneratePdfOptions) => Promise<Blob>;
   onPdfExportStateChange?: (active: boolean) => void;
 };
 
@@ -87,8 +92,7 @@ const ExportModal = ({
   students,
   groups,
   isLoadingTargets,
-  preparePdfPages,
-  cleanupPdfPages,
+  generatePdf,
   onPdfExportStateChange,
 }: ExportModalProps) => {
   const showToast = useToastStore((state) => state.showToast);
@@ -108,9 +112,8 @@ const ExportModal = ({
     return () => {
       abortControllerRef.current?.abort();
       onPdfExportStateChange?.(false);
-      cleanupPdfPages?.();
     };
-  }, [cleanupPdfPages, onPdfExportStateChange]);
+  }, [onPdfExportStateChange]);
 
   const targets = targetType === "child" ? students : groups;
   const name = getName().trim() || "제목 없음";
@@ -195,9 +198,6 @@ const ExportModal = ({
     try {
       abortControllerRef.current = new AbortController();
       let userMadeId = lastSavedUserMadeId ?? documentId ?? null;
-      if (preparePdfPages) {
-        await preparePdfPages();
-      }
       if (autoSaveOnDownload && !userMadeId) {
         if (!userId) {
           showToast("로그인이 필요해요.");
@@ -212,7 +212,11 @@ const ExportModal = ({
         onSavedUserMadeId(id);
       }
       const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
-      const blob = await generatePdfFromDomPages({
+      if (!generatePdf) {
+        showToast("PDF 생성 기능을 사용할 수 없어요.");
+        return;
+      }
+      const blob = await generatePdf({
         quality: 2,
         pageIds,
         signal: abortControllerRef.current.signal,
@@ -233,7 +237,6 @@ const ExportModal = ({
       abortControllerRef.current = null;
       setPdfProgress(null);
       onPdfExportStateChange?.(false);
-      cleanupPdfPages?.();
       setIsDownloading(false);
     }
   };

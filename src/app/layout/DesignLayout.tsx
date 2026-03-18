@@ -25,8 +25,20 @@ import { useSpellCheckStore, buildCorrectionKey } from "@/features/editor/store/
 import PdfPreviewContainer from "@/features/editor/shared/PdfPreviewContainer";
 import {
   usePageSwapStore,
-  waitForHydration,
+  waitForForceHydrate,
 } from "@/features/editor/store/pageSwapStore";
+import {
+  getAdaptiveCaptureScale,
+  waitForPdfFonts,
+  waitForPdfImages,
+  waitForNextFrame,
+  doubleRaf,
+  resolvePageOrientation,
+  assemblePdf,
+  isLikelyBlankCapture,
+} from "@/features/editor/utils/userMadeExport";
+import type { PdfPageCapture } from "@/features/editor/utils/userMadeExport";
+import { measurePerf } from "@/features/editor/utils/perfLogger";
 import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
@@ -44,7 +56,7 @@ const DesignLayout = () => {
   const navigate = useNavigate();
   const { docId } = useParams<{ docId?: string }>();
   const [zoom, setZoom] = useState<number>(100);
-  const [isPdfPreviewActive, setIsPdfPreviewActive] = useState(false);
+  const [pdfBatchPages, setPdfBatchPages] = useState<Page[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
@@ -212,38 +224,126 @@ const DesignLayout = () => {
     }
   }, [recheckRequested]);
 
-  // useCallback으로 참조 안정성 보장: ExportModal의 useEffect 의존성에 포함되므로
-  // 매 렌더마다 새 참조가 생기면 cleanup이 실행되어 PdfPreviewContainer가 언마운트된다.
-  const preparePdfPages = useCallback(async () => {
-    flushSync(() => {
-      setIsPdfPreviewActive(true);
-    });
-    usePageSwapStore.getState().setPdfPreviewActive(true);
+  const PDF_BATCH_SIZE = 5;
 
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          resolve();
-        });
-      });
-    });
+  // 전체 하이드레이션 → 배치별 렌더/캡처 → PDF 조립까지 수행하고 Blob을 반환한다.
+  const generatePdf = useCallback(async ({
+    quality = 2,
+    pageIds,
+    onProgress,
+    signal,
+  }: {
+    quality?: number;
+    pageIds?: string[];
+    onProgress?: (progress: { current: number; total: number }) => void;
+    signal?: AbortSignal;
+  }): Promise<Blob> => {
+    return measurePerf("pdf.generate.total", async () => {
+      // Phase 1: 전체 페이지 하이드레이션 (스왑된 페이지를 IndexedDB에서 복원)
+      usePageSwapStore.getState().setPdfPreviewActive(true);
+      const forceId = usePageSwapStore.getState().requestForceHydrate();
+      const allPages = (getCanvasData() as { pages?: Page[] }).pages ?? [];
+      const dynamicTimeout = Math.max(10_000, 5_000 + allPages.length * 500);
+      await waitForForceHydrate(forceId, dynamicTimeout);
 
-    const requestId = usePageSwapStore.getState().requestHydration();
-    await waitForHydration(requestId);
+      // Phase 2: 하이드레이션 후 최신 페이지 읽기 + 필터
+      const hydratedPages = ((getCanvasData() as { pages?: Page[] }).pages ?? []).filter(
+        (p) => !pageIds || pageIds.length === 0 || pageIds.includes(p.id),
+      );
+      if (hydratedPages.length === 0) {
+        usePageSwapStore.getState().setPdfPreviewActive(false);
+        throw new Error("No pages to export");
+      }
+      if (signal?.aborted) {
+        usePageSwapStore.getState().setPdfPreviewActive(false);
+        throw new DOMException("PDF generation aborted", "AbortError");
+      }
+      onProgress?.({ current: 0, total: hydratedPages.length });
 
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          resolve();
-        });
-      });
-    });
-  }, []);
+      // Phase 3: 라이브러리 로드
+      const [htmlToImage, { jsPDF }] = await Promise.all([
+        import("html-to-image"),
+        import("jspdf"),
+      ]);
 
-  const cleanupPdfPages = useCallback(() => {
-    setIsPdfPreviewActive(false);
-    usePageSwapStore.getState().setPdfPreviewActive(false);
-  }, []);
+      // Phase 4: 배치별 렌더 + 캡처
+      const captures: PdfPageCapture[] = [];
+      let fontLoaded = false;
+
+      try {
+        for (let batchStart = 0; batchStart < hydratedPages.length; batchStart += PDF_BATCH_SIZE) {
+          if (signal?.aborted) {
+            throw new DOMException("PDF generation aborted", "AbortError");
+          }
+
+          const batch = hydratedPages.slice(batchStart, batchStart + PDF_BATCH_SIZE);
+
+          // 배치 마운트
+          flushSync(() => { setPdfBatchPages(batch); });
+          await doubleRaf();
+
+          const pageElements = Array.from(
+            document.querySelectorAll<HTMLElement>(".pdf-page"),
+          );
+
+          // 첫 배치에서만 폰트 로드
+          if (!fontLoaded && pageElements.length > 0) {
+            await waitForPdfFonts(pageElements);
+            fontLoaded = true;
+          }
+
+          for (const pageEl of pageElements) {
+            if (signal?.aborted) {
+              throw new DOMException("PDF generation aborted", "AbortError");
+            }
+
+            await waitForPdfImages(pageEl);
+            await waitForNextFrame();
+
+            const rect = pageEl.getBoundingClientRect();
+            const width = Math.ceil(pageEl.offsetWidth || rect.width);
+            const height = Math.ceil(pageEl.offsetHeight || rect.height);
+            const adaptiveScale = getAdaptiveCaptureScale({
+              requestedQuality: quality,
+              width,
+              height,
+            });
+
+            const dataUrl = await htmlToImage.toJpeg(pageEl, {
+              pixelRatio: adaptiveScale,
+              backgroundColor: "#ffffff",
+              skipFonts: false,
+              fetchRequestInit: { cache: "force-cache" },
+            });
+
+            if (isLikelyBlankCapture(dataUrl)) {
+              console.warn(
+                `[PDF] 빈 페이지 의심: pageId=${pageEl.dataset.pageId}, size=${dataUrl.length}`,
+              );
+            }
+
+            const orientation = resolvePageOrientation(pageEl);
+            captures.push({ dataUrl, orientation });
+          }
+
+          onProgress?.({
+            current: Math.min(batchStart + batch.length, hydratedPages.length),
+            total: hydratedPages.length,
+          });
+
+          // 배치 간 이벤트 루프 양보
+          await new Promise<void>((r) => { setTimeout(r, 0); });
+        }
+
+        // Phase 5: PDF 조립
+        return assemblePdf(captures, jsPDF);
+      } finally {
+        // Cleanup: 배치 페이지 언마운트 + PDF 프리뷰 비활성화
+        flushSync(() => { setPdfBatchPages([]); });
+        usePageSwapStore.getState().setPdfPreviewActive(false);
+      }
+    }, { quality, requestedPageCount: pageIds?.length ?? 0 });
+  }, [getCanvasData]);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
@@ -574,15 +674,14 @@ const DesignLayout = () => {
             students={students}
             groups={groups}
             isLoadingTargets={isLoadingTargets}
-            preparePdfPages={preparePdfPages}
-            cleanupPdfPages={cleanupPdfPages}
+            generatePdf={generatePdf}
             onPdfExportStateChange={setPdfExporting}
           />
         </Suspense>
       )}
-      {isPdfPreviewActive && (
+      {pdfBatchPages.length > 0 && (
         <PdfPreviewContainer
-          pages={getCanvasData().pages ?? []}
+          pages={pdfBatchPages}
           fallbackOrientation={effectiveOrientation}
         />
       )}
