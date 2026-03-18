@@ -75,6 +75,7 @@ export interface OutletContext {
   docId?: string;
   docName: string;
   setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
+  onNetworkError: () => void;
   setRetryAutoSave: (retryFn: () => void) => void;
   setManualSave: (saveFn: () => void) => void;
 }
@@ -91,6 +92,7 @@ const MainSection = () => {
     docId,
     docName,
     setAutoSaveState,
+    onNetworkError,
     setRetryAutoSave,
     setManualSave,
   } = useOutletContext<OutletContext>();
@@ -157,6 +159,7 @@ const MainSection = () => {
     docId,
     docName,
     onSaveStateChange: setAutoSaveState,
+    onNetworkError,
     isDataLoaded,
   });
 

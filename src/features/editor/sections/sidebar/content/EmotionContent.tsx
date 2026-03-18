@@ -7,12 +7,14 @@ import {
   Image,
   PenLine,
   Search,
+  Smile,
   User,
 } from "lucide-react";
 import { useState, type DragEvent as ReactDragEvent } from "react";
 import type { ReactNode } from "react";
 import { useEmotionPhotos } from "../hooks/useEmotionPhotos";
 import { useEmotionEmojis, type EmotionEmoji } from "../hooks/useEmotionEmojis";
+import { useEmotionStickers } from "../hooks/useEmotionStickers";
 import { useEmotionContentState } from "../hooks/useEmotionContentState";
 
 const normalizeQuery = (value: string) => value.trim().toLowerCase();
@@ -229,7 +231,7 @@ const EmotionContentArea = ({
   onSelectEmotion: (url: string, label: string) => void;
 }) => {
   const [selectedType, setSelectedType] = useState<
-    "photo" | "drawing" | "line"
+    "photo" | "drawing" | "line" | "lineEmoji"
   >("photo");
 
   return (
@@ -247,11 +249,18 @@ const EmotionContentArea = ({
           icon={Image}
           label="그림"
         />
-        <TypeButton
+        {/* 선그림 임시 비활성화 */}
+        {/* <TypeButton
           isActive={selectedType === "line"}
           onClick={() => { setSelectedType("line"); }}
           icon={PenLine}
           label="선그림"
+        /> */}
+        <TypeButton
+          isActive={selectedType === "lineEmoji"}
+          onClick={() => { setSelectedType("lineEmoji"); }}
+          icon={Smile}
+          label="이모지"
         />
       </div>
 
@@ -262,7 +271,11 @@ const EmotionContentArea = ({
         {selectedType === "drawing" && (
           <DrawingEmotionContent onSelectEmotion={onSelectEmotion} />
         )}
-        {selectedType === "line" && <ComingSoon />}
+        {/* 선그림 임시 비활성화 */}
+        {/* {selectedType === "line" && <ComingSoon />} */}
+        {selectedType === "lineEmoji" && (
+          <LineEmojiEmotionContent onSelectEmotion={onSelectEmotion} />
+        )}
       </div>
     </div>
   );
@@ -338,6 +351,36 @@ const DrawingEmotionContent = ({
 
   const query = normalizeQuery(searchTerm);
   const filteredEmotions = (allEmotionEmojis ?? []).filter((emotion) =>
+    matchesQuery(emotion.label, query)
+  );
+
+  return (
+    <div className="flex flex-col w-full h-full gap-3">
+      <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
+          불러오는 중입니다
+        </div>
+      ) : (
+        <EmotionList
+          emotions={filteredEmotions}
+          onSelectEmotion={onSelectEmotion}
+        />
+      )}
+    </div>
+  );
+};
+
+const LineEmojiEmotionContent = ({
+  onSelectEmotion,
+}: {
+  onSelectEmotion: (url: string, label: string) => void;
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: allStickers, isLoading } = useEmotionStickers();
+
+  const query = normalizeQuery(searchTerm);
+  const filteredEmotions = (allStickers ?? []).filter((emotion) =>
     matchesQuery(emotion.label, query)
   );
 

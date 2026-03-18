@@ -74,7 +74,7 @@ export const usePageSwapStore = create<PageSwapState>((set, get) => ({
 // 조건 미충족 시 구독이 영원히 유지되는 것을 방지하기 위한 안전 타임아웃
 const HYDRATION_TIMEOUT_MS = 10_000;
 
-export const waitForForceHydrate = (requestId: number) =>
+export const waitForForceHydrate = (requestId: number, timeoutMs = HYDRATION_TIMEOUT_MS) =>
   new Promise<void>((resolve) => {
     const current = usePageSwapStore.getState().forceHydrateReadyId;
     if (current >= requestId) {
@@ -93,7 +93,7 @@ export const waitForForceHydrate = (requestId: number) =>
       }
       resolve();
     };
-    const timer = setTimeout(() => { timedOut = true; settle(); }, HYDRATION_TIMEOUT_MS);
+    const timer = setTimeout(() => { timedOut = true; settle(); }, timeoutMs);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
       if (state.forceHydrateReadyId >= requestId) {
         settle();
@@ -101,7 +101,7 @@ export const waitForForceHydrate = (requestId: number) =>
     });
   });
 
-export const waitForHydration = (requestId: number) =>
+export const waitForHydration = (requestId: number, timeoutMs = HYDRATION_TIMEOUT_MS) =>
   new Promise<void>((resolve) => {
     const current = usePageSwapStore.getState().hydrationReadyId;
     if (current >= requestId) {
@@ -120,7 +120,7 @@ export const waitForHydration = (requestId: number) =>
       }
       resolve();
     };
-    const timer = setTimeout(() => { timedOut = true; settle(); }, HYDRATION_TIMEOUT_MS);
+    const timer = setTimeout(() => { timedOut = true; settle(); }, timeoutMs);
     const unsubscribe = usePageSwapStore.subscribe((state) => {
       if (state.hydrationReadyId >= requestId) {
         settle();

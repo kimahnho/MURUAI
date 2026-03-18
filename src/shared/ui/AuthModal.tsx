@@ -199,7 +199,8 @@ const AuthModal = () => {
 
           {/* 이메일 로그인 폼 */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {!isLoginMode && (
+            {/* 이메일 회원가입 임시 비활성화 */}
+            {/* {!isLoginMode && (
               <input
                 type="text"
                 placeholder="이름"
@@ -209,7 +210,7 @@ const AuthModal = () => {
                 className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
                 required
               />
-            )}
+            )} */}
             <input
               type="email"
               placeholder="이메일"
@@ -248,12 +249,12 @@ const AuthModal = () => {
                   : "bg-primary hover:bg-primary-700 cursor-pointer"
               }`}
             >
-              {isLoginMode ? "로그인" : "회원가입"}
+              로그인
             </button>
           </form>
 
-          {/* 모드 전환 */}
-          <div className="text-center text-14-regular text-black-60">
+          {/* 이메일 회원가입 임시 비활성화 */}
+          {/* <div className="text-center text-14-regular text-black-60">
             {isLoginMode ? "계정이 없으신가요? " : "이미 계정이 있으신가요? "}
             <button
               type="button"
@@ -262,7 +263,7 @@ const AuthModal = () => {
             >
               {isLoginMode ? "회원가입" : "로그인"}
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ type AutoSaveParams = {
   docId?: string | null;
   docName: string;
   onSaveStateChange?: (state: SaveState | null) => void;
+  onNetworkError?: () => void;
   isDataLoaded?: boolean;
 };
 
@@ -28,6 +29,7 @@ export const useAutoSave = ({
   docId,
   docName,
   onSaveStateChange,
+  onNetworkError,
   isDataLoaded = true,
 }: AutoSaveParams) => {
   const isDev = import.meta.env.DEV;
@@ -170,8 +172,18 @@ export const useAutoSave = ({
       } catch (error) {
         if (myRevision !== clientRevisionRef.current) return;
 
+        const isNetworkError =
+          error instanceof TypeError &&
+          error.message === "Failed to fetch";
+
         console.error("Save failed:", error);
-        captureSentryError(error, "자동 저장");
+
+        if (isNetworkError) {
+          onNetworkError?.();
+        } else {
+          captureSentryError(error, "자동 저장");
+        }
+
         if (isManual) {
           setSaveState("error");
           emitSaveState("error");
