@@ -31,6 +31,38 @@ replaysSessionSampleRate:   isProd ? 0.03 : 1.0   // 세션 리플레이
 replaysOnErrorSampleRate:   isProd ? 0.3  : 1.0   // 에러 시 리플레이
 ```
 
+### 에러 캡처 헬퍼 (`captureSentryError`)
+
+Supabase 에러 객체는 `Error` 인스턴스가 아닌 일반 객체(`{ code, details, hint, message }`)라 `Sentry.captureException`에 직접 넘기면 스택 트레이스가 생성되지 않는다.
+
+```typescript
+// ✅ 올바른 방식: captureSentryError 헬퍼 사용
+import { captureSentryError } from "@/shared/utils/sentryUtils";
+captureSentryError(error, "한국어 컨텍스트");
+
+// ❌ 금지: Sentry.captureException 직접 호출 (Supabase 에러 시 Object 경고)
+Sentry.captureException(supabaseError);
+```
+
+- 모든 catch 블록에서 `captureSentryError(error, "컨텍스트")` 사용
+- 컨텍스트는 한국어로 작성 (예: `"MyDocPage 문서 삭제"`, `"자동 저장"`)
+- `Sentry.captureException` 직접 사용은 `initSentry.ts`, `AuthProvider.tsx`, `AppRouterProvider.tsx`에서만 허용
+
+### 네트워크 에러 처리
+
+```typescript
+// 자동 저장 catch에서 Failed to fetch 감지 시 Sentry 스킵
+const isNetworkError = error instanceof TypeError && error.message === "Failed to fetch";
+if (isNetworkError) {
+  onNetworkError?.();  // 오프라인 배너 표시
+} else {
+  captureSentryError(error, "자동 저장");
+}
+```
+
+- `Failed to fetch`는 사용자 네트워크 문제 → Sentry 전송 불필요
+- 에디터 상단에 오프라인 배너 표시, 브라우저 `online` 이벤트로 자동 사라짐
+
 ### 소스맵
 - `@sentry/vite-plugin`이 빌드 시 소스맵 업로드 → 업로드 후 삭제
 - Release: `SENTRY_RELEASE` → `VERCEL_GIT_COMMIT_SHA` → `VITE_SENTRY_RELEASE` 우선순위
@@ -141,6 +173,23 @@ mixpanel.track("이벤트명");
 3. 이 지침 파일의 이벤트 목록 테이블에 추가
 4. DB 추적이 필요하면 `trackEvents.ts`에도 함수 추가 (이중 추적)
 
+## 사용자 노출 에러 메시지 규칙
+
+사용자에게 표시되는 모든 에러 메시지(`showToast`, `setError`, `setErrorMessage`)는 **한국어**여야 한다.
+
+### 인증 에러 한국어화 (`useAuth.ts`)
+
+`AUTH_ERROR_MAP`으로 Supabase 에러 메시지를 한국어로 변환:
+
+| 영어 원문 | 한국어 |
+|-----------|--------|
+| `Email not confirmed` | 이메일 인증이 완료되지 않았어요. 메일함을 확인해 주세요. |
+| `Invalid login credentials` | 이메일 또는 비밀번호가 올바르지 않아요. |
+| `User already registered` | 이미 가입된 이메일이에요. |
+| `Password should be at least 6 characters` | 비밀번호는 6자 이상이어야 해요. |
+
+새 Supabase 인증 에러가 발견되면 `AUTH_ERROR_MAP`에 매핑 추가.
+
 ## Supabase DB 이벤트 추적 규칙
 
 ### 비차단 패턴 필수
@@ -212,4 +261,7 @@ esbuild: {
 | 인증 Provider | `src/shared/providers/AuthProvider.tsx` |
 | 에러 바운더리 래핑 | `src/app/providers/AppRouterProvider.tsx` |
 | 에러 폴백 UI | `src/shared/ui/ErrorFallback.tsx` |
+| Sentry 에러 캡처 헬퍼 | `src/shared/utils/sentryUtils.ts` |
+| 인증 훅 (에러 한국어화) | `src/shared/hooks/useAuth.ts` |
+| AI 템플릿 사용량 추적 | `src/features/editor/utils/aiTemplateUsage.ts` |
 | 빌드 설정 | `vite.config.ts` |
