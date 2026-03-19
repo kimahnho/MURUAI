@@ -6,6 +6,7 @@ import {
   type RefObject,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { X } from "lucide-react";
 import { useUploadContentState } from "../hooks/useUploadContentState";
 
 const setDragImageData = (
@@ -98,9 +99,16 @@ const UploadContentView = ({
             {files.map((file) => (
               <div
                 key={file.id}
-                className="flex w-full items-center justify-center rounded-lg border border-black-25 p-3"
+                className="group relative flex w-full items-center justify-center rounded-lg border border-black-25 p-3"
                 onContextMenu={(event) => { onOpenContextMenu(event, file.id); }}
               >
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDeleteUpload(file.id); }}
+                  className="absolute top-1 right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black-80 text-white-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
                 <img
                   src={file.url}
                   alt="Uploaded"
@@ -132,7 +140,7 @@ const UploadContentView = ({
           <button
             type="button"
             className="flex w-full items-center justify-start px-3 py-2 text-14-regular text-black-90 hover:bg-black-10"
-            onClick={() => { onDeleteUpload(contextMenu.id); }}
+            onClick={() => { onDeleteUpload(contextMenu.id); onCloseContextMenu(); }}
           >
             삭제하기
           </button>

@@ -91,10 +91,13 @@ export const useUploadContentState = () => {
   };
 
   const handleDeleteUpload = async (id: string) => {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return;
     const { error } = await supabase
       .from("user_uploads_n")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", authData.user.id);
     if (error) {
       showToast("삭제하지 못했어요.");
       return;
@@ -131,11 +134,6 @@ export const useUploadContentState = () => {
       x: event.clientX,
       y: event.clientY,
     });
-  };
-
-  const handleDeleteFromMenu = (id: string) => {
-    handleDeleteUpload(id);
-    setContextMenu(null);
   };
 
   const handleSelectImage = (url: string) => {
@@ -175,7 +173,7 @@ export const useUploadContentState = () => {
     onFileChange: handleFileChange,
     onOpenContextMenu: handleOpenContextMenu,
     onCloseContextMenu: () => { setContextMenu(null); },
-    onDeleteUpload: handleDeleteFromMenu,
+    onDeleteUpload: handleDeleteUpload,
     onSelectImage: handleSelectImage,
   };
 };
