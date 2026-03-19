@@ -318,13 +318,7 @@ export const useDesignPaperKeyboard = ({
         }
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
-        const clipboard = getClipboard();
-        if (clipboard && clipboard.length > 0) {
-          event.preventDefault();
-          pasteElements();
-        }
-      }
+      // Ctrl+V: paste 이벤트 핸들러(useDesignPaperPaste)에서 마커 기반으로 통합 처리
 
       if (
         event.key === "Tab" &&

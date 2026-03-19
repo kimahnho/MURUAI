@@ -331,6 +331,7 @@ const DesignPaper = ({
     onEditingTextIdChange,
     containerRef,
     lastPointerRef,
+    pasteElements,
   });
 
   const { getRenderableRect, getTargetRects } = usePaperRects({

@@ -46,6 +46,16 @@ const nextGroupId = groupIdMap.get(element.groupId) ?? element.groupId;
 
 요소 복사(`copySelectedElements`) 시 에디터 토스트 "요소가 복사되었습니다" 표시 (`useToastStore`).
 
+## 시스템 클립보드 마커 (`CLIPBOARD_MARKER`)
+
+앱 내부 요소 복사와 외부 텍스트 복사를 구분하기 위한 마커 패턴:
+- 앱 내부 복사 시 `navigator.clipboard.writeText(CLIPBOARD_MARKER)` 호출 → 시스템 클립보드에 마커 기록
+- Ctrl+V → 브라우저 `paste` 이벤트 발생 → `useDesignPaperPaste`에서 통합 처리
+  - `clipboardData` 텍스트가 마커 → `pasteElements()` (sessionStorage에서 요소 복원)
+  - 마커가 아닌 텍스트 → TextBox 자동 생성 ("본문 추가" 스타일: fontSize 14, center/middle)
+- **`useDesignPaperKeyboard`의 Ctrl+V에서는 요소 붙여넣기를 하지 않음** — `paste` 이벤트로 위임
+- 마커 상수: `CLIPBOARD_MARKER = "__MURU_COPIED_ELEMENTS__"` (`useDesignPaperClipboard.ts`에서 export)
+
 ## 페이지 잘라내기 (`cutPageData`)
 
 - Ctrl+X: 페이지 **데이터 자체**를 `cutPageData`에 JSON 직렬화하여 저장 → 페이지 삭제
