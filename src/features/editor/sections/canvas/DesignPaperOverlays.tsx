@@ -17,12 +17,13 @@ export const SelectionRectOverlay = ({
   if (!selectionRect) return null;
   return (
     <div
-      className="absolute z-40 border border-primary-400 bg-primary-100 pointer-events-none"
+      className="absolute z-40 border border-primary-400 pointer-events-none"
       style={{
         left: selectionRect.x,
         top: selectionRect.y,
         width: selectionRect.width,
         height: selectionRect.height,
+        backgroundColor: "rgba(237, 233, 254, 0.3)",
       }}
     />
   );
