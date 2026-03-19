@@ -59,6 +59,7 @@ const nextGroupId = groupIdMap.get(element.groupId) ?? element.groupId;
 2. **텍스트 paste 시 `widthMode` + `lockHeight` 확인 필수** — 잘못된 재측정 방지
 3. **같은 페이지 판단은 `copiedElementsMeta.pageId`로** — 현재 활성 페이지와 비교
 4. **페이지 잘라내기는 ID가 아닌 데이터 저장 필수** — 삭제 후 ID로는 페이지를 찾을 수 없음
+5. **요소 Ctrl+X는 `selectedIdsRef.current` 사용 필수** — `deleteSelectedElements()`는 props `selectedIds`를 참조하여 `useEffect` 클로저 내에서 stale 값 문제 발생. `onDeleteElements([...selectedIdsRef.current])`로 최신 ID 직접 전달
 
 ## 관련 파일
 

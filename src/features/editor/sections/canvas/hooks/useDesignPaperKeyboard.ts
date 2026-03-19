@@ -310,7 +310,12 @@ export const useDesignPaperKeyboard = ({
         if (selectedIdsRef.current.length === 0) return;
         event.preventDefault();
         copySelectedElements();
-        deleteSelectedElements();
+        const currentIds = [...selectedIdsRef.current];
+        if (onDeleteElements) {
+          onDeleteElements(currentIds);
+        } else {
+          deleteSelectedElements();
+        }
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key === "v") {
