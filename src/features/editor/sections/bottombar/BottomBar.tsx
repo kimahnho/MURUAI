@@ -571,7 +571,7 @@ const BottomBar = ({
   const isSelectedLastPage =
     pages.length > 0 && pages[pages.length - 1]?.id === selectedPageId;
 
-  const { containerRef, listRef } = useBottomBarScroll({
+  const { containerRef, listRef, suppressNextScroll } = useBottomBarScroll({
     pagesLength: pages.length,
     selectedPageId,
     selectedItemIndex,
@@ -706,9 +706,11 @@ const BottomBar = ({
   const pagesRef = useRef(pages);
   const onSelectPageRef = useRef(onSelectPage);
   const onPastePagesRef = useRef(onPastePages);
+  const onDeletePageRef = useRef(onDeletePage);
   useEffect(() => { pagesRef.current = pages; }, [pages]);
   useEffect(() => { onSelectPageRef.current = onSelectPage; }, [onSelectPage]);
   useEffect(() => { onPastePagesRef.current = onPastePages; }, [onPastePages]);
+  useEffect(() => { onDeletePageRef.current = onDeletePage; }, [onDeletePage]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -738,9 +740,30 @@ const BottomBar = ({
         return;
       }
 
+      // Ctrl+X: 페이지 데이터를 저장한 뒤 삭제 (잘라내기)
+      if ((event.ctrlKey || event.metaKey) && event.key === "x") {
+        const ids = currentSelectedPageIds.length > 0 ? currentSelectedPageIds : [currentSelectedPageId];
+        const pagesToCut = ids
+          .map((id) => currentPages.find((p) => p.id === id))
+          .filter(Boolean);
+        if (pagesToCut.length === 0) return;
+        try {
+          sessionStorage.setItem("cutPageData", JSON.stringify(pagesToCut));
+          sessionStorage.removeItem("copiedPageIds");
+        } catch {
+          // 저장소 접근 실패는 무시
+        }
+        for (const id of ids) {
+          onDeletePageRef.current(id);
+        }
+        event.preventDefault();
+        return;
+      }
+
       // Ctrl+V: 현재 페이지 직후에 복사된 페이지들 붙여넣기
       if ((event.ctrlKey || event.metaKey) && event.key === "v") {
         event.preventDefault();
+        suppressNextScroll();
         onPastePagesRef.current(currentSelectedPageId);
         return;
       }
@@ -843,7 +866,10 @@ const BottomBar = ({
       <PageContextMenu
         contextMenu={contextMenu}
         onCopyPage={onCopyPage}
-        onPastePage={onPastePage}
+        onPastePage={(pageId) => {
+          suppressNextScroll();
+          onPastePage(pageId);
+        }}
         onDeletePage={onDeletePage}
         onClose={() => {
           setContextMenu(null);
