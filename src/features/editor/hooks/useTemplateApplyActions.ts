@@ -26,6 +26,7 @@ type AddTemplatePage = (args: {
   templateId: TemplateId;
   fallbackOrientation: "horizontal" | "vertical";
   setPages: Dispatch<SetStateAction<Page[]>>;
+  afterPageId?: string;
 }) => { id: string; orientation: "horizontal" | "vertical" };
 
 type TemplateApplyActionsParams = {
@@ -119,6 +120,7 @@ export const useTemplateApplyActions = ({
       templateId,
       fallbackOrientation: orientationRef.current,
       setPages,
+      afterPageId: selectedPageIdRef.current,
     });
     setActivePage(newPage.id, newPage.orientation);
     setTemplateChoiceDialog(null);

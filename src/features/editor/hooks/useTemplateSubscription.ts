@@ -18,6 +18,7 @@ type AddTemplatePage = (args: {
   templateId: TemplateId;
   fallbackOrientation: "horizontal" | "vertical";
   setPages: Dispatch<SetStateAction<Page[]>>;
+  afterPageId?: string;
 }) => { id: string; orientation: "horizontal" | "vertical" };
 
 type AddSelectedTemplatePages = (args: {
@@ -108,6 +109,7 @@ export const useTemplateSubscription = ({
           templateId: state.selectedTemplate,
           fallbackOrientation: orientationRef.current,
           setPages,
+          afterPageId: selectedPageIdRef.current,
         });
       }
 
