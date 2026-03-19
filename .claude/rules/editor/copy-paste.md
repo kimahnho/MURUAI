@@ -10,7 +10,9 @@
 |-----|-----|------|
 | `"copiedElements"` | JSON `CanvasElement[]` | 요소 클립보드 |
 | `"copiedElementsMeta"` | JSON `{ pageId }` | 복사 출처 페이지 |
-| `"copiedPageId"` | `string` | 페이지 단위 복사 |
+| `"copiedPageId"` | `string` | 페이지 단위 복사 (단일) |
+| `"copiedPageIds"` | JSON `string[]` | 페이지 다중 복사 |
+| `"cutPageData"` | JSON `Page[]` | 페이지 잘라내기 데이터 (1회 소비 후 삭제) |
 
 ## 2-pass ID 리맵 (핵심)
 
@@ -40,11 +42,23 @@ const nextGroupId = groupIdMap.get(element.groupId) ?? element.groupId;
 
 `lockHeight: true`인 텍스트 요소는 높이 재측정을 스킵하여 원본 크기 유지. 그 외 텍스트는 `measureTextBoxSize()`로 크기 재계산.
 
+## 요소 복사 토스트
+
+요소 복사(`copySelectedElements`) 시 에디터 토스트 "요소가 복사되었습니다" 표시 (`useToastStore`).
+
+## 페이지 잘라내기 (`cutPageData`)
+
+- Ctrl+X: 페이지 **데이터 자체**를 `cutPageData`에 JSON 직렬화하여 저장 → 페이지 삭제
+- 붙여넣기 시 `cutPageData` 우선 확인 → 있으면 데이터에서 직접 복원 후 키 삭제 (1회 소비)
+- `cutPageData` 없으면 기존 `copiedPageIds` → `copiedPageId` 순서로 폴백
+- ID만 저장하면 삭제된 페이지를 `pages.find()`로 찾을 수 없으므로 데이터 직렬화 필수
+
 ## 실수 방지
 
 1. **idMap에 없는 labelId는 원본 유지** — 외부 참조를 깨뜨리지 않음
 2. **텍스트 paste 시 `widthMode` + `lockHeight` 확인 필수** — 잘못된 재측정 방지
 3. **같은 페이지 판단은 `copiedElementsMeta.pageId`로** — 현재 활성 페이지와 비교
+4. **페이지 잘라내기는 ID가 아닌 데이터 저장 필수** — 삭제 후 ID로는 페이지를 찾을 수 없음
 
 ## 관련 파일
 

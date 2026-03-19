@@ -10,7 +10,7 @@
 |------|------|
 | `buildInitialPages(doc, fallbackOrientation)` | 빈 문서 시 1페이지 생성 |
 | `applyTemplateToCurrentPage(config)` | 현재 페이지를 템플릿으로 교체 |
-| `addTemplatePage(config)` | 새 템플릿 페이지 추가 |
+| `addTemplatePage(config)` | 새 템플릿 페이지 추가 (`afterPageId`로 삽입 위치 지정) |
 | `addAacBoardPage(config)` | Legacy AAC 보드 (v1, tempId 매핑) |
 | `addAacBoardPageV2(config)` | Modern AAC 보드 (v2, `type: "aacCard"`) |
 | `addStoryBoardPage(config)` | 스토리보드 요소 |
