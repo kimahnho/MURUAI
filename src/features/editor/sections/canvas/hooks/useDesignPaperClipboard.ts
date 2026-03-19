@@ -4,6 +4,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
+import { useToastStore } from "../../../store/toastStore";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
 import { DEFAULT_TEXT_LINE_HEIGHT } from "../../../utils/designPaperUtils";
@@ -72,6 +73,7 @@ export const useDesignPaperClipboard = ({
     if (selected.length === 0) return;
     setClipboard(selected);
     mp.track("요소 복사", { element_count: selected.length });
+    useToastStore.getState().showToast("요소가 복사되었습니다");
     clearContextMenu();
   }, [elements, selectedIdsRef, setClipboard, clearContextMenu]);
 

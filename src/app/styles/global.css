@@ -483,6 +483,9 @@ input[type="color"].color-input::-moz-color-swatch {
   .hover\:bg-black-10:hover {
     background-color: var(--black-10);
   }
+  .active\:bg-black-10:active {
+    background-color: var(--black-10);
+  }
 
   /* Black Border Colors */
   .border-black-35 {
