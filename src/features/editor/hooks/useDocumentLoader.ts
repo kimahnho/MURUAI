@@ -8,6 +8,7 @@ import { mp } from "@/shared/utils/mixpanel";
 import { useOrientationStore } from "../store/orientationStore";
 import { useToastStore } from "../store/toastStore";
 import type { CanvasDocument } from "../model/pageTypes";
+import { useEmotionSceneStore } from "../store/emotionSceneStore";
 
 type DocumentLoaderParams = {
   docId?: string;
@@ -72,6 +73,24 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
       setDocName(row.name ?? "");
       setLoadedDocument(canvasData as CanvasDocument);
       setLoadedDocumentId(row.id);
+
+      // 감정추론 배너 상태 복원
+      const doc = canvasData as CanvasDocument;
+      if (doc.emotionSceneMeta?.length) {
+        const store = useEmotionSceneStore.getState();
+        for (const meta of doc.emotionSceneMeta) {
+          const exists = store.pendingGenerations.some(
+            (pg) => pg.storyPageIds[0] === meta.storyPageIds[0],
+          );
+          if (!exists) {
+            store.addPendingGeneration({
+              stories: meta.stories,
+              storyPageIds: meta.storyPageIds,
+              bannerPhase: meta.bannerPhase === "generating" ? "ready" : meta.bannerPhase,
+            });
+          }
+        }
+      }
       mp.track("문서 열기", { page_count: (canvasData as CanvasDocument).pages?.length ?? 0 });
       const initialOrientation = (canvasData as CanvasDocument).pages[0]
         ?.orientation;
