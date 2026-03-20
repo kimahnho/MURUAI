@@ -195,15 +195,23 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
     const targetStories = targetPairs.map((p) => p.story);
     const targetPageIds = targetPairs.map((p) => p.pageId);
 
-    // 이미지 크레딧 체크
+    // 이미지 크레딧 체크 — 부분 생성 지원
     const creditCheck = await checkAiCredits(targetStories.length);
-    if (!creditCheck.canProceed) {
+    if (creditCheck.remaining === 0) {
       useToastStore
         .getState()
-        .showToast(
-          `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`,
-        );
+        .showToast("이미지 크레딧을 모두 사용했어요.");
       return;
+    }
+    // 크레딧이 부족하면 앞 페이지부터 크레딧만큼만 생성
+    let actualStories = targetStories;
+    let actualPageIds = targetPageIds;
+    if (creditCheck.remaining < targetStories.length) {
+      actualStories = targetStories.slice(0, creditCheck.remaining);
+      actualPageIds = targetPageIds.slice(0, creditCheck.remaining);
+      useToastStore
+        .getState()
+        .showToast(`남은 크레딧이 부족해 ${creditCheck.remaining}장만 생성돼요.`);
     }
 
     const store = useEmotionSceneStore.getState();
@@ -211,7 +219,7 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
 
     try {
       const heroImageUrls = await generateEmotionSceneImages(
-        targetStories,
+        actualStories,
         imageStyle,
         (current, total) => {
           useEmotionSceneStore.getState().setGeneratingProgress({
@@ -222,7 +230,7 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
       );
 
       const urlMap = new Map<string, string>();
-      targetPageIds.forEach((pageId, index) => {
+      actualPageIds.forEach((pageId, index) => {
         if (heroImageUrls[index]) {
           urlMap.set(pageId, heroImageUrls[index]);
         }
@@ -231,7 +239,7 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
       useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
 
       const groupFirstUrls = new Map<number, string>();
-      const meta = targetStories.map((story, i) => {
+      const meta = actualStories.map((story, i) => {
         const isFirst = !groupFirstUrls.has(story.sceneGroup);
         if (isFirst && heroImageUrls[i]) {
           groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
@@ -248,12 +256,12 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
       useEmotionSceneStore.getState().setGenerationMeta(meta);
       useEmotionSceneStore.getState().setBannerPhase(originalIds, "completed");
 
-      // 이미지 크레딧 차감 (성공 후)
-      void recordAiCreditUsage("emotion", targetStories.length);
+      // 이미지 크레딧 차감 (성공 후, 실제 생성 수만큼)
+      void recordAiCreditUsage("emotion", actualStories.length);
 
       mp.track("AI 장면 이미지 생성", {
         image_style: imageStyle,
-        page_count: targetStories.length,
+        page_count: actualStories.length,
       });
     } catch (error) {
       captureSentryError(error, "AI 장면 이미지 생성");

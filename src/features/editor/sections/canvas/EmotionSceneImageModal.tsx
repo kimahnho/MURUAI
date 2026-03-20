@@ -95,24 +95,30 @@ const EmotionSceneImageModal = ({
       }
     });
 
-    // 이미지 크레딧 체크
+    // 이미지 크레딧 체크 — 부분 재생성 지원
     const creditCheck = await checkAiCredits(selectedEntries.length);
-    if (!creditCheck.canProceed) {
+    if (creditCheck.remaining === 0) {
       useToastStore
         .getState()
-        .showToast(
-          `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`,
-        );
+        .showToast("이미지 크레딧을 모두 사용했어요.");
       return;
+    }
+    // 크레딧이 부족하면 앞 페이지부터 크레딧만큼만 재생성
+    let actualEntries = selectedEntries;
+    if (creditCheck.remaining < selectedEntries.length) {
+      actualEntries = selectedEntries.slice(0, creditCheck.remaining);
+      useToastStore
+        .getState()
+        .showToast(`남은 크레딧이 부족해 ${creditCheck.remaining}장만 재생성돼요.`);
     }
 
     setIsGenerating(true);
     setProgress(null);
 
     try {
-      const selectedStories = selectedEntries.map((e) => e.story);
+      const actualStories = actualEntries.map((e) => e.story);
       const heroImageUrls = await generateEmotionSceneImages(
-        selectedStories,
+        actualStories,
         imageStyle,
         (current, total) => {
           setProgress({ current, total });
@@ -121,7 +127,7 @@ const EmotionSceneImageModal = ({
 
       // pageId → URL 매핑 생성
       const urlMap = new Map<string, string>();
-      selectedEntries.forEach((entry, i) => {
+      actualEntries.forEach((entry, i) => {
         if (heroImageUrls[i]) {
           urlMap.set(entry.pageId, heroImageUrls[i]);
         }
@@ -131,7 +137,7 @@ const EmotionSceneImageModal = ({
 
       // 재생성용 메타데이터 저장
       const groupFirstUrls = new Map<number, string>();
-      const meta = selectedStories.map((story, i) => {
+      const meta = actualStories.map((story, i) => {
         const isFirst = !groupFirstUrls.has(story.sceneGroup);
         if (isFirst && heroImageUrls[i]) {
           groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
@@ -147,8 +153,8 @@ const EmotionSceneImageModal = ({
       });
       useEmotionSceneStore.getState().setGenerationMeta(meta);
 
-      // 이미지 크레딧 차감 (성공 후)
-      void recordAiCreditUsage("emotion", selectedStories.length);
+      // 이미지 크레딧 차감 (성공 후, 실제 재생성 수만큼)
+      void recordAiCreditUsage("emotion", actualStories.length);
 
       onComplete();
     } catch {

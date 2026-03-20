@@ -253,12 +253,15 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       if (!proposal || !formData.artStyle || !formData.childInfo) return;
       const artStyle = formData.artStyle;
 
-      // 이미지 크레딧 체크 (스토리북 = 10장)
+      // 이미지 크레딧 체크 (스토리북은 부분 생성 미지원 — 전체 또는 차단)
       const imageCount = proposal.pages.length;
       const creditCheck = await checkAiCredits(imageCount);
       if (!creditCheck.canProceed) {
-        set({ error: `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)` });
-        useToastStore.getState().showToast(`이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`);
+        const msg = creditCheck.remaining === 0
+          ? "이미지 크레딧을 모두 사용했어요."
+          : `이미지 크레딧이 부족해요. (필요: ${imageCount}크레딧, 남은: ${creditCheck.remaining}크레딧)`;
+        set({ error: msg });
+        useToastStore.getState().showToast(msg);
         return;
       }
 
