@@ -51,6 +51,9 @@ import { mp } from "@/shared/utils/mixpanel";
 const ExportModal = lazy(
   () => import("@/features/editor/shared/ExportModal"),
 );
+const CreditExhaustedModal = lazy(
+  () => import("@/features/editor/shared/CreditExhaustedModal"),
+);
 
 const DesignLayout = () => {
   const navigate = useNavigate();
@@ -685,6 +688,7 @@ const DesignLayout = () => {
           fallbackOrientation={effectiveOrientation}
         />
       )}
+      <CreditExhaustedModal />
     </div>
   );
 };

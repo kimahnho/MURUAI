@@ -27,6 +27,7 @@ import {
   checkAiCredits,
   recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
+import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
 import {
   updateStudentGender,
   createStudentFromWizard,
@@ -258,10 +259,10 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const creditCheck = await checkAiCredits(imageCount);
       if (!creditCheck.canProceed) {
         const msg = creditCheck.remaining === 0
-          ? "이미지 크레딧을 모두 사용했어요."
+          ? "이번 달 이미지 크레딧을 모두 사용했어요."
           : `이미지 크레딧이 부족해요. (필요: ${imageCount}크레딧, 남은: ${creditCheck.remaining}크레딧)`;
         set({ error: msg });
-        useToastStore.getState().showToast(msg);
+        useCreditModalStore.getState().open(msg);
         return;
       }
 
