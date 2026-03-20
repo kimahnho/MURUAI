@@ -5,8 +5,7 @@
 import { useEffect, useState } from "react";
 import { Brain, FileText, X } from "lucide-react";
 import {
-  MONTHLY_AI_TEMPLATE_LIMIT,
-  fetchMonthlyAiTemplateUsage,
+  fetchCreditBalance,
 } from "@/features/editor/utils/aiTemplateUsage";
 
 export type EmotionImageStyle = "photo-boy" | "photo-girl";
@@ -31,13 +30,13 @@ const EmotionInferenceChoiceModal = ({
 }: EmotionInferenceChoiceModalProps) => {
   const [showTopicInput, setShowTopicInput] = useState(skipChoice);
   const [topic, setTopic] = useState("");
-  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   useEffect(() => {
-    if (isOpen) void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+    if (isOpen) void fetchCreditBalance().then(setCreditBalance);
   }, [isOpen]);
 
-  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
+  const remaining = creditBalance;
 
   if (!isOpen) return null;
 

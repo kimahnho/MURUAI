@@ -1,39 +1,43 @@
 /**
  * AI 이미지 크레딧 관리 유틸.
- * ai_template_usage 테이블 기반 (image_count 컬럼으로 이미지 단위 차감).
+ * user_credits 테이블 기반 잔량 추적 (balance/total_used/refill_count).
+ * ai_template_usage 테이블은 이력 기록 전용 (잔량 계산에 미사용).
  * ai_credit_requests 테이블 기반 크레딧 추가 요청.
  * RLS로 본인 데이터만 접근 가능.
  */
 import { supabase } from "@/shared/api/supabase";
 
-/** 월간 이미지 크레딧 한도 */
+/** 기본 이미지 크레딧 한도 */
 export const MONTHLY_AI_CREDIT_LIMIT = 30;
 
 /** @deprecated MONTHLY_AI_CREDIT_LIMIT 사용 */
 export const MONTHLY_AI_TEMPLATE_LIMIT = MONTHLY_AI_CREDIT_LIMIT;
 
-// ─── 사용량 조회 ───
+// ─── 잔량 조회 (user_credits 기반) ───
 
-/** 이번 달 소진된 이미지 크레딧 수를 반환한다. (SUM(image_count)) */
-export const fetchMonthlyAiCreditUsage = async (): Promise<number> => {
-  const now = new Date();
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-  ).toISOString();
+/** 현재 크레딧 잔량을 반환한다. */
+export const fetchCreditBalance = async (): Promise<number> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return 0;
   const { data, error } = await supabase
-    .from("ai_template_usage")
-    .select("image_count")
-    .gte("created_at", monthStart);
+    .from("user_credits")
+    .select("balance")
+    .eq("user_id", userData.user.id)
+    .single();
   if (error) {
-    console.warn("ai_template_usage sum failed", error);
+    console.warn("user_credits balance query failed", error);
     return 0;
   }
-  return (data ?? []).reduce(
-    (sum, row) => sum + ((row as { image_count?: number }).image_count ?? 1),
-    0,
-  );
+  return data?.balance ?? 0;
+};
+
+/**
+ * @deprecated fetchCreditBalance 사용.
+ * 하위 호환을 위해 유지 — 잔량을 "이번 달 사용량"으로 변환.
+ */
+export const fetchMonthlyAiCreditUsage = async (): Promise<number> => {
+  const balance = await fetchCreditBalance();
+  return MONTHLY_AI_CREDIT_LIMIT - balance;
 };
 
 /** @deprecated fetchMonthlyAiCreditUsage 사용 */
@@ -45,24 +49,37 @@ export const fetchMonthlyAiTemplateUsage = fetchMonthlyAiCreditUsage;
 export const checkAiCredits = async (
   requiredCount: number,
 ): Promise<{ canProceed: boolean; used: number; remaining: number }> => {
-  const used = await fetchMonthlyAiCreditUsage();
-  const remaining = Math.max(0, MONTHLY_AI_CREDIT_LIMIT - used);
+  const remaining = await fetchCreditBalance();
+  const used = MONTHLY_AI_CREDIT_LIMIT - remaining;
   return { canProceed: remaining >= requiredCount, used, remaining };
 };
 
 // ─── 크레딧 차감 ───
 
-/** AI 이미지 생성 크레딧을 기록한다. 비차단 — 실패해도 사용자 흐름을 막지 않는다. */
+/** AI 이미지 생성 크레딧을 차감한다. use_credits RPC로 원자적 처리. */
 export const recordAiCreditUsage = async (
   type: "storybook" | "emotion",
   imageCount: number,
 ): Promise<void> => {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return;
-  const { error } = await supabase
-    .from("ai_template_usage")
-    .insert({ user_id: data.user.id, type, image_count: imageCount });
-  if (error) console.warn("ai_template_usage insert failed", error);
+  // 1) user_credits에서 원자적 차감
+  const { data: actualCount, error: rpcError } = await supabase.rpc(
+    "use_credits",
+    { count: imageCount },
+  );
+  if (rpcError) console.warn("use_credits rpc failed", rpcError);
+
+  // 2) ai_template_usage에 이력 기록 (비차단)
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user) {
+    const { error } = await supabase
+      .from("ai_template_usage")
+      .insert({
+        user_id: userData.user.id,
+        type,
+        image_count: (actualCount as number) ?? imageCount,
+      });
+    if (error) console.warn("ai_template_usage insert failed", error);
+  }
 };
 
 /** @deprecated recordAiCreditUsage 사용 */

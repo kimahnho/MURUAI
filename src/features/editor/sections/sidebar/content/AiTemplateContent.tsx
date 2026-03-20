@@ -21,7 +21,7 @@ import {
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
 import {
   MONTHLY_AI_CREDIT_LIMIT,
-  fetchMonthlyAiCreditUsage,
+  fetchCreditBalance,
   requestMoreCredits,
   hasRequestedCreditsThisMonth,
 } from "@/features/editor/utils/aiTemplateUsage";
@@ -33,16 +33,17 @@ const AiTemplateContent = () => {
   const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
   const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [hasRequested, setHasRequested] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
 
-  const remaining = monthlyUsed !== null ? MONTHLY_AI_CREDIT_LIMIT - monthlyUsed : null;
+  const remaining = creditBalance;
+  const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;
   const isQuotaExhausted = remaining !== null && remaining <= 0;
 
-  // 월간 사용량 + 요청 이력 조회
+  // 크레딧 잔량 + 요청 이력 조회
   useEffect(() => {
-    void fetchMonthlyAiCreditUsage().then(setMonthlyUsed);
+    void fetchCreditBalance().then(setCreditBalance);
     void hasRequestedCreditsThisMonth().then(setHasRequested);
   }, []);
 

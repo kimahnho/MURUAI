@@ -10,8 +10,7 @@ import { STEP_LABELS } from "../model/storybookTypes";
 import { canAdvance } from "../model/storybookValidation";
 import { useStorybookWizardStore } from "../store/useStorybookWizardStore";
 import {
-  MONTHLY_AI_CREDIT_LIMIT,
-  fetchMonthlyAiCreditUsage,
+  fetchCreditBalance,
 } from "@/features/editor/utils/aiTemplateUsage";
 import ChildInfoStep from "./steps/ChildInfoStep";
 import TopicStep from "./steps/TopicStep";
@@ -56,15 +55,15 @@ const StorybookWizard = () => {
   const fetchProposals = useStorybookWizardStore((s) => s.fetchProposals);
   const generateBook = useStorybookWizardStore((s) => s.generateBook);
 
-  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   useEffect(() => {
     if (currentStep === 45) {
-      void fetchMonthlyAiCreditUsage().then(setMonthlyUsed);
+      void fetchCreditBalance().then(setCreditBalance);
     }
   }, [currentStep]);
 
-  const remaining = monthlyUsed !== null ? MONTHLY_AI_CREDIT_LIMIT - monthlyUsed : null;
+  const remaining = creditBalance;
 
   const StepContent = STEP_COMPONENTS[currentStep];
   const isAdvanceable = canAdvance(currentStep, formData);

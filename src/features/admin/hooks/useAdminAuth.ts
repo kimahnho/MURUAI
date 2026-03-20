@@ -1,11 +1,10 @@
 /**
  * 관리자 접근 권한 확인과 인증 상태를 관리하는 훅.
+ * user_profiles 테이블의 role 기반으로 관리자 여부를 판별한다.
  */
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-
-const ADMIN_EMAIL = "admin@muruai.com";
 
 type AdminAuthStatus = "loading" | "unauthenticated" | "authorized" | "unauthorized";
 
@@ -17,11 +16,11 @@ type AdminAuthState = {
 };
 
 export const useAdminAuth = (): AdminAuthState => {
-  const { user, isLoading } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const role = useAuthStore((s) => s.role);
 
-  const isAdmin = Boolean(
-    user?.email && user.email.toLowerCase() === ADMIN_EMAIL
-  );
+  const isAdmin = role === "admin";
 
   const status: AdminAuthStatus = (() => {
     if (isLoading) return "loading";
