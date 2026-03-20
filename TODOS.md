@@ -5,7 +5,7 @@
 ### ~~Google API 키 백엔드 프록시 이동~~ ✅ 완료 (2026-03-20)
 - `getGenAI()`를 HTTP 프록시 클라이언트로 교체 → `/api/genai/text`, `/api/genai/image` 서버 라우트 경유
 - Vercel 대시보드에 `GOOGLE_API_KEY` (VITE_ 없음) 환경변수 설정 필요
-- `.env.local`에서 `VITE_GOOGLE_API_KEY` 제거는 배포 확인 후 진행
+- 로컬 개발 시 `.env.local`의 `VITE_GOOGLE_API_KEY`로 직접 호출 지원 (개발 모드 전용, 프로덕션은 프록시)
 
 ### ~~.env.local에서 Cloudinary API Secret 제거~~ ✅ 완료 (2026-03-20)
 - `VITE_CLAUDINARY_API_SECRET` 항목 삭제됨

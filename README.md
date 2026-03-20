@@ -28,7 +28,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<supabase-anon-key>
 VITE_SENTRY_DSN=<sentry-dsn>
 VITE_SENTRY_AUTH_TOKEN=<sentry-auth-token>
 VITE_MIXPANEL_TOKEN=<mixpanel-token>
-VITE_GOOGLE_AI_API_KEY=<google-ai-api-key>
+VITE_GOOGLE_API_KEY=<google-ai-api-key>  # 로컬 개발 전용 (프로덕션은 서버 프록시)
 ```
 
 ### 설치 및 실행
@@ -47,6 +47,7 @@ yarn dev
 | `yarn typecheck` | TypeScript 타입 검사만 (tsc -b --noEmit) |
 | `yarn lint` | ESLint + TypeScript 검사 |
 | `yarn preview` | 프로덕션 빌드 미리보기 |
+| `yarn generate:fonts` | CDN 폰트 레지스트리 재생성 |
 
 ## 프로젝트 구조
 
@@ -65,7 +66,10 @@ src/
       ai/           # AI 기능 (스토리 생성, 이미지 생성)
     home/           # 홈 페이지
     admin/          # 관리자 대시보드
+    storybook/      # AI 스토리북 생성기
   pages/            # 라우트 레벨 페이지
+api/                # Vercel Serverless Functions (GenAI 프록시)
+supabase/           # SQL 마이그레이션
 ```
 
 ### 의존성 규칙
