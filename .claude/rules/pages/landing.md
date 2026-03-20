@@ -50,12 +50,14 @@ NewLandingPage
 
 ## 디자인 톤
 
-웜톤 베이지/브라운 계열:
-- 배경: `from-[#FFFDF9] to-[#F9F7F2]`
-- 텍스트: `#3A332C` (진함), `#6A5D54` (중간), `#A69B8F` (연함)
-- 버튼: `bg-[#8C6D46] hover:bg-[#7A5D3A]`
-- 보더/칩: `border-[#EBE2D0]`, `bg-[#FCFAF5]`
-- 헤더 가입 버튼: `bg-[#3A332C]` (다크 브라운)
+바이올렛 프라이머리 계열 (앱 디자인 시스템 통일):
+- 배경: `from-[#FDFCFF] to-primary-50` (매우 연한 바이올렛 그라디언트)
+- 텍스트: `text-black-90` (제목), `text-black-70` (부제), `text-black-50` (보조)
+- 버튼: `bg-primary hover:bg-primary-700`
+- 보더/칩: `border-primary-200`, `bg-primary-50`
+- 뱃지: `bg-primary-100 text-primary`
+- 그림자: `rgba(124,58,237,0.08~0.14)` (바이올렛 틴트)
+- 헤더 가입 버튼: `bg-primary-800`
 
 ## 관련 파일
 
