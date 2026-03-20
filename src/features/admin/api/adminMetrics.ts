@@ -220,22 +220,13 @@ export const fetchAdminMetrics = async (
     totalQuery.not("user_id", "in", excludedFilter);
   }
 
-  const [totalResult, rpcResult, usersResult] = await Promise.all([
+  const [totalResult, rpcResult] = await Promise.all([
     totalQuery,
     supabase.rpc("admin_dashboard_metrics", {
       start_date: range.start,
       end_date: range.end,
     }),
-    supabase.rpc("admin_list_users"),
   ]);
-
-  // userId → 이름 매핑 (display_name 우선, 없으면 email)
-  const userNameMap = new Map<string, string>();
-  if (!usersResult.error && Array.isArray(usersResult.data)) {
-    for (const u of usersResult.data as Array<{ id: string; display_name: string; email: string }>) {
-      userNameMap.set(u.id, u.display_name || u.email || "");
-    }
-  }
 
   const totalAllTime = totalResult.error ? null : totalResult.count ?? null;
   const rpcMetrics = rpcResult.error
@@ -260,7 +251,7 @@ export const fetchAdminMetrics = async (
     rpcMetrics?.user_docs
       ?.map((entry) => ({
         userId: entry.user_id ?? "",
-        userName: entry.user_name ?? userNameMap.get(entry.user_id ?? "") ?? null,
+        userName: entry.user_name ?? null,
         total: entry.total ?? 0,
         docs:
           entry.docs?.map((doc) => ({
@@ -330,7 +321,7 @@ export const fetchAdminMetrics = async (
 
       const entry = userDocsMap.get(doc.user_id) ?? {
         userId: doc.user_id,
-        userName: userNameMap.get(doc.user_id) ?? null,
+        userName: null,
         total: 0,
         docs: [],
       };

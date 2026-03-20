@@ -48,6 +48,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         void trackActivityEvent("session_start", session.user.id);
       }
     }).catch(() => {
+      setUser(null);
+      setRole(null);
       setLoading(false);
     });
 

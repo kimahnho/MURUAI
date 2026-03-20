@@ -25,6 +25,7 @@ export const useAdminAuth = (): AdminAuthState => {
   const status: AdminAuthStatus = (() => {
     if (isLoading) return "loading";
     if (!user) return "unauthenticated";
+    if (role === null) return "loading";
     return isAdmin ? "authorized" : "unauthorized";
   })();
 
