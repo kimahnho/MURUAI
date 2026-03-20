@@ -17,9 +17,9 @@ NewLandingPage
 
 1. 주제 입력 → "생성하기" 클릭
 2. 텍스트 생성은 무료 — 크레딧 체크/차단 없음
-3. `fetchEmotionImageMap("photo-boy")` → `generateEmotionStory(topic)` → `buildEmotionStoryPages()`
+3. `fetchEmotionImageMap("photo-boy")` → `generateEmotionStory(topic)` → `buildEmotionStoryPages(stories, emotionImageMap, undefined, { skipFixedPages: true })`
 4. `sessionStorage("pendingAiLog")` 저장 (에디터에서 DB 로그 + 배너 등록)
-5. `createAndOpenDocument({ pages })` → 에디터 이동
+5. `createAndOpenDocument({ pages })` → 에디터 이동 — **스토리 10페이지만** (표지/목차/치료목표 제외)
 6. 이미지 크레딧은 에디터의 EmotionSceneBanner에서 "이미지 생성" 시 차감
 
 ### 비인증 사용자

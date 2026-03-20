@@ -129,23 +129,23 @@ export const buildEmotionStoryPages = (
   stories: StoryItem[],
   emotionImageMap?: Map<string, string>,
   heroImageUrls?: string[],
+  options?: { skipFixedPages?: boolean },
 ): Page[] => {
   const imageMap = emotionImageMap ?? new Map<string, string>();
 
-  // 고정 3페이지 (표지, 목차, 치료목표)
-  const fixedTemplates = [
-    emotionInferencePage1,
-    emotionInferencePage2,
-    emotionInferencePage3,
-  ];
-  const fixedPages: Page[] = fixedTemplates.map((template) => ({
-    id: crypto.randomUUID(),
-    pageNumber: 0,
-    templateId: "emotionInference" as const,
-    orientation: "vertical" as const,
-    elements: withLogoCanvasElements(instantiateTemplate(template)),
-    rev: 0,
-  }));
+  // 고정 3페이지 (표지, 목차, 치료목표) — skipFixedPages 시 생략
+  const fixedPages: Page[] = options?.skipFixedPages
+    ? []
+    : [emotionInferencePage1, emotionInferencePage2, emotionInferencePage3].map(
+        (template) => ({
+          id: crypto.randomUUID(),
+          pageNumber: 0,
+          templateId: "emotionInference" as const,
+          orientation: "vertical" as const,
+          elements: withLogoCanvasElements(instantiateTemplate(template)),
+          rev: 0,
+        }),
+      );
 
   // AI 스토리 10장 (page_4 레이아웃 × 10)
   const storyPages: Page[] = stories.map((story, index) => {

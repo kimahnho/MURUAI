@@ -53,14 +53,14 @@ const PromptHeroSection = ({
 
         {/* 헤드라인 */}
         <h1 className="text-headline-32-bold text-black-90 md:text-headline-42-bold">
-          AI로 학습자료를
-          <br />
-          손쉽게 만들어보세요
+          AI로 감정추론활동 학습자료를
+          <br className="hidden md:block" />
+          {" "}손쉽게 만들어보세요
         </h1>
 
         {/* 서브타이틀 */}
-        <p className="text-title-18-bold text-black-70 md:text-title-20-semibold">
-          주제만 입력하면 AI가 학습 자료를 자동으로 생성해요
+        <p className="text-14-regular text-black-70 md:text-title-18-bold">
+          주제만 입력하면 AI가 감정추론 활동지를 자동으로 생성해요
         </p>
 
         {/* 프롬프트 입력 카드 — 인라인 입력 + 버튼 */}
@@ -109,7 +109,7 @@ const PromptHeroSection = ({
                 AI가 만든 감정추론 활동지 예시
               </h3>
               <p className="text-14-regular text-black-70 md:text-title-16-semibold">
-                주제 하나로 13페이지 분량의 학습자료가 자동으로 완성돼요
+                주제 하나로 10페이지 분량의 학습자료가 자동으로 완성돼요
               </p>
             </div>
             <div className="relative w-full max-w-[500px] mx-auto aspect-[1/1.414] rounded-3xl overflow-hidden shadow-[0_12px_40px_-12px_rgba(124,58,237,0.10)] border border-primary-200 bg-white group hover:shadow-[0_20px_60px_-15px_rgba(124,58,237,0.14)] transition-shadow duration-500">

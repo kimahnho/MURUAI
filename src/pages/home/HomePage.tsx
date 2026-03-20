@@ -44,7 +44,7 @@ const HomePage = () => {
       const emotionImageMap = await fetchEmotionImageMap("photo-boy");
       const availableLabels = [...emotionImageMap.keys()];
       const stories = await generateEmotionStory(topic, availableLabels);
-      const pages = buildEmotionStoryPages(stories, emotionImageMap);
+      const pages = buildEmotionStoryPages(stories, emotionImageMap, undefined, { skipFixedPages: true });
 
       // 로그 데이터를 sessionStorage에 저장 — 에디터 진입 후 DB 기록 + 배너 등록
       const initialTexts = stories.map((s) => ({

@@ -22,7 +22,7 @@ const CAPABILITIES: Capability[] = [
     iconBg: "bg-primary-100 text-primary",
     title: "AI 감정추론 활동",
     description:
-      "주제를 입력하면 13페이지 감정추론 스토리를 자동 생성해요",
+      "주제를 입력하면 10페이지 감정추론 스토리를 자동 생성해요",
     badge: { label: "AI 지원", variant: "ai" },
   },
   {
