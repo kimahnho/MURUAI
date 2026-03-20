@@ -3,12 +3,21 @@
  */
 import { useEffect } from "react";
 import type { Dispatch, SetStateAction, MutableRefObject } from "react";
+import { useParams } from "react-router-dom";
+
+import { supabase } from "@/shared/api/supabase";
+import {
+  createAiGenerationLog,
+  updateAiGenerationStories,
+} from "@/shared/utils/trackAiGeneration";
+
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 import type { SideBarMenu } from "../store/sideBarStore";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
+import type { StoryItem } from "../ai/generateEmotionStory";
 import { useImageFillSubscription } from "./useImageFillSubscription";
 import { useFontSubscription } from "./useFontSubscription";
 import { useElementSubscription } from "./useElementSubscription";
@@ -149,6 +158,7 @@ export const useEditorSubscriptions = ({
   addAacBoardPage,
   addStoryBoardPage,
 }: EditorSubscriptionsParams) => {
+  const { docId } = useParams<{ docId: string }>();
   const { showEmotionInferenceToast } = useTemplateNotifications();
 
   // 대시보드에서 전달된 AI intent 소비 (마운트 시 1회)
@@ -170,6 +180,75 @@ export const useEditorSubscriptions = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 랜딩에서 전달된 AI 생성 로그를 소비하여 배너 등록 + DB 기록한다.
+  // pages가 DB에서 로드될 때까지 대기 — storyPageIds가 pages에 존재할 때만 소비.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("pendingAiLog");
+    if (!raw) return;
+
+    let parsedLog: {
+      type: string;
+      topic: string;
+      stories: StoryItem[];
+      initialTexts: { title: string; sentence: string }[];
+      storyPageIds: string[];
+      source: string;
+    };
+    try {
+      parsedLog = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem("pendingAiLog");
+      return;
+    }
+
+    // pages가 아직 로드되지 않았으면 다음 렌더에서 재시도
+    const pageIdSet = new Set(pages.map((p) => p.id));
+    const hasStoryPages = parsedLog.storyPageIds?.some((id) =>
+      pageIdSet.has(id),
+    );
+    if (!hasStoryPages) return;
+
+    // 조건 충족 — sessionStorage 소비
+    sessionStorage.removeItem("pendingAiLog");
+
+    // 이미지 생성 배너 등록 + 첫 번째 스토리 페이지로 이동
+    if (parsedLog.storyPageIds?.length > 0) {
+      useEmotionSceneStore.getState().addPendingGeneration({
+        stories: parsedLog.stories,
+        storyPageIds: parsedLog.storyPageIds,
+        bannerPhase: "ready",
+      });
+      setActivePage(parsedLog.storyPageIds[0]);
+    }
+
+    // DB 로그 기록 (비차단)
+    void (async () => {
+      try {
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        if (!userId) return;
+
+        const logId = await createAiGenerationLog(
+          userId,
+          parsedLog.type as "emotion" | "storybook",
+          parsedLog.topic,
+          parsedLog.source as "landing" | "editor",
+        );
+        if (!logId) return;
+
+        void updateAiGenerationStories(
+          logId,
+          parsedLog.stories,
+          parsedLog.initialTexts,
+          docId,
+        );
+        sessionStorage.setItem("aiGenerationLogId", logId);
+      } catch (error) {
+        console.warn("pendingAiLog 처리 실패", error);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages]);
 
   // 이미지 채우기 요청은 선택 요소 교체/신규 삽입까지 포함하므로
   // 다른 구독보다 먼저 연결해 최신 선택 상태를 기준으로 동작하게 한다.
