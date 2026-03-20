@@ -2,6 +2,7 @@
  * 프롬프트 입력 히어로 섹션 — 감정추론 활동 주제 입력 + 생성 버튼 + 미리보기.
  */
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 
 import Spinner from "@/shared/ui/Spinner";
@@ -63,42 +64,70 @@ const PromptHeroSection = ({
           주제만 입력하면 AI가 감정추론 활동지를 자동으로 생성해요
         </p>
 
-        {/* 프롬프트 입력 카드 — 인라인 입력 + 버튼 */}
-        <div className="flex w-full max-w-2xl items-center gap-2 rounded-[32px] border border-primary-200 bg-white py-2 pl-5 pr-2 shadow-[0_8px_30px_-6px_rgba(124,58,237,0.08)] md:py-3 md:pl-6 md:pr-3">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="예) 친구와 놀다가 넘어졌을 때 속상한 마음을 표현하는 활동"
-            disabled={isDisabled}
-            className="flex-1 min-w-0 border-none bg-transparent text-16-regular text-black-90 placeholder:text-black-50 focus:outline-none disabled:opacity-60 overflow-hidden text-ellipsis"
-          />
-          <button
-            type="button"
-            disabled={!prompt.trim() || isDisabled}
-            onClick={handleGenerate}
-            className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {isGenerating && <Spinner size="sm" />}
-            {isGenerating ? "생성 중..." : "생성하기"}
-          </button>
-        </div>
-
-        {/* 제안 칩 */}
-        <div className="flex flex-wrap justify-center gap-2">
-          {EXAMPLE_PROMPTS.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => setPrompt(example)}
-              disabled={isDisabled}
-              className="rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-13-bold text-primary-700 transition cursor-pointer hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* 프롬프트 입력 카드 + 생성 중 메시지 전환 */}
+        <AnimatePresence mode="wait">
+          {!isGenerating ? (
+            <motion.div
+              key="input"
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="w-full max-w-2xl overflow-hidden"
             >
-              {example}
-            </button>
-          ))}
-        </div>
+              <div className="flex w-full items-center gap-2 rounded-[32px] border border-primary-200 bg-white py-2 pl-5 pr-2 shadow-[0_8px_30px_-6px_rgba(124,58,237,0.08)] md:py-3 md:pl-6 md:pr-3">
+                <input
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="예) 친구와 놀다가 넘어졌을 때 속상한 마음을 표현하는 활동"
+                  disabled={isDisabled}
+                  className="flex-1 min-w-0 border-none bg-transparent text-16-regular text-black-90 placeholder:text-black-50 focus:outline-none disabled:opacity-60 overflow-hidden text-ellipsis"
+                />
+                <button
+                  type="button"
+                  disabled={!prompt.trim() || isDisabled}
+                  onClick={handleGenerate}
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  생성하기
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="generating"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="flex flex-col items-center gap-3"
+            >
+              <Spinner size="lg" />
+              <p className="text-title-18-bold text-primary">
+                감정추론활동 학습자료를 제작하고 있어요
+              </p>
+              <p className="text-14-regular text-black-50">
+                잠시만 기다려 주세요...
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 제안 칩 — 생성 중이면 숨김 */}
+        {!isGenerating && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {EXAMPLE_PROMPTS.map((example) => (
+              <button
+                key={example}
+                type="button"
+                onClick={() => setPrompt(example)}
+                disabled={isDisabled}
+                className="rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-13-bold text-primary-700 transition cursor-pointer hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 하단 섹션들 — 균일한 gap으로 간격 관리 */}
         <div className="flex flex-col items-center gap-12 pt-10 w-full md:gap-16 md:pt-14">
