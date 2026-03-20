@@ -4,9 +4,13 @@
 import { useCallback, type MutableRefObject } from "react";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
+import { useToastStore } from "../../../store/toastStore";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
 import { DEFAULT_TEXT_LINE_HEIGHT } from "../../../utils/designPaperUtils";
+
+// 앱 내부 요소 복사 시 시스템 클립보드에 기록하는 마커 — 외부 텍스트 복사와 구분용
+export const CLIPBOARD_MARKER = "__MURU_COPIED_ELEMENTS__";
 
 type UseDesignPaperClipboardProps = {
   pageId: string;
@@ -71,7 +75,9 @@ export const useDesignPaperClipboard = ({
     const selected = elements.filter((element) => ids.includes(element.id));
     if (selected.length === 0) return;
     setClipboard(selected);
+    navigator.clipboard.writeText(CLIPBOARD_MARKER).catch(() => {});
     mp.track("요소 복사", { element_count: selected.length });
+    useToastStore.getState().showToast("요소가 복사되었습니다");
     clearContextMenu();
   }, [elements, selectedIdsRef, setClipboard, clearContextMenu]);
 

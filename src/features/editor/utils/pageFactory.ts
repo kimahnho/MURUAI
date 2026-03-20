@@ -218,10 +218,12 @@ export const addTemplatePage = ({
   templateId,
   fallbackOrientation,
   setPages,
+  afterPageId,
 }: {
   templateId: TemplateId;
   fallbackOrientation: "horizontal" | "vertical";
   setPages: Dispatch<SetStateAction<Page[]>>;
+  afterPageId?: string;
 }) => {
   const templateDefinition = TEMPLATE_REGISTRY[templateId];
   const templates =
@@ -238,19 +240,24 @@ export const addTemplatePage = ({
   const firstPageId = crypto.randomUUID();
   setPages((prevPages) => {
     const nextPages = [...prevPages];
-    templates.forEach((template, index) => {
-      const pageId = index === 0 ? firstPageId : crypto.randomUUID();
-      nextPages.push({
-        id: pageId,
-        pageNumber: nextPages.length + 1,
-        templateId,
-        orientation: nextOrientation,
-        background: templateBackground,
-        elements: withLogoCanvasElements(
-          instantiateTemplate(template)
-        ),
-        rev: 0,
-      });
+    const foundIndex = afterPageId
+      ? nextPages.findIndex((p) => p.id === afterPageId)
+      : -1;
+    const insertAt = foundIndex >= 0 ? foundIndex + 1 : nextPages.length;
+
+    const newPages = templates.map((template, index) => ({
+      id: index === 0 ? firstPageId : crypto.randomUUID(),
+      pageNumber: 0,
+      templateId,
+      orientation: nextOrientation as "horizontal" | "vertical",
+      background: templateBackground,
+      elements: withLogoCanvasElements(instantiateTemplate(template)),
+      rev: 0,
+    }));
+
+    nextPages.splice(insertAt, 0, ...newPages);
+    nextPages.forEach((p, i) => {
+      p.pageNumber = i + 1;
     });
     return nextPages;
   });

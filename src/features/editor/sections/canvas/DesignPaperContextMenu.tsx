@@ -98,7 +98,7 @@ const Submenu = ({
             onClick={action}
             disabled={!enabled}
             className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
-              enabled ? "text-black-90 hover:bg-black-5" : "text-black-40"
+              enabled ? "text-black-90 hover:bg-black-5 active:bg-black-10" : "text-black-40"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -253,7 +253,7 @@ export const DesignPaperContextMenu = ({
           <button
             type="button"
             onClick={onCopy}
-            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
           >
             <span className="flex items-center gap-2">
               <Copy className="h-4 w-4" />
@@ -270,7 +270,7 @@ export const DesignPaperContextMenu = ({
           }}
           disabled={!canPaste}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
-            canPaste ? "text-black-90 hover:bg-black-5" : "text-black-40"
+            canPaste ? "text-black-90 hover:bg-black-5 active:bg-black-10" : "text-black-40"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -286,7 +286,7 @@ export const DesignPaperContextMenu = ({
             className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
               isGroupedSelection
                 ? "cursor-not-allowed text-black-40"
-                : "text-black-90 hover:bg-black-5"
+                : "text-black-90 hover:bg-black-5 active:bg-black-10"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -299,7 +299,7 @@ export const DesignPaperContextMenu = ({
           <button
             type="button"
             onClick={onUngroup}
-            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
           >
             <span className="flex items-center gap-2">
               <Ungroup className="h-4 w-4" />
@@ -311,7 +311,7 @@ export const DesignPaperContextMenu = ({
           <button
             type="button"
             onClick={onDelete}
-            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
           >
             <span className="flex items-center gap-2">
               <Trash2 className="h-4 w-4" />
@@ -327,7 +327,7 @@ export const DesignPaperContextMenu = ({
                 prev ? { ...prev, activeSubmenu: "table" } : prev,
               );
             }}
-            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5"
+            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
           >
             <span className="flex items-center gap-2">
               <Table className="h-4 w-4" />
@@ -344,7 +344,7 @@ export const DesignPaperContextMenu = ({
                 prev ? { ...prev, activeSubmenu: "layer" } : prev,
               );
             }}
-            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5"
+            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
           >
             <span className="flex items-center gap-2">
               <Layers className="h-4 w-4" />

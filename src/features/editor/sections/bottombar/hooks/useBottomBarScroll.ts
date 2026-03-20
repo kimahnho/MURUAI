@@ -1,7 +1,7 @@
 /**
  * 하단 페이지 바의 선택 페이지 가시성 유지를 위한 자동 스크롤을 관리하는 훅.
  */
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type UseBottomBarScrollParams = {
   pagesLength: number;
@@ -26,6 +26,11 @@ export const useBottomBarScroll = ({
   const listRef = useRef<HTMLDivElement>(null);
   const prevPageCountRef = useRef(pagesLength);
   const lastSelectedPageIdRef = useRef<string | null>(null);
+  const suppressScrollRef = useRef(false);
+
+  const suppressNextScroll = useCallback(() => {
+    suppressScrollRef.current = true;
+  }, []);
 
   const scrollToOffset = (
     offset: number,
@@ -43,21 +48,27 @@ export const useBottomBarScroll = ({
   useEffect(() => {
     const prevCount = prevPageCountRef.current;
     if (pagesLength > prevCount) {
-      const scroller = listRef.current;
-      if (scroller) {
-        if (isSelectedLastPage) {
-          // 맨 끝에 추가된 경우: 추가 버튼까지 보이도록 맨 끝으로 스크롤한다.
-          scrollToOffset(scroller.scrollWidth, "auto");
-        } else if (selectedItemIndex != null) {
-          // 중간에 삽입된 경우: 새 페이지가 뷰포트에 들어오도록 최소 이동한다.
-          const edgePadding = 16;
-          const itemRight =
-            (itemOffsets[selectedItemIndex] ?? 0) +
-            (itemWidths[selectedItemIndex] ?? 0);
-          scrollToOffset(
-            itemRight - scroller.clientWidth + edgePadding,
-            "auto",
-          );
+      if (suppressScrollRef.current) {
+        // 붙여넣기 등 스크롤 억제 요청 시 스크롤을 건너뛴다.
+        suppressScrollRef.current = false;
+        lastSelectedPageIdRef.current = selectedPageId;
+      } else {
+        const scroller = listRef.current;
+        if (scroller) {
+          if (isSelectedLastPage) {
+            // 맨 끝에 추가된 경우: 추가 버튼까지 보이도록 맨 끝으로 스크롤한다.
+            scrollToOffset(scroller.scrollWidth, "auto");
+          } else if (selectedItemIndex != null) {
+            // 중간에 삽입된 경우: 새 페이지가 뷰포트에 들어오도록 최소 이동한다.
+            const edgePadding = 16;
+            const itemRight =
+              (itemOffsets[selectedItemIndex] ?? 0) +
+              (itemWidths[selectedItemIndex] ?? 0);
+            scrollToOffset(
+              itemRight - scroller.clientWidth + edgePadding,
+              "auto",
+            );
+          }
         }
       }
     }
@@ -127,5 +138,6 @@ export const useBottomBarScroll = ({
   return {
     containerRef,
     listRef,
+    suppressNextScroll,
   };
 };

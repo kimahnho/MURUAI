@@ -13,8 +13,9 @@ import {
   DEFAULT_TEXT_LINE_HEIGHT,
   isEditableTarget,
 } from "../../../utils/designPaperUtils";
+import { CLIPBOARD_MARKER } from "./useDesignPaperClipboard";
 
-const DEFAULT_TEXT_FONT_SIZE = 24;
+const DEFAULT_TEXT_FONT_SIZE = 14;
 const PASTE_TEXT_WIDTH = 400;
 
 type UseDesignPaperPasteProps = {
@@ -26,6 +27,7 @@ type UseDesignPaperPasteProps = {
   onEditingTextIdChange?: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement | null>;
   lastPointerRef: MutableRefObject<{ x: number; y: number } | null>;
+  pasteElements: (position?: { x: number; y: number }) => void;
 };
 
 export const useDesignPaperPaste = ({
@@ -37,6 +39,7 @@ export const useDesignPaperPaste = ({
   onEditingTextIdChange,
   containerRef,
   lastPointerRef,
+  pasteElements,
 }: UseDesignPaperPasteProps) => {
   useEffect(() => {
     if (readOnly || !onElementsChange) return;
@@ -46,14 +49,14 @@ export const useDesignPaperPaste = ({
         return;
       }
 
-      const hasCopiedElements = Boolean(
-        sessionStorage.getItem("copiedElements")
-      );
-      const hasCopiedPage = Boolean(sessionStorage.getItem("copiedPageId"));
-      // 요소/페이지 전용 붙여넣기 경로와 충돌하지 않도록 텍스트 paste는 별도 조건에서만 처리한다.
-      if (hasCopiedElements || hasCopiedPage) return;
-
       const rawText = event.clipboardData?.getData("text/plain") ?? "";
+
+      // 앱 내부 요소 복사 마커 → 요소 붙여넣기
+      if (rawText === CLIPBOARD_MARKER) {
+        event.preventDefault();
+        pasteElements();
+        return;
+      }
 
       if (!rawText.trim()) {
         return;
@@ -95,8 +98,8 @@ export const useDesignPaperPaste = ({
           fontWeight: "normal",
           color: "#000000",
           underline: false,
-          alignX: "left",
-          alignY: "top",
+          alignX: "center",
+          alignY: "middle",
           lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
           letterSpacing: 0,
         },
@@ -127,5 +130,6 @@ export const useDesignPaperPaste = ({
     containerRef,
     lastPointerRef,
     selectedIdsRef,
+    pasteElements,
   ]);
 };

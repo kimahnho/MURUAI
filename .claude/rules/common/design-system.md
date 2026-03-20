@@ -215,7 +215,7 @@ useToastStore.getState().showToast("생성 완료!", "primary");
 
 ## 실수 방지
 
-1. **opacity 패턴 금지** — `bg-primary/5`, `bg-primary/10`, `hover:bg-primary/90` 대신 `bg-primary-50`, `bg-primary-100`, `hover:bg-primary-700` 사용
+1. **opacity modifier 금지** — 커스텀 컬러에 Tailwind opacity modifier(`bg-primary-100/30` 등)가 작동하지 않음. 투명도가 필요하면 인라인 `rgba()` 사용. `bg-primary/5` 등도 동일하게 금지 — `bg-primary-50`, `bg-primary-100` 등 사용
 2. **하드코딩 hex 금지** — `#5500ff`, `#7C3AED`, `#6D28D9` 등 직접 사용 금지. CSS 변수 클래스(`bg-primary`, `text-primary-700` 등) 사용
 3. **버튼 인라인 스타일 금지** — `Button` 컴포넌트 사용. 인라인 `bg-primary rounded-xl px-4 py-3` 패턴 금지
 4. **모달 직접 구현 금지** — `BaseModal` 또는 `ConfirmDialog` 사용. `fixed inset-0 z-9999` 직접 작성 금지
@@ -223,6 +223,7 @@ useToastStore.getState().showToast("생성 완료!", "primary");
 6. **에디터 전용 UI는 건드리지 않음** — `ColorPickerPopover`, `InlineFontPicker`, `SquareToolBar` 등 캔버스 인터랙션 특화 컴포넌트는 디자인 시스템 대상이 아님
 7. **토스트 에디터 전용 스토어** — `features/editor/store/toastStore.ts`는 에디터 전용. 공유 토스트는 `shared/store/useToastStore.ts` 사용
 8. **word-break 전역 적용** — `global.css`의 `:root`에 `word-break: keep-all` 전역 설정. 에디터 TextBox(`[data-textbox-content]`)에서는 `word-break: normal`로 복원. 서비스 UI 텍스트에 별도 `wordBreak` 설정 불필요
+9. **커스텀 상태 변형 등록 필수** — `hover:bg-black-*`은 `global.css`에 수동 등록됨. `active:bg-black-*` 등 새 상태 변형이 필요하면 `global.css`의 `@layer utilities`에 추가해야 동작함
 
 ## 관련 파일
 

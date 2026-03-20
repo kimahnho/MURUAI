@@ -161,39 +161,56 @@ export const usePageActions = ({
     [pages, setActivePage, setPages],
   );
 
-  // 다중 페이지 복사(Ctrl+C) 후 붙여넣기(Ctrl+V) 처리.
-  // copiedPageIds 배열을 우선 읽고, 없으면 단일 copiedPageId로 폴백한다.
+  // 다중 페이지 복사(Ctrl+C) 또는 잘라내기(Ctrl+X) 후 붙여넣기(Ctrl+V) 처리.
+  // cutPageData(잘라내기 데이터)를 우선 확인하고, 없으면 copiedPageIds로 폴백한다.
   const handlePastePages = useCallback(
     (targetPageId: string) => {
-      let copiedIds: string[] = [];
-      try {
-        const raw = sessionStorage.getItem("copiedPageIds");
-        if (raw) copiedIds = JSON.parse(raw) as string[];
-        if (copiedIds.length === 0) {
-          const single = sessionStorage.getItem("copiedPageId");
-          if (single) copiedIds = [single];
-        }
-      } catch {
-        copiedIds = [];
-      }
-      if (copiedIds.length === 0) return;
-
       const targetIndex = pages.findIndex((p) => p.id === targetPageId);
       if (targetIndex === -1) return;
 
-      const newPages = copiedIds
-        .map((id) => pages.find((p) => p.id === id))
-        .filter((p): p is Page => Boolean(p))
-        .map((sourcePage) => ({
-          id: crypto.randomUUID(),
-          pageNumber: 0,
-          templateId: sourcePage.templateId,
-          orientation: sourcePage.orientation,
-          elements: cloneElementsWithNewIds(sourcePage.elements),
-          rev: 0 as const,
-        }));
+      let sourcePages: Page[] = [];
 
-      if (newPages.length === 0) return;
+      // 잘라내기 데이터 우선 확인
+      try {
+        const cutRaw = sessionStorage.getItem("cutPageData");
+        if (cutRaw) {
+          sourcePages = JSON.parse(cutRaw) as Page[];
+          sessionStorage.removeItem("cutPageData");
+        }
+      } catch {
+        // 파싱 실패 시 무시
+      }
+
+      // 잘라내기 데이터가 없으면 복사 ID로 폴백
+      if (sourcePages.length === 0) {
+        let copiedIds: string[] = [];
+        try {
+          const raw = sessionStorage.getItem("copiedPageIds");
+          if (raw) copiedIds = JSON.parse(raw) as string[];
+          if (copiedIds.length === 0) {
+            const single = sessionStorage.getItem("copiedPageId");
+            if (single) copiedIds = [single];
+          }
+        } catch {
+          copiedIds = [];
+        }
+        if (copiedIds.length === 0) return;
+
+        sourcePages = copiedIds
+          .map((id) => pages.find((p) => p.id === id))
+          .filter((p): p is Page => Boolean(p));
+      }
+
+      if (sourcePages.length === 0) return;
+
+      const newPages = sourcePages.map((sourcePage) => ({
+        id: crypto.randomUUID(),
+        pageNumber: 0,
+        templateId: sourcePage.templateId,
+        orientation: sourcePage.orientation,
+        elements: cloneElementsWithNewIds(sourcePage.elements),
+        rev: 0 as const,
+      }));
 
       const result = [...pages];
       result.splice(targetIndex + 1, 0, ...newPages);

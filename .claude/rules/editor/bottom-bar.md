@@ -36,9 +36,15 @@ type BottomBarItem =
 
 | 키 | 동작 |
 |----|------|
-| Ctrl/Cmd+C | 선택 페이지 복사 |
-| Ctrl/Cmd+V | 활성 페이지 뒤에 붙여넣기 |
+| Ctrl/Cmd+C | 선택 페이지 복사 (`copiedPageIds` sessionStorage) |
+| Ctrl/Cmd+X | 선택 페이지 잘라내기 (페이지 데이터를 `cutPageData`에 저장 후 삭제) |
+| Ctrl/Cmd+V | 활성 페이지 뒤에 붙여넣기 (`cutPageData` 우선, `copiedPageIds` 폴백) |
 | ←/→ | 페이지 네비게이션 |
+
+## 스크롤 억제
+
+- `useBottomBarScroll`의 `suppressNextScroll()`: 페이지 붙여넣기 시 자동 스크롤을 억제
+- Ctrl+V, 컨텍스트 메뉴 붙여넣기 직전에 호출하여 하단 바 위치 유지
 
 ## 맞춤법 검사 연동
 
@@ -51,4 +57,4 @@ type BottomBarItem =
 |------|------|
 | 하단 바 | `src/features/editor/sections/bottombar/BottomBar.tsx` |
 | 드래그 훅 | `src/features/editor/sections/bottombar/useBottomBarDrag.ts` |
-| 스크롤 훅 | `src/features/editor/sections/bottombar/useBottomBarScroll.ts` |
+| 스크롤 훅 | `src/features/editor/sections/bottombar/hooks/useBottomBarScroll.ts` |
