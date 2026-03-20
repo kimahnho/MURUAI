@@ -3,8 +3,7 @@
  * 2단계 파이프라인: Phase 1에서 10장 base64를 모두 수집한 뒤,
  * Phase 2에서 일괄 Cloudinary 업로드하여 불필요한 저장을 방지한다.
  */
-// import { GoogleGenAI } from "@google/genai";
-import type { GoogleGenAI } from "@google/genai";
+import type { GenAIClient } from "@/shared/api/genai";
 
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
@@ -140,7 +139,7 @@ const loadImageAsBase64 = async (src: string): Promise<string> => {
 // ─── 한→영 번역 (10개 장면 일괄) ───
 
 const translateScenesToEnglish = async (
-  ai: GoogleGenAI,
+  ai: GenAIClient,
   scenes: string[],
 ): Promise<string[]> => {
   const prompt = `Translate each Korean scene description to concise English for an image generation prompt. Return a JSON array of strings only, no explanation.
@@ -175,7 +174,7 @@ const MAX_ANCHOR_CHAIN = 3;
 
 // 이전 장면과 현재 장면의 물리적 배경이 바뀌었는지 AI가 판단
 const shouldResetAnchor = async (
-  ai: GoogleGenAI,
+  ai: GenAIClient,
   prevScene: string,
   currentScene: string,
 ): Promise<boolean> => {
@@ -239,7 +238,7 @@ Change only:
 The character must look like a real person — same realistic style, NOT cartoon or illustrated.`;
 
 const generateSingleSceneImage = async (
-  ai: GoogleGenAI,
+  ai: GenAIClient,
   sceneDescription: string,
   referenceBase64: string,
   isReset: boolean,
