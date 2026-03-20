@@ -15,6 +15,7 @@ import {
   checkAiCredits,
   recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
+import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
 
 interface EmotionSceneImageModalProps {
   isOpen: boolean;
@@ -98,9 +99,9 @@ const EmotionSceneImageModal = ({
     // 이미지 크레딧 체크 — 부분 재생성 지원
     const creditCheck = await checkAiCredits(selectedEntries.length);
     if (creditCheck.remaining === 0) {
-      useToastStore
+      useCreditModalStore
         .getState()
-        .showToast("이미지 크레딧을 모두 사용했어요.");
+        .open("이번 달 이미지 크레딧을 모두 사용했어요.");
       return;
     }
     // 크레딧이 부족하면 앞 페이지부터 크레딧만큼만 재생성
