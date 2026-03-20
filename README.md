@@ -69,7 +69,6 @@ src/
     storybook/      # AI 스토리북 생성기
   pages/            # 라우트 레벨 페이지
 api/                # Vercel Serverless Functions (GenAI 프록시)
-supabase/           # SQL 마이그레이션
 ```
 
 ### 의존성 규칙
