@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, Search, Shield } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
@@ -91,6 +91,112 @@ const parseTargets = (value: unknown): DocTarget[] => {
 
 const DOCS_PAGE_SIZE = 24;
 
+const useIsVisible = (ref: RefObject<HTMLElement | null>) => {
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return isVisible;
+};
+
+const DocCard = ({
+  doc,
+  previewPage,
+  previewBaseWidth,
+  previewBaseHeight,
+  previewScale,
+  previewOrientation,
+  onOpen,
+}: {
+  doc: DocItem;
+  previewPage: CanvasDocument["pages"][number] | null;
+  previewBaseWidth: number;
+  previewBaseHeight: number;
+  previewScale: number;
+  previewOrientation: "vertical" | "horizontal";
+  onOpen: () => void;
+}) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isVisible = useIsVisible(cardRef);
+
+  return (
+    <div
+      ref={cardRef}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      className="group flex cursor-pointer flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left transition hover:border-primary-200 hover:shadow-sm"
+    >
+      <div className="relative aspect-3/4 w-full overflow-hidden rounded-lg bg-slate-50">
+        {isVisible && previewPage ? (
+          <div
+            className="absolute left-1/2 top-1/2"
+            style={{
+              width: `${previewBaseWidth * previewScale}px`,
+              height: `${previewBaseHeight * previewScale}px`,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div
+              style={{
+                width: `${previewBaseWidth}px`,
+                height: `${previewBaseHeight}px`,
+                transform: `scale(${previewScale})`,
+                transformOrigin: "top left",
+                pointerEvents: "none",
+              }}
+            >
+              <DesignPaper
+                pageId={`admin-${doc.id}`}
+                orientation={previewOrientation}
+                elements={previewPage.elements}
+                selectedIds={[]}
+                editingTextId={null}
+                readOnly
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-12-regular text-black-70">
+            미리보기 없음
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-1 px-1 pb-1">
+        <span className="truncate text-13-bold text-black-90">{doc.name || "제목 없음"}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-12-regular text-black-70">{formatDate(doc.created_at)}</span>
+          {doc.targets.length > 0 && (
+            <div className="flex items-center gap-1">
+              {doc.targets.slice(0, 2).map((target) => (
+                <span
+                  key={`${target.type}-${target.id}`}
+                  className={`rounded-md px-1.5 py-0.5 text-11-regular ${
+                    target.type === "child" ? "bg-primary-50 text-primary" : "bg-success-50 text-success-700"
+                  }`}
+                >
+                  {target.name}
+                </span>
+              ))}
+              {doc.targets.length > 2 && (
+                <span className="text-11-regular text-black-70">+{doc.targets.length - 2}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminUserDocsPage = () => {
   const navigate = useNavigate();
   const [docs, setDocs] = useState<DocItem[]>([]);
@@ -111,22 +217,55 @@ const AdminUserDocsPage = () => {
     const loadUsers = async () => {
       setIsUserListLoading(true);
       setErrorMessage(null);
-      const { data, error } = await supabase.rpc("admin_user_docs_overview");
-      if (error) {
+
+      const [docsResult, usersResult] = await Promise.all([
+        supabase
+          .from("user_made_n")
+          .select("user_id,created_at")
+          .is("deleted_at", null),
+        supabase.rpc("admin_list_users"),
+      ]);
+
+      if (docsResult.error) {
         setErrorMessage("유저 목록을 불러오지 못했어요.");
         setUserEntries([]);
         setIsUserListLoading(false);
         return;
       }
-      const rows = (data as UserOverviewRow[] | null) ?? [];
-      const nextEntries = rows
-        .filter((row) => row.user_id && !EXCLUDED_USER_IDS.has(row.user_id))
-        .map((row) => ({
-          userId: row.user_id,
-          userName: row.user_name ?? null,
-          total: row.total ?? 0,
-          latestCreatedAt: row.latest_created_at ?? null,
-        }));
+
+      // userId → 이름 매핑
+      const nameMap = new Map<string, string>();
+      if (!usersResult.error && Array.isArray(usersResult.data)) {
+        for (const u of usersResult.data as Array<{ id: string; display_name: string; email: string }>) {
+          nameMap.set(u.id, u.display_name || u.email || "");
+        }
+      }
+
+      // user_id별 문서 수 + 최근 생성일 집계
+      const userMap = new Map<string, { total: number; latestCreatedAt: string | null }>();
+      for (const row of (docsResult.data ?? []) as Array<{ user_id: string; created_at: string | null }>) {
+        if (!row.user_id || EXCLUDED_USER_IDS.has(row.user_id)) continue;
+        const entry = userMap.get(row.user_id) ?? { total: 0, latestCreatedAt: null };
+        entry.total += 1;
+        if (row.created_at && (!entry.latestCreatedAt || row.created_at > entry.latestCreatedAt)) {
+          entry.latestCreatedAt = row.created_at;
+        }
+        userMap.set(row.user_id, entry);
+      }
+
+      const nextEntries = Array.from(userMap.entries())
+        .map(([userId, stat]) => ({
+          userId,
+          userName: nameMap.get(userId) ?? null,
+          total: stat.total,
+          latestCreatedAt: stat.latestCreatedAt,
+        }))
+        .sort((a, b) => {
+          const aTime = a.latestCreatedAt ? new Date(a.latestCreatedAt).getTime() : 0;
+          const bTime = b.latestCreatedAt ? new Date(b.latestCreatedAt).getTime() : 0;
+          return bTime - aTime;
+        });
+
       setUserEntries(nextEntries);
       setIsUserListLoading(false);
     };
@@ -144,11 +283,14 @@ const AdminUserDocsPage = () => {
         setHasMoreDocs(false);
       }
       setIsDocsLoading(true);
-      const { data, error } = await supabase.rpc("admin_user_docs_for_user", {
-        target_user_id: userId,
-        limit_count: DOCS_PAGE_SIZE,
-        offset_count: offset,
-      });
+      const { data, error } = await supabase
+        .from("user_made_n")
+        .select("id,user_id,name,created_at,canvas_data")
+        .eq("user_id", userId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + DOCS_PAGE_SIZE - 1);
+
       if (activeUserIdRef.current !== userId) return;
       if (error) {
         setErrorMessage("학습자료 목록을 불러오지 못했어요.");
@@ -156,17 +298,45 @@ const AdminUserDocsPage = () => {
         return;
       }
       const rows = (data as UserDocRow[] | null) ?? [];
-      const nextDocs = rows
-        .filter((row) => row.user_id && !EXCLUDED_USER_IDS.has(row.user_id))
-        .map((row) => ({
-          id: row.id,
-          user_id: row.user_id,
-          name: row.name,
-          created_at: row.created_at,
-          canvas_data: row.canvas_data ?? null,
-          targets: parseTargets(row.targets),
-          canvasData: parseCanvasData(row.canvas_data),
-        }));
+
+      // targets 조회 (문서 ID 기반)
+      const docIds = rows.map((r) => r.id);
+      let targetsMap = new Map<string, DocTarget[]>();
+      if (docIds.length > 0) {
+        const { data: targetsData } = await supabase
+          .from("user_made_targets_n")
+          .select("user_made_id,child_id,group_id,students_n(id,name),groups_n(id,name)")
+          .in("user_made_id", docIds)
+          .is("deleted_at", null);
+        if (targetsData) {
+          for (const t of targetsData as Array<{
+            user_made_id: string;
+            child_id: string | null;
+            group_id: string | null;
+            students_n: { id: string; name: string } | null;
+            groups_n: { id: string; name: string } | null;
+          }>) {
+            const targets = targetsMap.get(t.user_made_id) ?? [];
+            if (t.child_id && t.students_n) {
+              targets.push({ type: "child", id: t.child_id, name: t.students_n.name });
+            }
+            if (t.group_id && t.groups_n) {
+              targets.push({ type: "group", id: t.group_id, name: t.groups_n.name });
+            }
+            targetsMap.set(t.user_made_id, targets);
+          }
+        }
+      }
+
+      const nextDocs = rows.map((row) => ({
+        id: row.id,
+        user_id: row.user_id,
+        name: row.name,
+        created_at: row.created_at,
+        canvas_data: row.canvas_data ?? null,
+        targets: targetsMap.get(row.id) ?? [],
+        canvasData: parseCanvasData(row.canvas_data),
+      }));
 
       setDocs((prev) => (append ? [...prev, ...nextDocs] : nextDocs));
       setIsDocsLoading(false);
@@ -348,7 +518,7 @@ const AdminUserDocsPage = () => {
                       }}
                       className={`flex flex-col gap-2 rounded-xl border px-3 py-3 text-left transition ${
                         activeUserId === entry.userId
-                          ? "border-indigo-200 bg-indigo-50 shadow-sm"
+                          ? "border-primary-200 bg-primary-50 shadow-sm"
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
@@ -428,7 +598,7 @@ const AdminUserDocsPage = () => {
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-              <div className="grid w-full flex-1 grid-cols-2 gap-4 overflow-y-auto md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid w-full grid-cols-2 gap-4 overflow-y-auto md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {filteredDocs.map((doc) => {
                   const previewPage = doc.canvasData?.pages?.[0];
                   const pageWidthPx = 210 * 3.7795;
@@ -447,85 +617,16 @@ const AdminUserDocsPage = () => {
                   const previewScaledWidth = previewBaseWidth * previewScale;
                   const previewScaledHeight = previewBaseHeight * previewScale;
                   return (
-                    <div
+                    <DocCard
                       key={doc.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => navigate(`/${doc.id}/edit`)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          navigate(`/${doc.id}/edit`);
-                        }
-                      }}
-                      className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md"
-                    >
-                      <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                        {previewPage ? (
-                          <div
-                            className="absolute left-1/2 top-1/2"
-                            style={{
-                              width: `${previewScaledWidth}px`,
-                              height: `${previewScaledHeight}px`,
-                              transform: "translate(-50%, -50%)",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${previewBaseWidth}px`,
-                                height: `${previewBaseHeight}px`,
-                                transform: `scale(${previewScale})`,
-                                transformOrigin: "top left",
-                                pointerEvents: "none",
-                              }}
-                            >
-                              <DesignPaper
-                                pageId={`admin-${doc.id}`}
-                                orientation={previewOrientation}
-                                elements={previewPage.elements}
-                                selectedIds={[]}
-                                editingTextId={null}
-                                readOnly
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-12-regular text-slate-400">
-                            미리보기 없음
-                          </div>
-                        )}
-                        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-slate-200/60 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-14-semibold text-slate-900">
-                          {doc.name || "제목 없음"}
-                        </span>
-                        <span className="text-12-regular text-slate-500">
-                          {formatDate(doc.created_at)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {doc.targets.length === 0 ? (
-                          <span className="rounded-full bg-amber-100 px-2 py-1 text-12-regular text-amber-700">
-                            등록 대상 없음
-                          </span>
-                        ) : (
-                          doc.targets.map((target) => (
-                            <span
-                              key={`${target.type}-${target.id}`}
-                              className={`rounded-full px-2 py-1 text-12-regular ${
-                                target.type === "child"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {target.type === "child" ? "아동" : "그룹"}:{" "}
-                              {target.name}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </div>
+                      doc={doc}
+                      previewPage={previewPage ?? null}
+                      previewBaseWidth={previewBaseWidth}
+                      previewBaseHeight={previewBaseHeight}
+                      previewScale={previewScale}
+                      previewOrientation={previewOrientation}
+                      onOpen={() => navigate(`/${doc.id}/edit`)}
+                    />
                   );
                 })}
               </div>

@@ -22,17 +22,17 @@ const DateRangeFilter = ({
 }) => {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
         {presets.map((preset) => (
           <button
             key={preset.id}
             type="button"
             onClick={() => { onPresetChange(preset.id); }}
             disabled={isLoading}
-            className={`rounded-xl px-3 py-1.5 text-12-semibold transition ${
+            className={`rounded-lg px-3 py-1.5 text-13-semibold transition ${
               range.preset === preset.id
-                ? "bg-indigo-600 text-white"
-                : "text-slate-600 hover:bg-slate-100"
+                ? "bg-primary text-white"
+                : "text-black-70 hover:bg-black-5"
             }`}
           >
             {preset.label}
@@ -47,16 +47,16 @@ const DateRangeFilter = ({
             onChange={(event) => {
               onCustomRangeChange(event.target.value, range.end);
             }}
-            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-12-regular text-slate-900"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-13-regular text-black-80"
           />
-          <span className="text-12-regular text-slate-400">~</span>
+          <span className="text-13-regular text-black-70">~</span>
           <input
             type="date"
             value={range.end}
             onChange={(event) => {
               onCustomRangeChange(range.start, event.target.value);
             }}
-            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-12-regular text-slate-900"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-13-regular text-black-80"
           />
         </div>
       )}

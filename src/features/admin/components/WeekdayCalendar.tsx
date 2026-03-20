@@ -72,7 +72,7 @@ const WeekdayCalendar = ({
 }) => {
   if (isLoading && data.length === 0) {
     return (
-      <div className="flex h-64 w-full animate-pulse flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4" />
+      <div className="flex h-64 w-full animate-pulse flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5" />
     );
   }
 
@@ -81,9 +81,9 @@ const WeekdayCalendar = ({
   const counts = new Map(data.map((point) => [point.date, point.count]));
 
   const renderGrid = (days: Date[], highlightRange: { start: Date; end: Date }) => (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="grid grid-cols-7 gap-1.5">
       {WEEKDAY_LABELS.map((label) => (
-        <div key={`label-${label}`} className="text-center text-11-regular text-slate-400">
+        <div key={`label-${label}`} className="text-center text-11-regular text-black-70">
           {label}
         </div>
       ))}
@@ -91,21 +91,18 @@ const WeekdayCalendar = ({
         const key = toDateKey(day);
         const count = counts.get(key) ?? 0;
         const inRange = day >= highlightRange.start && day <= highlightRange.end;
-        // 범위 밖 날짜는 그리드 균형 유지를 위해 렌더링하되 집계값은 숨긴다.
         const isActive = count > 0 && inRange;
-        const baseClass = "rounded-xl border p-2 text-center";
+        const baseClass = "rounded-lg p-1.5 text-center";
         const styleClass = !inRange
-          ? "border-slate-100 bg-white text-slate-300"
+          ? "text-black-15"
           : isActive
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : "border-slate-200 bg-white text-slate-400";
+            ? "bg-primary-100 text-primary"
+            : "bg-black-5 text-black-70";
         return (
           <div key={key} className={`${baseClass} ${styleClass}`}>
-            <div className="text-12-semibold">
-              {day.getDate()}
-            </div>
+            <div className="text-12-semibold">{day.getDate()}</div>
             <div className="text-11-regular">
-              {inRange ? `${count}명` : ""}
+              {inRange && count > 0 ? `${count}명` : ""}
             </div>
           </div>
         );
@@ -117,34 +114,34 @@ const WeekdayCalendar = ({
   const sections = range.preset === "30d" ? getMonthSections(rangeStart, rangeEnd) : null;
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <span className="text-14-semibold text-slate-800">{title}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-14-semibold text-black-90">{title}</span>
           {range.preset === "7d" && (
-            <span className="text-12-regular text-slate-500">
-              표시 주: {formatRangeLabel(startOfWeek, endOfWeek)}
+            <span className="text-12-regular text-black-70">
+              {formatRangeLabel(startOfWeek, endOfWeek)}
             </span>
           )}
         </div>
         {unavailableReason && (
-          <span className="text-12-regular text-slate-400">
+          <span className="text-12-regular text-black-70">
             {unavailableReason}
           </span>
         )}
       </div>
 
       {data.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-13-regular text-slate-500">
+        <div className="flex h-40 items-center justify-center rounded-xl bg-black-5 text-13-regular text-black-70">
           표시할 데이터가 없습니다.
         </div>
       ) : range.preset === "30d" && sections ? (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           {sections.map((section) => {
             const monthDays = buildCalendarDays(section.monthStart, section.monthEnd).days;
             return (
-              <div key={formatMonthLabel(section.monthStart)} className="flex flex-col gap-3">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-12-regular text-slate-600">
+              <div key={formatMonthLabel(section.monthStart)} className="flex flex-col gap-2">
+                <span className="text-12-semibold text-black-70">
                   {formatMonthLabel(section.monthStart)}
                 </span>
                 {renderGrid(monthDays, { start: rangeStart, end: rangeEnd })}

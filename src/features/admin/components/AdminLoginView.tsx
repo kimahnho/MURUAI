@@ -29,7 +29,7 @@ const AdminLoginView = () => {
 
   return (
     <div className="flex min-h-[70vh] w-full items-center justify-center px-6 py-12">
-      <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl border border-black-10 bg-white-100 p-8 shadow-sm">
+      <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl border border-slate-200 bg-white-100 p-8 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-100 text-primary">
             <Shield className="h-5 w-5" />
@@ -38,8 +38,8 @@ const AdminLoginView = () => {
             <span className="text-title-18-semibold text-black-100">
               관리자 로그인
             </span>
-            <span className="text-12-regular text-black-50">
-              admin@muruai.com 계정만 접근할 수 있어요.
+            <span className="text-12-regular text-black-70">
+              관리자 계정으로만 접근할 수 있어요.
             </span>
           </div>
         </div>
@@ -60,7 +60,7 @@ const AdminLoginView = () => {
               type="email"
               value={email}
               onChange={(event) => { setEmail(event.target.value); }}
-              className="h-11 rounded-2xl border border-black-20 px-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
+              className="h-11 rounded-2xl border border-slate-300 px-4 text-14-regular text-black-90 placeholder:text-black-40 focus:border-primary focus:outline-none"
               placeholder="admin@muruai.com"
               autoComplete="email"
               required
@@ -78,7 +78,7 @@ const AdminLoginView = () => {
               type="password"
               value={password}
               onChange={(event) => { setPassword(event.target.value); }}
-              className="h-11 rounded-2xl border border-black-20 px-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
+              className="h-11 rounded-2xl border border-slate-300 px-4 text-14-regular text-black-90 placeholder:text-black-40 focus:border-primary focus:outline-none"
               placeholder="비밀번호를 입력하세요"
               autoComplete="current-password"
               required
