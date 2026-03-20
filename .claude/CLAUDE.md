@@ -30,7 +30,7 @@ src/
     assets/         # 이미지, 아이콘
   features/
     editor/         # 핵심 디자인 에디터
-    home/           # 홈 페이지
+    home/           # 홈 페이지차
     admin/          # 관리자 대시보드
   pages/            # 라우트 레벨 페이지
 ```
@@ -90,6 +90,9 @@ src/
 16. **Sentry 에러 캡처**: `captureSentryError(error, "컨텍스트")` 헬퍼 필수 사용 (`sentryUtils.ts`) — `Sentry.captureException` 직접 호출 금지 (Supabase 에러 객체 비호환)
 17. **선그림 탭 비활성화**: `EmotionContent.tsx`에서 선그림 TypeButton + ComingSoon 주석 처리됨. 복원 시 `선그림 임시 비활성화` 키워드로 검색
 18. **네트워크 끊김 배너**: 자동 저장 `Failed to fetch` 또는 브라우저 `offline` 이벤트 시 에디터 상단에 오프라인 배너 표시. `online` 이벤트로 자동 사라짐. 네트워크 에러는 Sentry 전송 스킵
+19. **AI 생성 로그 추적**: `trackAiGeneration.ts` 함수는 비차단 패턴 (`console.warn`). `ai_generation_logs` 테이블에 4단계 기록 (상세: `.claude/rules/common/ai-generation-logging.md`)
+20. **간격은 padding + gap 우선**: 요소 간 간격에 `margin` 대신 부모 `gap` 또는 `padding` 사용 (상세: `.claude/rules/common/design-system.md` 항목 10)
+21. **타이포그래피 클래스 확인 필수**: `global.css`에 정의된 클래스만 사용. `text-13-semibold`(미존재) → `text-13-bold`, `text-12-bold`(미존재) → `text-12-semibold`
 
 ## 지침 모듈화 원칙
 
@@ -103,58 +106,60 @@ src/
 
 ### 공통 (`rules/common/`)
 
-| 도메인                     | 규칙 파일                                    |
-| -------------------------- | -------------------------------------------- |
-| 코드 스타일                | `.claude/rules/common/code-style.md`         |
-| Zustand                    | `.claude/rules/common/zustand.md`            |
-| 반응형 UI                  | `.claude/rules/common/responsive.md`         |
-| 디자인 시스템              | `.claude/rules/common/design-system.md`      |
-| DB/Supabase                | `.claude/rules/common/database.md`           |
-| 모니터링 (Sentry/Mixpanel) | `.claude/rules/common/monitoring.md`         |
-| shared 모듈                | `.claude/rules/common/shared.md`             |
-| 폰트 시스템                | `.claude/rules/common/font.md`               |
+| 도메인                     | 규칙 파일                               |
+| -------------------------- | --------------------------------------- |
+| 코드 스타일                | `.claude/rules/common/code-style.md`    |
+| Zustand                    | `.claude/rules/common/zustand.md`       |
+| 반응형 UI                  | `.claude/rules/common/responsive.md`    |
+| 디자인 시스템              | `.claude/rules/common/design-system.md` |
+| DB/Supabase                | `.claude/rules/common/database.md`      |
+| 모니터링 (Sentry/Mixpanel) | `.claude/rules/common/monitoring.md`    |
+| shared 모듈                | `.claude/rules/common/shared.md`        |
+| 폰트 시스템                | `.claude/rules/common/font.md`          |
+| AI 생성 로그 추적          | `.claude/rules/common/ai-generation-logging.md` |
 
 ### 에디터 (`rules/editor/`)
 
-| 도메인                     | 규칙 파일                                              |
-| -------------------------- | ------------------------------------------------------ |
-| 에디터 전반                | `.claude/rules/editor/editor.md`                       |
-| 에디터 기능별 상세         | `.claude/rules/editor/editor-features.md`              |
-| 에디터 사이드바 패널       | `.claude/rules/editor/editor-sidebar-panel.md`         |
-| 캔버스 아키텍처            | `.claude/rules/editor/canvas-architecture.md`          |
-| 캔버스 인터랙션            | `.claude/rules/editor/canvas-interaction.md`           |
-| 히스토리/Undo-Redo         | `.claude/rules/editor/history-undo.md`                 |
-| 구독 패턴                  | `.claude/rules/editor/subscriptions.md`                |
-| 요소 패널 스토어           | `.claude/rules/editor/element-panel-store.md`          |
-| 복사/붙여넣기              | `.claude/rules/editor/copy-paste.md`                   |
-| 스마트 가이드              | `.claude/rules/editor/smart-guides.md`                 |
-| 하단 바                    | `.claude/rules/editor/bottom-bar.md`                   |
-| PDF 출력                   | `.claude/rules/editor/pdf-export.md`                   |
-| 페이지 팩토리/템플릿       | `.claude/rules/editor/page-factory-templates.md`       |
-| 이미지 채우기 시스템       | `.claude/rules/editor/image-fill-system.md`            |
-| 맞춤법 검사                | `.claude/rules/editor/spell-check.md`                  |
+| 도메인               | 규칙 파일                                        |
+| -------------------- | ------------------------------------------------ |
+| 에디터 전반          | `.claude/rules/editor/editor.md`                 |
+| 에디터 기능별 상세   | `.claude/rules/editor/editor-features.md`        |
+| 에디터 사이드바 패널 | `.claude/rules/editor/editor-sidebar-panel.md`   |
+| 캔버스 아키텍처      | `.claude/rules/editor/canvas-architecture.md`    |
+| 캔버스 인터랙션      | `.claude/rules/editor/canvas-interaction.md`     |
+| 히스토리/Undo-Redo   | `.claude/rules/editor/history-undo.md`           |
+| 구독 패턴            | `.claude/rules/editor/subscriptions.md`          |
+| 요소 패널 스토어     | `.claude/rules/editor/element-panel-store.md`    |
+| 복사/붙여넣기        | `.claude/rules/editor/copy-paste.md`             |
+| 스마트 가이드        | `.claude/rules/editor/smart-guides.md`           |
+| 하단 바              | `.claude/rules/editor/bottom-bar.md`             |
+| PDF 출력             | `.claude/rules/editor/pdf-export.md`             |
+| 페이지 팩토리/템플릿 | `.claude/rules/editor/page-factory-templates.md` |
+| 이미지 채우기 시스템 | `.claude/rules/editor/image-fill-system.md`      |
+| 맞춤법 검사          | `.claude/rules/editor/spell-check.md`            |
 
 ### 에디터 요소 (`rules/editor/elements/`)
 
-| 도메인                     | 규칙 파일                                              |
-| -------------------------- | ------------------------------------------------------ |
-| 도형 요소                  | `.claude/rules/editor/elements/shape-elements.md`      |
-| TextBox                    | `.claude/rules/editor/elements/textbox.md`             |
-| Table                      | `.claude/rules/editor/elements/table.md`               |
-| 선/화살표 요소             | `.claude/rules/editor/elements/line-arrow-elements.md` |
-| AAC 카드 요소              | `.claude/rules/editor/elements/aac-card-element.md`    |
+| 도메인         | 규칙 파일                                              |
+| -------------- | ------------------------------------------------------ |
+| 도형 요소      | `.claude/rules/editor/elements/shape-elements.md`      |
+| TextBox        | `.claude/rules/editor/elements/textbox.md`             |
+| Table          | `.claude/rules/editor/elements/table.md`               |
+| 선/화살표 요소 | `.claude/rules/editor/elements/line-arrow-elements.md` |
+| AAC 카드 요소  | `.claude/rules/editor/elements/aac-card-element.md`    |
 
 ### AI 기능 (`rules/ai/`)
 
-| 도메인                     | 규칙 파일                                                    |
-| -------------------------- | ------------------------------------------------------------ |
-| AI 감정 추론 생성          | `.claude/rules/ai/emotion-inference-ai-generation.md`        |
-| 스토리북 AI 생성기         | `.claude/rules/ai/storybook.md`                              |
+| 도메인             | 규칙 파일                                             |
+| ------------------ | ----------------------------------------------------- |
+| AI 감정 추론 생성  | `.claude/rules/ai/emotion-inference-ai-generation.md` |
+| 스토리북 AI 생성기 | `.claude/rules/ai/storybook.md`                       |
 
 ### 페이지 (`rules/pages/`)
 
-| 도메인                     | 규칙 파일                                              |
-| -------------------------- | ------------------------------------------------------ |
-| 홈페이지                   | `.claude/rules/pages/home-page.md`, `.claude/rules/pages/home.md` |
-| 내 문서                    | `.claude/rules/pages/mydoc.md`                         |
-| 관리자                     | `.claude/rules/pages/admin.md`                         |
+| 도메인   | 규칙 파일                                                         |
+| -------- | ----------------------------------------------------------------- |
+| 홈페이지       | `.claude/rules/pages/home-page.md`, `.claude/rules/pages/home.md` |
+| 메인 페이지    | `.claude/rules/pages/landing.md`                                  |
+| 내 문서        | `.claude/rules/pages/mydoc.md`                                    |
+| 관리자         | `.claude/rules/pages/admin.md`                                    |

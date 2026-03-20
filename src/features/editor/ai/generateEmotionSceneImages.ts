@@ -217,13 +217,17 @@ Answer ONLY "YES" or "NO".`;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
-// 리셋 시: 캐릭터 레퍼런스로 새 이미지 생성
-const RESET_SUFFIX = `Use the attached character reference photo as the main character in this scene.
+// 리셋 시: 캐릭터 레퍼런스로 새 이미지 생성 (성별 동적 주입)
+const buildResetSuffix = (gender: "boy" | "girl") =>
+  `Use the attached character reference photo as the main character in this scene.
+The main character MUST be a Korean ${gender} — maintain this gender consistently. Do NOT mix genders.
 The character must look like a real person matching the reference photo — same realistic style, NOT cartoon or illustrated.
 The character should show the appropriate emotion for the situation described with a natural facial expression.`;
 
-// 연속 시: 이전 생성 이미지를 레퍼런스로 일관성 유지
-const CONTINUATION_SUFFIX = `The attached image is a previous scene from the same story.
+// 연속 시: 이전 생성 이미지를 레퍼런스로 일관성 유지 (성별 동적 주입)
+const buildContinuationSuffix = (gender: "boy" | "girl") =>
+  `The attached image is a previous scene from the same story.
+The main character MUST remain a Korean ${gender} — do NOT change the character's gender.
 Maintain the exact same:
 - Character appearance (face, body, clothing)
 - Art style, lighting, and color palette
@@ -239,9 +243,10 @@ const generateSingleSceneImage = async (
   sceneDescription: string,
   referenceBase64: string,
   isReset: boolean,
+  gender: "boy" | "girl",
 ): Promise<string> => {
-  const suffix = isReset ? RESET_SUFFIX : CONTINUATION_SUFFIX;
-  const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\n${suffix}`;
+  const suffix = isReset ? buildResetSuffix(gender) : buildContinuationSuffix(gender);
+  const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\nIMPORTANT: The main character is a Korean ${gender}.\n\n${suffix}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -300,6 +305,7 @@ export const generateEmotionSceneImages = async (
   // 캐릭터 참조 이미지 로드
   const characterSrc = imageStyle === "photo-boy" ? characterBoy : characterGirl;
   const characterBase64 = await loadImageAsBase64(characterSrc);
+  const gender: "boy" | "girl" = imageStyle === "photo-boy" ? "boy" : "girl";
 
   // 10개 장면을 한 번에 영문 번역
   const koreanScenes = stories.map((s) => `${s.title} ${s.sentence}`);
@@ -334,12 +340,12 @@ export const generateEmotionSceneImages = async (
 
     let base64: string;
     if (needsReset) {
-      base64 = await generateSingleSceneImage(ai, scene, characterBase64, true);
+      base64 = await generateSingleSceneImage(ai, scene, characterBase64, true, gender);
       currentAnchor = base64;
       anchorIsCharacterRef = false;
       chainLength = 0;
     } else {
-      base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false);
+      base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false, gender);
       chainLength++;
     }
 

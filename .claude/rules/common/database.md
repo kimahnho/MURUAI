@@ -23,6 +23,7 @@
 | `template_usage_events` | 템플릿 사용 추적 | `user_id` | — |
 | `image_request` | 이미지 상징 요청 (사용자가 원하는 이미지 키워드) | `user_id` | — |
 | `ai_template_usage` | AI 템플릿 월간 사용량 추적 (스토리북/감정추론) | `user_id` | — |
+| `ai_generation_logs` | AI 생성 이력 추적 (4단계: 주제→결과→이미지→확정) | `user_id` | — |
 
 ### RPC 통해서만 접근 (직접 `.from()` 없음)
 

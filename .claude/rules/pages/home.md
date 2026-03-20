@@ -2,64 +2,38 @@
 paths:
   - "src/features/home/**"
   - "src/pages/home/**"
+  - "src/pages/dashboard/**"
 ---
 
-# Home (홈 페이지) 지침
+# Home (홈 기능) 지침
 
-> 학습자/그룹 관리 및 주간 수업 계획표를 보여주는 대시보드.
+> 메인 페이지, 대시보드, 학습자/그룹 관리를 포함하는 home feature 전반.
+
+상세 지침은 아래 파일을 참조:
+- 라우팅 + 대시보드: `.claude/rules/pages/home-page.md`
+- 메인 페이지 (NewLandingPage): `.claude/rules/pages/landing.md`
 
 ## 핵심 파일 위치
 
 ```
-src/pages/home/
-  HomePage.tsx                  # 메인 페이지 (pages와 features 1:1 대응)
+src/pages/home/HomePage.tsx              # "/" 메인 페이지 (AI 생성 로직 조합)
+src/pages/dashboard/DashboardRoute.tsx   # "/dashboard" 대시보드 (인증 필수)
 
 src/features/home/
-  components/                   # UI 컴포넌트
-    FirstCommentSection.tsx     # 상단 인사말
-    RecentDocumentsSection.tsx  # 최근 작업 자료
-    ChoiceUserSection.tsx       # 학습자 선택
-    CalendarSection.tsx         # 주간 계획표 (미사용 — HomePage에 미렌더링)
-    AddUserModal.tsx
-    AddGroupModal.tsx
-    EditUserModal.tsx
-    EditGroupModal.tsx
-    AddScheduleModal.tsx
-    UserCard.tsx
-    GroupCard.tsx
-    TimeTable.tsx
+  components/
+    landing/          # 메인 페이지 (NewLandingPage, PromptHeroSection, CapabilitySection)
+    dashboard/        # 대시보드 (DashboardPage, AiFeatureSection, QuickStartSection)
+    ChoiceUserSection.tsx
+    RecentDocumentsSection.tsx
+    EditUserModal.tsx / EditGroupModal.tsx
   store/
     useStudentStore.ts
-    useScheduleStore.ts
   model/
-    student.model.ts
-    group.model.ts
-    schedule.model.ts
-    scheduleForm.model.ts
-  utils/dateUtils.ts
+    student.model.ts / group.model.ts
 ```
-
-## 데이터 모델
-
-```typescript
-// 학습자
-type Student = { id: string; name: string; gender?: string | null; ... }
-
-// 그룹
-type Group = { id: string; name: string; members: string[]; ... }
-
-// 수업 일정
-type Schedule = { id: string; date: string; studentId?: string; groupId?: string; ... }
-```
-
-## Supabase 테이블
-
-- `students_n` - 학습자 정보
-- `groups_n` - 그룹 정보
-- `schedules_n` - 수업 일정
 
 ## 주의사항
 
-1. **인증 필수** - 로그인하지 않은 사용자는 데이터 접근 불가
-2. **user_id 필터링** - 모든 쿼리에 현재 사용자 ID 조건 필수
-3. **모달 상태는 로컬** - 전역 store 사용하지 않음
+1. **인증 필수** — 대시보드(`/dashboard`)는 비인증 시 "/" 리다이렉트
+2. **user_id 필터링** — 모든 Supabase 쿼리에 현재 사용자 ID 조건 필수
+3. **의존성 규칙** — `features/home` → `features/editor` 직접 import 금지. `pages/home/HomePage.tsx`에서 조합

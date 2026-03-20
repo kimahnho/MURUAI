@@ -1,3 +1,4 @@
+import { LogOut } from "lucide-react";
 import { images } from "@/shared/assets";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
@@ -15,7 +16,7 @@ const Header = () => {
   };
 
   return (
-    <header className="flex w-full h-18 px-4 md:px-15 justify-between items-center border-b border-b-black-25">
+    <header className="flex w-full h-14 px-4 md:h-18 md:px-15 justify-between items-center border-b border-b-black-25">
       <button
         type="button"
         onClick={() => navigate("/")}
@@ -25,22 +26,38 @@ const Header = () => {
         <img src={images.mainLogo} alt="Main Logo" className="w-28 md:w-40 h-auto" />
       </button>
 
-      <div className="flex h-10 items-center justify-center gap-2">
+      <div className="flex h-10 items-center justify-center gap-1 md:gap-2 shrink-0">
         {isAuthenticated ? (
           <>
             <button
               type="button"
-              onClick={() => navigate("/mydoc")}
-              className="flex items-center justify-center px-3 py-2 md:px-4 cursor-pointer"
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
             >
-              <span className="text-14-semibold text-black-70 hover:text-black-100 transition">내 학습자료</span>
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">대시보드</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/mydoc")}
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+            >
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">내 학습자료</span>
+            </button>
+            {/* 모바일: 아이콘, 데스크탑: 텍스트 */}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex md:hidden items-center justify-center w-9 h-9 rounded-lg hover:bg-black-10 transition cursor-pointer"
+              aria-label="로그아웃"
+            >
+              <LogOut className="h-4.5 w-4.5 text-black-70" />
             </button>
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex items-center justify-center px-4 py-2 border border-black-25 rounded-xl hover:bg-black-10 transition cursor-pointer"
+              className="hidden md:flex items-center justify-center px-4 py-2 border border-black-25 rounded-xl hover:bg-black-10 transition cursor-pointer"
             >
-              <span className="text-14-semibold text-black-100">로그아웃</span>
+              <span className="text-14-semibold text-black-100 whitespace-nowrap">로그아웃</span>
             </button>
           </>
         ) : (
@@ -50,16 +67,15 @@ const Header = () => {
               onClick={openAuthModal}
               className="flex items-center justify-center px-3 py-2 md:p-4 cursor-pointer"
             >
-              <span className="text-14-semibold text-black-100">로그인</span>
+              <span className="text-14-semibold text-black-100 whitespace-nowrap">로그인</span>
             </button>
 
             <button
               type="button"
               onClick={openAuthModal}
-              className="flex h-full items-center justify-center px-3 py-2 md:p-4 rounded-xl cursor-pointer hover:opacity-90 transition"
-              style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
+              className="flex h-full items-center justify-center px-3 py-2 md:px-4 rounded-xl bg-[#3A332C] cursor-pointer hover:bg-[#2A241E] transition"
             >
-              <span className="text-14-semibold text-white-100">가입하기</span>
+              <span className="text-14-semibold text-white-100 whitespace-nowrap">가입하기</span>
             </button>
           </>
         )}

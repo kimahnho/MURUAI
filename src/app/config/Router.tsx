@@ -4,6 +4,7 @@ import MainLayout from "../layout/MainLayout";
 
 const DesignLayout = lazy(() => import("../layout/DesignLayout"));
 const HomePage = lazy(() => import("@/pages/home/HomePage"));
+const DashboardRoute = lazy(() => import("@/pages/dashboard/DashboardRoute"));
 const DesignPage = lazy(() => import("@/pages/editor/DesignPage"));
 const MyDocPage = lazy(() => import("@/pages/mydoc/MyDocPage"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: withSuspense(<HomePage />),
+      },
+      {
+        path: "dashboard",
+        element: withSuspense(<DashboardRoute />),
       },
       {
         path: "mydoc",
