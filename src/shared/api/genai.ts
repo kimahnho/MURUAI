@@ -1,11 +1,12 @@
 /**
- * GenAI 프록시 클라이언트.
- * 브라우저에서 직접 Gemini API를 호출하지 않고,
- * /api/genai/* 서버 라우트를 경유하여 API 키를 보호한다.
+ * GenAI 클라이언트.
+ * - 개발 모드 + VITE_GOOGLE_API_KEY 존재 시: 브라우저에서 직접 Gemini API 호출
+ * - 그 외(프로덕션): /api/genai/* 서버 프록시 경유로 API 키 보호
  *
  * 기존 호출 코드(`getGenAI().models.generateContent(...)`)와
  * 동일한 인터페이스를 유지한다.
  */
+import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 
 /** 기존 GoogleGenAI와 호환되는 프록시 타입 */
@@ -31,6 +32,18 @@ export type GenAIResponse = {
   }>;
 };
 
+// 직접 호출 클라이언트 (개발 모드 전용)
+const createDirectClient = (apiKey: string): GenAIClient => {
+  const ai = new GoogleGenAI({ apiKey });
+  return {
+    models: {
+      generateContent: (params) =>
+        ai.models.generateContent(params as Parameters<typeof ai.models.generateContent>[0]) as Promise<GenAIResponse>,
+    },
+  };
+};
+
+// 프록시 클라이언트 (프로덕션)
 const createProxyClient = (): GenAIClient => ({
   models: {
     generateContent: async (params) => {
@@ -72,6 +85,12 @@ const createProxyClient = (): GenAIClient => ({
 let instance: GenAIClient | null = null;
 
 export const getGenAI = (): GenAIClient => {
-  if (!instance) instance = createProxyClient();
+  if (!instance) {
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
+    instance =
+      apiKey && import.meta.env.DEV
+        ? createDirectClient(apiKey)
+        : createProxyClient();
+  }
   return instance;
 };
