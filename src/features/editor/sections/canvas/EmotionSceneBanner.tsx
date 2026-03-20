@@ -25,6 +25,10 @@ import {
   updateAiGenerationImageStyle,
   confirmAiGeneration,
 } from "@/shared/utils/trackAiGeneration";
+import {
+  checkAiCredits,
+  recordAiCreditUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 import EmotionSceneImageModal from "./EmotionSceneImageModal";
 
 const MAX_IMAGE_PAGES = 15;
@@ -191,6 +195,17 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
     const targetStories = targetPairs.map((p) => p.story);
     const targetPageIds = targetPairs.map((p) => p.pageId);
 
+    // 이미지 크레딧 체크
+    const creditCheck = await checkAiCredits(targetStories.length);
+    if (!creditCheck.canProceed) {
+      useToastStore
+        .getState()
+        .showToast(
+          `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`,
+        );
+      return;
+    }
+
     const store = useEmotionSceneStore.getState();
     store.setBannerPhase(originalIds, "generating");
 
@@ -232,6 +247,10 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
       });
       useEmotionSceneStore.getState().setGenerationMeta(meta);
       useEmotionSceneStore.getState().setBannerPhase(originalIds, "completed");
+
+      // 이미지 크레딧 차감 (성공 후)
+      void recordAiCreditUsage("emotion", targetStories.length);
+
       mp.track("AI 장면 이미지 생성", {
         image_style: imageStyle,
         page_count: targetStories.length,
@@ -422,7 +441,7 @@ const BannerContent = ({
         텍스트를 확인 후 이미지를 생성하세요
       </span>
       <span className="rounded-full bg-primary-100 px-2 py-0.5 text-12-semibold text-primary">
-        {Math.min(pageCount, MAX_IMAGE_PAGES)}장
+        {Math.min(pageCount, MAX_IMAGE_PAGES)}장 · {Math.min(pageCount, MAX_IMAGE_PAGES)}크레딧
       </span>
 
       <span className="mx-1 h-4 w-px bg-black-20" />

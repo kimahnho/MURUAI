@@ -11,6 +11,10 @@ import type { Page } from "@/features/editor/model/pageTypes";
 import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotionSceneImages";
 import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
+import {
+  checkAiCredits,
+  recordAiCreditUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 
 interface EmotionSceneImageModalProps {
   isOpen: boolean;
@@ -82,8 +86,6 @@ const EmotionSceneImageModal = ({
 
   const handleRegenerate = async () => {
     if (selectedIds.size === 0) return;
-    setIsGenerating(true);
-    setProgress(null);
 
     // 선택된 pageId에 매핑되는 story 추출
     const selectedEntries: Array<{ pageId: string; story: StoryItem }> = [];
@@ -92,6 +94,20 @@ const EmotionSceneImageModal = ({
         selectedEntries.push({ pageId, story: stories[index] });
       }
     });
+
+    // 이미지 크레딧 체크
+    const creditCheck = await checkAiCredits(selectedEntries.length);
+    if (!creditCheck.canProceed) {
+      useToastStore
+        .getState()
+        .showToast(
+          `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`,
+        );
+      return;
+    }
+
+    setIsGenerating(true);
+    setProgress(null);
 
     try {
       const selectedStories = selectedEntries.map((e) => e.story);
@@ -130,6 +146,10 @@ const EmotionSceneImageModal = ({
         };
       });
       useEmotionSceneStore.getState().setGenerationMeta(meta);
+
+      // 이미지 크레딧 차감 (성공 후)
+      void recordAiCreditUsage("emotion", selectedStories.length);
+
       onComplete();
     } catch {
       useToastStore
@@ -257,6 +277,13 @@ const EmotionSceneImageModal = ({
             })}
           </div>
         </div>
+
+        {/* 크레딧 안내 */}
+        {selectedIds.size > 0 && !isGenerating && (
+          <p className="mt-3 text-center text-12-regular text-black-40">
+            {selectedIds.size}장 선택 · {selectedIds.size}크레딧 사용
+          </p>
+        )}
 
         {/* 하단 버튼 */}
         <div className="mt-4 flex gap-2">

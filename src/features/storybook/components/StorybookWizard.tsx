@@ -10,8 +10,8 @@ import { STEP_LABELS } from "../model/storybookTypes";
 import { canAdvance } from "../model/storybookValidation";
 import { useStorybookWizardStore } from "../store/useStorybookWizardStore";
 import {
-  MONTHLY_AI_TEMPLATE_LIMIT,
-  fetchMonthlyAiTemplateUsage,
+  MONTHLY_AI_CREDIT_LIMIT,
+  fetchMonthlyAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
 import ChildInfoStep from "./steps/ChildInfoStep";
 import TopicStep from "./steps/TopicStep";
@@ -60,11 +60,11 @@ const StorybookWizard = () => {
 
   useEffect(() => {
     if (currentStep === 45) {
-      void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+      void fetchMonthlyAiCreditUsage().then(setMonthlyUsed);
     }
   }, [currentStep]);
 
-  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
+  const remaining = monthlyUsed !== null ? MONTHLY_AI_CREDIT_LIMIT - monthlyUsed : null;
 
   const StepContent = STEP_COMPONENTS[currentStep];
   const isAdvanceable = canAdvance(currentStep, formData);
@@ -171,7 +171,7 @@ const StorybookWizard = () => {
           </button>
           {currentStep === 45 && remaining !== null && (
             <p className="text-12-regular text-black-40 ml-auto mr-2">
-              1회 차감 (잔여 {remaining}회)
+              10크레딧 차감 (잔여 {remaining}크레딧)
             </p>
           )}
         </div>

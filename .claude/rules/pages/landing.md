@@ -16,11 +16,11 @@ NewLandingPage
 ### 인증 사용자
 
 1. 주제 입력 → "생성하기" 클릭
-2. `fetchMonthlyAiTemplateUsage()` → 30회 이상이면 소진 모달
+2. 텍스트 생성은 무료 — 크레딧 체크/차단 없음
 3. `fetchEmotionImageMap("photo-boy")` → `generateEmotionStory(topic)` → `buildEmotionStoryPages()`
 4. `sessionStorage("pendingAiLog")` 저장 (에디터에서 DB 로그 + 배너 등록)
-5. `recordAiTemplateUsage("emotion")` — 사용량 기록
-6. `createAndOpenDocument({ pages })` → 에디터 이동
+5. `createAndOpenDocument({ pages })` → 에디터 이동
+6. 이미지 크레딧은 에디터의 EmotionSceneBanner에서 "이미지 생성" 시 차감
 
 ### 비인증 사용자
 
@@ -28,11 +28,12 @@ NewLandingPage
 2. `sessionStorage("pendingLandingTopic")` 저장 → `openAuthModal()`
 3. 로그인 완료 → `useEffect`가 pendingTopic 감지 → 자동 `executeGeneration()`
 
-## 월간 사용량 제한
+## 이미지 크레딧
 
-- `MONTHLY_AI_TEMPLATE_LIMIT = 30`
-- 인증 시 `fetchMonthlyAiTemplateUsage()` 조회 → `isQuotaExhausted` state
-- 소진 시: `BaseModal` "무료 이용 횟수 소진" 모달 + input/버튼 disabled
+- `MONTHLY_AI_CREDIT_LIMIT = 30` (이미지 1장 = 1크레딧)
+- 텍스트 생성(스토리 텍스트)은 무료 — 랜딩 페이지에서 크레딧 체크/차단 없음
+- 이미지 크레딧은 에디터에서 이미지 생성 시에만 차감 (`EmotionSceneBanner`, `EmotionSceneImageModal`)
+- 크레딧 소진 시 에디터 사이드바에서 "더 많은 크레딧 요청하기" 가능
 
 ## sessionStorage 키
 

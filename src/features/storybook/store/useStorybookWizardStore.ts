@@ -24,9 +24,8 @@ import { generateCharacterReference } from "../ai/generateCharacterReference";
 import { generateStorybook } from "../ai/generateStorybook";
 import { buildStoryPages } from "../utils/buildStoryPages";
 import {
-  MONTHLY_AI_TEMPLATE_LIMIT,
-  fetchMonthlyAiTemplateUsage,
-  recordAiTemplateUsage,
+  checkAiCredits,
+  recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
 import {
   updateStudentGender,
@@ -254,11 +253,12 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       if (!proposal || !formData.artStyle || !formData.childInfo) return;
       const artStyle = formData.artStyle;
 
-      // 월간 사용량 서버 재확인
-      const currentUsage = await fetchMonthlyAiTemplateUsage();
-      if (currentUsage >= MONTHLY_AI_TEMPLATE_LIMIT) {
-        set({ error: "이번 달 AI 사용량을 모두 사용했어요." });
-        useToastStore.getState().showToast("이번 달 AI 사용량을 모두 사용했어요.");
+      // 이미지 크레딧 체크 (스토리북 = 10장)
+      const imageCount = proposal.pages.length;
+      const creditCheck = await checkAiCredits(imageCount);
+      if (!creditCheck.canProceed) {
+        set({ error: `이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)` });
+        useToastStore.getState().showToast(`이미지 크레딧이 부족해요. (남은 크레딧: ${creditCheck.remaining}개)`);
         return;
       }
 
@@ -276,8 +276,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
         mp.track("AI 스토리북 생성 완료", { art_style: artStyle, layout: formData.layout });
 
-        // 사용량 기록
-        void recordAiTemplateUsage("storybook");
+        // 이미지 크레딧 차감 (성공 후)
+        void recordAiCreditUsage("storybook", book.pages.length);
 
         // 에디터 캔버스에 10페이지 삽입
         const pages = buildStoryPages(book);
