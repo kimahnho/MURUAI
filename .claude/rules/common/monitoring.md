@@ -268,5 +268,5 @@ esbuild: {
 | 에러 폴백 UI | `src/shared/ui/ErrorFallback.tsx` |
 | Sentry 에러 캡처 헬퍼 | `src/shared/utils/sentryUtils.ts` |
 | 인증 훅 (에러 한국어화) | `src/shared/hooks/useAuth.ts` |
-| AI 템플릿 사용량 추적 | `src/features/editor/utils/aiTemplateUsage.ts` |
+| AI 이미지 크레딧 관리 | `src/features/editor/utils/aiTemplateUsage.ts` |
 | 빌드 설정 | `vite.config.ts` |

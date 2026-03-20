@@ -2,15 +2,18 @@
  * 대시보드 AI 기능 카드 섹션 — 스토리북/감정추론 진입점.
  */
 import { useEffect, useState } from "react";
-import { Sparkles, BookOpen, Brain, ChevronRight, Zap } from "lucide-react";
+import { Sparkles, BookOpen, Brain, ChevronRight, Zap, Send, CheckCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 import {
-  MONTHLY_AI_TEMPLATE_LIMIT,
-  fetchMonthlyAiTemplateUsage,
+  MONTHLY_AI_CREDIT_LIMIT,
+  fetchMonthlyAiCreditUsage,
+  requestMoreCredits,
+  hasRequestedCreditsThisMonth,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { mp } from "@/shared/utils/mixpanel";
+import useToastStore from "@/shared/store/useToastStore";
 
 const AI_FEATURES: {
   key: string;
@@ -39,13 +42,15 @@ const AiFeatureSection = () => {
   const { isCreatingDoc, createAndOpenDocument } =
     useCreateDocumentNavigation();
   const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+  const [hasRequested, setHasRequested] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
-    void fetchMonthlyAiTemplateUsage().then(setMonthlyUsed);
+    void fetchMonthlyAiCreditUsage().then(setMonthlyUsed);
+    void hasRequestedCreditsThisMonth().then(setHasRequested);
   }, []);
 
-  const remaining = monthlyUsed !== null ? MONTHLY_AI_TEMPLATE_LIMIT - monthlyUsed : null;
-  const isQuotaExhausted = remaining !== null && remaining <= 0;
+  const isQuotaExhausted = monthlyUsed !== null && monthlyUsed >= MONTHLY_AI_CREDIT_LIMIT;
 
   const handleClick = async (feature: string) => {
     mp.track("대시보드 AI 카드 클릭", { feature });
@@ -54,6 +59,19 @@ const AiFeatureSection = () => {
       JSON.stringify({ type: "ai", feature }),
     );
     await createAndOpenDocument({ replace: false });
+  };
+
+  const handleRequestCredits = async () => {
+    if (hasRequested || isRequesting) return;
+    setIsRequesting(true);
+    const success = await requestMoreCredits();
+    setIsRequesting(false);
+    if (success) {
+      setHasRequested(true);
+      useToastStore.getState().showToast("크레딧 요청이 전송되었어요!");
+    } else {
+      useToastStore.getState().showToast("요청 전송에 실패했어요. 다시 시도해 주세요.");
+    }
   };
 
   return (
@@ -72,12 +90,44 @@ const AiFeatureSection = () => {
           <div className="flex items-center gap-1.5">
             <Zap className={`h-4 w-4 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
             <span className={`text-13-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
-              {monthlyUsed}/{MONTHLY_AI_TEMPLATE_LIMIT}
+              {monthlyUsed}/{MONTHLY_AI_CREDIT_LIMIT}
             </span>
           </div>
         )}
       </div>
 
+      {/* 크레딧 소진 안내 + 요청 버튼 */}
+      {isQuotaExhausted && (
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-error-50 border border-error-100 px-4 py-3">
+          <span className="text-13-regular text-error-700">
+            이번 달 이미지 크레딧을 모두 사용했어요.
+          </span>
+          <button
+            type="button"
+            onClick={handleRequestCredits}
+            disabled={hasRequested || isRequesting}
+            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-13-semibold transition cursor-pointer ${
+              hasRequested
+                ? "bg-black-10 text-black-50 cursor-default"
+                : "bg-error-100 text-error-700 hover:bg-error-200"
+            }`}
+          >
+            {hasRequested ? (
+              <>
+                <CheckCircle className="h-3.5 w-3.5" />
+                요청 완료
+              </>
+            ) : (
+              <>
+                <Send className="h-3.5 w-3.5" />
+                {isRequesting ? "요청 중..." : "더 많은 크레딧 요청하기"}
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* 텍스트 생성은 무료 — 카드 항상 활성 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {AI_FEATURES.map((feature) => (
           <AiFeatureCard
@@ -86,7 +136,7 @@ const AiFeatureSection = () => {
             accentColor={feature.accentColor}
             title={feature.title}
             description={feature.description}
-            disabled={isCreatingDoc || isQuotaExhausted}
+            disabled={isCreatingDoc}
             onClick={() => handleClick(feature.key)}
           />
         ))}

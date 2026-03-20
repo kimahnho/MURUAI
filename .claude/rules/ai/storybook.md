@@ -183,7 +183,7 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 - ✅ sceneGroup 기반 그룹별 순차 생성 + 캐릭터 레퍼런스 재활용
 - ✅ 에디터 캔버스 삽입 구현 (`requestInsertPages()`)
 - ✅ Progress callback + UI 표시 ("이미지 생성 중 3/10")
-- ✅ 크레딧 보호: 월 30회 제한 (`ai_template_usage` 테이블, `aiTemplateUsage.ts`)
+- ✅ 이미지 크레딧: 월 30크레딧 제한, 이미지 1장 = 1크레딧 (`ai_template_usage.image_count`, `aiTemplateUsage.ts`)
 - ✅ Mixpanel 퍼널 추적: 시작/스텝이동/기획서선택/캐릭터생성/완료
 - ✅ Sentry 에러 추적: 모든 catch 블록에 captureException 적용
 - ❌ DB 저장 미구현 — 스토어에만 존재

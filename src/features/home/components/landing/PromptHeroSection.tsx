@@ -8,22 +8,19 @@ import Spinner from "@/shared/ui/Spinner";
 import { images } from "@/shared/assets";
 
 const EXAMPLE_PROMPTS = [
-  "친구와 다투었을 때",
-  "선물을 받았을 때",
-  "혼자 남겨졌을 때",
-  "칭찬을 받았을 때",
+  "쉬는시간에 친구와 장난치다 다투었을 때",
+  "가족들에게 어린이날 선물을 받았을 때",
+  "주말에 일어났더니 집에 혼자 남았을 때 ",
 ];
 
 interface PromptHeroSectionProps {
   onGenerate: (topic: string) => void;
   isGenerating: boolean;
-  isQuotaExhausted?: boolean;
 }
 
 const PromptHeroSection = ({
   onGenerate,
   isGenerating,
-  isQuotaExhausted = false,
 }: PromptHeroSectionProps) => {
   const [prompt, setPrompt] = useState("");
   const [previewPage, setPreviewPage] = useState(1);
@@ -31,7 +28,7 @@ const PromptHeroSection = ({
   const handlePrevPage = () => setPreviewPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setPreviewPage((p) => Math.min(3, p + 1));
 
-  const isDisabled = isGenerating || isQuotaExhausted;
+  const isDisabled = isGenerating;
 
   const handleGenerate = () => {
     if (!prompt.trim() || isDisabled) return;

@@ -10,12 +10,11 @@ import CapabilitySection from "./CapabilitySection";
 interface NewLandingPageProps {
   onGenerate: (topic: string) => void;
   isGenerating: boolean;
-  isQuotaExhausted?: boolean;
 }
 
-const NewLandingPage = ({ onGenerate, isGenerating, isQuotaExhausted = false }: NewLandingPageProps) => (
+const NewLandingPage = ({ onGenerate, isGenerating }: NewLandingPageProps) => (
   <>
-    <PromptHeroSection onGenerate={onGenerate} isGenerating={isGenerating} isQuotaExhausted={isQuotaExhausted} />
+    <PromptHeroSection onGenerate={onGenerate} isGenerating={isGenerating} />
     <CapabilitySection />
     <AuthModal />
   </>

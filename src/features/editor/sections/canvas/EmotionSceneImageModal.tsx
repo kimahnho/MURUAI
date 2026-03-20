@@ -11,6 +11,10 @@ import type { Page } from "@/features/editor/model/pageTypes";
 import { generateEmotionSceneImages } from "@/features/editor/ai/generateEmotionSceneImages";
 import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
+import {
+  checkAiCredits,
+  recordAiCreditUsage,
+} from "@/features/editor/utils/aiTemplateUsage";
 
 interface EmotionSceneImageModalProps {
   isOpen: boolean;
@@ -82,8 +86,6 @@ const EmotionSceneImageModal = ({
 
   const handleRegenerate = async () => {
     if (selectedIds.size === 0) return;
-    setIsGenerating(true);
-    setProgress(null);
 
     // 선택된 pageId에 매핑되는 story 추출
     const selectedEntries: Array<{ pageId: string; story: StoryItem }> = [];
@@ -93,10 +95,30 @@ const EmotionSceneImageModal = ({
       }
     });
 
+    // 이미지 크레딧 체크 — 부분 재생성 지원
+    const creditCheck = await checkAiCredits(selectedEntries.length);
+    if (creditCheck.remaining === 0) {
+      useToastStore
+        .getState()
+        .showToast("이미지 크레딧을 모두 사용했어요.");
+      return;
+    }
+    // 크레딧이 부족하면 앞 페이지부터 크레딧만큼만 재생성
+    let actualEntries = selectedEntries;
+    if (creditCheck.remaining < selectedEntries.length) {
+      actualEntries = selectedEntries.slice(0, creditCheck.remaining);
+      useToastStore
+        .getState()
+        .showToast(`남은 크레딧이 부족해 ${creditCheck.remaining}장만 재생성돼요.`);
+    }
+
+    setIsGenerating(true);
+    setProgress(null);
+
     try {
-      const selectedStories = selectedEntries.map((e) => e.story);
+      const actualStories = actualEntries.map((e) => e.story);
       const heroImageUrls = await generateEmotionSceneImages(
-        selectedStories,
+        actualStories,
         imageStyle,
         (current, total) => {
           setProgress({ current, total });
@@ -105,7 +127,7 @@ const EmotionSceneImageModal = ({
 
       // pageId → URL 매핑 생성
       const urlMap = new Map<string, string>();
-      selectedEntries.forEach((entry, i) => {
+      actualEntries.forEach((entry, i) => {
         if (heroImageUrls[i]) {
           urlMap.set(entry.pageId, heroImageUrls[i]);
         }
@@ -115,7 +137,7 @@ const EmotionSceneImageModal = ({
 
       // 재생성용 메타데이터 저장
       const groupFirstUrls = new Map<number, string>();
-      const meta = selectedStories.map((story, i) => {
+      const meta = actualStories.map((story, i) => {
         const isFirst = !groupFirstUrls.has(story.sceneGroup);
         if (isFirst && heroImageUrls[i]) {
           groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
@@ -130,6 +152,10 @@ const EmotionSceneImageModal = ({
         };
       });
       useEmotionSceneStore.getState().setGenerationMeta(meta);
+
+      // 이미지 크레딧 차감 (성공 후, 실제 재생성 수만큼)
+      void recordAiCreditUsage("emotion", actualStories.length);
+
       onComplete();
     } catch {
       useToastStore
@@ -257,6 +283,13 @@ const EmotionSceneImageModal = ({
             })}
           </div>
         </div>
+
+        {/* 크레딧 안내 */}
+        {selectedIds.size > 0 && !isGenerating && (
+          <p className="mt-3 text-center text-12-regular text-black-40">
+            {selectedIds.size}장 선택 · {selectedIds.size}크레딧 사용
+          </p>
+        )}
 
         {/* 하단 버튼 */}
         <div className="mt-4 flex gap-2">
