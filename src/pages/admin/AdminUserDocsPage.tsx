@@ -6,13 +6,6 @@ import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import { EXCLUDED_USER_IDS } from "@/features/admin/constants/excludedUsers";
 
-type UserOverviewRow = {
-  user_id: string;
-  user_name: string | null;
-  total: number | null;
-  latest_created_at: string | null;
-};
-
 type UserEntry = {
   userId: string;
   userName: string | null;
@@ -69,24 +62,6 @@ const parseCanvasData = (value: unknown): CanvasDocument | null => {
     return Array.isArray(data.pages) ? data : null;
   }
   return null;
-};
-
-const parseTargets = (value: unknown): DocTarget[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((raw) => {
-      const entry = raw as Partial<DocTarget>;
-      const type: DocTarget["type"] =
-        entry.type === "child" ? "child" : "group";
-      const id = entry.id ? String(entry.id) : "";
-      if (!id) return null;
-      return {
-        type,
-        id,
-        name: entry.name ? String(entry.name) : type === "child" ? "아동" : "그룹",
-      } satisfies DocTarget;
-    })
-    .filter((entry): entry is DocTarget => Boolean(entry));
 };
 
 const DOCS_PAGE_SIZE = 24;
@@ -309,19 +284,21 @@ const AdminUserDocsPage = () => {
           .in("user_made_id", docIds)
           .is("deleted_at", null);
         if (targetsData) {
-          for (const t of targetsData as Array<{
+          for (const t of targetsData as unknown as Array<{
             user_made_id: string;
             child_id: string | null;
             group_id: string | null;
-            students_n: { id: string; name: string } | null;
-            groups_n: { id: string; name: string } | null;
+            students_n: { id: string; name: string } | { id: string; name: string }[] | null;
+            groups_n: { id: string; name: string } | { id: string; name: string }[] | null;
           }>) {
             const targets = targetsMap.get(t.user_made_id) ?? [];
-            if (t.child_id && t.students_n) {
-              targets.push({ type: "child", id: t.child_id, name: t.students_n.name });
+            const student = Array.isArray(t.students_n) ? t.students_n[0] : t.students_n;
+            const group = Array.isArray(t.groups_n) ? t.groups_n[0] : t.groups_n;
+            if (t.child_id && student) {
+              targets.push({ type: "child", id: t.child_id, name: student.name });
             }
-            if (t.group_id && t.groups_n) {
-              targets.push({ type: "group", id: t.group_id, name: t.groups_n.name });
+            if (t.group_id && group) {
+              targets.push({ type: "group", id: t.group_id, name: group.name });
             }
             targetsMap.set(t.user_made_id, targets);
           }
@@ -614,8 +591,6 @@ const AdminUserDocsPage = () => {
                       ? pageWidthPx
                       : pageHeightPx;
                   const previewScale = 0.18;
-                  const previewScaledWidth = previewBaseWidth * previewScale;
-                  const previewScaledHeight = previewBaseHeight * previewScale;
                   return (
                     <DocCard
                       key={doc.id}
