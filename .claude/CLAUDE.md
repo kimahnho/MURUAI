@@ -84,7 +84,7 @@ src/
 10. **이벤트 추적**: DB 이벤트(`trackEvents.ts`)는 비차단 패턴 필수 (`void` + `console.warn`, `await` 금지)
 11. **사이드바 탭 추가**: `SideBarMenu` 타입 + `MENU_LABELS` + `MENU_ITEMS` + `CONTENT_COMPONENTS` 4곳 동시 수정 필수
 12. **CDN 폰트**: CDN 폰트 선택/사용 시 `loadCdnFont()` 호출 필수 — 로드 후 적용. `cdnFontRegistry.ts`는 자동 생성 파일이므로 직접 수정 금지 (`yarn generate:fonts`로 재생성)
-13. **AI 이미지 크레딧**: 월 30크레딧 제한. 이미지 1장 생성 = 1크레딧 차감 (텍스트 생성은 무료). `ai_template_usage` 테이블의 `image_count` 컬럼으로 추적. `MONTHLY_AI_CREDIT_LIMIT = 30` (`src/features/editor/utils/aiTemplateUsage.ts`). 크레딧 소진 시 `ai_credit_requests` 테이블로 추가 요청 가능
+13. **AI 이미지 크레딧**: 기본 30크레딧. `user_credits.balance`로 잔량 추적, `use_credits` RPC로 원자적 차감 (이미지 1장 = 1크레딧, 텍스트 무료). 크레딧 소진 시 `ai_credit_requests`로 추가 요청 → 관리자 승인 시 balance=30 리셋. `ai_template_usage` 테이블은 생성 이력 기록용으로 유지
 14. **GenAI 클라이언트**: `getGenAI()` 사용 (`src/shared/api/genai.ts`) — Google AI API Key 인증 (`VITE_GOOGLE_API_KEY`). Vertex AI 사용 금지
 15. **이메일 회원가입 비활성화**: `AuthModal.tsx`에서 회원가입 UI 주석 처리됨. 소셜 로그인(Google/카카오) + 이메일 로그인만 활성. 복원 시 `이메일 회원가입 임시 비활성화` 키워드로 검색
 16. **Sentry 에러 캡처**: `captureSentryError(error, "컨텍스트")` 헬퍼 필수 사용 (`sentryUtils.ts`) — `Sentry.captureException` 직접 호출 금지 (Supabase 에러 객체 비호환)
@@ -93,6 +93,7 @@ src/
 19. **AI 생성 로그 추적**: `trackAiGeneration.ts` 함수는 비차단 패턴 (`console.warn`). `ai_generation_logs` 테이블에 4단계 기록 (상세: `.claude/rules/common/ai-generation-logging.md`)
 20. **간격은 padding + gap 우선**: 요소 간 간격에 `margin` 대신 부모 `gap` 또는 `padding` 사용 (상세: `.claude/rules/common/design-system.md` 항목 10)
 21. **타이포그래피 클래스 확인 필수**: `global.css`에 정의된 클래스만 사용. `text-13-semibold`(미존재) → `text-13-bold`, `text-12-bold`(미존재) → `text-12-semibold`
+22. **관리자 인증**: `user_profiles.role === "admin"` 기반 — 이메일 하드코딩(`ADMIN_EMAIL`) 금지. `AuthProvider`가 로그인 시 role 조회 → `useAuthStore.setRole()`. 헤더에서 `role === "admin"` 시 "관리자" 버튼 표시
 
 ## 지침 모듈화 원칙
 
