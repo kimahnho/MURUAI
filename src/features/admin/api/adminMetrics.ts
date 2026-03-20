@@ -50,6 +50,14 @@ export type UserDocSummary = {
   }>;
 };
 
+export type AiUsageStat = {
+  type: string;
+  total: number;
+  confirmed: number;
+  fromLanding: number;
+  fromEditor: number;
+};
+
 export type AdminMetrics = {
   range: {
     start: string;
@@ -74,6 +82,7 @@ export type AdminMetrics = {
     weekdayVisits: WeekdayVisitBucket[];
     dailyVisits: DailyVisitPoint[];
   };
+  aiUsage: AiUsageStat[];
   userDocs: UserDocSummary[];
   downloads: {
     total: number | null;
@@ -370,6 +379,29 @@ export const fetchAdminMetrics = async (
           downloads: 0,
         }));
   }
+  // AI 생성 로그 집계 (ai_generation_logs 테이블에서 직접 조회)
+  const aiLogsResult = await supabase
+    .from("ai_generation_logs")
+    .select("type,source,confirmed_at")
+    .gte("created_at", startIso)
+    .lte("created_at", endIso);
+
+  const aiUsageMap = new Map<string, { total: number; confirmed: number; fromLanding: number; fromEditor: number }>();
+  if (!aiLogsResult.error && Array.isArray(aiLogsResult.data)) {
+    for (const log of aiLogsResult.data as Array<{ type: string; source: string | null; confirmed_at: string | null }>) {
+      const type = log.type || "unknown";
+      const entry = aiUsageMap.get(type) ?? { total: 0, confirmed: 0, fromLanding: 0, fromEditor: 0 };
+      entry.total += 1;
+      if (log.confirmed_at) entry.confirmed += 1;
+      if (log.source === "landing") entry.fromLanding += 1;
+      else entry.fromEditor += 1;
+      aiUsageMap.set(type, entry);
+    }
+  }
+  const aiUsage: AiUsageStat[] = Array.from(aiUsageMap.entries())
+    .map(([type, stat]) => ({ type, ...stat }))
+    .sort((a, b) => b.total - a.total);
+
   const activityMetrics = rpcMetrics?.activity ?? null;
   const downloadMetrics = rpcMetrics?.downloads ?? null;
   const activityHasData = activityMetrics?.has_data ?? false;
@@ -403,6 +435,7 @@ export const fetchAdminMetrics = async (
       weekdayVisits: activityMetrics?.weekday_visits ?? [],
       dailyVisits: activityMetrics?.daily_visits ?? [],
     },
+    aiUsage,
     userDocs,
     downloads: {
       total: downloadMetrics?.total ?? (hasRpc ? 0 : null),

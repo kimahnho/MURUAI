@@ -3,6 +3,8 @@
  */
 import type { CanvasElement } from "./canvasTypes";
 import type { TemplateId } from "../templates/templateRegistry";
+import type { StoryItem } from "../ai/generateEmotionStory";
+import type { BannerPhase } from "../store/emotionSceneStore";
 
 export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 
@@ -37,7 +39,14 @@ export interface Page {
   isSwapped?: boolean;
 }
 
+export type EmotionSceneMeta = {
+  stories: StoryItem[];
+  storyPageIds: string[];
+  bannerPhase: BannerPhase;
+};
+
 export type CanvasDocument = {
   pages: Page[];
   swappedPageIds?: string[];
+  emotionSceneMeta?: EmotionSceneMeta[];
 };

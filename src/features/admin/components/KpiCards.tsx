@@ -1,12 +1,16 @@
 /**
  * 관리자 지표 KPI 카드를 요약 표시하는 컴포넌트.
  */
+import { Users, FileText, LayoutTemplate, Download } from "lucide-react";
+
 export type KpiCardData = {
   title: string;
   value: string | null;
   subValue?: string | null;
   hint?: string | null;
 };
+
+const CARD_ICONS = [Users, FileText, LayoutTemplate, Download];
 
 const KpiCards = ({
   items,
@@ -15,13 +19,6 @@ const KpiCards = ({
   items: KpiCardData[];
   isLoading?: boolean;
 }) => {
-  const cardPalette = [
-    "border-t-sky-400",
-    "border-t-emerald-400",
-    "border-t-violet-400",
-    "border-t-amber-400",
-  ];
-
   if (isLoading && items.length === 0) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -37,31 +34,35 @@ const KpiCards = ({
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {items.map((item, index) => (
-        <div
-          key={item.title}
-          className={`flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm border-t-4 ${
-            cardPalette[index % cardPalette.length]
-          }`}
-        >
-          <span className="text-14-semibold text-slate-600">{item.title}</span>
-          <div className="flex flex-col gap-1">
-            <span className="text-title-22-semibold text-slate-900">
-              {item.value ?? "데이터 없음"}
-            </span>
-            {item.subValue && (
-              <span className="text-12-regular text-slate-500">
-                {item.subValue}
+      {items.map((item, index) => {
+        const Icon = CARD_ICONS[index % CARD_ICONS.length];
+        return (
+          <div
+            key={item.title}
+            className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-13-regular text-black-70">{item.title}</span>
+              <span className="text-title-22-semibold text-black-90">
+                {item.value ?? "-"}
               </span>
-            )}
-            {item.hint && (
-              <span className="text-12-regular text-slate-400">
-                {item.hint}
-              </span>
-            )}
+              {item.subValue && (
+                <span className="text-12-regular text-black-70">
+                  {item.subValue}
+                </span>
+              )}
+              {item.hint && (
+                <span className="text-12-regular text-black-70">
+                  {item.hint}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

@@ -24,7 +24,9 @@
 | `image_request` | 이미지 상징 요청 (사용자가 원하는 이미지 키워드) | `user_id` | — |
 | `ai_template_usage` | AI 이미지 크레딧 사용량 추적 (`image_count` 컬럼으로 이미지 단위 차감) | `user_id` | — |
 | `ai_generation_logs` | AI 생성 이력 추적 (4단계: 주제→결과→이미지→확정) | `user_id` | — |
-| `ai_credit_requests` | AI 크레딧 추가 요청 (`status`: pending/approved/rejected) | `user_id` | — |
+| `ai_credit_requests` | AI 크레딧 추가 요청 (`status`: pending/approved/rejected, `reviewed_at`, `reviewed_by`) | `user_id` | — |
+| `user_profiles` | 유저 role 관리 (`role`: user/admin). 신규 가입 시 `handle_new_user()` 트리거로 자동 생성 | `id` (= auth.users.id) | — |
+| `user_credits` | AI 크레딧 잔량 추적 (`balance`, `total_used`, `refill_count`). 신규 가입 시 자동 생성 (balance=30) | `user_id` | — |
 
 ### RPC 통해서만 접근 (직접 `.from()` 없음)
 
@@ -32,6 +34,11 @@
 |--------|------|---------|
 | `ai_generated_images` | AI 생성 이미지 이력 | `get_ai_generated_images`, `save_ai_generated_image` |
 | `ai_image_usage` | AI 이미지 일일 사용량 | `get_ai_image_usage_status`, `can_generate_ai_image` |
+| `user_credits` | 크레딧 원자적 차감 | `use_credits(count)` — 잔량 내에서 차감, 실제 차감 수 반환 |
+| (관리자 전용) | 유저 목록 조회 | `admin_list_users()` — auth.users + user_profiles + user_credits JOIN |
+| (관리자 전용) | 크레딧 요청 목록 | `admin_list_credit_requests()` — pending 우선 정렬 |
+| (관리자 전용) | 크레딧 요청 승인/거절 | `admin_manage_credit_request(id, action)` — 승인 시 balance=30 리셋 |
+| (관리자 전용) | 대시보드 집계 | `admin_dashboard_metrics(start_date, end_date)` — 문서/활동/다운로드 지표 |
 
 ### 미사용 테이블
 
@@ -43,7 +50,7 @@
 | `projects` | 구버전 — `user_made_n`으로 대체됨 |
 | `user_made_versions` | 버전 이력 기능 — 미구현 |
 | `admin_resources` | 관리자 리소스 승인 — 미구현 |
-| `admin_users` | 관리자 권한 — 미구현 |
+| `admin_users` | 구버전 — `user_profiles`로 대체됨 |
 | `daily_usage_logs` | 일일 사용량 — 미구현 |
 
 ## 소유권 필터 규칙

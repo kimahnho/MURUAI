@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 const Header = () => {
   const navigate = useNavigate();
   const { openAuthModal } = useModalStore();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const role = useAuthStore((s) => s.role);
   const { signOut } = useAuth();
 
   const handleSignOut = async () => {
@@ -29,6 +30,15 @@ const Header = () => {
       <div className="flex h-10 items-center justify-center gap-1 md:gap-2 shrink-0">
         {isAuthenticated ? (
           <>
+            {role === "admin" && (
+              <button
+                type="button"
+                onClick={() => navigate("/admin")}
+                className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+              >
+                <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">관리자</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate("/dashboard")}

@@ -7,6 +7,7 @@ const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const DashboardRoute = lazy(() => import("@/pages/dashboard/DashboardRoute"));
 const DesignPage = lazy(() => import("@/pages/editor/DesignPage"));
 const MyDocPage = lazy(() => import("@/pages/mydoc/MyDocPage"));
+const AdminGuard = lazy(() => import("@/pages/admin/AdminGuard"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 const AdminUserDocsPage = lazy(() => import("@/pages/admin/AdminUserDocsPage"));
 const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
@@ -33,12 +34,12 @@ export const router = createBrowserRouter([
         element: withSuspense(<MyDocPage />),
       },
       {
-        path: "admin/user-docs",
-        element: withSuspense(<AdminUserDocsPage />),
-      },
-      {
         path: "admin",
-        element: withSuspense(<AdminPage />),
+        element: withSuspense(<AdminGuard />),
+        children: [
+          { index: true, element: withSuspense(<AdminPage />) },
+          { path: "user-docs", element: withSuspense(<AdminUserDocsPage />) },
+        ],
       },
     ],
   },

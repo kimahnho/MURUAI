@@ -2,8 +2,9 @@
 
 ## 기능 개요
 
-사용자가 주제를 입력하면 AI가 감정 추론 활동용 스토리 텍스트 10개를 생성하고,
-기존 감정 추론 3페이지(표지/목차/치료목표) + AI 텍스트가 채워진 4페이지 형식 10장 = 총 13페이지를 생성한다.
+사용자가 주제를 입력하면 AI가 감정 추론 활동용 스토리 텍스트 10개를 생성한다.
+기본적으로 감정 추론 3페이지(표지/목차/치료목표) + AI 텍스트가 채워진 4페이지 형식 10장 = 총 13페이지를 생성하지만,
+`skipFixedPages: true` 옵션으로 고정 3페이지를 생략하고 스토리 10페이지만 생성할 수 있다 (랜딩 페이지에서 사용).
 
 ## 감정 추론 템플릿 구조
 
@@ -88,9 +89,10 @@ import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
 
 type StoryItem = { title: string; sentence: string; emotions: [string, string, string]; sceneGroup: number };
 
-// buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls?)로 호출
+// buildEmotionStoryPages(stories, emotionImageMap, heroImageUrls?, options?)로 호출
 // emotionImageMap: Map<string, string> — 감정 라벨 → 이미지 URL
 // heroImageUrls?: string[] — AI 생성 히어로 장면 이미지 URL 10개 (선택)
+// options?: { skipFixedPages?: boolean } — true면 고정 3페이지(표지/목차/치료목표) 생략, 스토리 10페이지만 포함
 // patchStoryElements에서 제목, 추론 문장, 감정 카드 이미지, 감정 라벨 텍스트, 히어로 이미지를 모두 패치
 ```
 

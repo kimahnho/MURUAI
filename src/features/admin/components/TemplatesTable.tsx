@@ -22,43 +22,52 @@ const TemplatesTable = ({
 }) => {
   if (isLoading && templates.length === 0) {
     return (
-      <div className="flex h-56 w-full animate-pulse flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4" />
+      <div className="flex h-56 w-full animate-pulse flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5" />
     );
   }
 
+  const maxUsage = templates.reduce((max, t) => Math.max(max, t.usageCount), 0);
+
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <span className="text-14-semibold text-slate-800">{title}</span>
+    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+      <span className="text-14-semibold text-black-90">{title}</span>
       {templates.length === 0 ? (
-        <div className="flex h-36 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-13-regular text-slate-500">
+        <div className="flex h-36 items-center justify-center rounded-xl bg-black-5 text-13-regular text-black-70">
           템플릿 사용 데이터가 없습니다.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200">
-          <table className="w-full text-left text-13-regular">
-            <thead className="bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-4 py-3">템플릿</th>
-                <th className="px-4 py-3">사용 횟수</th>
-                <th className="px-4 py-3">자료 수</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map((template) => (
-                <tr key={template.templateId} className="border-t border-slate-200">
-                  <td className="px-4 py-3 text-slate-900">
-                    {getTemplateLabel(template.templateId)}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {template.usageCount}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {template.docCount}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col gap-3">
+          {templates.map((template, index) => {
+            const percent =
+              maxUsage > 0
+                ? Math.round((template.usageCount / maxUsage) * 100)
+                : 0;
+            return (
+              <div key={template.templateId} className="flex items-center gap-4">
+                <span className="w-5 shrink-0 text-right text-13-semibold text-black-70">
+                  {index + 1}
+                </span>
+                <div className="flex flex-1 flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-13-semibold text-black-80">
+                      {getTemplateLabel(template.templateId)}
+                    </span>
+                    <div className="flex items-center gap-3 text-12-regular text-black-70">
+                      <span>{template.usageCount}회</span>
+                      <span className="text-black-70">·</span>
+                      <span>{template.docCount}건</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-black-5">
+                    <div
+                      className="h-full rounded-full bg-primary-300 transition-all"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 import {
   MONTHLY_AI_CREDIT_LIMIT,
-  fetchMonthlyAiCreditUsage,
+  fetchCreditBalance,
   requestMoreCredits,
   hasRequestedCreditsThisMonth,
 } from "@/features/editor/utils/aiTemplateUsage";
@@ -41,16 +41,17 @@ const AI_FEATURES: {
 const AiFeatureSection = () => {
   const { isCreatingDoc, createAndOpenDocument } =
     useCreateDocumentNavigation();
-  const [monthlyUsed, setMonthlyUsed] = useState<number | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [hasRequested, setHasRequested] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
-    void fetchMonthlyAiCreditUsage().then(setMonthlyUsed);
+    void fetchCreditBalance().then(setCreditBalance);
     void hasRequestedCreditsThisMonth().then(setHasRequested);
   }, []);
 
-  const isQuotaExhausted = monthlyUsed !== null && monthlyUsed >= MONTHLY_AI_CREDIT_LIMIT;
+  const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;
+  const isQuotaExhausted = creditBalance !== null && creditBalance <= 0;
 
   const handleClick = async (feature: string) => {
     mp.track("대시보드 AI 카드 클릭", { feature });

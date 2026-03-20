@@ -1,18 +1,15 @@
+/**
+ * 관리자 대시보드 메인 페이지.
+ * 권한 체크는 AdminGuard에서 처리 — 이 컴포넌트는 authorized 상태에서만 렌더링됨.
+ */
 import { useEffect } from "react";
 import AdminDashboardView from "@/features/admin/components/AdminDashboardView";
-import AdminLoginView from "@/features/admin/components/AdminLoginView";
-import UnauthorizedView from "@/features/admin/components/UnauthorizedView";
 import { useAdminAuth } from "@/features/admin/hooks/useAdminAuth";
 import { useAdminDashboard } from "@/features/admin/hooks/useAdminDashboard";
 import { mp } from "@/shared/utils/mixpanel";
 
-const AdminDashboardContainer = ({
-  onSignOut,
-  adminEmail,
-}: {
-  onSignOut: () => void;
-  adminEmail: string | null;
-}) => {
+const AdminPage = () => {
+  const { user, signOut } = useAdminAuth();
   const dashboard = useAdminDashboard();
 
   useEffect(() => {
@@ -21,7 +18,7 @@ const AdminDashboardContainer = ({
 
   return (
     <AdminDashboardView
-      adminEmail={adminEmail}
+      adminEmail={user?.email ?? null}
       range={dashboard.range}
       metrics={dashboard.metrics}
       isLoading={dashboard.isLoading}
@@ -30,38 +27,6 @@ const AdminDashboardContainer = ({
       onRetry={() => { dashboard.refetch(); }}
       onPresetChange={dashboard.setPreset}
       onCustomRangeChange={dashboard.setCustomRange}
-      onSignOut={onSignOut}
-    />
-  );
-};
-
-const AdminPage = () => {
-  const { status, user, signOut } = useAdminAuth();
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center text-14-regular text-black-50">
-        관리자 정보를 확인하는 중입니다.
-      </div>
-    );
-  }
-
-  if (status === "unauthenticated") {
-    return <AdminLoginView />;
-  }
-
-  if (status === "unauthorized") {
-    return (
-      <UnauthorizedView
-        email={user?.email ?? null}
-        onSignOut={() => { void signOut(); }}
-      />
-    );
-  }
-
-  return (
-    <AdminDashboardContainer
-      adminEmail={user?.email ?? null}
       onSignOut={() => { void signOut(); }}
     />
   );

@@ -16,20 +16,41 @@ const setSentryUser = (user: { id: string; email?: string } | null) => {
   }
 };
 
+const fetchUserRole = async (userId: string) => {
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  return (data?.role as "user" | "admin") ?? "user";
+};
+
+// role 조회를 별도 비동기로 분리 — getSession lock과 충돌 방지
+const loadUserRole = (userId: string, setRole: (role: "user" | "admin" | null) => void) => {
+  fetchUserRole(userId)
+    .then((role) => { setRole(role); })
+    .catch(() => { setRole("user"); });
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { setUser, setLoading, isLoading } = useAuthStore();
+  const { setUser, setRole, setLoading, isLoading } = useAuthStore();
 
   useEffect(() => {
-    // 현재 세션 확인
+    // 현재 세션 확인 — 동기 콜백으로 setLoading(false)를 즉시 호출
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
       setLoading(false);
       if (session?.user?.id) {
+        loadUserRole(session.user.id, setRole);
         mp.identify(session.user.id);
         mp.setUserProfile({ email: session.user.email ?? "" });
         void trackActivityEvent("session_start", session.user.id);
       }
+    }).catch(() => {
+      setUser(null);
+      setRole(null);
+      setLoading(false);
     });
 
     // 인증 상태 변경 리스너
@@ -39,17 +60,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
       if (_event === "SIGNED_IN" && session?.user) {
+        loadUserRole(session.user.id, setRole);
         mp.identify(session.user.id);
         mp.setUserProfile({ email: session.user.email ?? "" });
         void trackActivityEvent("login", session.user.id);
       }
       if (_event === "SIGNED_OUT") {
+        setRole(null);
         mp.reset();
       }
     });
 
     return () => { subscription.unsubscribe(); };
-  }, [setUser, setLoading]);
+  }, [setUser, setRole, setLoading]);
 
   // 로딩 중일 때는 빈 화면 또는 로딩 스피너 표시
   if (isLoading) {
