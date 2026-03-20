@@ -144,6 +144,11 @@ mixpanel.track("이벤트명");
 | **AI 감정추론** | | |
 | `AI 감정추론 시작` | `AiTemplateContent.tsx` | — |
 | `AI 감정추론 스토리 생성` | `AiTemplateContent.tsx` | `topic_length` |
+| `감정 카드 성별 변경` | `EmotionSceneBanner.tsx` | `style` |
+| `AI 장면 이미지 생성` | `EmotionSceneBanner.tsx` | `image_style`, `page_count` |
+| `AI 감정추론 생성 확정` | `EmotionSceneBanner.tsx` | `card_style`, `image_style` |
+| **메인 페이지** | | |
+| `랜딩 AI 감정추론 생성` | `HomePage.tsx` | `topic_length` |
 | **대시보드** | | |
 | `대시보드 빈 문서 생성` | `QuickStartSection.tsx` | — |
 | `대시보드 템플릿 바로가기 클릭` | `QuickStartSection.tsx` | `template_id` |
@@ -161,8 +166,8 @@ mixpanel.track("이벤트명");
 | `카카오 로그인` | `useAuth.ts` | — |
 | `이메일 가입` | `useAuth.ts` | — |
 | **랜딩** | | |
-| `랜딩 CTA 클릭` | `HeroSection.tsx` | — |
-| `랜딩 하단 CTA 클릭` | `CtaSection.tsx` | — |
+| `랜딩 CTA 클릭` | `HeroSection.tsx` (레거시) | — |
+| `랜딩 하단 CTA 클릭` | `CapabilitySection.tsx` | — |
 | **관리자** | | |
 | `관리자 대시보드 접속` | `AdminPage.tsx` | — |
 

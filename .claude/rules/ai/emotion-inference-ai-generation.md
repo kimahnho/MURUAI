@@ -291,6 +291,50 @@ const emotionCards = elements.filter(
 ).sort((a, b) => a.x - b.x);
 ```
 
+## EmotionSceneBanner 기능
+
+### 감정 카드 성별 실시간 교체
+
+배너에서 감정 카드 남아/여아 토글 시:
+1. `fetchEmotionImageMap(cardStyle)` 호출
+2. `storyPageIds`의 각 페이지에서 `subType === "emotionInference"` 셰이프 찾기
+3. 해당 스토리의 `emotions[0,1,2]`에 매칭 → `fill: url(새이미지)` + `calculateCoverImageBox` 적용
+4. `setPages`로 즉시 반영
+
+### 장면 이미지 성별 명시
+
+프롬프트에 성별을 동적 주입하여 일관된 캐릭터 생성:
+- `buildResetSuffix(gender)` / `buildContinuationSuffix(gender)` — "The main character MUST be a Korean boy/girl" 명시
+- `generateSingleSceneImage`에 `gender` 파라미터 추가
+
+### 페이지 수 제한
+
+- `MAX_IMAGE_PAGES = 15`
+- 삭제된 페이지는 `storyPageIds` 기반 자동 제외
+- 15장 초과 시 토스트 + 배너 안내 문구
+
+### 수기 편집 텍스트 반영
+
+이미지 생성 시 `storyPageIds`로 현재 pages에서 title/sentence를 읽어 stories 갱신. 사용자가 수기 편집한 텍스트가 이미지 프롬프트에 반영됨.
+
+### Mixpanel 이벤트
+
+| 이벤트 | 시점 |
+|--------|------|
+| `감정 카드 성별 변경` | 카드 성별 토글 성공 후 |
+| `AI 장면 이미지 생성` | 이미지 생성 성공 후 |
+| `AI 감정추론 생성 확정` | 확정하기 클릭 시 |
+
+## AI 생성 로그 추적
+
+상세: `.claude/rules/common/ai-generation-logging.md` 참조
+
+## 메인 페이지 진입점
+
+상세: `.claude/rules/pages/landing.md` 참조
+
+`HomePage.tsx`에서 `generateEmotionStory` + `buildEmotionStoryPages` 호출 후 `createAndOpenDocument({ pages })` → 에디터에서 `pendingAiLog` 소비 → 배너 등록 + DB 로그.
+
 ## 관련 파일 경로
 
 | 역할 | 경로 |
@@ -314,3 +358,6 @@ const emotionCards = elements.filter(
 | Page 타입 | `src/features/editor/model/pageTypes.ts` |
 | CanvasElement 타입 | `src/features/editor/model/canvasTypes.ts` |
 | 캐릭터 참조 이미지 | `src/shared/assets/characters/{boy.png, girl.png}` |
+| AI 생성 로그 추적 | `src/shared/utils/trackAiGeneration.ts` |
+| 에디터 구독 (pendingAiLog 소비) | `src/features/editor/hooks/useEditorSubscriptions.ts` |
+| 메인 페이지 진입점 | `src/pages/home/HomePage.tsx` |
