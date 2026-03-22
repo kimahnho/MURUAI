@@ -59,6 +59,15 @@ NewLandingPage
 - 그림자: `rgba(124,58,237,0.08~0.14)` (바이올렛 틴트)
 - 헤더 가입 버튼: `bg-primary-800`
 
+## 애니메이션 (framer-motion)
+
+`PromptHeroSection.tsx`에서 `AnimatePresence` + `motion.div` 사용:
+
+- **생성 버튼 클릭 시**: 입력 카드가 `opacity: 0` + `scale: 0.97`로 접히며 사라짐 → "감정추론활동 학습자료를 제작하고 있어요" 메시지가 `y: 16 → 0`으로 페이드인
+- **제안 칩**: `isGenerating`이면 렌더링 자체 제거 (애니메이션 없음)
+- **고정 높이 컨테이너**: `minHeight: 120px`으로 전환 시 레이아웃 점프 방지
+- **하단 섹션 스크롤 인터랙션**: 활동지 예시 + 에디터 미리보기 섹션에 `whileInView` 페이드인+슬라이드업 (`y: 40 → 0`, `once: true`)
+
 ## 관련 파일
 
 | 역할 | 경로 |
