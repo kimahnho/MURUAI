@@ -136,40 +136,42 @@ const StorybookWizard = () => {
 
       {/* 하단 네비게이션 */}
       {isInteractiveStep && (
-        <div className="flex items-center justify-between pt-4 mt-4 shrink-0 border-t border-black-10">
-          <button
-            type="button"
-            onClick={() => {
-              mp.track("AI 스토리북 스텝 이동", { from: currentStep, to: "back" });
-              goBack();
-            }}
-            disabled={currentStep === 1}
-            className="flex items-center gap-1 rounded-lg px-3 py-2 text-14-medium text-black-50 hover:bg-black-5 disabled:opacity-0 disabled:pointer-events-none transition"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            이전
-          </button>
+        <div className="flex flex-col gap-2 pt-4 mt-4 shrink-0 border-t border-black-10">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                mp.track("AI 스토리북 스텝 이동", { from: currentStep, to: "back" });
+                goBack();
+              }}
+              disabled={currentStep === 1}
+              className="flex items-center gap-1 rounded-lg px-3 py-2 text-14-medium text-black-50 hover:bg-black-5 disabled:opacity-0 disabled:pointer-events-none transition"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              이전
+            </button>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!isAdvanceable || isLoading}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-14-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                생성 중...
-              </>
-            ) : (
-              <>
-                {nextLabel}
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!isAdvanceable || isLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-14-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  {nextLabel}
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
           {currentStep === 45 && remaining !== null && (
-            <p className="text-12-regular text-black-40 ml-auto mr-2">
+            <p className="text-12-regular text-black-50 text-center">
               10크레딧 차감 (잔여 {remaining}크레딧)
             </p>
           )}
