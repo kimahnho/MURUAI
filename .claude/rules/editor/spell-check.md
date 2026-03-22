@@ -62,6 +62,7 @@ buildCorrectionKey(elementId, field, correctionIdx)
 - **`locked` 요소 제외**: 템플릿 고정 요소(`el.locked === true`)는 맞춤법 검사에서 자동 제외. "월", "일", "요일" 등 템플릿 레이블이 검사 대상에 포함되지 않음.
 - 빈 문자열(`text.trim() === ""`)은 제외
 - 테이블 셀: 각 셀을 `cell-{row}-{col}` 필드로 개별 추출
+- **감정추론 페이지 마킹**: `subType === "emotionInference"` 요소가 있는 페이지의 텍스트에 `isEmotionInference: true` 플래그 → 프롬프트에서 종속절(~서, ~며, ~고) 교정 제외
 
 ## 실수 방지
 

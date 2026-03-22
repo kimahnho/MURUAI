@@ -106,7 +106,8 @@ Gemini API(`gemini-2.5-flash`)를 `@google/genai` SDK로 직접 호출.
 ### 호출 시그니처
 
 ```typescript
-generateEmotionStory(topic: string, availableLabels: string[]): Promise<StoryItem[]>
+generateEmotionStory(topic: string, availableLabels: string[], count?: number): Promise<StoryItem[]>
+// count 기본값 10. 랜딩 페이지에서는 5로 호출하여 5장만 생성.
 ```
 
 - `availableLabels`: DB(`emotion_photo`)에서 조회한 감정 라벨 목록. AI가 이 목록에서만 감정을 선택하도록 프롬프트에 주입.
@@ -145,7 +146,7 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
     // title, sentence: string 검증
     // emotions: 문자열 3개 이상 배열 검증
   });
-  return valid.slice(0, 10).map((item) => ({
+  return valid.slice(0, count).map((item) => ({
     ...item,
     emotions: [item.emotions[0], item.emotions[1], item.emotions[2]],
   }));
@@ -195,11 +196,20 @@ onSelectAi(topic, imageStyle)
 ### 이미지 스타일 선택
 
 ```typescript
-type EmotionImageStyle = "photo-boy" | "photo-girl";
+type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 ```
 
-- `EmotionInferenceChoiceModal`의 AI 주제 입력 화면에 라디오 버튼 2개
-- `fetchEmotionImageMap(style)`: `emotion_photo` 테이블에서 `category = "boy" | "girl"` 필터
+- 배너의 감정 카드 라디오: 남아 | 여아 | 이모지
+- `fetchEmotionImageMap(style)`:
+  - `"photo-boy"` / `"photo-girl"` → `emotion_photo` 테이블 (`category = "boy" | "girl"`)
+  - `"emoji"` → `emotion_sticker` 테이블 (성별 없음)
+
+### 감정 카드 이미지 크기
+
+| 스타일 | 소스 테이블 | cover box 크기 |
+|--------|-------------|---------------|
+| photo-boy / photo-girl | emotion_photo | 200×260 |
+| emoji | emotion_sticker | 200×200 |
 
 ### patchStoryElements 패치 대상
 
@@ -228,7 +238,7 @@ if (heroImageUrl && el.type === "roundRect" && el.fill === "#D1D5DB" && !el.subT
 generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
 ```
 
-- **모델**: `gemini-2.5-flash-image`, `aspectRatio: "16:9"`
+- **모델**: `gemini-3.1-flash-image-preview`, `aspectRatio: "16:9"`
 - **sceneGroup 기반 그룹별 순차 생성**: 같은 `sceneGroup`의 연속 장면은 첫 장면 이미지를 레퍼런스로 재활용하여 캐릭터/배경 일관성을 유지
   - 그룹 첫 장: 캐릭터 레퍼런스(boy/girl) + 프롬프트
   - 그룹 후속: 첫 장면 생성 이미지를 레퍼런스 + 일관성 유지 프롬프트
