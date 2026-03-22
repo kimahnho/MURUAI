@@ -209,7 +209,7 @@ type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 | 스타일 | 소스 테이블 | cover box 크기 |
 |--------|-------------|---------------|
 | photo-boy / photo-girl | emotion_photo | 200×260 |
-| emoji | emotion_sticker | 200×200 |
+| emoji | emotion_sticker | 180×180 |
 
 ### patchStoryElements 패치 대상
 
@@ -235,13 +235,14 @@ if (heroImageUrl && el.type === "roundRect" && el.fill === "#D1D5DB" && !el.subT
 ### 파이프라인 (`generateEmotionSceneImages.ts`)
 
 ```typescript
-generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
+generateEmotionSceneImages(stories, imageStyle, onProgress?, customPrompts?): Promise<string[]>
 ```
 
 - **모델**: `gemini-3.1-flash-image-preview`, `aspectRatio: "16:9"`
-- **sceneGroup 기반 그룹별 순차 생성**: 같은 `sceneGroup`의 연속 장면은 첫 장면 이미지를 레퍼런스로 재활용하여 캐릭터/배경 일관성을 유지
+- **customPrompts**: `Map<number, string>` — 인덱스별 사용자 커스텀 프롬프트. 기존 `title + sentence` 뒤에 `(배경: 커스텀)` 형태로 추가됨. 재생성 모달에서 사용.
+- **sceneGroup 기반 앵커 관리**: `sceneGroup`이 바뀔 때만 캐릭터 레퍼런스로 리셋. 같은 그룹 내에서는 이전 생성 이미지를 레퍼런스로 계속 사용하여 배경 일관성 유지
   - 그룹 첫 장: 캐릭터 레퍼런스(boy/girl) + 프롬프트
-  - 그룹 후속: 첫 장면 생성 이미지를 레퍼런스 + 일관성 유지 프롬프트
+  - 그룹 후속: 이전 생성 이미지를 레퍼런스 + 배경 유지 프롬프트 (배경을 바꾸지 않도록 명시)
 - **2단계 파이프라인**: Phase 1에서 그룹별 순차 base64 수집 (모두 성공해야 진행) → Phase 2에서 일괄 Cloudinary 업로드
 - **캐릭터 참조 이미지**: `imageStyle`에 따라 `characterBoy` / `characterGirl` 로드 → Gemini에 인라인 이미지로 전달
 - **한→영 번역**: `translateScenesToEnglish()` — 10개 장면을 1회 Gemini 호출로 일괄 번역 (실패 시 한국어 fallback)
@@ -290,6 +291,14 @@ const heroImageUrls = await generateEmotionSceneImages(
 // EmotionInferenceChoiceModal에 generatingProgress prop으로 전달
 // 버튼 텍스트: "이미지 생성 중 (3/10)"
 ```
+
+### 이미지 재생성 모달 (`EmotionSceneImageModal.tsx`)
+
+배너 completed 단계에서 "이미지 재생성하기" 클릭 시 열리는 모달:
+- **페이지 선택**: 체크박스로 재생성할 페이지 선택 (전체 선택/해제)
+- **커스텀 프롬프트**: 선택된 페이지마다 장면 설명 입력 필드 노출. 기존 `title + sentence` 뒤에 `(배경: 사용자입력)` 형태로 추가됨. 비어있으면 기본 프롬프트만 사용
+- **크레딧 확인**: 재생성 버튼 클릭 시 `ConfirmDialog`로 "N장 재생성 → N크레딧 차감" 확인 후 실행
+- **부분 생성**: 크레딧 부족 시 앞 페이지부터 잔량만큼만 재생성
 
 ### 타입 안전성 주의
 

@@ -244,6 +244,7 @@ export const generateEmotionSceneImages = async (
   stories: StoryItem[],
   imageStyle: EmotionImageStyle,
   onProgress?: (current: number, total: number) => void,
+  customPrompts?: Map<number, string>,
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -263,8 +264,12 @@ export const generateEmotionSceneImages = async (
   const characterBase64 = await loadImageAsBase64(characterSrc);
   const gender: "boy" | "girl" = imageStyle === "photo-boy" ? "boy" : "girl";
 
-  // 10개 장면을 한 번에 영문 번역
-  const koreanScenes = stories.map((s) => `${s.title} ${s.sentence}`);
+  // 장면 설명 구성 — 커스텀 프롬프트가 있으면 기본 설명 뒤에 추가
+  const koreanScenes = stories.map((s, i) => {
+    const base = `${s.title} ${s.sentence}`;
+    const custom = customPrompts?.get(i);
+    return custom ? `${base} (배경: ${custom})` : base;
+  });
   let englishScenes: string[];
   try {
     englishScenes = await translateScenesToEnglish(ai, koreanScenes);
