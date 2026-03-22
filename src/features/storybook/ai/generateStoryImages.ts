@@ -175,7 +175,7 @@ const generateSingleImage = async (
       await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
     }
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: "gemini-3.1-flash-image-preview",
       contents,
       config: {
         responseModalities: ["Text", "Image"],
