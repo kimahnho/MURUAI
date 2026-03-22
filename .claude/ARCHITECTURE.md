@@ -45,8 +45,9 @@
 | 경로 | 컴포넌트 | 설명 |
 |------|----------|------|
 | `/` | `HomePage` | 랜딩 페이지 (AI 감정추론 생성 진입) |
+| `/about` | `AboutPage` | 팀 소개 (TEAM STORY + MISSION + VISION) |
 | `/dashboard` | `DashboardRoute` | 대시보드 (인증 필수) |
-| `/design/:id` | `DesignPage` | 캔버스 에디터 |
+| `/:docId/edit` | `DesignPage` | 캔버스 에디터 |
 | `/mydoc` | `MyDocPage` | 내 학습자료 |
 | `/admin` | `AdminPage` | 관리자 (AdminGuard 보호) |
 | `/admin/user-docs` | `AdminUserDocsPage` | 유저별 자료 열람 |
@@ -136,7 +137,7 @@ AuthProvider (앱 루트)
 ```
 주제 입력
   → generateEmotionStory() — Gemini 2.5 Flash (텍스트)
-  → buildEmotionStoryPages() — 페이지 조립 (랜딩: 10p, 에디터: 13p)
+  → buildEmotionStoryPages() — 페이지 조립 (랜딩: 5p, 에디터: 13p)
   → generateEmotionSceneImages() — Gemini 3.1 Flash Image Preview (이미지)
   → Cloudinary 업로드 → 페이지에 히어로 이미지 패치
 ```
