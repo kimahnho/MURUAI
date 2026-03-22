@@ -53,6 +53,13 @@ const Header = () => {
             >
               <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">내 학습자료</span>
             </button>
+            <button
+              type="button"
+              onClick={() => navigate("/about")}
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+            >
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">About</span>
+            </button>
             {/* 모바일: 아이콘, 데스크탑: 텍스트 */}
             <button
               type="button"
@@ -72,6 +79,13 @@ const Header = () => {
           </>
         ) : (
           <>
+            <button
+              type="button"
+              onClick={() => navigate("/about")}
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+            >
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">About</span>
+            </button>
             <button
               type="button"
               onClick={openAuthModal}

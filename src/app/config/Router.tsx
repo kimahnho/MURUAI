@@ -10,6 +10,7 @@ const MyDocPage = lazy(() => import("@/pages/mydoc/MyDocPage"));
 const AdminGuard = lazy(() => import("@/pages/admin/AdminGuard"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 const AdminUserDocsPage = lazy(() => import("@/pages/admin/AdminUserDocsPage"));
+const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
 
 const withSuspense = (element: React.ReactElement) => (
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
       {
         path: "mydoc",
         element: withSuspense(<MyDocPage />),
+      },
+      {
+        path: "about",
+        element: withSuspense(<AboutPage />),
       },
       {
         path: "admin",
