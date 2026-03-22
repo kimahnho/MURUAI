@@ -295,6 +295,35 @@ const emotionCards = elements.filter(
 
 ## EmotionSceneBanner 기능
 
+### 배너 접기/펼치기 (X 버튼 없음)
+
+배너는 임의 삭제가 불가능하다. X 버튼 대신 접기/펼치기 토글 제공:
+- **ready phase**: ChevronUp 접기 버튼 → 접힌 상태("이미지 생성 도구" + ChevronDown 펼치기 버튼)
+- **generating/completed phase**: 접기 불가 — 접힌 상태에서도 자동 펼침
+- 모든 스토리 페이지가 삭제(또는 빈 페이지로 변환)되면 배너 자동 제거
+
+### 고아 세트 정리 (useEffect 기반)
+
+렌더 중 Zustand `set()` 호출은 React 배치 처리로 동기 반영되지 않으므로, `useEffect`에서 정리:
+
+```typescript
+useEffect(() => {
+  const pageMap = new Map(pages.map((p) => [p.id, p]));
+  for (const pg of pendingGenerations) {
+    const hasValidPage = pg.storyPageIds.some((id) => {
+      const page = pageMap.get(id);
+      return page && page.elements.length > 1; // 빈 페이지(로고만) 제외
+    });
+    if (!hasValidPage) {
+      useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
+    }
+  }
+}, [pages, pendingGenerations]);
+```
+
+- **빈 페이지 판별**: `elements.length > 1` — 마지막 페이지 삭제 시 `handleDeletePage`가 같은 ID로 빈 페이지(`withLogoCanvasElements([])`)로 변환하므로, ID 존재만으로는 유효하지 않음
+- **렌더 본문의 매칭 루프도 동일 기준 적용** — `pageMap.get(id)` + `elements.length > 1`
+
 ### 감정 카드 성별 실시간 교체
 
 배너에서 감정 카드 남아/여아 토글 시:

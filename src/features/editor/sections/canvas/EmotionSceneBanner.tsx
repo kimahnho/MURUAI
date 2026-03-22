@@ -3,9 +3,9 @@
  * 텍스트 생성 후 캔버스 상단에 표시되어 이미지 생성/재생성/확정 플로우를 안내한다.
  * 다중 생성 세트를 지원하며, 현재 선택된 페이지에 해당하는 세트만 표시한다.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Check, ImageIcon, Loader2, RefreshCw, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 
 import type { Page } from "@/features/editor/model/pageTypes";
 import type { ShapeElement } from "@/features/editor/model/canvasTypes";
@@ -36,6 +36,9 @@ const MAX_IMAGE_PAGES = 15;
 
 const EMOTION_IMAGE_SIZE = { width: 200, height: 260 };
 
+// 스토리 페이지로서 유효한지 판별 — 요소가 로고 1개뿐(빈 페이지로 변환됨)이면 무효
+const isValidStoryPage = (page: Page) => page.elements.length > 1;
+
 interface EmotionSceneBannerProps {
   pages: Page[];
   selectedPageId: string;
@@ -53,23 +56,35 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
   const [cardStyle, setCardStyle] =
     useState<EmotionImageStyle>("photo-boy");
   const [isSwappingCards, setIsSwappingCards] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // 고아 세트 정리 — 페이지가 삭제되거나 빈 페이지로 변환되면 해당 세트 제거
+  useEffect(() => {
+    const pageMap = new Map(pages.map((p) => [p.id, p]));
+    for (const pg of pendingGenerations) {
+      const hasValidPage = pg.storyPageIds.some((id) => {
+        const page = pageMap.get(id);
+        return page && isValidStoryPage(page);
+      });
+      if (!hasValidPage) {
+        useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
+      }
+    }
+  }, [pages, pendingGenerations]);
 
   if (pendingGenerations.length === 0) return null;
 
-  // 실제 존재하는 페이지 ID 셋
-  const existingPageIds = new Set(pages.map((p) => p.id));
-
-  // 현재 선택된 페이지를 포함하는 세트 찾기
+  // 현재 선택된 페이지를 포함하는 세트 찾기 (빈 페이지는 유효하지 않은 것으로 판단)
+  const pageMap = new Map(pages.map((p) => [p.id, p]));
   let matchedGeneration: PendingGeneration | null = null;
   let validStoryPageIds: string[] = [];
 
   for (const pg of pendingGenerations) {
-    const validIds = pg.storyPageIds.filter((id) => existingPageIds.has(id));
-    if (validIds.length === 0) {
-      // 모든 페이지가 삭제된 세트 → 제거
-      useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
-      continue;
-    }
+    const validIds = pg.storyPageIds.filter((id) => {
+      const page = pageMap.get(id);
+      return page && isValidStoryPage(page);
+    });
+    if (validIds.length === 0) continue;
     if (validIds.includes(selectedPageId)) {
       matchedGeneration = pg;
       validStoryPageIds = validIds;
@@ -275,10 +290,6 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
     }
   };
 
-  const handleDismiss = () => {
-    useEmotionSceneStore.getState().removePendingGeneration(originalIds);
-  };
-
   const handleConfirm = () => {
     // 최종 확정 추적: storyPageIds로 AI 10장의 최종 텍스트+이미지 추출
     const logId = sessionStorage.getItem("aiGenerationLogId");
@@ -331,37 +342,56 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
     useEmotionSceneStore.getState().removePendingGeneration(originalIds);
   };
 
+  // generating/completed phase에서는 자동 펼침
+  const shouldForceExpand = bannerPhase === "generating" || bannerPhase === "completed";
+  const effectiveCollapsed = isCollapsed && !shouldForceExpand;
+
   return (
     <>
       <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2">
-        <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-primary-200 bg-white-100 px-5 py-3 shadow-xl">
-          <div className="flex items-center gap-3 whitespace-nowrap">
-            <BannerContent
-              phase={bannerPhase}
-              progress={generatingProgress}
-              imageStyle={imageStyle}
-              cardStyle={cardStyle}
-              isSwappingCards={isSwappingCards}
-              pageCount={storyPageIds.length}
-              onImageStyleChange={setImageStyle}
-              onCardStyleChange={handleCardStyleChange}
-              onGenerate={handleGenerateImages}
-              onRegenerate={() => setIsRegenModalOpen(true)}
-              onConfirm={handleConfirm}
-              onDismiss={handleDismiss}
-            />
+        {effectiveCollapsed ? (
+          <div className="flex items-center gap-2 rounded-2xl border border-primary-200 bg-white-100 px-4 py-2.5 shadow-xl whitespace-nowrap">
+            <ImageIcon className="h-4 w-4 text-primary" />
+            <span className="text-13-semibold text-black-70">이미지 생성 도구</span>
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(false)}
+              className="rounded-lg p-1 text-black-40 transition hover:bg-black-5 hover:text-black-70"
+              aria-label="펼치기"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
           </div>
-          {bannerPhase === "generating" && (
-            <span className="text-12-regular text-primary-400">
-              이미지 생성 중에는 내용을 수정하지 마세요
-            </span>
-          )}
-          {bannerPhase === "ready" && storyPageIds.length > MAX_IMAGE_PAGES && (
-            <span className="text-12-regular text-error-500">
-              최대 이미지 생성 페이지는 {MAX_IMAGE_PAGES}장입니다
-            </span>
-          )}
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-primary-200 bg-white-100 px-5 py-3 shadow-xl">
+            <div className="flex items-center gap-3 whitespace-nowrap">
+              <BannerContent
+                phase={bannerPhase}
+                progress={generatingProgress}
+                imageStyle={imageStyle}
+                cardStyle={cardStyle}
+                isSwappingCards={isSwappingCards}
+                pageCount={storyPageIds.length}
+                onImageStyleChange={setImageStyle}
+                onCardStyleChange={handleCardStyleChange}
+                onGenerate={handleGenerateImages}
+                onRegenerate={() => setIsRegenModalOpen(true)}
+                onConfirm={handleConfirm}
+                onCollapse={() => setIsCollapsed(true)}
+              />
+            </div>
+            {bannerPhase === "generating" && (
+              <span className="text-12-regular text-primary-400">
+                이미지 생성 중에는 내용을 수정하지 마세요
+              </span>
+            )}
+            {bannerPhase === "ready" && storyPageIds.length > MAX_IMAGE_PAGES && (
+              <span className="text-12-regular text-error-500">
+                최대 이미지 생성 페이지는 {MAX_IMAGE_PAGES}장입니다
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <EmotionSceneImageModal
@@ -389,7 +419,7 @@ const BannerContent = ({
   onGenerate,
   onRegenerate,
   onConfirm,
-  onDismiss,
+  onCollapse,
 }: {
   phase: BannerPhase;
   progress: { current: number; total: number } | null;
@@ -402,7 +432,7 @@ const BannerContent = ({
   onGenerate: () => void;
   onRegenerate: () => void;
   onConfirm: () => void;
-  onDismiss: () => void;
+  onCollapse: () => void;
 }) => {
   if (phase === "generating") {
     return (
@@ -492,11 +522,11 @@ const BannerContent = ({
       </button>
       <button
         type="button"
-        onClick={onDismiss}
+        onClick={onCollapse}
         className="rounded-lg p-1 text-black-40 transition hover:bg-black-5 hover:text-black-70"
-        aria-label="닫기"
+        aria-label="접기"
       >
-        <X className="h-4 w-4" />
+        <ChevronUp className="h-4 w-4" />
       </button>
     </>
   );

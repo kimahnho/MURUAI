@@ -120,28 +120,26 @@ const AiTemplateContent = () => {
     <>
       <div className="flex flex-col w-full gap-6">
         {/* 월간 이미지 크레딧 표시 */}
-        {monthlyUsed !== null && (
-          <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-            isQuotaExhausted
-              ? "bg-error-50 border-error-100"
-              : "bg-primary-50 border-primary-200"
-          }`}>
-            <div className="flex flex-col">
-              <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : "text-primary-700"}`}>
-                이번 달 이미지 크레딧
+        <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+          isQuotaExhausted
+            ? "bg-error-50 border-error-100"
+            : "bg-primary-50 border-primary-200"
+        }`}>
+          <div className="flex flex-col">
+            <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : "text-primary-700"}`}>
+              이번 달 이미지 크레딧
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
+                {monthlyUsed !== null ? monthlyUsed : "--"}
               </span>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
-                  {monthlyUsed}
-                </span>
-                <span className="text-14-regular text-black-50">
-                  / {MONTHLY_AI_CREDIT_LIMIT}
-                </span>
-              </div>
+              <span className="text-14-regular text-black-50">
+                / {MONTHLY_AI_CREDIT_LIMIT}
+              </span>
             </div>
-            <Zap className={`h-6 w-6 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
           </div>
-        )}
+          <Zap className={`h-6 w-6 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
+        </div>
 
         {/* 소진 안내 + 크레딧 요청 버튼 */}
         {isQuotaExhausted && (

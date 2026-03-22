@@ -1,13 +1,17 @@
 /**
  * 6단계: 완료 — 요약 카드 + 10페이지 텍스트 미리보기 + 재시작 버튼.
  */
-import { BookOpen, RotateCcw } from "lucide-react";
+import { BookOpen, Check, RotateCcw } from "lucide-react";
 
 import { ART_STYLE_PRESETS } from "../../data/artStylePresets";
 import { LAYOUT_OPTIONS } from "../../model/storybookTypes";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 
-const CompleteStep = () => {
+interface CompleteStepProps {
+  onClose: () => void;
+}
+
+const CompleteStep = ({ onClose }: CompleteStepProps) => {
   const book = useStorybookWizardStore((s) => s.generatedBook);
   const reset = useStorybookWizardStore((s) => s.reset);
 
@@ -55,15 +59,25 @@ const CompleteStep = () => {
         </div>
       </div>
 
-      {/* 재시작 */}
-      <button
-        type="button"
-        onClick={reset}
-        className="flex items-center justify-center gap-1.5 rounded-lg border border-black-25 px-4 py-2.5 text-14-medium text-black-70 hover:bg-black-5 transition"
-      >
-        <RotateCcw className="h-4 w-4" />
-        새 스토리북 만들기
-      </button>
+      {/* 확인 + 재시작 */}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-14-semibold text-white hover:bg-primary-700 transition"
+        >
+          <Check className="h-4 w-4" />
+          확인
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-14-medium text-black-40 hover:text-black-60 hover:bg-black-5 transition"
+        >
+          <RotateCcw className="h-4 w-4" />
+          새 스토리북 만들기
+        </button>
+      </div>
     </div>
   );
 };
