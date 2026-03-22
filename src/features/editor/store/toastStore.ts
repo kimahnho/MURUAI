@@ -3,14 +3,18 @@
  */
 import { create } from "zustand";
 
+type ToastVariant = "default" | "primary" | "success";
+
 interface ToastStore {
   message: string | null;
-  showToast: (message: string) => void;
+  variant: ToastVariant;
+  showToast: (message: string, variant?: ToastVariant) => void;
   clearToast: () => void;
 }
 
 export const useToastStore = create<ToastStore>((set) => ({
   message: null,
-  showToast: (message) => { set({ message }); },
+  variant: "default",
+  showToast: (message, variant = "default") => { set({ message, variant }); },
   clearToast: () => { set({ message: null }); },
 }));
