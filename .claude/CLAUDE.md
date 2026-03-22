@@ -84,7 +84,7 @@ src/
 10. **이벤트 추적**: DB 이벤트(`trackEvents.ts`)는 비차단 패턴 필수 (`void` + `console.warn`, `await` 금지)
 11. **사이드바 탭 추가**: `SideBarMenu` 타입 + `MENU_LABELS` + `MENU_ITEMS` + `CONTENT_COMPONENTS` 4곳 동시 수정 필수
 12. **CDN 폰트**: CDN 폰트 선택/사용 시 `loadCdnFont()` 호출 필수 — 로드 후 적용. `cdnFontRegistry.ts`는 자동 생성 파일이므로 직접 수정 금지 (`yarn generate:fonts`로 재생성)
-13. **AI 이미지 크레딧**: 기본 30크레딧. `user_credits.balance`로 잔량 추적, `use_credits` RPC로 원자적 차감 (이미지 1장 = 1크레딧, 텍스트 무료). 크레딧 소진 시 `ai_credit_requests`로 추가 요청 → 관리자 승인 시 balance=30 리셋. `ai_template_usage` 테이블은 생성 이력 기록용으로 유지
+13. **AI 이미지 크레딧**: 기본 30크레딧. `user_credits.balance`로 잔량 추적, `use_credits` RPC로 원자적 차감 (이미지 1장 = 1크레딧, 텍스트 무료). 크레딧 소진 시 `ai_credit_requests`로 추가 요청 → 관리자 승인 시 balance=30 리셋. 재요청 차단은 **pending 상태 요청이 있을 때만** — 승인/거절 후에는 다시 요청 가능 (`hasPendingCreditRequest`). `ai_template_usage` 테이블은 생성 이력 기록용으로 유지
 14. **GenAI 클라이언트**: `getGenAI()` 사용 (`src/shared/api/genai.ts`) — 개발 모드(`VITE_GOOGLE_API_KEY` + `import.meta.env.DEV`)에서는 브라우저 직접 호출, 프로덕션에서는 `/api/genai/*` 서버 프록시 경유. Vertex AI 사용 금지
 15. **이메일 회원가입 비활성화**: `AuthModal.tsx`에서 회원가입 UI 주석 처리됨. 소셜 로그인(Google/카카오) + 이메일 로그인만 활성. 복원 시 `이메일 회원가입 임시 비활성화` 키워드로 검색
 16. **Sentry 에러 캡처**: `captureSentryError(error, "컨텍스트")` 헬퍼 필수 사용 (`sentryUtils.ts`) — `Sentry.captureException` 직접 호출 금지 (Supabase 에러 객체 비호환)

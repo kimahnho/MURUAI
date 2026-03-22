@@ -2,7 +2,7 @@
  * Step 4.5: AI 캐릭터 레퍼런스 이미지 생성 및 확인.
  * 선택한 그림체로 캐릭터를 AI 생성하고, 사용자가 컨펌하거나 다시 생성할 수 있다.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, RefreshCw, Upload } from "lucide-react";
 
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
@@ -19,6 +19,13 @@ const ReferenceImageStep = () => {
   const setReferenceImageBase64 = useStorybookWizardStore(
     (s) => s.setReferenceImageBase64,
   );
+  const characterPrompt = useStorybookWizardStore(
+    (s) => s.formData.characterPrompt,
+  );
+  const setCharacterPrompt = useStorybookWizardStore(
+    (s) => s.setCharacterPrompt,
+  );
+  const [localPrompt, setLocalPrompt] = useState(characterPrompt ?? "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriggered = useRef(false);
 
@@ -31,6 +38,7 @@ const ReferenceImageStep = () => {
   }, [referenceImageBase64, isLoading, generateCharacterRef]);
 
   const handleRegenerate = () => {
+    setCharacterPrompt(localPrompt);
     void generateCharacterRef();
   };
 
@@ -78,6 +86,16 @@ const ReferenceImageStep = () => {
         <br />
         마음에 들지 않으면 다시 생성하거나 직접 업로드할 수 있어요.
       </p>
+
+      {/* 커스텀 프롬프트 입력 */}
+      <textarea
+        value={localPrompt}
+        onChange={(e) => { setLocalPrompt(e.target.value); }}
+        placeholder="원하는 캐릭터 특징을 입력해 주세요 (예: 안경을 쓴, 빨간 모자를 쓴)"
+        disabled={isLoading}
+        rows={2}
+        className="w-full max-w-xs resize-none rounded-lg border border-black-20 px-3 py-2 text-13-regular placeholder:text-black-30 focus:border-primary focus:outline-none disabled:opacity-50"
+      />
 
       {/* 버튼 영역 */}
       {!isLoading && (

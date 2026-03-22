@@ -105,18 +105,12 @@ export const requestMoreCredits = async (): Promise<boolean> => {
   return true;
 };
 
-/** 이번 달 크레딧 추가 요청을 보낸 적이 있는지 확인한다. */
-export const hasRequestedCreditsThisMonth = async (): Promise<boolean> => {
-  const now = new Date();
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-  ).toISOString();
+/** 처리 대기 중인(pending) 크레딧 추가 요청이 있는지 확인한다. */
+export const hasPendingCreditRequest = async (): Promise<boolean> => {
   const { count, error } = await supabase
     .from("ai_credit_requests")
     .select("id", { count: "exact", head: true })
-    .gte("created_at", monthStart);
+    .eq("status", "pending");
   if (error) {
     console.warn("ai_credit_requests check failed", error);
     return false;

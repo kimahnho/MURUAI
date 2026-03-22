@@ -10,7 +10,7 @@ import {
   MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
-  hasRequestedCreditsThisMonth,
+  hasPendingCreditRequest,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { mp } from "@/shared/utils/mixpanel";
 import useToastStore from "@/shared/store/useToastStore";
@@ -47,7 +47,7 @@ const AiFeatureSection = () => {
 
   useEffect(() => {
     void fetchCreditBalance().then(setCreditBalance);
-    void hasRequestedCreditsThisMonth().then(setHasRequested);
+    void hasPendingCreditRequest().then(setHasRequested);
   }, []);
 
   const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;

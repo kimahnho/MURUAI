@@ -93,6 +93,7 @@ export interface WizardFormData {
   artStyle: ArtStyleId | null;
   editedProposal: StoryProposal | null;
   referenceImageBase64?: string;
+  characterPrompt?: string;
 }
 
 // ─── 상수 ───
@@ -156,4 +157,5 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   artStyle: null,
   editedProposal: null,
   referenceImageBase64: undefined,
+  characterPrompt: undefined,
 };

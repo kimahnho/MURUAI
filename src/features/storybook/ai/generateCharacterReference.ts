@@ -45,6 +45,7 @@ This is a character reference sheet — only one character, no background scene,
 export const generateCharacterReference = async (
   artStyleId: ArtStyleId,
   childInfo: ChildInfo,
+  customPrompt?: string,
 ): Promise<string> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -57,7 +58,10 @@ export const generateCharacterReference = async (
 
   // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
-  const prompt = buildCharacterPrompt(childInfo, preset.promptTemplate);
+  const basePrompt = buildCharacterPrompt(childInfo, preset.promptTemplate);
+  const prompt = customPrompt
+    ? `${basePrompt}\n\nAdditional character details requested by the user:\n${customPrompt}`
+    : basePrompt;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {

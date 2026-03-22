@@ -89,7 +89,7 @@ const CreditRequestsSection = () => {
                     type="button"
                     onClick={() => handleApprove(req.request_id)}
                     disabled={manage.isPending}
-                    className="flex items-center gap-1 rounded-lg bg-success-500 px-3 py-1.5 text-13-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-lg bg-success px-3 py-1.5 text-13-semibold text-white-100 hover:opacity-90 disabled:opacity-50"
                   >
                     <Check className="h-4 w-4" />
                     승인

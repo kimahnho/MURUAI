@@ -23,7 +23,7 @@ import {
   MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
-  hasRequestedCreditsThisMonth,
+  hasPendingCreditRequest,
 } from "@/features/editor/utils/aiTemplateUsage";
 
 import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
@@ -44,7 +44,7 @@ const AiTemplateContent = () => {
   // 크레딧 잔량 + 요청 이력 조회
   useEffect(() => {
     void fetchCreditBalance().then(setCreditBalance);
-    void hasRequestedCreditsThisMonth().then(setHasRequested);
+    void hasPendingCreditRequest().then(setHasRequested);
   }, []);
 
   // 대시보드에서 전달된 AI intent를 소비하여 해당 모달을 자동으로 연다.

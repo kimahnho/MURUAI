@@ -10,6 +10,7 @@
 - **서버 상태**: TanStack Query
 - **백엔드**: Supabase (Auth, Database, Storage, Edge Functions)
 - **스타일링**: Tailwind CSS v4
+- **애니메이션**: Framer Motion
 - **PDF 출력**: html-to-image + jsPDF
 - **모니터링**: Sentry, Mixpanel, Vercel Analytics
 

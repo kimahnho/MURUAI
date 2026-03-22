@@ -9,7 +9,7 @@ import BaseModal from "@/shared/ui/BaseModal";
 import useToastStore from "@/shared/store/useToastStore";
 import {
   requestMoreCredits,
-  hasRequestedCreditsThisMonth,
+  hasPendingCreditRequest,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
 
@@ -23,7 +23,7 @@ const CreditExhaustedModal = () => {
 
   useEffect(() => {
     if (isOpen) {
-      void hasRequestedCreditsThisMonth().then(setHasRequested);
+      void hasPendingCreditRequest().then(setHasRequested);
     }
   }, [isOpen]);
 

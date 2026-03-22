@@ -54,7 +54,7 @@ src/features/storybook/
 
 - Step 2 → 3: `fetchProposals()` → `generateStoryProposals()` (Gemini 2.5-flash)
 - Step 4 → 4.5: 스타일 설정 완료 후 `goNext()` → Step 4.5 진입 시 `generateCharacterRef()` 자동 호출
-- Step 4.5: AI가 선택한 그림체로 캐릭터 레퍼런스 이미지 생성 → 사용자 컨펌 또는 "다시 생성"
+- Step 4.5: AI가 선택한 그림체로 캐릭터 레퍼런스 이미지 생성 → 사용자 컨펌 또는 커스텀 프롬프트 입력 후 "다시 생성"
 - Step 4.5 → 5 → 6: `generateBook()` → `generateStorybook()` → `generateStoryImages()` (sceneGroup 기반 그룹별 순차, 캐릭터 레퍼런스 재활용) → `buildStoryPages()` → `requestInsertPages()`
 - `WizardStep = 1 | 2 | 3 | 4 | 45 | 5 | 6` (TypeScript 정수 45로 표현)
 - `STEP_ORDER` 배열로 네비게이션 순서 관리
@@ -89,6 +89,7 @@ interface WizardFormData {
   artStyle: ArtStyleId | null;
   editedProposal: StoryProposal | null;
   referenceImageBase64?: string; // AI 생성 캐릭터 레퍼런스 (base64)
+  characterPrompt?: string;      // 캐릭터 생성 시 사용자 커스텀 프롬프트
 }
 
 type ArtStyleId =
@@ -113,7 +114,7 @@ type ArtStyleId =
 
 ## ChildInfoStep 이중 모드
 
-- **모드 A "내 학습자"**: `fetchStudentsForWizard()` → 카드 선택 → gender 없으면 보충 UI
+- **모드 A "내 학습자"**: `fetchStudentsForWizard()` → 카드 선택 → gender 없으면 **클릭한 카드 바로 아래에** 성별 보충 UI 표시
 - **모드 B "직접 입력"**: 이름(필수), 성별(필수), 나이(필수), 진단명(선택), 학습목표(선택)
 - 학습자 0명이면 자동으로 모드 B 전환
 
@@ -127,10 +128,11 @@ type ArtStyleId =
 ### AI 캐릭터 레퍼런스 생성 (`generateCharacterReference.ts`)
 
 ```typescript
-generateCharacterReference(artStyleId, childInfo): Promise<string>  // base64 반환
+generateCharacterReference(artStyleId, childInfo, customPrompt?): Promise<string>  // base64 반환
 ```
 
 - 그림체 프리셋의 `promptTemplate` + 아동 정보(성별, 나이)로 캐릭터 단독 이미지 생성
+- `customPrompt`: 사용자가 Step 4.5에서 입력한 캐릭터 특징 (예: "안경을 쓴", "빨간 모자를 쓴") — 기본 프롬프트에 append
 - `aspectRatio: "1:1"`, 흰 배경, 정면 전신
 - `MAX_RETRIES = 3`, `RETRY_DELAY_MS = 2000`
 

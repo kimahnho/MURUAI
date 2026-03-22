@@ -337,6 +337,22 @@ const emotionCards = elements.filter(
 
 `HomePage.tsx`에서 `generateEmotionStory` + `buildEmotionStoryPages` 호출 후 `createAndOpenDocument({ pages })` → 에디터에서 `pendingAiLog` 소비 → 배너 등록 + DB 로그.
 
+## 배너 상태 영속화 (canvas_data)
+
+배너 상태가 `canvas_data.emotionSceneMeta`에 저장되어 새로고침/재방문 시 자동 복원된다.
+
+- **저장**: `buildPersistPayload` (`documentPersistence.ts`) — `emotionSceneStore.pendingGenerations` → `emotionSceneMeta[]` 직렬화. `bannerPhase === "generating"`은 `"ready"`로 리셋
+- **복원**: `useDocumentLoader.ts` — 문서 로드 후 `emotionSceneMeta`가 있으면 `addPendingGeneration()` 호출. `storyPageIds[0]`으로 중복 방지 (sessionStorage `pendingAiLog`과 공존)
+- **하위 호환**: 기존 문서에 `emotionSceneMeta`가 없으면 `undefined` → 배너 안 보임
+
+```typescript
+type EmotionSceneMeta = {
+  stories: StoryItem[];
+  storyPageIds: string[];
+  bannerPhase: BannerPhase;  // "ready" | "completed" (generating은 저장 시 ready로 리셋)
+};
+```
+
 ## 관련 파일 경로
 
 | 역할 | 경로 |
