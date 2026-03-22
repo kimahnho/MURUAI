@@ -123,7 +123,7 @@ type ArtStyleId =
 ### 모델 및 설정
 
 - **텍스트 생성**: `gemini-2.5-flash` (`@google/genai` SDK)
-- **이미지 생성**: `gemini-2.5-flash-image`, `imageConfig: { aspectRatio }` — 레이아웃별 다름 (가로형 `"3:4"`, 세로형 `"16:9"`)
+- **이미지 생성**: `gemini-3.1-flash-image-preview`, `imageConfig: { aspectRatio }` — 레이아웃별 다름 (가로형 `"3:4"`, 세로형 `"16:9"`)
 
 ### AI 캐릭터 레퍼런스 생성 (`generateCharacterReference.ts`)
 

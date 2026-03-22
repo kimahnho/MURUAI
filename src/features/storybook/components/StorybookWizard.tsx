@@ -20,14 +20,13 @@ import ReferenceImageStep from "./steps/ReferenceImageStep";
 import GeneratingStep from "./steps/GeneratingStep";
 import CompleteStep from "./steps/CompleteStep";
 
-const STEP_COMPONENTS: Record<WizardStep, React.ComponentType> = {
+const STEP_COMPONENTS: Partial<Record<WizardStep, React.ComponentType>> = {
   1: ChildInfoStep,
   2: TopicStep,
   3: ProposalStep,
   4: ArtStyleStep,
   45: ReferenceImageStep,
   5: GeneratingStep,
-  6: CompleteStep,
 };
 
 const STEP_DESCRIPTIONS: Record<WizardStep, string> = {
@@ -45,7 +44,11 @@ const INTERACTIVE_STEPS = [1, 2, 3, 4, 45] as const;
 // 스텝 인디케이터에 표시할 단계
 const INDICATOR_STEPS = [1, 2, 3, 4, 45] as const;
 
-const StorybookWizard = () => {
+interface StorybookWizardProps {
+  onClose: () => void;
+}
+
+const StorybookWizard = ({ onClose }: StorybookWizardProps) => {
   const currentStep = useStorybookWizardStore((s) => s.currentStep);
   const formData = useStorybookWizardStore((s) => s.formData);
   const isLoading = useStorybookWizardStore((s) => s.isLoading);
@@ -89,7 +92,7 @@ const StorybookWizard = () => {
       {/* 헤더: 타이틀 + 스텝 인디케이터 */}
       {isInteractiveStep && (
         <div className="mb-5 pr-6">
-          <h2 className="text-title-20-semibold text-black-100 mb-1">
+          <h2 className="text-title-20-semibold text-black-90 mb-1">
             AI 스토리북 만들기
           </h2>
 
@@ -115,7 +118,7 @@ const StorybookWizard = () => {
             </span>
           </div>
           {STEP_DESCRIPTIONS[currentStep] && (
-            <p className="text-13-regular text-black-50 mt-1">
+            <p className="text-13-regular text-black-40 mt-1">
               {STEP_DESCRIPTIONS[currentStep]}
             </p>
           )}
@@ -124,14 +127,14 @@ const StorybookWizard = () => {
 
       {/* 에러 메시지 */}
       {error && (
-        <div className="mb-3 rounded-lg bg-red-50 px-3 py-2.5 text-13-medium text-red-600">
+        <div className="mb-3 rounded-lg bg-error-50 px-3 py-2.5 text-13-medium text-error-700">
           {error}
         </div>
       )}
 
       {/* 스텝 콘텐츠 */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        <StepContent />
+        {currentStep === 6 ? <CompleteStep onClose={onClose} /> : StepContent ? <StepContent /> : null}
       </div>
 
       {/* 하단 네비게이션 */}
@@ -145,7 +148,7 @@ const StorybookWizard = () => {
                 goBack();
               }}
               disabled={currentStep === 1}
-              className="flex items-center gap-1 rounded-lg px-3 py-2 text-14-medium text-black-50 hover:bg-black-5 disabled:opacity-0 disabled:pointer-events-none transition"
+              className="flex items-center gap-1 rounded-lg px-3 py-2 text-14-medium text-black-40 hover:bg-primary-50 hover:text-primary disabled:opacity-0 disabled:pointer-events-none transition"
             >
               <ChevronLeft className="h-4 w-4" />
               이전
@@ -155,7 +158,7 @@ const StorybookWizard = () => {
               type="button"
               onClick={handleNext}
               disabled={!isAdvanceable || isLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-14-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-14-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {isLoading ? (
                 <>
@@ -171,7 +174,7 @@ const StorybookWizard = () => {
             </button>
           </div>
           {currentStep === 45 && remaining !== null && (
-            <p className="text-12-regular text-black-50 text-center">
+            <p className="text-12-regular text-black-40 text-center">
               10크레딧 차감 (잔여 {remaining}크레딧)
             </p>
           )}

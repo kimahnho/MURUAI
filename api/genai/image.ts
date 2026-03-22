@@ -1,6 +1,6 @@
 /**
  * POST /api/genai/image
- * 이미지 생성 Gemini API 프록시. gemini-2.5-flash-image 모델만 허용.
+ * 이미지 생성 Gemini API 프록시. gemini-3.1-flash-image-preview 모델만 허용.
  * base64 이미지 입출력을 처리한다.
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
@@ -8,7 +8,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { AuthError, verifyAuth } from "../_lib/auth.js";
 import { getServerGenAI } from "../_lib/genai.js";
 
-const ALLOWED_MODELS = ["gemini-2.5-flash-image"];
+const ALLOWED_MODELS = ["gemini-3.1-flash-image-preview"];
 
 export const config = {
   maxDuration: 120,

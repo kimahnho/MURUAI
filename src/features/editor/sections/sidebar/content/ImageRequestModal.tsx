@@ -71,7 +71,7 @@ const ImageRequestModal = ({
       return;
     }
 
-    showToast("이미지 요청이 접수되었어요!");
+    showToast("이미지 요청이 접수되었어요!", "success");
     setKeyword("");
     setDetail("");
     onClose();

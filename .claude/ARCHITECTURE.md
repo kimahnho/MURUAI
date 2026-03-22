@@ -137,7 +137,7 @@ AuthProvider (앱 루트)
 주제 입력
   → generateEmotionStory() — Gemini 2.5 Flash (텍스트)
   → buildEmotionStoryPages() — 페이지 조립 (랜딩: 10p, 에디터: 13p)
-  → generateEmotionSceneImages() — Gemini 2.5 Flash Image (이미지)
+  → generateEmotionSceneImages() — Gemini 3.1 Flash Image Preview (이미지)
   → Cloudinary 업로드 → 페이지에 히어로 이미지 패치
 ```
 

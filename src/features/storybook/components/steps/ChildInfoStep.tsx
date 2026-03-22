@@ -121,17 +121,17 @@ const ChildInfoStep = () => {
     <div className="flex flex-col gap-4">
       {/* 모드 탭 — 학습자가 있을 때만 표시 */}
       {students.length > 0 && (
-        <div className="flex rounded-lg border border-black-15 p-0.5">
+        <div className="flex rounded-lg bg-primary-50 p-0.5">
           {([["select", "내 학습자"], ["manual", "직접 입력"]] as const).map(
             ([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => { setMode(value); }}
-                className={`flex-1 rounded-md py-1.5 text-13-semibold transition ${
+                className={`flex-1 rounded-md py-1.5 text-13-bold transition ${
                   mode === value
-                    ? "bg-primary text-white"
-                    : "text-black-50 hover:text-black-80"
+                    ? "bg-white-100 text-primary shadow-sm"
+                    : "text-primary-300 hover:text-primary-400"
                 }`}
               >
                 {label}
@@ -143,7 +143,7 @@ const ChildInfoStep = () => {
 
       {/* 모드 A: 학습자 선택 */}
       {mode === "select" && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {isLoadingStudents ? (
             <div className="flex items-center justify-center py-8 text-black-40">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -154,95 +154,94 @@ const ChildInfoStep = () => {
               <span className="text-13-regular">등록된 학습자가 없어요</span>
             </div>
           ) : (
-            <>
-              {/* 학습자 카드 리스트 */}
-              <div className="flex flex-col gap-2">
-                {students.map((student) => {
-                  const currentYear = new Date().getFullYear();
-                  const studentAge = Math.max(
-                    1,
-                    currentYear - parseInt(student.birth_year),
-                  );
-                  const isSelected = selectedStudentId === student.id;
-                  const genderLabel =
-                    student.gender === "male"
-                      ? "남"
-                      : student.gender === "female"
-                        ? "여"
-                        : null;
+            <div className="flex flex-col gap-1 p-0.5">
+              {students.map((student) => {
+                const currentYear = new Date().getFullYear();
+                const studentAge = Math.max(
+                  1,
+                  currentYear - parseInt(student.birth_year),
+                );
+                const isSelected = selectedStudentId === student.id;
+                const genderLabel =
+                  student.gender === "male"
+                    ? "남"
+                    : student.gender === "female"
+                      ? "여"
+                      : null;
 
-                  return (
-                    <Fragment key={student.id}>
-                      <button
-                        type="button"
-                        onClick={() => { handleSelectStudent(student); }}
-                        className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition ${
-                          isSelected
-                            ? "border-primary bg-primary-50"
-                            : "border-black-20 hover:bg-black-5"
-                        }`}
-                      >
-                        {/* 선택 체크 */}
-                        {isSelected && (
-                          <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                            <Check className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-
-                        {/* 아바타 */}
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black-10">
-                          <User className="h-4 w-4 text-black-50" />
-                        </div>
-
-                        {/* 정보 */}
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-14-semibold text-black-90 truncate">
-                            {student.name}
-                          </span>
-                          <span className="text-12-regular text-black-50">
-                            만 {studentAge}세{genderLabel ? ` · ${genderLabel}` : ""}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 성별 보충 입력 — 클릭한 카드 바로 아래에 표시 */}
-                      {isSelected && isNeedsGender && (
-                        <div className="flex flex-col gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                          <span className="text-13-semibold text-amber-800">
-                            {student.name}의 성별을 선택해 주세요
-                          </span>
-                          <div className="flex gap-2">
-                            {([["male", "남자"], ["female", "여자"]] as const).map(
-                              ([value, label]) => (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => { handleSupplementGender(value); }}
-                                  className="flex-1 rounded-lg border border-amber-300 py-2 text-13-medium text-amber-800 transition hover:bg-amber-100"
-                                >
-                                  {label}
-                                </button>
-                              ),
-                            )}
-                          </div>
+                return (
+                  <Fragment key={student.id}>
+                    <button
+                      type="button"
+                      onClick={() => { handleSelectStudent(student); }}
+                      className={`relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                        isSelected
+                          ? "border-primary bg-primary-50"
+                          : "border-transparent hover:bg-black-5"
+                      }`}
+                    >
+                      {/* 선택 체크 */}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                          <Check className="h-3 w-3 text-white" />
                         </div>
                       )}
-                    </Fragment>
-                  );
-                })}
-              </div>
-            </>
+
+                      {/* 아바타 */}
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        isSelected ? "bg-primary-200" : "bg-black-10"
+                      }`}>
+                        <User className={`h-4 w-4 ${isSelected ? "text-primary" : "text-black-40"}`} />
+                      </div>
+
+                      {/* 정보 */}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-14-medium text-black-90 truncate">
+                          {student.name}
+                        </span>
+                        <span className="text-12-regular text-black-40">
+                          만 {studentAge}세{genderLabel ? ` · ${genderLabel}` : ""}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* 성별 보충 입력 — 클릭한 카드 바로 아래에 표시 */}
+                    {isSelected && isNeedsGender && (
+                      <div className="ml-3 flex flex-col gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2.5">
+                        <span className="text-13-medium text-primary-700">
+                          {student.name}의 성별을 선택해 주세요
+                        </span>
+                        <div className="flex gap-2">
+                          {([["male", "남자"], ["female", "여자"]] as const).map(
+                            ([value, label]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => { handleSupplementGender(value); }}
+                                className="flex-1 rounded-lg border border-primary-200 bg-white-100 py-1.5 text-13-medium text-primary transition hover:bg-primary-100"
+                              >
+                                {label}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
 
       {/* 모드 B: 직접 입력 */}
       {mode === "manual" && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3.5">
           {/* 이름 */}
           <label className="flex flex-col gap-1">
-            <span className="text-14-semibold text-black-80">
-              이름 <span className="text-red-500">*</span>
+            <span className="text-13-bold text-black-70">
+              이름 <span className="text-error">*</span>
             </span>
             <input
               type="text"
@@ -252,14 +251,14 @@ const ChildInfoStep = () => {
                 setName(e.target.value);
                 syncManualToStore({ name: e.target.value });
               }}
-              className="rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
+              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
             />
           </label>
 
           {/* 성별 */}
           <div className="flex flex-col gap-1">
-            <span className="text-14-semibold text-black-80">
-              성별 <span className="text-red-500">*</span>
+            <span className="text-13-bold text-black-70">
+              성별 <span className="text-error">*</span>
             </span>
             <div className="flex gap-2">
               {(["male", "female"] as const).map((g) => (
@@ -270,10 +269,10 @@ const ChildInfoStep = () => {
                     setGender(g);
                     syncManualToStore({ gender: g });
                   }}
-                  className={`flex-1 rounded-lg border py-2 text-14-medium transition ${
+                  className={`flex-1 rounded-lg border py-1.5 text-13-medium transition ${
                     gender === g
-                      ? "border-primary bg-primary-100 text-primary"
-                      : "border-black-25 text-black-60 hover:bg-black-10"
+                      ? "border-primary bg-primary-50 text-primary"
+                      : "border-black-20 text-black-60 hover:bg-black-5"
                   }`}
                 >
                   {g === "male" ? "남자" : "여자"}
@@ -284,8 +283,8 @@ const ChildInfoStep = () => {
 
           {/* 나이 */}
           <label className="flex flex-col gap-1">
-            <span className="text-14-semibold text-black-80">
-              나이 <span className="text-red-500">*</span>
+            <span className="text-13-bold text-black-70">
+              나이 <span className="text-error">*</span>
             </span>
             <input
               type="number"
@@ -297,13 +296,13 @@ const ChildInfoStep = () => {
                 setAge(v);
                 syncManualToStore({ age: v });
               }}
-              className="rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
+              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
             />
           </label>
 
           {/* 진단명 */}
           <label className="flex flex-col gap-1">
-            <span className="text-14-semibold text-black-80">
+            <span className="text-13-bold text-black-70">
               진단명 <span className="text-12-regular text-black-40">(선택)</span>
             </span>
             <input
@@ -314,13 +313,13 @@ const ChildInfoStep = () => {
                 setDiagnosis(e.target.value);
                 syncManualToStore({ diagnosis: e.target.value });
               }}
-              className="rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
+              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
             />
           </label>
 
           {/* 학습 목표 */}
           <label className="flex flex-col gap-1">
-            <span className="text-14-semibold text-black-80">
+            <span className="text-13-bold text-black-70">
               학습 목표 <span className="text-12-regular text-black-40">(선택)</span>
             </span>
             <input
@@ -331,7 +330,7 @@ const ChildInfoStep = () => {
                 setLearningGoal(e.target.value);
                 syncManualToStore({ learningGoal: e.target.value });
               }}
-              className="rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
+              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
             />
           </label>
         </div>

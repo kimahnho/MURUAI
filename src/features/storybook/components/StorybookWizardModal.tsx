@@ -42,19 +42,25 @@ const StorybookWizardModal = ({ isOpen, onClose }: StorybookWizardModalProps) =>
   const hasPreview = currentStep === 4 || currentStep === 45;
 
   return (
-    <div className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden">
-      <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+    <div className="fixed inset-0 z-9999 flex items-center justify-center overflow-hidden">
+      {/* 백드롭 — 연보라 틴트 */}
+      <div
+        className="absolute inset-0 bg-black/30"
+        aria-hidden="true"
+        onClick={handleClose}
+      />
 
       <div
-        className={`relative z-10 flex rounded-2xl bg-white-100 shadow-2xl max-h-[85vh] transition-all duration-300 ${
+        className={`relative z-10 flex rounded-2xl bg-white-100 max-h-[85vh] transition-all duration-300 ${
           hasPreview ? "w-full max-w-4xl" : "w-full max-w-lg"
         }`}
+        style={{ boxShadow: "0 25px 60px -12px rgba(124, 58, 237, 0.15), 0 8px 24px -8px rgba(0,0,0,0.1)" }}
       >
         {/* 닫기 버튼 */}
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-4 right-4 z-20 rounded-full p-1.5 text-black-40 transition hover:bg-black-10 hover:text-black-80"
+          className="absolute top-4 right-4 z-20 rounded-full p-1.5 text-black-30 transition hover:bg-primary-50 hover:text-primary"
           aria-label="닫기"
         >
           <X className="h-4 w-4" />
@@ -67,7 +73,7 @@ const StorybookWizardModal = ({ isOpen, onClose }: StorybookWizardModalProps) =>
           }`}
         >
           <div className="flex-1 min-h-0 p-6">
-            <StorybookWizard />
+            <StorybookWizard onClose={handleClose} />
           </div>
         </div>
 

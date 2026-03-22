@@ -8,7 +8,7 @@ import {
   fetchCreditBalance,
 } from "@/features/editor/utils/aiTemplateUsage";
 
-export type EmotionImageStyle = "photo-boy" | "photo-girl";
+export type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 
 interface EmotionInferenceChoiceModalProps {
   isOpen: boolean;

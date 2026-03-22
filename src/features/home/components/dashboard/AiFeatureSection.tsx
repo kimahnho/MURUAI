@@ -69,7 +69,7 @@ const AiFeatureSection = () => {
     setIsRequesting(false);
     if (success) {
       setHasRequested(true);
-      useToastStore.getState().showToast("크레딧 요청이 전송되었어요!");
+      useToastStore.getState().showToast("크레딧 요청이 전송되었어요!", "success");
     } else {
       useToastStore.getState().showToast("요청 전송에 실패했어요. 다시 시도해 주세요.");
     }
@@ -87,14 +87,12 @@ const AiFeatureSection = () => {
             NEW
           </span>
         </div>
-        {monthlyUsed !== null && (
-          <div className="flex items-center gap-1.5">
-            <Zap className={`h-4 w-4 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
-            <span className={`text-13-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
-              {monthlyUsed}/{MONTHLY_AI_CREDIT_LIMIT}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          <Zap className={`h-4 w-4 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
+          <span className={`text-13-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
+            {monthlyUsed !== null ? monthlyUsed : "--"}/{MONTHLY_AI_CREDIT_LIMIT}
+          </span>
+        </div>
       </div>
 
       {/* 크레딧 소진 안내 + 요청 버튼 */}

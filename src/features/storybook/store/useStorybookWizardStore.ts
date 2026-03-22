@@ -292,7 +292,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         // 에디터 캔버스에 10페이지 삽입
         const pages = buildStoryPages(book);
         useTemplateStore.getState().requestInsertPages(pages);
-        useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!");
+        useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!", "success");
       } catch (error) {
         captureSentryError(error, "스토리북 생성");
         set({

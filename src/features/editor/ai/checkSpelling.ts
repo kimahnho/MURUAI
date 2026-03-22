@@ -47,14 +47,23 @@ const BATCH_SIZE = 50;
 //   return genAiInstance;
 // };
 
-const buildPrompt = (items: TextItem[]) =>
-  `당신은 한국어 맞춤법, 띄어쓰기, 문법 검사 전문가입니다.
+const buildPrompt = (items: TextItem[]) => {
+  const hasEmotionInference = items.some((item) => item.isEmotionInference);
+  const emotionRule = hasEmotionInference
+    ? `\n[주의사항 — 감정추론 활동 텍스트]
+- isEmotionInference가 true인 텍스트는 감정추론 활동 템플릿의 텍스트입니다.
+- 이 텍스트는 "~서", "~며", "~고", "~라서" 등 종속절(연결어미)로 끝나는 것이 의도된 형식입니다.
+- 종속절을 완전한 문장("~다.", "~다" 등)으로 바꾸는 교정은 절대 하지 마세요.
+- 맞춤법과 띄어쓰기 오류만 교정하세요.\n`
+    : "";
+
+  return `당신은 한국어 맞춤법, 띄어쓰기, 문법 검사 전문가입니다.
 
 아래 텍스트 목록의 맞춤법, 띄어쓰기, 문법을 검사해주세요.
 수정이 필요한 항목만 JSON 배열로 출력하세요. 수정할 내용이 없으면 빈 배열 []을 출력하세요.
-
+${emotionRule}
 [텍스트 목록]
-${items.map((item) => JSON.stringify({ id: item.elementId, pageId: item.pageId, field: item.field, text: item.text })).join("\n")}
+${items.map((item) => JSON.stringify({ id: item.elementId, pageId: item.pageId, field: item.field, text: item.text, ...(item.isEmotionInference ? { isEmotionInference: true } : {}) })).join("\n")}
 
 [출력 형식 — 수정이 필요한 항목만, JSON만 출력 (설명/마크다운 없음)]
 [
@@ -67,6 +76,7 @@ ${items.map((item) => JSON.stringify({ id: item.elementId, pageId: item.pageId, 
     ]
   }
 ]`;
+};
 
 const isValidRawResult = (item: unknown): item is RawSpellResult => {
   if (typeof item !== "object" || item === null) return false;

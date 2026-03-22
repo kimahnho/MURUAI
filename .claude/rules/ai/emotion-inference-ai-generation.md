@@ -106,7 +106,8 @@ Gemini API(`gemini-2.5-flash`)를 `@google/genai` SDK로 직접 호출.
 ### 호출 시그니처
 
 ```typescript
-generateEmotionStory(topic: string, availableLabels: string[]): Promise<StoryItem[]>
+generateEmotionStory(topic: string, availableLabels: string[], count?: number): Promise<StoryItem[]>
+// count 기본값 10. 랜딩 페이지에서는 5로 호출하여 5장만 생성.
 ```
 
 - `availableLabels`: DB(`emotion_photo`)에서 조회한 감정 라벨 목록. AI가 이 목록에서만 감정을 선택하도록 프롬프트에 주입.
@@ -145,7 +146,7 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
     // title, sentence: string 검증
     // emotions: 문자열 3개 이상 배열 검증
   });
-  return valid.slice(0, 10).map((item) => ({
+  return valid.slice(0, count).map((item) => ({
     ...item,
     emotions: [item.emotions[0], item.emotions[1], item.emotions[2]],
   }));
@@ -195,11 +196,20 @@ onSelectAi(topic, imageStyle)
 ### 이미지 스타일 선택
 
 ```typescript
-type EmotionImageStyle = "photo-boy" | "photo-girl";
+type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 ```
 
-- `EmotionInferenceChoiceModal`의 AI 주제 입력 화면에 라디오 버튼 2개
-- `fetchEmotionImageMap(style)`: `emotion_photo` 테이블에서 `category = "boy" | "girl"` 필터
+- 배너의 감정 카드 라디오: 남아 | 여아 | 이모지
+- `fetchEmotionImageMap(style)`:
+  - `"photo-boy"` / `"photo-girl"` → `emotion_photo` 테이블 (`category = "boy" | "girl"`)
+  - `"emoji"` → `emotion_sticker` 테이블 (성별 없음)
+
+### 감정 카드 이미지 크기
+
+| 스타일 | 소스 테이블 | cover box 크기 |
+|--------|-------------|---------------|
+| photo-boy / photo-girl | emotion_photo | 200×260 |
+| emoji | emotion_sticker | 200×200 |
 
 ### patchStoryElements 패치 대상
 
@@ -228,7 +238,7 @@ if (heroImageUrl && el.type === "roundRect" && el.fill === "#D1D5DB" && !el.subT
 generateEmotionSceneImages(stories, imageStyle, onProgress?): Promise<string[]>
 ```
 
-- **모델**: `gemini-2.5-flash-image`, `aspectRatio: "16:9"`
+- **모델**: `gemini-3.1-flash-image-preview`, `aspectRatio: "16:9"`
 - **sceneGroup 기반 그룹별 순차 생성**: 같은 `sceneGroup`의 연속 장면은 첫 장면 이미지를 레퍼런스로 재활용하여 캐릭터/배경 일관성을 유지
   - 그룹 첫 장: 캐릭터 레퍼런스(boy/girl) + 프롬프트
   - 그룹 후속: 첫 장면 생성 이미지를 레퍼런스 + 일관성 유지 프롬프트
@@ -294,6 +304,35 @@ const emotionCards = elements.filter(
 ```
 
 ## EmotionSceneBanner 기능
+
+### 배너 접기/펼치기 (X 버튼 없음)
+
+배너는 임의 삭제가 불가능하다. X 버튼 대신 접기/펼치기 토글 제공:
+- **ready phase**: ChevronUp 접기 버튼 → 접힌 상태("이미지 생성 도구" + ChevronDown 펼치기 버튼)
+- **generating/completed phase**: 접기 불가 — 접힌 상태에서도 자동 펼침
+- 모든 스토리 페이지가 삭제(또는 빈 페이지로 변환)되면 배너 자동 제거
+
+### 고아 세트 정리 (useEffect 기반)
+
+렌더 중 Zustand `set()` 호출은 React 배치 처리로 동기 반영되지 않으므로, `useEffect`에서 정리:
+
+```typescript
+useEffect(() => {
+  const pageMap = new Map(pages.map((p) => [p.id, p]));
+  for (const pg of pendingGenerations) {
+    const hasValidPage = pg.storyPageIds.some((id) => {
+      const page = pageMap.get(id);
+      return page && page.elements.length > 1; // 빈 페이지(로고만) 제외
+    });
+    if (!hasValidPage) {
+      useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
+    }
+  }
+}, [pages, pendingGenerations]);
+```
+
+- **빈 페이지 판별**: `elements.length > 1` — 마지막 페이지 삭제 시 `handleDeletePage`가 같은 ID로 빈 페이지(`withLogoCanvasElements([])`)로 변환하므로, ID 존재만으로는 유효하지 않음
+- **렌더 본문의 매칭 루프도 동일 기준 적용** — `pageMap.get(id)` + `elements.length > 1`
 
 ### 감정 카드 성별 실시간 교체
 
