@@ -23,6 +23,26 @@ export const fetchEmotionImageMap = async (
   style: EmotionImageStyle,
 ): Promise<Map<string, string>> => {
   const map = new Map<string, string>();
+
+  if (style === "emoji") {
+    const { data, error } = await supabase
+      .from("emotion_sticker")
+      .select("label,image_path");
+
+    if (error) {
+      console.warn("emotion_sticker 조회 실패", error);
+      return map;
+    }
+
+    for (const row of data ?? []) {
+      if (!map.has(row.label)) {
+        map.set(row.label, getImageUrl(row.image_path));
+      }
+    }
+
+    return map;
+  }
+
   const category = style === "photo-boy" ? "boy" : "girl";
 
   const { data, error } = await supabase

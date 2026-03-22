@@ -34,7 +34,11 @@ import EmotionSceneImageModal from "./EmotionSceneImageModal";
 
 const MAX_IMAGE_PAGES = 15;
 
-const EMOTION_IMAGE_SIZE = { width: 200, height: 260 };
+const EMOTION_PHOTO_SIZE = { width: 200, height: 260 };
+const EMOTION_EMOJI_SIZE = { width: 200, height: 200 };
+
+const getEmotionImageSize = (style: EmotionImageStyle) =>
+  style === "emoji" ? EMOTION_EMOJI_SIZE : EMOTION_PHOTO_SIZE;
 
 // 스토리 페이지로서 유효한지 판별 — 요소가 로고 1개뿐(빈 페이지로 변환됨)이면 무효
 const isValidStoryPage = (page: Page) => page.elements.length > 1;
@@ -143,11 +147,12 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
             if (!url) return el;
             // cardIdToUrl에는 ShapeElement(emotionInference)만 등록되어 있으므로 안전
             const shape = el as ShapeElement;
+            const imgSize = getEmotionImageSize(nextStyle);
             const imageBox = calculateCoverImageBox(
               shape.w,
               shape.h,
-              EMOTION_IMAGE_SIZE.width,
-              EMOTION_IMAGE_SIZE.height,
+              imgSize.width,
+              imgSize.height,
             );
             return { ...el, fill: `url(${url})`, imageBox };
           });
@@ -495,6 +500,10 @@ const BannerContent = ({
         <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}>
           <input type="radio" name="cardStyle" checked={cardStyle === "photo-girl"} onChange={() => onCardStyleChange("photo-girl")} className="hidden" />
           여아
+        </label>
+        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "emoji" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}>
+          <input type="radio" name="cardStyle" checked={cardStyle === "emoji"} onChange={() => onCardStyleChange("emoji")} className="hidden" />
+          이모지
         </label>
       </div>
 

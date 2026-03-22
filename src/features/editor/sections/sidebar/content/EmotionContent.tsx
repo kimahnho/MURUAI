@@ -185,7 +185,7 @@ const GenderToggle = ({
 // 메인 컴포넌트
 const EmotionContent = () => {
   const [selectedMode, setSelectedMode] = useState<"basic" | "ai">("basic");
-  const { onSelectEmotion } = useEmotionContentState();
+  const { onSelectEmotion, onSelectEmoji } = useEmotionContentState();
 
   return (
     <div className="flex flex-col w-full h-full gap-6">
@@ -214,7 +214,7 @@ const EmotionContent = () => {
         <div className="flex flex-col flex-1 gap-2 min-h-0">
           {/* AI 모드는 준비 중이므로 현재는 기본 감정 모드만 실제 삽입 경로를 제공한다. */}
           {selectedMode === "basic" ? (
-            <EmotionContentArea onSelectEmotion={onSelectEmotion} />
+            <EmotionContentArea onSelectEmotion={onSelectEmotion} onSelectEmoji={onSelectEmoji} />
           ) : (
             <ComingSoon />
           )}
@@ -226,8 +226,10 @@ const EmotionContent = () => {
 
 const EmotionContentArea = ({
   onSelectEmotion,
+  onSelectEmoji,
 }: {
   onSelectEmotion: (url: string, label: string) => void;
+  onSelectEmoji: (url: string, label: string) => void;
 }) => {
   const [selectedType, setSelectedType] = useState<
     "photo" | "drawing" | "line" | "lineEmoji"
@@ -268,12 +270,12 @@ const EmotionContentArea = ({
           <PhotoEmotionContent onSelectEmotion={onSelectEmotion} />
         )}
         {selectedType === "drawing" && (
-          <DrawingEmotionContent onSelectEmotion={onSelectEmotion} />
+          <DrawingEmotionContent onSelectEmotion={onSelectEmoji} />
         )}
         {/* 선그림 임시 비활성화 */}
         {/* {selectedType === "line" && <ComingSoon />} */}
         {selectedType === "lineEmoji" && (
-          <LineEmojiEmotionContent onSelectEmotion={onSelectEmotion} />
+          <LineEmojiEmotionContent onSelectEmotion={onSelectEmoji} />
         )}
       </div>
     </div>

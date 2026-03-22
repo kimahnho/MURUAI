@@ -3,7 +3,8 @@
  */
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 
-const EMOTION_CARD_SIZE = { width: 200, height: 260 };
+const EMOTION_PHOTO_SIZE = { width: 200, height: 260 };
+const EMOTION_EMOJI_SIZE = { width: 200, height: 200 };
 
 export const useEmotionContentState = () => {
   const requestImageFill = useImageFillStore(
@@ -11,8 +12,12 @@ export const useEmotionContentState = () => {
   );
 
   const onSelectEmotion = (url: string, label: string) => {
-    requestImageFill(url, label, EMOTION_CARD_SIZE, { forceInsert: true, source: "emotion" });
+    requestImageFill(url, label, EMOTION_PHOTO_SIZE, { forceInsert: true, source: "emotion" });
   };
 
-  return { onSelectEmotion };
+  const onSelectEmoji = (url: string, label: string) => {
+    requestImageFill(url, label, EMOTION_EMOJI_SIZE, { forceInsert: true, source: "emotion" });
+  };
+
+  return { onSelectEmotion, onSelectEmoji };
 };
