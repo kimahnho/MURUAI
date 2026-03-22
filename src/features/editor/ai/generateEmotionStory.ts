@@ -22,6 +22,36 @@ type FewShotExample = {
   emotions: [string, string, string];
 };
 
+// 5장용 few-shot: 시간 순 연결된 소풍 서사
+const SHORT_ARC_FEW_SHOT_EXAMPLES: FewShotExample[] = [
+  {
+    title: "오늘은 반 친구들과 함께 소풍을 가는 날이에요.",
+    sentence: "친구는 기다리던 소풍날이 와서",
+    emotions: ["기대돼요", "슬퍼요", "화나요"],
+  },
+  {
+    title: "소풍 장소에 도착해서 친구들과 술래잡기를 하다가 넘어졌어요.",
+    sentence: "친구는 술래잡기를 하다 넘어져서",
+    emotions: ["힘들어요", "기뻐요", "고마워요"],
+  },
+  {
+    title: "선생님이 달려와서 무릎에 밴드를 붙여 주셨어요.",
+    sentence: "친구는 선생님이 밴드를 붙여 주셔서",
+    emotions: ["고마워요", "화나요", "무서워요"],
+  },
+  {
+    title: "점심시간에 도시락을 열었더니 엄마가 좋아하는 김밥을 넣어 주셨어요.",
+    sentence: "친구는 엄마가 좋아하는 김밥을 넣어 주셔서",
+    emotions: ["기뻐요", "힘들어요", "놀라요"],
+  },
+  {
+    title: "집에 돌아와서 오늘 있었던 이야기를 엄마에게 들려주었어요.",
+    sentence: "친구는 오늘 하루를 엄마에게 이야기해서",
+    emotions: ["재미있어요", "슬퍼요", "화나요"],
+  },
+];
+
+// 10장용 few-shot: 다양한 에피소드의 크리스마스 서사
 const MOCK_FEW_SHOT_EXAMPLES: FewShotExample[] = [
   {
     title: "드디어 기다리던 크리스마스가 다가오고 있어요.",
@@ -103,21 +133,51 @@ const DEFAULT_STORY_COUNT = 10;
 
 const buildPrompt = (topic: string, availableLabels: string[], count = DEFAULT_STORY_COUNT) => {
   const safeTopic = sanitizeTopic(topic);
+  const isShortArc = count <= 5;
+  const fewShotExamples = isShortArc ? SHORT_ARC_FEW_SHOT_EXAMPLES : MOCK_FEW_SHOT_EXAMPLES;
+
+  const narrativeArcSection = isShortArc
+    ? `
+[이야기 흐름 — ${count}개 이야기는 하나의 연결된 이야기처럼 전개하세요]
+- 1번: 상황 설정 — 주제의 배경과 등장인물을 자연스럽게 소개
+- 2번: 전개 — 상황이 진행되며 새로운 에피소드 발생
+- 3번: 전환 — 예상과 다른 상황이나 작은 갈등 발생
+- 4번: 해결 — 문제를 해결하거나 상황에 대응
+- 5번: 마무리 — 상황이 정리되고 이야기 마무리
+- ${count}개 이야기가 시간 순서대로 자연스럽게 이어져야 합니다.
+- 앞 이야기의 결과가 다음 이야기의 배경이 되도록 연결하세요.
+`
+    : "";
+
+  const rulesSection = isShortArc
+    ? `[중요 — 서사 연결 규칙]
+- ${count}개 이야기는 하나의 큰 사건을 시간 순서로 전개하는 에피소드입니다.
+- 같은 인물이 등장하되, 매 이야기마다 다른 감정을 유발하는 상황을 묘사하세요.
+- 주제 키워드를 매 문장에 반복하지 말고, 주제 안에서 구체적 에피소드를 보여주세요.
+- 같은 문장 패턴이나 어미를 반복하지 마세요.`
+    : `[중요 — 다양성 규칙]
+- 주제("${safeTopic}")는 ${count}개 이야기를 관통하는 큰 맥락이지, 매 문장에 반복할 키워드가 아닙니다.
+- ${count}개 이야기는 각각 서로 다른 구체적 상황, 장소, 인물, 소재를 활용하세요.
+- 같은 문장 패턴이나 어미를 반복하지 마세요 (예: ${count}개 title이 모두 "~해 주셨어요"로 끝나면 안 됩니다).
+- 위 예시(크리스마스)처럼 하나의 주제 안에서 트리 꾸미기, 선물 열기, 케이크 등 다양한 소재로 이야기를 전개하세요.`;
+
+  const sceneGroupInstruction = isShortArc
+    ? `- sceneGroup: ${count}개 이야기에서 장소 변경은 최대 2회로 제한하세요 (sceneGroup 1~2).
+  - 이야기의 주 무대를 sceneGroup 1로, 장소가 바뀌면 sceneGroup 2로 부여하세요.`
+    : `- sceneGroup: 같은 장소/배경에서 벌어지는 이야기끼리 같은 번호를 부여하세요 (1부터 시작)
+  - 예: 1~4번이 교실이면 sceneGroup: 1, 5~6번이 운동장이면 sceneGroup: 2`;
+
   return `당신은 언어치료 전문가입니다.
 
 [사용 가능한 감정 라벨 — 반드시 이 목록에서만 선택]
 ${availableLabels.join(", ")}
 
 [참고 예시 — 아래 스타일과 문장 길이를 최대한 따라 작성할 것]
-${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
+${buildFewShotBlock(fewShotExamples)}
 
 위 예시처럼, 주제 "${safeTopic}"에 맞는 감정 추론 활동용 짧은 이야기 ${count}개를 새로 만들어주세요.
-
-[중요 — 다양성 규칙]
-- 주제("${safeTopic}")는 ${count}개 이야기를 관통하는 큰 맥락이지, 매 문장에 반복할 키워드가 아닙니다.
-- ${count}개 이야기는 각각 서로 다른 구체적 상황, 장소, 인물, 소재를 활용하세요.
-- 같은 문장 패턴이나 어미를 반복하지 마세요 (예: ${count}개 title이 모두 "~해 주셨어요"로 끝나면 안 됩니다).
-- 위 예시(크리스마스)처럼 하나의 주제 안에서 트리 꾸미기, 선물 열기, 케이크 등 다양한 소재로 이야기를 전개하세요.
+${narrativeArcSection}
+${rulesSection}
 
 각 이야기는 다음 형식을 따릅니다:
 - title: 이야기 상황을 서술하는 문장 (위 예시처럼 구체적인 상황 묘사)
@@ -130,8 +190,7 @@ ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
   - 첫 번째(emotions[0]): 상황에 가장 적절한 정답 감정
   - 두 번째, 세 번째(emotions[1], emotions[2]): 상황과 맞지 않는 오답 감정
   - 반드시 위 감정 라벨 목록에서만 선택, 목록에 없는 감정은 절대 사용하지 마세요
-- sceneGroup: 같은 장소/배경에서 벌어지는 이야기끼리 같은 번호를 부여하세요 (1부터 시작)
-  - 예: 1~4번이 교실이면 sceneGroup: 1, 5~6번이 운동장이면 sceneGroup: 2
+${sceneGroupInstruction}
 
 JSON만 출력하세요 (설명, 마크다운 없음):
 [
