@@ -35,7 +35,7 @@ import EmotionSceneImageModal from "./EmotionSceneImageModal";
 const MAX_IMAGE_PAGES = 15;
 
 const EMOTION_PHOTO_SIZE = { width: 200, height: 260 };
-const EMOTION_EMOJI_SIZE = { width: 200, height: 200 };
+const EMOTION_EMOJI_SIZE = { width: 180, height: 180 };
 
 const getEmotionImageSize = (style: EmotionImageStyle) =>
   style === "emoji" ? EMOTION_EMOJI_SIZE : EMOTION_PHOTO_SIZE;
