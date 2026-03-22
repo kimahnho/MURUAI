@@ -99,7 +99,9 @@ const sanitizeTopic = (topic: string): string =>
     .replace(/[\n\r"\\]/g, " ")
     .trim();
 
-const buildPrompt = (topic: string, availableLabels: string[]) => {
+const DEFAULT_STORY_COUNT = 10;
+
+const buildPrompt = (topic: string, availableLabels: string[], count = DEFAULT_STORY_COUNT) => {
   const safeTopic = sanitizeTopic(topic);
   return `당신은 언어치료 전문가입니다.
 
@@ -109,12 +111,12 @@ ${availableLabels.join(", ")}
 [참고 예시 — 아래 스타일과 문장 길이를 최대한 따라 작성할 것]
 ${buildFewShotBlock(MOCK_FEW_SHOT_EXAMPLES)}
 
-위 예시처럼, 주제 "${safeTopic}"에 맞는 감정 추론 활동용 짧은 이야기 10개를 새로 만들어주세요.
+위 예시처럼, 주제 "${safeTopic}"에 맞는 감정 추론 활동용 짧은 이야기 ${count}개를 새로 만들어주세요.
 
 [중요 — 다양성 규칙]
-- 주제("${safeTopic}")는 10개 이야기를 관통하는 큰 맥락이지, 매 문장에 반복할 키워드가 아닙니다.
-- 10개 이야기는 각각 서로 다른 구체적 상황, 장소, 인물, 소재를 활용하세요.
-- 같은 문장 패턴이나 어미를 반복하지 마세요 (예: 10개 title이 모두 "~해 주셨어요"로 끝나면 안 됩니다).
+- 주제("${safeTopic}")는 ${count}개 이야기를 관통하는 큰 맥락이지, 매 문장에 반복할 키워드가 아닙니다.
+- ${count}개 이야기는 각각 서로 다른 구체적 상황, 장소, 인물, 소재를 활용하세요.
+- 같은 문장 패턴이나 어미를 반복하지 마세요 (예: ${count}개 title이 모두 "~해 주셨어요"로 끝나면 안 됩니다).
 - 위 예시(크리스마스)처럼 하나의 주제 안에서 트리 꾸미기, 선물 열기, 케이크 등 다양한 소재로 이야기를 전개하세요.
 
 각 이야기는 다음 형식을 따릅니다:
@@ -150,7 +152,7 @@ const shuffleEmotions = (
   return arr;
 };
 
-const parseStoryResponse = (raw: string): StoryItem[] => {
+const parseStoryResponse = (raw: string, count = DEFAULT_STORY_COUNT): StoryItem[] => {
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.");
   const parsed = JSON.parse(jsonMatch[0]) as unknown[];
@@ -163,7 +165,7 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
     return rec.emotions.slice(0, 3).every((e) => typeof e === "string");
   });
   if (valid.length === 0) throw new Error("유효한 스토리 데이터가 없습니다.");
-  return valid.slice(0, 10).map((item, i) => ({
+  return valid.slice(0, count).map((item, i) => ({
     ...item,
     emotions: shuffleEmotions([
       item.emotions[0],
@@ -178,6 +180,7 @@ const parseStoryResponse = (raw: string): StoryItem[] => {
 export const generateEmotionStory = async (
   topic: string,
   availableLabels: string[],
+  count = DEFAULT_STORY_COUNT,
 ): Promise<StoryItem[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -187,7 +190,7 @@ export const generateEmotionStory = async (
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: buildPrompt(topic, availableLabels),
+    contents: buildPrompt(topic, availableLabels, count),
     config: {
       responseModalities: ["Text"],
     },
@@ -199,5 +202,5 @@ export const generateEmotionStory = async (
   const textPart = parts.find((part) => part.text);
   if (!textPart?.text) throw new Error("텍스트 응답이 없습니다.");
 
-  return parseStoryResponse(textPart.text);
+  return parseStoryResponse(textPart.text, count);
 };
