@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type ToastVariant = "default" | "primary";
+type ToastVariant = "default" | "primary" | "success";
 
 interface ToastStore {
   message: string | null;

@@ -110,7 +110,7 @@ const AiTemplateContent = () => {
     setIsRequesting(false);
     if (success) {
       setHasRequested(true);
-      useToastStore.getState().showToast("크레딧 요청이 전송되었어요!");
+      useToastStore.getState().showToast("크레딧 요청이 전송되었어요!", "success");
     } else {
       useToastStore.getState().showToast("요청 전송에 실패했어요. 다시 시도해 주세요.");
     }
