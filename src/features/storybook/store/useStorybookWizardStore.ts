@@ -63,6 +63,7 @@ interface StorybookWizardState {
   setFontFamily: (font: string) => void;
   setArtStyle: (style: ArtStyleId) => void;
   setReferenceImageBase64: (base64: string) => void;
+  setCharacterPrompt: (prompt: string) => void;
   selectProposal: (id: string) => void;
   updateProposalPage: (
     proposalId: string,
@@ -158,6 +159,10 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       set((s) => ({ formData: { ...s.formData, referenceImageBase64: base64 } }));
     },
 
+    setCharacterPrompt: (prompt) => {
+      set((s) => ({ formData: { ...s.formData, characterPrompt: prompt } }));
+    },
+
     selectProposal: (id) => {
       const { formData } = get();
       const proposal = formData.proposals.find((p) => p.id === id) ?? null;
@@ -233,6 +238,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         const base64 = await generateCharacterReference(
           formData.artStyle,
           formData.childInfo,
+          formData.characterPrompt,
         );
         set((s) => ({
           formData: { ...s.formData, referenceImageBase64: base64 },

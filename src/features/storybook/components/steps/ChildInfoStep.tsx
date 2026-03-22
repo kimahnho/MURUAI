@@ -1,7 +1,7 @@
 /**
  * 1단계: 아동 정보 — 기존 학습자 선택 또는 직접 입력.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Check, Loader2, User } from "lucide-react";
 
 import type { ChildInfo } from "../../model/storybookTypes";
@@ -115,7 +115,6 @@ const ChildInfoStep = () => {
     });
   };
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const isNeedsGender = selectedStudentId !== null && selectedGender === null;
 
   return (
@@ -173,64 +172,65 @@ const ChildInfoStep = () => {
                         : null;
 
                   return (
-                    <button
-                      key={student.id}
-                      type="button"
-                      onClick={() => { handleSelectStudent(student); }}
-                      className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition ${
-                        isSelected
-                          ? "border-primary bg-primary-50"
-                          : "border-black-20 hover:bg-black-5"
-                      }`}
-                    >
-                      {/* 선택 체크 */}
-                      {isSelected && (
-                        <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                          <Check className="h-3 w-3 text-white" />
+                    <Fragment key={student.id}>
+                      <button
+                        type="button"
+                        onClick={() => { handleSelectStudent(student); }}
+                        className={`relative flex items-center gap-3 rounded-lg border p-3 text-left transition ${
+                          isSelected
+                            ? "border-primary bg-primary-50"
+                            : "border-black-20 hover:bg-black-5"
+                        }`}
+                      >
+                        {/* 선택 체크 */}
+                        {isSelected && (
+                          <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+
+                        {/* 아바타 */}
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black-10">
+                          <User className="h-4 w-4 text-black-50" />
+                        </div>
+
+                        {/* 정보 */}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-14-semibold text-black-90 truncate">
+                            {student.name}
+                          </span>
+                          <span className="text-12-regular text-black-50">
+                            만 {studentAge}세{genderLabel ? ` · ${genderLabel}` : ""}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 성별 보충 입력 — 클릭한 카드 바로 아래에 표시 */}
+                      {isSelected && isNeedsGender && (
+                        <div className="flex flex-col gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                          <span className="text-13-semibold text-amber-800">
+                            {student.name}의 성별을 선택해 주세요
+                          </span>
+                          <div className="flex gap-2">
+                            {([["male", "남자"], ["female", "여자"]] as const).map(
+                              ([value, label]) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => { handleSupplementGender(value); }}
+                                  className="flex-1 rounded-lg border border-amber-300 py-2 text-13-medium text-amber-800 transition hover:bg-amber-100"
+                                >
+                                  {label}
+                                </button>
+                              ),
+                            )}
+                          </div>
                         </div>
                       )}
-
-                      {/* 아바타 */}
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black-10">
-                        <User className="h-4 w-4 text-black-50" />
-                      </div>
-
-                      {/* 정보 */}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-14-semibold text-black-90 truncate">
-                          {student.name}
-                        </span>
-                        <span className="text-12-regular text-black-50">
-                          만 {studentAge}세{genderLabel ? ` · ${genderLabel}` : ""}
-                        </span>
-                      </div>
-                    </button>
+                    </Fragment>
                   );
                 })}
               </div>
-
-              {/* 성별 보충 입력 — 선택한 학습자에 gender가 없을 때 */}
-              {isNeedsGender && selectedStudent && (
-                <div className="flex flex-col gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <span className="text-13-semibold text-amber-800">
-                    {selectedStudent.name}의 성별을 선택해 주세요
-                  </span>
-                  <div className="flex gap-2">
-                    {([["male", "남자"], ["female", "여자"]] as const).map(
-                      ([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => { handleSupplementGender(value); }}
-                          className="flex-1 rounded-lg border border-amber-300 py-2 text-13-medium text-amber-800 transition hover:bg-amber-100"
-                        >
-                          {label}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
