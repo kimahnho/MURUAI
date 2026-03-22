@@ -167,50 +167,6 @@ ${JSON.stringify(scenes)}`;
   return parsed.map((item) => (typeof item === "string" ? item : String(item)));
 };
 
-// ─── 적응형 앵커 리셋 판단 ───
-
-// 같은 앵커(이전 생성 이미지)로 연속 생성할 최대 횟수 — 초과 시 품질 보호를 위해 자동 리셋
-const MAX_ANCHOR_CHAIN = 3;
-
-// 이전 장면과 현재 장면의 물리적 배경이 바뀌었는지 AI가 판단
-const shouldResetAnchor = async (
-  ai: GenAIClient,
-  prevScene: string,
-  currentScene: string,
-): Promise<boolean> => {
-  const prompt = `You are evaluating two consecutive scenes in a children's social story.
-
-Previous scene: "${prevScene}"
-Current scene: "${currentScene}"
-
-Should the current scene use a completely NEW background/setting?
-Answer YES if:
-- The physical location has clearly changed (e.g., classroom → playground, home → school)
-- The scene composition needs to be fundamentally different
-
-Answer NO if:
-- The scenes share the same or similar setting
-- Only the character's action/emotion changes, not the environment
-
-Answer ONLY "YES" or "NO".`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseModalities: ["Text"] },
-    });
-
-    const text =
-      response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
-    return text.trim().toUpperCase().startsWith("YES");
-  } catch (error) {
-    captureSentryError(error, "감정추론 앵커 리셋 판단");
-    // 판단 실패 시 연속 사용 — MAX_ANCHOR_CHAIN에서 안전하게 리셋됨
-    return false;
-  }
-};
-
 // ─── 단일 장면 이미지 생성 ───
 
 const MAX_RETRIES = 5;
@@ -225,16 +181,17 @@ The character should show the appropriate emotion for the situation described wi
 
 // 연속 시: 이전 생성 이미지를 레퍼런스로 일관성 유지 (성별 동적 주입)
 const buildContinuationSuffix = (gender: "boy" | "girl") =>
-  `The attached image is a previous scene from the same story.
+  `The attached image is a previous scene from the same story, set in the SAME location.
 The main character MUST remain a Korean ${gender} — do NOT change the character's gender.
 Maintain the exact same:
 - Character appearance (face, body, clothing)
 - Art style, lighting, and color palette
+- Background/setting: Keep the SAME location and environment as the reference image
 - Visual consistency with the reference
 
 Change only:
-- Background/setting as described in the scene
 - Character's pose and facial expression to match the current situation
+Do NOT change the background — the story is still happening in the same place.
 The character must look like a real person — same realistic style, NOT cartoon or illustrated.`;
 
 const generateSingleSceneImage = async (
@@ -287,6 +244,7 @@ export const generateEmotionSceneImages = async (
   stories: StoryItem[],
   imageStyle: EmotionImageStyle,
   onProgress?: (current: number, total: number) => void,
+  customPrompts?: Map<number, string>,
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -306,8 +264,12 @@ export const generateEmotionSceneImages = async (
   const characterBase64 = await loadImageAsBase64(characterSrc);
   const gender: "boy" | "girl" = imageStyle === "photo-boy" ? "boy" : "girl";
 
-  // 10개 장면을 한 번에 영문 번역
-  const koreanScenes = stories.map((s) => `${s.title} ${s.sentence}`);
+  // 장면 설명 구성 — 커스텀 프롬프트가 있으면 기본 설명 뒤에 추가
+  const koreanScenes = stories.map((s, i) => {
+    const base = `${s.title} ${s.sentence}`;
+    const custom = customPrompts?.get(i);
+    return custom ? `${base} (배경: ${custom})` : base;
+  });
   let englishScenes: string[];
   try {
     englishScenes = await translateScenesToEnglish(ai, koreanScenes);
@@ -317,37 +279,24 @@ export const generateEmotionSceneImages = async (
     englishScenes = koreanScenes;
   }
 
-  // ── Phase 1: 적응형 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
-  // AI가 장면 간 맥락 변화를 실시간 판단하여 앵커를 리셋하거나 연속 사용
+  // ── Phase 1: sceneGroup 기반 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
+  // sceneGroup이 바뀌면 캐릭터 레퍼런스로 리셋, 같으면 이전 이미지를 레퍼런스로 유지
   const base64Images: string[] = new Array(stories.length);
   let currentAnchor: string = characterBase64;
-  let anchorIsCharacterRef = true;
-  let chainLength = 0;
 
   for (let i = 0; i < stories.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
-    let needsReset = false;
-
-    if (i === 0) {
-      needsReset = true;
-    } else if (chainLength >= MAX_ANCHOR_CHAIN) {
-      needsReset = true;
-    } else if (!anchorIsCharacterRef) {
-      const prevScene = englishScenes[i - 1] ?? koreanScenes[i - 1];
-      needsReset = await shouldResetAnchor(ai, prevScene, scene);
-    }
+    const needsReset =
+      i === 0 || stories[i].sceneGroup !== stories[i - 1].sceneGroup;
 
     let base64: string;
     if (needsReset) {
       base64 = await generateSingleSceneImage(ai, scene, characterBase64, true, gender);
-      currentAnchor = base64;
-      anchorIsCharacterRef = false;
-      chainLength = 0;
     } else {
       base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false, gender);
-      chainLength++;
     }
 
+    currentAnchor = base64;
     base64Images[i] = base64;
     onProgress?.(i + 1, stories.length);
   }

@@ -16,6 +16,7 @@ import {
   recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 
 interface EmotionSceneImageModalProps {
   isOpen: boolean;
@@ -55,6 +56,10 @@ const EmotionSceneImageModal = ({
   );
   const [imageStyle, setImageStyle] =
     useState<EmotionImageStyle>("photo-boy");
+  const [customPrompts, setCustomPrompts] = useState<Map<string, string>>(
+    () => new Map(),
+  );
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<{
     current: number;
@@ -118,12 +123,21 @@ const EmotionSceneImageModal = ({
 
     try {
       const actualStories = actualEntries.map((e) => e.story);
+
+      // pageId 기반 커스텀 프롬프트를 index 기반으로 변환
+      const promptMap = new Map<number, string>();
+      actualEntries.forEach((entry, i) => {
+        const custom = customPrompts.get(entry.pageId);
+        if (custom?.trim()) promptMap.set(i, custom.trim());
+      });
+
       const heroImageUrls = await generateEmotionSceneImages(
         actualStories,
         imageStyle,
         (current, total) => {
           setProgress({ current, total });
         },
+        promptMap.size > 0 ? promptMap : undefined,
       );
 
       // pageId → URL 매핑 생성
@@ -278,6 +292,23 @@ const EmotionSceneImageModal = ({
                         </div>
                       )}
                     </div>
+                    {/* 커스텀 장면 설명 입력 */}
+                    {isChecked && (
+                      <input
+                        type="text"
+                        value={customPrompts.get(pageId) ?? ""}
+                        onChange={(e) => {
+                          setCustomPrompts((prev) => {
+                            const next = new Map(prev);
+                            if (e.target.value) next.set(pageId, e.target.value);
+                            else next.delete(pageId);
+                            return next;
+                          });
+                        }}
+                        placeholder="장면 설명을 직접 입력하세요 (선택)"
+                        className="w-full rounded-lg border border-black-15 px-2.5 py-1.5 text-12-regular text-black-80 placeholder:text-black-30 focus:border-[#F59E0B] focus:outline-none"
+                      />
+                    )}
                   </div>
                 </label>
               );
@@ -304,7 +335,9 @@ const EmotionSceneImageModal = ({
           </button>
           <button
             type="button"
-            onClick={handleRegenerate}
+            onClick={() => {
+              if (selectedIds.size > 0 && !isGenerating) setIsConfirmOpen(true);
+            }}
             disabled={selectedIds.size === 0 || isGenerating}
             className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-14-semibold text-white-100 transition ${
               selectedIds.size === 0
@@ -327,6 +360,20 @@ const EmotionSceneImageModal = ({
           </button>
         </div>
       </div>
+
+      {/* 크레딧 차감 확인 */}
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={() => {
+          setIsConfirmOpen(false);
+          void handleRegenerate();
+        }}
+        title="이미지를 재생성할까요?"
+        description={`${selectedIds.size}장의 이미지를 재생성하면 ${selectedIds.size}크레딧이 차감됩니다.`}
+        confirmLabel="재생성하기"
+        cancelLabel="취소"
+      />
     </div>
   );
 };
