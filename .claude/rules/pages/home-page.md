@@ -4,6 +4,7 @@
 
 ```
 "/"           → HomePage      → NewLandingPage (인증 여부 무관, 항상 표시)
+"/about"      → AboutPage     → TEAM STORY + MISSION + VISION (인증 여부 무관)
 "/dashboard"  → DashboardRoute → DashboardPage (인증 필수, 비인증 시 "/" 리다이렉트)
 "/auth/callback" → AuthCallbackPage → "/" 리다이렉트
 ```
@@ -14,8 +15,8 @@
 ## 헤더 (`src/shared/ui/layout/Header.tsx`)
 
 ```
-인증:   [로고 → /] [대시보드 → /dashboard] [내 학습자료 → /mydoc] [로그아웃]
-비인증: [로고 → /] [로그인] [가입하기]
+인증:   [로고 → /] [대시보드 → /dashboard] [내 학습자료 → /mydoc] [About → /about] [로그아웃]
+비인증: [로고 → /] [About → /about] [로그인] [가입하기]
 ```
 
 - 모바일: `h-14`, 로그아웃은 `LogOut` 아이콘 버튼
@@ -68,4 +69,5 @@
 | 빠른 시작 | `src/features/home/components/dashboard/QuickStartSection.tsx` |
 | 최근 자료 | `src/features/home/components/RecentDocumentsSection.tsx` |
 | 아동/그룹 리스트 | `src/features/home/components/ChoiceUserSection.tsx` |
+| About 페이지 | `src/pages/about/AboutPage.tsx` |
 | 레거시 랜딩 | `src/features/home/components/landing/LandingPage.tsx` (보존, 미사용) |
