@@ -55,8 +55,7 @@ const PromptHeroSection = ({
         {/* 헤드라인 */}
         <h1 className="text-headline-32-bold text-black-90 md:text-headline-42-bold">
           AI로 감정추론활동 학습자료를
-          <br className="hidden md:block" />
-          {" "}손쉽게 만들어보세요
+          <br className="hidden md:block" /> 손쉽게 만들어보세요
         </h1>
 
         {/* 서브타이틀 */}
@@ -65,7 +64,10 @@ const PromptHeroSection = ({
         </p>
 
         {/* 프롬프트 입력 + 제안 칩 / 생성 중 메시지 — 고정 높이 컨테이너 */}
-        <div className="flex w-full items-center justify-center" style={{ minHeight: 120 }}>
+        <div
+          className="flex w-full items-center justify-center"
+          style={{ minHeight: 120 }}
+        >
           <AnimatePresence mode="wait">
             {!isGenerating ? (
               <motion.div
@@ -142,7 +144,7 @@ const PromptHeroSection = ({
                 AI가 만든 감정추론 활동지 예시
               </h3>
               <p className="text-14-regular text-black-70 md:text-title-16-semibold">
-                주제 하나로 10페이지 분량의 학습자료가 자동으로 완성돼요
+                주제 하나로 5페이지 분량의 학습자료가 자동으로 완성돼요
               </p>
             </div>
             <div className="relative w-full max-w-[500px] mx-auto aspect-[1/1.414] rounded-3xl overflow-hidden shadow-[0_12px_40px_-12px_rgba(124,58,237,0.10)] border border-primary-200 bg-white group hover:shadow-[0_20px_60px_-15px_rgba(124,58,237,0.14)] transition-shadow duration-500">

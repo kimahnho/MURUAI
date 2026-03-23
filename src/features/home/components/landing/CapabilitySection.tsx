@@ -21,16 +21,14 @@ const CAPABILITIES: Capability[] = [
     icon: Brain,
     iconBg: "bg-primary-100 text-primary",
     title: "AI 감정추론 활동",
-    description:
-      "주제를 입력하면 10페이지 감정추론 스토리를 자동 생성해요",
+    description: "주제를 입력하면 5페이지 감정추론 스토리를 자동 생성해요",
     badge: { label: "AI 지원", variant: "ai" },
   },
   {
     icon: LayoutTemplate,
     iconBg: "bg-success-50 text-[#15803d]",
     title: "25종 전문 템플릿",
-    description:
-      "감정추론, 어휘카드, 일과표 등 전문 템플릿을 제공해요",
+    description: "감정추론, 어휘카드, 일과표 등 전문 템플릿을 제공해요",
   },
   {
     icon: BookOpen,
