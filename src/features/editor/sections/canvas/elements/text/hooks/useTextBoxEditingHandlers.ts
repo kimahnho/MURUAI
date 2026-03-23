@@ -653,61 +653,136 @@ export const useTextBoxEditingHandlers = ({
     isComposingRef.current = false;
   };
 
-  // 편집 시작/종료에 따라 사이드바 텍스트 패널에 인라인 편집 콜백을 등록/해제한다
+  // 편집 시작/종료에 따라 사이드바 텍스트 패널에 인라인 편집 콜백을 등록/해제한다.
+  // 자주 바뀌는 UI 값(fontSize, fontFamily 등)은 ref로 관리하여
+  // effect 재실행 없이 getter를 통해 최신 값을 읽는다.
   const setTextEditingCallbacks = useElementPanelStore((s) => s.setTextEditingCallbacks);
+
+  const callbacksUiRef = useRef({
+    fontSizeUiState,
+    fontSizeInputState,
+    fontFamilyUiState,
+    toolbar,
+    handleToggleBold,
+    handleToggleUnderline,
+    handleToggleItalic,
+    handleToggleStrikethrough,
+    handleColorChange,
+    handleFontSizeStep,
+    handleFontFamilyChange,
+    handleToolbarInputFocus,
+    handleToolbarInputBlur,
+    isEditing,
+    fontSizeInputStartedInEditingRef,
+  });
+  callbacksUiRef.current = {
+    fontSizeUiState,
+    fontSizeInputState,
+    fontFamilyUiState,
+    toolbar,
+    handleToggleBold,
+    handleToggleUnderline,
+    handleToggleItalic,
+    handleToggleStrikethrough,
+    handleColorChange,
+    handleFontSizeStep,
+    handleFontFamilyChange,
+    handleToolbarInputFocus,
+    handleToolbarInputBlur,
+    isEditing,
+    fontSizeInputStartedInEditingRef,
+  };
+
+  const hasToolbar = !!toolbar;
   useEffect(() => {
-    if (!isEditing || !toolbar) {
+    if (!isEditing || !hasToolbar) {
       setTextEditingCallbacks(null);
       return;
     }
+
+    const ui = () => callbacksUiRef.current;
+
     setTextEditingCallbacks({
-      onToggleBold: handleToggleBold,
-      onToggleUnderline: handleToggleUnderline,
-      onToggleItalic: handleToggleItalic,
-      onToggleStrikethrough: handleToggleStrikethrough,
-      onColorChange: handleColorChange,
-      onFontSizeStep: handleFontSizeStep,
-      onFontSizeInputChange: fontSizeInputState.onChange,
-      onFontSizeInputCommit: fontSizeInputState.onCommit,
-      onFontSizeInputCancel: fontSizeInputState.onCancel,
+      onToggleBold: () => ui().handleToggleBold(),
+      onToggleUnderline: () => ui().handleToggleUnderline(),
+      onToggleItalic: () => ui().handleToggleItalic(),
+      onToggleStrikethrough: () => ui().handleToggleStrikethrough(),
+      onColorChange: (color: string) => ui().handleColorChange(color),
+      onFontSizeStep: (delta: number) => ui().handleFontSizeStep(delta),
+      onFontSizeInputChange: (value: string) => ui().fontSizeInputState.onChange(value),
+      onFontSizeInputCommit: () => ui().fontSizeInputState.onCommit(),
+      onFontSizeInputCancel: () => ui().fontSizeInputState.onCancel(),
       onFontSizeInputFocus: () => {
-        fontSizeInputStartedInEditingRef.current = isEditing;
-        handleToolbarInputFocus();
-        fontSizeInputState.onFocus();
+        ui().fontSizeInputStartedInEditingRef.current = ui().isEditing;
+        ui().handleToolbarInputFocus();
+        ui().fontSizeInputState.onFocus();
       },
       onFontSizeInputBlur: () => {
-        fontSizeInputStartedInEditingRef.current = false;
+        ui().fontSizeInputStartedInEditingRef.current = false;
       },
-      onToolbarInputFocus: handleToolbarInputFocus,
-      onToolbarInputBlur: handleToolbarInputBlur,
-      onLineHeightChange: toolbar.onLineHeightChange,
-      onLetterSpacingChange: toolbar.onLetterSpacingChange,
-      onAlignChange: toolbar.onAlignChange,
-      onAlignYChange: toolbar.onAlignYChange,
-      onFontFamilyClick: toolbar.onFontFamilyClick,
-      onFontFamilyChange: handleFontFamilyChange,
-      fontSizeDisplay: fontSizeUiState.displayValue,
-      fontSizeInputValue: fontSizeInputState.value,
-      isFontSizeMixed: fontSizeUiState.isMixed,
-      isFontSizeInputDirty: fontSizeInputState.isDirty,
-      fontSize: toolbar.fontSize,
-      minFontSize: toolbar.minFontSize,
-      maxFontSize: toolbar.maxFontSize,
-      fontFamily: fontFamilyUiState.isMixed ? toolbar.fontFamily : matchFontFamily(fontFamilyUiState.fontFamily),
-      fontLabel: fontFamilyUiState.isMixed ? "--" : getFontLabel(matchFontFamily(fontFamilyUiState.fontFamily)),
-      isFontFamilyMixed: fontFamilyUiState.isMixed,
-      lineHeight: toolbar.lineHeight,
-      letterSpacing: toolbar.letterSpacing,
-      color: toolbar.color,
-      isBold: toolbar.isBold,
-      isUnderline: toolbar.isUnderline,
-      isItalic: toolbar.isItalic,
-      isStrikethrough: toolbar.isStrikethrough,
-      align: toolbar.align,
-      alignY: toolbar.alignY,
+      onToolbarInputFocus: () => ui().handleToolbarInputFocus(),
+      onToolbarInputBlur: () => ui().handleToolbarInputBlur(),
+      onLineHeightChange: (value: number) => ui().toolbar?.onLineHeightChange(value),
+      onLetterSpacingChange: (value: number) => ui().toolbar?.onLetterSpacingChange(value),
+      onAlignChange: (value: "left" | "center" | "right" | "justify") => ui().toolbar?.onAlignChange(value),
+      onAlignYChange: (value: "top" | "middle" | "bottom") => ui().toolbar?.onAlignYChange(value),
+      onFontFamilyClick: () => ui().toolbar?.onFontFamilyClick(),
+      onFontFamilyChange: (family: string, weight: number) => ui().handleFontFamilyChange(family, weight),
+      get fontSizeDisplay() { return ui().fontSizeUiState.displayValue; },
+      get fontSizeInputValue() { return ui().fontSizeInputState.value; },
+      get isFontSizeMixed() { return ui().fontSizeUiState.isMixed; },
+      get isFontSizeInputDirty() { return ui().fontSizeInputState.isDirty; },
+      get fontSize() { return ui().toolbar?.fontSize ?? 14; },
+      get minFontSize() { return ui().toolbar?.minFontSize ?? MIN_FONT_SIZE; },
+      get maxFontSize() { return ui().toolbar?.maxFontSize ?? MAX_FONT_SIZE; },
+      get fontFamily() {
+        const { fontFamilyUiState: ff, toolbar: tb } = ui();
+        return ff.isMixed ? (tb?.fontFamily ?? "Pretendard") : matchFontFamily(ff.fontFamily);
+      },
+      get fontLabel() {
+        const { fontFamilyUiState: ff } = ui();
+        return ff.isMixed ? "--" : getFontLabel(matchFontFamily(ff.fontFamily));
+      },
+      get isFontFamilyMixed() { return ui().fontFamilyUiState.isMixed; },
+      get lineHeight() { return ui().toolbar?.lineHeight ?? 1.5; },
+      get letterSpacing() { return ui().toolbar?.letterSpacing ?? 0; },
+      get color() { return ui().toolbar?.color ?? "#000000"; },
+      get isBold() { return ui().toolbar?.isBold ?? false; },
+      get isUnderline() { return ui().toolbar?.isUnderline ?? false; },
+      get isItalic() { return ui().toolbar?.isItalic ?? false; },
+      get isStrikethrough() { return ui().toolbar?.isStrikethrough ?? false; },
+      get align() { return ui().toolbar?.align ?? "left"; },
+      get alignY() { return ui().toolbar?.alignY ?? "top"; },
     });
+
     return () => setTextEditingCallbacks(null);
-  });
+  }, [isEditing, hasToolbar, setTextEditingCallbacks]);
+
+  // getter 기반 UI 값이 변경될 때 사이드바 리렌더를 트리거한다
+  const bumpTextEditingRevision = useElementPanelStore((s) => s.bumpTextEditingRevision);
+  useEffect(() => {
+    if (!isEditing) return;
+    bumpTextEditingRevision();
+  }, [
+    isEditing,
+    bumpTextEditingRevision,
+    fontSizeUiState.displayValue,
+    fontSizeUiState.isMixed,
+    fontSizeInputState.value,
+    fontSizeInputState.isDirty,
+    fontFamilyUiState.fontFamily,
+    fontFamilyUiState.isMixed,
+    toolbar?.fontSize,
+    toolbar?.color,
+    toolbar?.isBold,
+    toolbar?.isUnderline,
+    toolbar?.isItalic,
+    toolbar?.isStrikethrough,
+    toolbar?.align,
+    toolbar?.alignY,
+    toolbar?.lineHeight,
+    toolbar?.letterSpacing,
+  ]);
 
   return {
     beginEditing,
