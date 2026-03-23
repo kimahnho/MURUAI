@@ -37,7 +37,7 @@ const HASHTAGS = [
   "화살표",
 ] as const;
 const SEARCH_DEBOUNCE_MS = 400;
-const INSERT_SIZE = { width: 256, height: 256 };
+const MAX_INSERT_SIZE = 256;
 
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
@@ -104,10 +104,23 @@ const ImageLibraryContent = () => {
   const handleSelectImage = (url: string, name: string) => {
     // 이미지 클릭 시에만 검색어를 최근 검색에 저장한다.
     if (debouncedSearch) addRecentSearch(debouncedSearch);
-    requestImageFill(url, name, INSERT_SIZE, {
-      forceInsert: true,
-      source: "library",
-    });
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const width = ratio >= 1 ? MAX_INSERT_SIZE : Math.round(MAX_INSERT_SIZE * ratio);
+      const height = ratio >= 1 ? Math.round(MAX_INSERT_SIZE / ratio) : MAX_INSERT_SIZE;
+      requestImageFill(url, name, { width, height }, {
+        forceInsert: true,
+        source: "library",
+      });
+    };
+    img.onerror = () => {
+      requestImageFill(url, name, { width: MAX_INSERT_SIZE, height: MAX_INSERT_SIZE }, {
+        forceInsert: true,
+        source: "library",
+      });
+    };
+    img.src = url;
   };
 
   return (
