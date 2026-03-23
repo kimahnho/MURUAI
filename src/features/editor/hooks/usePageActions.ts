@@ -12,7 +12,6 @@ import { isImageFillElement } from "../utils/imageBoxScaling";
 type PageActionsParams = {
   pages: Page[];
   selectedPageId: string;
-  orientation: "horizontal" | "vertical";
   setPages: Dispatch<SetStateAction<Page[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;
   setEditingTextId: Dispatch<SetStateAction<string | null>>;

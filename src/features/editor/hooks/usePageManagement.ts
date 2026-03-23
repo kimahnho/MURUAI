@@ -23,7 +23,8 @@ type PageManagementParams = {
 export const usePageManagement = ({
   pages,
   selectedPageId,
-  orientation,
+  // orientation은 usePageActions에서 더 이상 사용하지 않지만 상위 호환을 위해 타입 유지
+  orientation: _orientation,
   setPages,
   setSelectedPageId,
   setSelectedIds,
@@ -45,7 +46,6 @@ export const usePageManagement = ({
   const pageActions = usePageActions({
     pages,
     selectedPageId,
-    orientation,
     setPages,
     setSelectedIds,
     setEditingTextId,
