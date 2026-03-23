@@ -42,18 +42,32 @@
   --success-100: #d1fae5;
   --success: #22c55e;
   --success-700: #15803d;
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success: #22c55e;
+  --color-success-700: #15803d;
 
   /* Status — Warning */
   --warning-50: #fffbeb;
   --warning-100: #fef3c7;
   --warning: #f59e0b;
   --warning-700: #b45309;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning: #f59e0b;
+  --color-warning-700: #b45309;
 
   /* Status — Error */
   --error-50: #fef2f2;
   --error-100: #fee2e2;
+  --error-200: #fecaca;
   --error: #ef4444;
   --error-700: #b91c1c;
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error: #ef4444;
+  --color-error-700: #b91c1c;
 
   /* Icon Size */
   --icon-xs: 16px;
@@ -352,33 +366,29 @@ input[type="color"].color-input::-moz-color-swatch {
   .ring-primary-200 { --tw-ring-color: var(--primary-200); }
   .ring-primary-300 { --tw-ring-color: var(--primary-300); }
 
+  /* Status — Error */
+  .text-error { color: var(--error); }
+  .text-error-700 { color: var(--error-700); }
+  .bg-error-50 { background-color: var(--error-50); }
+  .bg-error-100 { background-color: var(--error-100); }
+  .border-error { border-color: var(--error); }
+  .border-error-100 { border-color: var(--error-100); }
+  .hover\:bg-error-50:hover { background-color: var(--error-50); }
+  .hover\:bg-error-100:hover { background-color: var(--error-100); }
+  .hover\:bg-error-200:hover { background-color: var(--error-200); }
+
+  /* Status — Warning */
+  .text-warning { color: var(--warning); }
+  .text-warning-700 { color: var(--warning-700); }
+  .bg-warning-50 { background-color: var(--warning-50); }
+  .border-warning-100 { border-color: var(--warning-100); }
+
   /* Status — Success */
   .text-success { color: var(--success); }
   .text-success-700 { color: var(--success-700); }
   .bg-success { background-color: var(--success); }
   .bg-success-50 { background-color: var(--success-50); }
   .bg-success-100 { background-color: var(--success-100); }
-  .border-success { border-color: var(--success); }
-  .border-success-100 { border-color: var(--success-100); }
-
-  /* Status — Warning */
-  .text-warning { color: var(--warning); }
-  .text-warning-700 { color: var(--warning-700); }
-  .bg-warning { background-color: var(--warning); }
-  .bg-warning-50 { background-color: var(--warning-50); }
-  .bg-warning-100 { background-color: var(--warning-100); }
-  .border-warning { border-color: var(--warning); }
-  .border-warning-100 { border-color: var(--warning-100); }
-
-  /* Status — Error */
-  .text-error { color: var(--error); }
-  .text-error-700 { color: var(--error-700); }
-  .bg-error { background-color: var(--error); }
-  .bg-error-50 { background-color: var(--error-50); }
-  .bg-error-100 { background-color: var(--error-100); }
-  .border-error { border-color: var(--error); }
-  .border-error-100 { border-color: var(--error-100); }
-  .hover\:bg-error-100:hover { background-color: var(--error-100); }
 
   /* Black Text Colors */
   .text-black-100 {

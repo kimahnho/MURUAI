@@ -50,8 +50,8 @@ const AiFeatureSection = () => {
     void hasPendingCreditRequest().then(setHasRequested);
   }, []);
 
-  const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;
   const isQuotaExhausted = creditBalance !== null && creditBalance <= 0;
+  const isCreditLow = creditBalance !== null && creditBalance > 0 && creditBalance <= 5;
 
   const handleClick = async (feature: string) => {
     mp.track("대시보드 AI 카드 클릭", { feature });
@@ -88,9 +88,10 @@ const AiFeatureSection = () => {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Zap className={`h-4 w-4 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
-          <span className={`text-13-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
-            {monthlyUsed !== null ? monthlyUsed : "--"}/{MONTHLY_AI_CREDIT_LIMIT}
+          <Zap className="h-4 w-4 text-black-40" />
+          <span className={`text-title-20-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-60"}`}>
+            {creditBalance !== null ? creditBalance : "--"}
+            <span className="text-black-40">/{MONTHLY_AI_CREDIT_LIMIT}</span>
           </span>
         </div>
       </div>
