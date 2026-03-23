@@ -62,7 +62,7 @@ TEMPLATE_REGISTRY = {
 }
 ```
 
-### 템플릿 카테고리 (24개)
+### 템플릿 카테고리 (26개)
 
 | 카테고리 | 템플릿 |
 |----------|--------|
@@ -71,12 +71,40 @@ TEMPLATE_REGISTRY = {
 | 쓰기 | fiveSpaceWritingNote, tenSpaceWritingNote, lineNote×3, dictationPractice, yellowDiaryLines |
 | AAC/시각 | findItem, visualSchedule, labelSheet3x8, pictureSchedule |
 | 선긋기 | wavyLineTracing, variousLineTracing, crossLineTracing, easyCrossLineTracing, straightLineTracing |
+| 기차 | trainTemplate (2페이지, horizontal-only), trainTemplate2 (2페이지, horizontal-only) |
 
 ### Orientation 제약
 
 - `"vertical-only"`: 세로 강제
-- `"horizontal-only"`: 가로 강제
-- 다중 페이지는 `pages[]` 배열 사용 (현재 `emotionInference`만 해당)
+- `"horizontal-only"`: 가로 강제 (기차 템플릿)
+- 다중 페이지는 `pages[]` 배열 사용 (emotionInference, trainTemplate, trainTemplate2)
+
+### 전체적용 전용 템플릿
+
+기차 템플릿처럼 항상 전체 페이지를 적용하는 템플릿은 `useTemplateContentState.ts`에서 `MultiPageTemplateDialog`를 스킵하고 바로 `requestTemplate()`을 호출한다.
+
+### 배경 이미지 시스템
+
+| 소스 | 템플릿 | 저장 위치 |
+|------|--------|-----------|
+| 로컬 정적 import | 9개 (쓰기노트, 줄노트, 일기 등) | `templates/template_pdf/{name}/preview.png` |
+| Cloudinary 원격 URL | 기차 템플릿 1/2 | `muru-templates/admin/{template-name}/` |
+
+- `getTemplateBackground(templateId, pageIndex?)` — 페이지별 다른 배경 지원
+- Cloudinary URL은 `pageFactory.ts` 상단 상수로 정의
+- `template_images` Supabase 테이블에 경로 저장 (RLS 전체 read, `user_id`/`user_role` 추적)
+
+### 페이지 삭제 시 배경 리셋
+
+`handleDeletePage`(마지막 페이지)와 `handleClearPage` 모두에서 `background: { type: "none" }` 필수:
+```typescript
+bumpPageRevision({
+  ...page,
+  templateId: null,
+  background: { type: "none" as const },
+  elements: withLogoCanvasElements([]),
+});
+```
 
 ## 템플릿 인스턴스화 (`instantiateTemplate`)
 
@@ -120,5 +148,8 @@ withLogoCanvasElements(canvasElements)
 | 인스턴스화 | `src/features/editor/templates/instantiateTemplate.ts` |
 | 템플릿 스토어 | `src/features/editor/store/templateStore.ts` |
 | 템플릿 적용 훅 | `src/features/editor/hooks/useTemplateApplyActions.ts` |
+| 템플릿 상태 훅 | `src/features/editor/sections/sidebar/hooks/useTemplateContentState.ts` |
+| 기차 템플릿 1 | `src/features/editor/templates/train_template/page_{1,2}.ts` |
+| 기차 템플릿 2 | `src/features/editor/templates/train_template_2/page_{1,2}.ts` |
 | 로고 요소 유틸 | `src/features/editor/utils/logoElement.ts` |
 | 페이지 리비전 | `src/features/editor/utils/pageRevision.ts` |
