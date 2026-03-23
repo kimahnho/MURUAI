@@ -54,8 +54,9 @@ const PromptHeroSection = ({
 
         {/* 헤드라인 */}
         <h1 className="text-headline-32-bold text-black-90 md:text-headline-42-bold">
-          AI로 감정추론활동 학습자료를
-          <br className="hidden md:block" /> 손쉽게 만들어보세요
+          AI로 우리 아이가 좋아하는 내용의 학습자료를
+          <br />
+          손쉽게 만들어보세요
         </h1>
 
         {/* 서브타이틀 */}
