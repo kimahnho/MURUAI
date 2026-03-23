@@ -51,9 +51,9 @@ const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
 
 const TRAIN_TEMPLATE_BG_1 =
-  "https://res.cloudinary.com/dabbfycew/image/upload/muru-templates/admin/train-template/page_1";
+  "https://res.cloudinary.com/dabbfycew/image/upload/f_auto,q_auto/muru-templates/admin/train-template/page_1";
 const TRAIN_TEMPLATE2_BG_1 =
-  "https://res.cloudinary.com/dabbfycew/image/upload/muru-templates/admin/train-template-2/page_1";
+  "https://res.cloudinary.com/dabbfycew/image/upload/f_auto,q_auto/muru-templates/admin/train-template-2/page_1";
 
 const ALL_TEMPLATES = Object.values(TEMPLATE_REGISTRY).map((template) => ({
   id: template.id,
