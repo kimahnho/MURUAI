@@ -37,7 +37,7 @@
 | `user_credits` | 크레딧 원자적 차감 | `use_credits(count)` — 잔량 내에서 차감, 실제 차감 수 반환 |
 | (관리자 전용) | 유저 목록 조회 | `admin_list_users()` — auth.users + user_profiles + user_credits JOIN |
 | (관리자 전용) | 크레딧 요청 목록 | `admin_list_credit_requests()` — pending 우선 정렬 |
-| (관리자 전용) | 크레딧 요청 승인/거절 | `admin_manage_credit_request(id, action)` — 승인 시 balance=30 리셋 |
+| (관리자 전용) | 크레딧 요청 승인/거절 | `admin_manage_credit_request(id, action)` — 승인 시 `balance += 30` 누적 충전 |
 | (관리자 전용) | 대시보드 집계 | `admin_dashboard_metrics(start_date, end_date)` — 문서/활동/다운로드 지표 |
 | (RLS 헬퍼) | 관리자 권한 확인 | `is_admin()` — `SECURITY DEFINER`로 RLS 재귀 방지. `user_profiles.role = 'admin'` 확인 |
 
