@@ -206,10 +206,10 @@ type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 
 ### 감정 카드 이미지 크기
 
-| 스타일 | 소스 테이블 | cover box 크기 |
-|--------|-------------|---------------|
-| photo-boy / photo-girl | emotion_photo | 200×260 |
-| emoji | emotion_sticker | 180×180 |
+| 스타일 | 소스 테이블 | cover box 크기 | 축소 |
+|--------|-------------|---------------|------|
+| photo-boy / photo-girl | emotion_photo | 200×260 | 없음 |
+| emoji | emotion_sticker | 180×180 | `EMOJI_SCALE = 0.7` — `shrinkImageBox()`로 imageBox를 70%로 축소하여 카드 안에 여백 생성 |
 
 ### patchStoryElements 패치 대상
 
@@ -355,10 +355,11 @@ useEffect(() => {
 
 ### 감정 카드 성별 실시간 교체
 
-배너에서 감정 카드 남아/여아 토글 시:
+배너에서 감정 카드 남아/여아/이모지 토글 시 (ready + completed 단계 모두 가능):
 1. `fetchEmotionImageMap(cardStyle)` 호출
 2. `storyPageIds`의 각 페이지에서 `subType === "emotionInference"` 셰이프 찾기
 3. 해당 스토리의 `emotions[0,1,2]`에 매칭 → `fill: url(새이미지)` + `calculateCoverImageBox` 적용
+4. 이모지 스타일 시 `shrinkImageBox(imageBox, el.w, el.h)`로 70% 축소 적용
 4. `setPages`로 즉시 반영
 
 ### 장면 이미지 성별 명시
