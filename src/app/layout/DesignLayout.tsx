@@ -385,10 +385,10 @@ const DesignLayout = () => {
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20 transition hover:bg-black-30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-10 w-10 rounded-lg items-center justify-center transition hover:bg-black-10 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="저장"
               >
-                <Save className="w-6 h-6 text-black-60" />
+                <Save className="w-5 h-5 text-black-60" />
               </button>
               {docId && autoSaveState && (
                 <div className="flex items-center gap-2">
