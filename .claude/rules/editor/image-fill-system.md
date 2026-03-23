@@ -28,6 +28,23 @@ interface ImageFillStore {
 
 - `requestImageFill()` 호출 시 Mixpanel `"이미지 추가"` 이벤트 자동 추적
 
+## 삽입 크기 결정
+
+| 소스 | 크기 | 결정 방식 |
+|------|------|-----------|
+| 이미지 상징 (library) | 최대 256px, 원본 비율 유지 | `new Image()` 로드 후 `naturalWidth/naturalHeight`로 비율 계산 |
+| 감정 사진 (emotion) | 200×260 (photo), 200×200 (emoji) | 하드코딩 상수 |
+| AAC (aac) | 200×200 | 하드코딩 상수 |
+
+이미지 상징은 클릭 시 `new Image()`로 원본 크기를 읽어 비율을 유지한다. 로드 실패 시 256×256 fallback.
+
+```typescript
+const MAX_INSERT_SIZE = 256;
+const ratio = img.naturalWidth / img.naturalHeight;
+const width = ratio >= 1 ? MAX_INSERT_SIZE : Math.round(MAX_INSERT_SIZE * ratio);
+const height = ratio >= 1 ? Math.round(MAX_INSERT_SIZE / ratio) : MAX_INSERT_SIZE;
+```
+
 ## 구독 처리 (`useImageFillSubscription`)
 
 ### 새 이미지 요소 생성 (선택 없음 + `forceInsert`)

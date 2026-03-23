@@ -155,7 +155,7 @@ AuthProvider (앱 루트)
   → imageBox에 위치/크기 저장
 ```
 
-- **업로드 경로**: `muru_uploads/{userId}` (사용자), `muru_emotion_scene/{userId}` (AI 장면)
+- **업로드 경로**: `muru_uploads/{userId}` (사용자), `muru_emotion_scene/{userId}` (AI 장면), `muru-templates/admin/{template-name}/` (템플릿 배경)
 - **지원 포맷**: JPEG, PNG, SVG
 - **캔버스 드롭**: 로컬 프리뷰 즉시 표시 → 백그라운드 Cloudinary 업로드 → URL 교체
 - **CDN 폰트 호스팅**: 184개 CDN 폰트를 Cloudinary에서 서빙

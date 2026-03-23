@@ -40,7 +40,7 @@ import { bumpPageRevision, ensurePageRevision } from "./pageRevision";
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
-const CLOUDINARY_BASE = "https://res.cloudinary.com/dabbfycew/image/upload";
+const CLOUDINARY_BASE = "https://res.cloudinary.com/dabbfycew/image/upload/f_auto,q_auto";
 const TRAIN_TEMPLATE_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_1`;
 const TRAIN_TEMPLATE_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_2`;
 const TRAIN_TEMPLATE2_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_1`;
@@ -743,19 +743,19 @@ export const addSelectedTemplatePages = ({
   setPages((prevPages) => {
     const nextPages = [...prevPages];
     validIndices.forEach((originalIndex, loopIndex) => {
-        const pageId = loopIndex === 0 ? firstPageId : crypto.randomUUID();
-        nextPages.push({
-          id: pageId,
-          pageNumber: nextPages.length + 1,
-          templateId,
-          orientation: nextOrientation,
-          background: getTemplateBackground(templateId, originalIndex),
-          elements: withLogoCanvasElements(
-            instantiateTemplate(allTemplates[originalIndex]),
-          ),
-          rev: 0,
-        });
+      const pageId = loopIndex === 0 ? firstPageId : crypto.randomUUID();
+      nextPages.push({
+        id: pageId,
+        pageNumber: nextPages.length + 1,
+        templateId,
+        orientation: nextOrientation,
+        background: getTemplateBackground(templateId, originalIndex),
+        elements: withLogoCanvasElements(
+          instantiateTemplate(allTemplates[originalIndex]),
+        ),
+        rev: 0,
       });
+    });
     return nextPages;
   });
 
