@@ -1,5 +1,6 @@
 import Footer from "@/shared/ui/layout/Footer";
 import Header from "@/shared/ui/layout/Header";
+import AuthModal from "@/shared/ui/AuthModal";
 import { Outlet } from "react-router-dom";
 
 const MainLayout = () => {
@@ -10,6 +11,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
       <Footer />
+      <AuthModal />
     </div>
   );
 };

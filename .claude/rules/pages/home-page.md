@@ -24,6 +24,11 @@
 - 모든 텍스트에 `whitespace-nowrap` 적용
 - "가입하기" 버튼: 딥 바이올렛(`bg-primary-800`) — primary 팔레트 통일
 
+## AuthModal (전역)
+
+- `MainLayout.tsx`에서 렌더링 — 모든 라우트(`/`, `/about`, `/dashboard` 등)에서 공용
+- 개별 페이지에서 `AuthModal` import/렌더링 금지 — `MainLayout`이 담당
+
 ## 메인 페이지 (NewLandingPage)
 
 상세: `.claude/rules/pages/landing.md` 참조
@@ -57,6 +62,7 @@
 
 | 역할 | 경로 |
 |------|------|
+| 메인 레이아웃 | `src/app/layout/MainLayout.tsx` |
 | 홈 페이지 | `src/pages/home/HomePage.tsx` |
 | 대시보드 라우트 | `src/pages/dashboard/DashboardRoute.tsx` |
 | 라우터 | `src/app/config/Router.tsx` |
