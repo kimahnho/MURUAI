@@ -30,13 +30,16 @@ const FEATURE_CARDS: {
     color: "#F59E0B",
     title: "AI 감정추론 활동",
     description:
-      "주제 하나만 입력하면 10페이지 감정추론 활동지를 즉시 생성해요. 바로 수업에 활용할 수 있어요.",
+      "주제 하나만 입력하면 5페이지 감정추론 활동지를 즉시 생성해요. 바로 수업에 활용할 수 있어요.",
   },
 ];
 
 const FeatureSection = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <section ref={ref} className="flex flex-col items-center w-full px-6 py-14 md:px-10 md:py-20">
+    <section
+      ref={ref}
+      className="flex flex-col items-center w-full px-6 py-14 md:px-10 md:py-20"
+    >
       <div className="flex flex-col items-center max-w-5xl gap-8 md:gap-12">
         <div className="text-center">
           <h2 className="text-headline-24-bold text-black-90 md:text-headline-28-bold">
