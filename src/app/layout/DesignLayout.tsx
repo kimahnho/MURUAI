@@ -431,9 +431,9 @@ const DesignLayout = () => {
               <button
                 type="button"
                 onClick={canUndo ? requestUndo : undefined}
-                className={`flex h-10 w-10 rounded-xl items-center justify-center transition ${
+                className={`flex h-10 w-10 rounded-lg items-center justify-center transition ${
                   canUndo
-                    ? "cursor-pointer hover:bg-black-20"
+                    ? "cursor-pointer hover:bg-black-10"
                     : "cursor-not-allowed opacity-40"
                 }`}
                 aria-label="뒤로가기"
@@ -444,9 +444,9 @@ const DesignLayout = () => {
               <button
                 type="button"
                 onClick={canRedo ? requestRedo : undefined}
-                className={`flex h-10 w-10 rounded-xl items-center justify-center transition ${
+                className={`flex h-10 w-10 rounded-lg items-center justify-center transition ${
                   canRedo
-                    ? "cursor-pointer hover:bg-black-20"
+                    ? "cursor-pointer hover:bg-black-10"
                     : "cursor-not-allowed opacity-40"
                 }`}
                 aria-label="앞으로가기"
