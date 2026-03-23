@@ -23,7 +23,7 @@ const TopicStep = () => {
           className="w-full resize-none rounded-lg border border-black-25 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
         />
         <span className={`absolute bottom-2 right-3 text-12-medium ${
-          topic.length >= TOPIC_MAX_LENGTH ? "text-error-500" : "text-black-40"
+          topic.length >= TOPIC_MAX_LENGTH ? "text-error" : "text-black-40"
         }`}>
           {topic.length}/{TOPIC_MAX_LENGTH}
         </span>

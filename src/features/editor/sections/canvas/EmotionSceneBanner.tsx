@@ -528,7 +528,7 @@ const EmotionSceneBanner = ({
             )}
             {bannerPhase === "ready" &&
               storyPageIds.length > MAX_IMAGE_PAGES && (
-                <span className="text-12-regular text-error-500">
+                <span className="text-12-regular text-error">
                   최대 이미지 생성 페이지는 {MAX_IMAGE_PAGES}장입니다
                 </span>
               )}

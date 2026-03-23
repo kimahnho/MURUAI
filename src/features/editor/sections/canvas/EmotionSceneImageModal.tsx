@@ -165,7 +165,13 @@ const EmotionSceneImageModal = ({
               이미지 재생성
             </h2>
             {remainingCredits !== null && (
-              <span className="flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-12-semibold text-primary">
+              <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-12-semibold ${
+                remainingCredits <= 0
+                  ? "bg-error-50 text-error"
+                  : remainingCredits <= 5
+                    ? "bg-warning-50 text-warning"
+                    : "bg-black-5 text-black-60"
+              }`}>
                 <Sparkles className="h-3 w-3" />
                 {remainingCredits}크레딧 남음
               </span>
