@@ -321,6 +321,9 @@ input[type="color"].color-input::-moz-color-swatch {
   .group:hover .group-hover\:text-primary {
     color: var(--primary);
   }
+  .group\/title:hover .group-hover\/title\:opacity-100 {
+    opacity: 1;
+  }
 
   /* Primary Palette — Text */
   .text-primary-50 { color: var(--primary-50); }
