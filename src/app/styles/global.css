@@ -488,6 +488,46 @@ input[type="color"].color-input::-moz-color-swatch {
   }
 
   /* Black Border Colors */
+  .border-black-90 {
+    border-color: var(--black-90);
+  }
+
+  .border-black-85 {
+    border-color: var(--black-85);
+  }
+
+  .border-black-80 {
+    border-color: var(--black-80);
+  }
+
+  .border-black-70 {
+    border-color: var(--black-70);
+  }
+
+  .border-black-65 {
+    border-color: var(--black-65);
+  }
+
+  .border-black-60 {
+    border-color: var(--black-60);
+  }
+
+  .border-black-55 {
+    border-color: var(--black-55);
+  }
+
+  .border-black-50 {
+    border-color: var(--black-50);
+  }
+
+  .border-black-45 {
+    border-color: var(--black-45);
+  }
+
+  .border-black-40 {
+    border-color: var(--black-40);
+  }
+
   .border-black-35 {
     border-color: var(--black-35);
   }
@@ -502,6 +542,14 @@ input[type="color"].color-input::-moz-color-swatch {
 
   .border-black-20 {
     border-color: var(--black-20);
+  }
+
+  .border-black-15 {
+    border-color: var(--black-15);
+  }
+
+  .border-black-10 {
+    border-color: var(--black-10);
   }
 
   .border-b-black-25 {

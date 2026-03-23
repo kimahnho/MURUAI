@@ -9,7 +9,7 @@ interface ToastProps {
 const VARIANT_CLASS: Record<ToastVariant, string> = {
   default: "bg-black-90 text-white-100",
   primary: "bg-primary text-white-100",
-  success: "bg-success-500 text-white-100",
+  success: "bg-success text-white-100",
 };
 
 const Toast = ({ message, variant = "default", isVisible }: ToastProps) => {
