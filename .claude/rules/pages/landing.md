@@ -7,9 +7,10 @@
 ```
 NewLandingPage
   ├─ PromptHeroSection   — 주제 입력 + 생성 버튼 + 미리보기 캐러셀
-  ├─ CapabilitySection   — 기능 소개 카드 3개 + 하단 CTA
-  └─ AuthModal           — 로그인 모달 (비인증 시)
+  └─ CapabilitySection   — 기능 소개 카드 3개 + 하단 CTA
 ```
+
+**AuthModal**은 `MainLayout`에서 전역 렌더링 — 개별 페이지에서 import 불필요.
 
 ## 생성 흐름 (HomePage.tsx)
 

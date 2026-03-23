@@ -40,6 +40,7 @@ const AiTemplateContent = () => {
   const remaining = creditBalance;
   const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;
   const isQuotaExhausted = remaining !== null && remaining <= 0;
+  const isCreditLow = remaining !== null && remaining > 0 && remaining <= 5;
 
   // 크레딧 잔량 + 요청 이력 조회
   useEffect(() => {
@@ -123,14 +124,16 @@ const AiTemplateContent = () => {
         <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
           isQuotaExhausted
             ? "bg-error-50 border-error-100"
-            : "bg-primary-50 border-primary-200"
+            : isCreditLow
+              ? "bg-warning-50 border-warning-100"
+              : "bg-black-5 border-black-20"
         }`}>
           <div className="flex flex-col">
-            <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : "text-primary-700"}`}>
+            <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : isCreditLow ? "text-warning-700" : "text-black-60"}`}>
               이번 달 이미지 크레딧
             </span>
             <div className="flex items-baseline gap-1">
-              <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error-500" : "text-primary"}`}>
+              <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-80"}`}>
                 {monthlyUsed !== null ? monthlyUsed : "--"}
               </span>
               <span className="text-14-regular text-black-50">
@@ -138,7 +141,7 @@ const AiTemplateContent = () => {
               </span>
             </div>
           </div>
-          <Zap className={`h-6 w-6 ${isQuotaExhausted ? "text-error-500" : "text-primary-300"}`} />
+          <Zap className={`h-6 w-6 ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-40"}`} />
         </div>
 
         {/* 소진 안내 + 크레딧 요청 버튼 */}

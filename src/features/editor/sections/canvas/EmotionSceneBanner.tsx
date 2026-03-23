@@ -5,7 +5,16 @@
  */
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Check, ChevronDown, ChevronUp, ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import {
+  Check,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Send,
+} from "lucide-react";
 
 import type { Page } from "@/features/editor/model/pageTypes";
 import type { ShapeElement } from "@/features/editor/model/canvasTypes";
@@ -28,8 +37,12 @@ import {
 import {
   checkAiCredits,
   recordAiCreditUsage,
+  requestMoreCredits,
+  hasPendingCreditRequest,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
+import BaseModal from "@/shared/ui/BaseModal";
+import useSharedToastStore from "@/shared/store/useToastStore";
 import EmotionSceneImageModal from "./EmotionSceneImageModal";
 
 const MAX_IMAGE_PAGES = 15;
@@ -40,6 +53,23 @@ const EMOTION_EMOJI_SIZE = { width: 180, height: 180 };
 const getEmotionImageSize = (style: EmotionImageStyle) =>
   style === "emoji" ? EMOTION_EMOJI_SIZE : EMOTION_PHOTO_SIZE;
 
+// 이모지 스타일일 때 imageBox를 축소하여 카드 안에서 여백을 만든다
+const EMOJI_SCALE = 0.7;
+const shrinkImageBox = (
+  box: { x: number; y: number; w: number; h: number },
+  elementW: number,
+  elementH: number,
+) => {
+  const newW = box.w * EMOJI_SCALE;
+  const newH = box.h * EMOJI_SCALE;
+  return {
+    x: (elementW - newW) / 2,
+    y: (elementH - newH) / 2,
+    w: newW,
+    h: newH,
+  };
+};
+
 // 스토리 페이지로서 유효한지 판별 — 요소가 로고 1개뿐(빈 페이지로 변환됨)이면 무효
 const isValidStoryPage = (page: Page) => page.elements.length > 1;
 
@@ -49,18 +79,23 @@ interface EmotionSceneBannerProps {
   setPages: Dispatch<SetStateAction<Page[]>>;
 }
 
-const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBannerProps) => {
+const EmotionSceneBanner = ({
+  pages,
+  selectedPageId,
+  setPages,
+}: EmotionSceneBannerProps) => {
   const pendingGenerations = useEmotionSceneStore((s) => s.pendingGenerations);
-  const generatingProgress = useEmotionSceneStore(
-    (s) => s.generatingProgress,
-  );
+  const generatingProgress = useEmotionSceneStore((s) => s.generatingProgress);
   const [isRegenModalOpen, setIsRegenModalOpen] = useState(false);
-  const [imageStyle, setImageStyle] =
-    useState<EmotionImageStyle>("photo-boy");
-  const [cardStyle, setCardStyle] =
-    useState<EmotionImageStyle>("photo-boy");
+  const [imageStyle, setImageStyle] = useState<EmotionImageStyle>("photo-boy");
+  const [cardStyle, setCardStyle] = useState<EmotionImageStyle>("photo-boy");
   const [isSwappingCards, setIsSwappingCards] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [partialCreditInfo, setPartialCreditInfo] = useState<{
+    remaining: number;
+    total: number;
+    originalIds: string[];
+  } | null>(null);
 
   // 고아 세트 정리 — 페이지가 삭제되거나 빈 페이지로 변환되면 해당 세트 제거
   useEffect(() => {
@@ -71,7 +106,9 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
         return page && isValidStoryPage(page);
       });
       if (!hasValidPage) {
-        useEmotionSceneStore.getState().removePendingGeneration(pg.storyPageIds);
+        useEmotionSceneStore
+          .getState()
+          .removePendingGeneration(pg.storyPageIds);
       }
     }
   }, [pages, pendingGenerations]);
@@ -148,12 +185,15 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
             // cardIdToUrl에는 ShapeElement(emotionInference)만 등록되어 있으므로 안전
             const shape = el as ShapeElement;
             const imgSize = getEmotionImageSize(nextStyle);
-            const imageBox = calculateCoverImageBox(
+            let imageBox = calculateCoverImageBox(
               shape.w,
               shape.h,
               imgSize.width,
               imgSize.height,
             );
+            if (nextStyle === "emoji") {
+              imageBox = shrinkImageBox(imageBox, shape.w, shape.h);
+            }
             return { ...el, fill: `url(${url})`, imageBox };
           });
 
@@ -178,7 +218,8 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
 
     // 유효한 페이지에 매칭되는 stories만 필터링 (삭제된 페이지 제외)
     const validPageIdSet = new Set(storyPageIds);
-    const validPairs: { story: (typeof stories)[number]; pageId: string }[] = [];
+    const validPairs: { story: (typeof stories)[number]; pageId: string }[] =
+      [];
     for (let i = 0; i < originalIds.length; i++) {
       if (validPageIdSet.has(originalIds[i])) {
         validPairs.push({ story: stories[i], pageId: originalIds[i] });
@@ -224,15 +265,16 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
         .open("이번 달 이미지 크레딧을 모두 사용했어요.");
       return;
     }
-    // 크레딧이 부족하면 앞 페이지부터 크레딧만큼만 생성
-    let actualStories = targetStories;
-    let actualPageIds = targetPageIds;
+    // 크레딧이 부족하면 모달로 안내 → 사용자 확인 후 부분 생성
+    const actualStories = targetStories;
+    const actualPageIds = targetPageIds;
     if (creditCheck.remaining < targetStories.length) {
-      actualStories = targetStories.slice(0, creditCheck.remaining);
-      actualPageIds = targetPageIds.slice(0, creditCheck.remaining);
-      useToastStore
-        .getState()
-        .showToast(`남은 크레딧이 부족해 ${creditCheck.remaining}장만 생성돼요.`);
+      setPartialCreditInfo({
+        remaining: creditCheck.remaining,
+        total: targetStories.length,
+        originalIds,
+      });
+      return;
     }
 
     const store = useEmotionSceneStore.getState();
@@ -295,6 +337,91 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
     }
   };
 
+  // 부분 생성: 크레딧 부족 모달에서 확인 후 호출 — 지정 개수만큼만 생성
+  const handleGenerateWithLimit = async (limit: number, origIds: string[]) => {
+    const validPageIdSet = new Set(storyPageIds);
+    const validPairs: { story: (typeof stories)[number]; pageId: string }[] =
+      [];
+    for (let i = 0; i < origIds.length; i++) {
+      if (validPageIdSet.has(origIds[i])) {
+        validPairs.push({ story: stories[i], pageId: origIds[i] });
+      }
+    }
+    const updatedPairs = validPairs.map(({ story, pageId }) => {
+      const page = pages.find((p) => p.id === pageId);
+      if (!page) return { story, pageId };
+      const textElements = page.elements.filter(
+        (el): el is Extract<typeof el, { type: "text" }> =>
+          el.type === "text" &&
+          typeof el.text === "string" &&
+          el.text !== "(감정)" &&
+          el.text.trim() !== "",
+      );
+      return {
+        story: {
+          ...story,
+          title: textElements[0]?.text ?? story.title,
+          sentence: textElements[1]?.text ?? story.sentence,
+        },
+        pageId,
+      };
+    });
+    const sliced = updatedPairs.slice(0, limit);
+    const actualStories = sliced.map((p) => p.story);
+    const actualPageIds = sliced.map((p) => p.pageId);
+
+    const store = useEmotionSceneStore.getState();
+    store.setBannerPhase(origIds, "generating");
+
+    try {
+      const heroImageUrls = await generateEmotionSceneImages(
+        actualStories,
+        imageStyle,
+        (current, total) => {
+          useEmotionSceneStore
+            .getState()
+            .setGeneratingProgress({ current, total });
+        },
+      );
+
+      const urlMap = new Map<string, string>();
+      actualPageIds.forEach((pageId, index) => {
+        if (heroImageUrls[index]) urlMap.set(pageId, heroImageUrls[index]);
+      });
+      useEmotionSceneStore.getState().requestHeroImagePatch(urlMap);
+
+      const groupFirstUrls = new Map<number, string>();
+      const meta = actualStories.map((story, i) => {
+        const isFirst = !groupFirstUrls.has(story.sceneGroup);
+        if (isFirst && heroImageUrls[i])
+          groupFirstUrls.set(story.sceneGroup, heroImageUrls[i]);
+        return {
+          pageIndex: i,
+          originalPrompt: `${story.title} ${story.sentence}`,
+          sceneGroup: story.sceneGroup,
+          isGroupFirst: isFirst,
+          groupFirstImageBase64: null,
+          generatedImageUrl: heroImageUrls[i] ?? "",
+        };
+      });
+      useEmotionSceneStore.getState().setGenerationMeta(meta);
+      useEmotionSceneStore.getState().setBannerPhase(origIds, "completed");
+      void recordAiCreditUsage("emotion", actualStories.length);
+      mp.track("AI 장면 이미지 생성", {
+        image_style: imageStyle,
+        page_count: actualStories.length,
+      });
+    } catch (error) {
+      captureSentryError(error, "AI 장면 이미지 부분 생성");
+      useToastStore
+        .getState()
+        .showToast("이미지 생성에 실패했어요. 다시 시도해 주세요.");
+      useEmotionSceneStore.getState().setBannerPhase(origIds, "ready");
+    } finally {
+      useEmotionSceneStore.getState().setGeneratingProgress(null);
+    }
+  };
+
   const handleConfirm = () => {
     // 최종 확정 추적: storyPageIds로 AI 10장의 최종 텍스트+이미지 추출
     const logId = sessionStorage.getItem("aiGenerationLogId");
@@ -336,7 +463,13 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
         finalImageUrls.push(heroUrl);
       }
 
-      void confirmAiGeneration(logId, finalTexts, finalImageUrls, cardStyle, imageStyle);
+      void confirmAiGeneration(
+        logId,
+        finalTexts,
+        finalImageUrls,
+        cardStyle,
+        imageStyle,
+      );
       sessionStorage.removeItem("aiGenerationLogId");
     }
 
@@ -348,7 +481,8 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
   };
 
   // generating/completed phase에서는 자동 펼침
-  const shouldForceExpand = bannerPhase === "generating" || bannerPhase === "completed";
+  const shouldForceExpand =
+    bannerPhase === "generating" || bannerPhase === "completed";
   const effectiveCollapsed = isCollapsed && !shouldForceExpand;
 
   return (
@@ -357,7 +491,9 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
         {effectiveCollapsed ? (
           <div className="flex items-center gap-2 rounded-2xl border border-primary-200 bg-white-100 px-4 py-2.5 shadow-xl whitespace-nowrap">
             <ImageIcon className="h-4 w-4 text-primary" />
-            <span className="text-13-semibold text-black-70">이미지 생성 도구</span>
+            <span className="text-13-semibold text-black-70">
+              이미지 생성 도구
+            </span>
             <button
               type="button"
               onClick={() => setIsCollapsed(false)}
@@ -390,11 +526,12 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
                 이미지 생성 중에는 내용을 수정하지 마세요
               </span>
             )}
-            {bannerPhase === "ready" && storyPageIds.length > MAX_IMAGE_PAGES && (
-              <span className="text-12-regular text-error-500">
-                최대 이미지 생성 페이지는 {MAX_IMAGE_PAGES}장입니다
-              </span>
-            )}
+            {bannerPhase === "ready" &&
+              storyPageIds.length > MAX_IMAGE_PAGES && (
+                <span className="text-12-regular text-error">
+                  최대 이미지 생성 페이지는 {MAX_IMAGE_PAGES}장입니다
+                </span>
+              )}
           </div>
         )}
       </div>
@@ -405,8 +542,22 @@ const EmotionSceneBanner = ({ pages, selectedPageId, setPages }: EmotionSceneBan
         storyPageIds={storyPageIds}
         pages={pages}
         onClose={() => setIsRegenModalOpen(false)}
-        onComplete={() => setIsRegenModalOpen(false)}
       />
+
+      {/* 크레딧 부족 안내 모달 */}
+      {partialCreditInfo && (
+        <PartialCreditModal
+          remaining={partialCreditInfo.remaining}
+          total={partialCreditInfo.total}
+          onConfirm={() => {
+            const info = partialCreditInfo;
+            setPartialCreditInfo(null);
+            // 부분 생성 실행: remaining만큼만 생성
+            void handleGenerateWithLimit(info.remaining, info.originalIds);
+          }}
+          onClose={() => setPartialCreditInfo(null)}
+        />
+      )}
     </>
   );
 };
@@ -455,10 +606,56 @@ const BannerContent = ({
   if (phase === "completed") {
     return (
       <>
-        <Check className="h-4 w-4 text-success-500" />
+        <Check className="h-4 w-4 text-success" />
         <span className="text-14-semibold text-black-90">
           이미지가 생성되었어요!
         </span>
+
+        <span className="mx-1 h-4 w-px bg-black-20" />
+
+        {/* 감정 카드 성별 */}
+        <span className="text-12-semibold text-black-60">감정 카드</span>
+        <div className="flex items-center gap-1">
+          <label
+            className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-boy" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+          >
+            <input
+              type="radio"
+              name="completedCardStyle"
+              checked={cardStyle === "photo-boy"}
+              onChange={() => onCardStyleChange("photo-boy")}
+              className="hidden"
+            />
+            남아
+          </label>
+          <label
+            className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+          >
+            <input
+              type="radio"
+              name="completedCardStyle"
+              checked={cardStyle === "photo-girl"}
+              onChange={() => onCardStyleChange("photo-girl")}
+              className="hidden"
+            />
+            여아
+          </label>
+          <label
+            className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "emoji" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+          >
+            <input
+              type="radio"
+              name="completedCardStyle"
+              checked={cardStyle === "emoji"}
+              onChange={() => onCardStyleChange("emoji")}
+              className="hidden"
+            />
+            이모지
+          </label>
+        </div>
+
+        <span className="mx-1 h-4 w-px bg-black-20" />
+
         <button
           type="button"
           onClick={onRegenerate}
@@ -485,7 +682,8 @@ const BannerContent = ({
         텍스트를 확인 후 이미지를 생성하세요
       </span>
       <span className="rounded-full bg-primary-100 px-2 py-0.5 text-12-semibold text-primary">
-        {Math.min(pageCount, MAX_IMAGE_PAGES)}장 · {Math.min(pageCount, MAX_IMAGE_PAGES)}크레딧
+        {Math.min(pageCount, MAX_IMAGE_PAGES)}장 ·{" "}
+        {Math.min(pageCount, MAX_IMAGE_PAGES)}크레딧
       </span>
 
       <span className="mx-1 h-4 w-px bg-black-20" />
@@ -493,16 +691,40 @@ const BannerContent = ({
       {/* 감정 카드 성별 */}
       <span className="text-12-semibold text-black-60">감정 카드</span>
       <div className="flex items-center gap-1">
-        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-boy" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}>
-          <input type="radio" name="cardStyle" checked={cardStyle === "photo-boy"} onChange={() => onCardStyleChange("photo-boy")} className="hidden" />
+        <label
+          className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-boy" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          <input
+            type="radio"
+            name="cardStyle"
+            checked={cardStyle === "photo-boy"}
+            onChange={() => onCardStyleChange("photo-boy")}
+            className="hidden"
+          />
           남아
         </label>
-        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}>
-          <input type="radio" name="cardStyle" checked={cardStyle === "photo-girl"} onChange={() => onCardStyleChange("photo-girl")} className="hidden" />
+        <label
+          className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          <input
+            type="radio"
+            name="cardStyle"
+            checked={cardStyle === "photo-girl"}
+            onChange={() => onCardStyleChange("photo-girl")}
+            className="hidden"
+          />
           여아
         </label>
-        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "emoji" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}>
-          <input type="radio" name="cardStyle" checked={cardStyle === "emoji"} onChange={() => onCardStyleChange("emoji")} className="hidden" />
+        <label
+          className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${cardStyle === "emoji" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"} ${isSwappingCards ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          <input
+            type="radio"
+            name="cardStyle"
+            checked={cardStyle === "emoji"}
+            onChange={() => onCardStyleChange("emoji")}
+            className="hidden"
+          />
           이모지
         </label>
       </div>
@@ -512,12 +734,28 @@ const BannerContent = ({
       {/* 장면 이미지 성별 */}
       <span className="text-12-semibold text-black-60">장면</span>
       <div className="flex items-center gap-1">
-        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${imageStyle === "photo-boy" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"}`}>
-          <input type="radio" name="imageStyle" checked={imageStyle === "photo-boy"} onChange={() => onImageStyleChange("photo-boy")} className="hidden" />
+        <label
+          className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${imageStyle === "photo-boy" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"}`}
+        >
+          <input
+            type="radio"
+            name="imageStyle"
+            checked={imageStyle === "photo-boy"}
+            onChange={() => onImageStyleChange("photo-boy")}
+            className="hidden"
+          />
           남아
         </label>
-        <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${imageStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"}`}>
-          <input type="radio" name="imageStyle" checked={imageStyle === "photo-girl"} onChange={() => onImageStyleChange("photo-girl")} className="hidden" />
+        <label
+          className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-12-semibold transition ${imageStyle === "photo-girl" ? "border-primary bg-primary-50 text-primary" : "border-black-20 text-black-60 hover:bg-black-5"}`}
+        >
+          <input
+            type="radio"
+            name="imageStyle"
+            checked={imageStyle === "photo-girl"}
+            onChange={() => onImageStyleChange("photo-girl")}
+            className="hidden"
+          />
           여아
         </label>
       </div>
@@ -538,6 +776,95 @@ const BannerContent = ({
         <ChevronUp className="h-4 w-4" />
       </button>
     </>
+  );
+};
+
+// 크레딧 부족 안내 모달 — 부분 생성 또는 크레딧 요청 선택
+const PartialCreditModal = ({
+  remaining,
+  total,
+  onConfirm,
+  onClose,
+}: {
+  remaining: number;
+  total: number;
+  onConfirm: () => void;
+  onClose: () => void;
+}) => {
+  const [hasRequested, setHasRequested] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+
+  useEffect(() => {
+    void hasPendingCreditRequest().then(setHasRequested);
+  }, []);
+
+  const handleRequest = async () => {
+    if (hasRequested || isRequesting) return;
+    setIsRequesting(true);
+    const success = await requestMoreCredits();
+    setIsRequesting(false);
+    if (success) {
+      setHasRequested(true);
+      useSharedToastStore
+        .getState()
+        .showToast("크레딧 요청이 전송되었어요!", "success");
+    } else {
+      useSharedToastStore
+        .getState()
+        .showToast("요청 전송에 실패했어요. 다시 시도해 주세요.");
+    }
+  };
+
+  return (
+    <BaseModal isOpen onClose={onClose} title="크레딧이 부족해요" size="sm">
+      <div className="flex flex-col items-center gap-5 py-2 text-center">
+        <p className="text-16-regular text-black-70">
+          남은 크레딧이 부족해 {remaining}장만 생성돼요.
+          <br />
+          <span className="text-14-regular text-black-50">
+            (요청: {total}장 · 남은 크레딧: {remaining}개)
+          </span>
+        </p>
+        <div className="flex flex-col w-full gap-2">
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-14-semibold bg-primary text-white-100 transition hover:bg-primary-700 cursor-pointer"
+          >
+            {remaining}장만 생성하기
+          </button>
+          <button
+            type="button"
+            onClick={handleRequest}
+            disabled={hasRequested || isRequesting}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-14-semibold transition cursor-pointer ${
+              hasRequested
+                ? "bg-black-10 text-black-50 cursor-default"
+                : "border border-black-25 text-black-70 hover:bg-black-5"
+            }`}
+          >
+            {hasRequested ? (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                요청 완료
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                {isRequesting ? "요청 중..." : "크레딧 추가 요청하기"}
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-xl px-4 py-3 text-14-semibold text-black-50 transition hover:bg-black-5 cursor-pointer"
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </BaseModal>
   );
 };
 

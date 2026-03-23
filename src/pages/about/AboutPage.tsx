@@ -30,7 +30,7 @@ const AboutPage = () => (
         </span>
         <h1 className="text-headline-28-bold text-black-90 md:text-headline-42-bold">
           무루아이는 아이들의
-          <br className="hidden md:block" />
+          <br />
           내일을 바꿉니다
         </h1>
       </motion.div>

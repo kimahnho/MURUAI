@@ -50,6 +50,11 @@ import yellowDiaryLinesBg from "@/features/editor/templates/template_pdf/yellow-
 const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
 
+const TRAIN_TEMPLATE_BG_1 =
+  "https://res.cloudinary.com/dabbfycew/image/upload/muru-templates/admin/train-template/page_1";
+const TRAIN_TEMPLATE2_BG_1 =
+  "https://res.cloudinary.com/dabbfycew/image/upload/muru-templates/admin/train-template-2/page_1";
+
 const ALL_TEMPLATES = Object.values(TEMPLATE_REGISTRY).map((template) => ({
   id: template.id,
   title: template.label,
@@ -77,9 +82,15 @@ const isBasicTemplate = (templateId: string) =>
   templateId === "variousLineTracing" ||
   templateId === "crossLineTracing" ||
   templateId === "easyCrossLineTracing" ||
-  templateId === "straightLineTracing";
+  templateId === "straightLineTracing" ||
+  templateId === "trainTemplate" ||
+  templateId === "trainTemplate2";
 
 const sortBasicTemplates = (a: string, b: string) => {
+  if (a === "trainTemplate" && b !== "trainTemplate") return -1;
+  if (b === "trainTemplate" && a !== "trainTemplate") return 1;
+  if (a === "trainTemplate2" && b !== "trainTemplate2") return -1;
+  if (b === "trainTemplate2" && a !== "trainTemplate2") return 1;
   if (a === "visualSchedule" && b !== "visualSchedule") return -1;
   if (b === "visualSchedule" && a !== "visualSchedule") return 1;
   if (a === "vocabularyLearningCard" && b !== "vocabularyLearningCard")
@@ -149,6 +160,18 @@ const toPreviewElements = (template: Template): CanvasElement[] =>
   );
 
 const getTemplatePreviewBackground = (templateId: TemplateId) => {
+  if (templateId === "trainTemplate") {
+    return {
+      type: "image" as const,
+      imageUrl: TRAIN_TEMPLATE_BG_1,
+    };
+  }
+  if (templateId === "trainTemplate2") {
+    return {
+      type: "image" as const,
+      imageUrl: TRAIN_TEMPLATE2_BG_1,
+    };
+  }
   if (templateId === "fiveSpaceWritingNote") {
     return { type: "image" as const, imageUrl: fiveSpaceWritingNoteBg };
   }
@@ -273,9 +296,6 @@ const TemplateCarousel = ({
     startIndex,
     startIndex + itemsPerPage,
   );
-  const placeholders = Array.from({
-    length: Math.max(0, itemsPerPage - visibleTemplates.length),
-  });
   const canPrev = currentPage > 0;
   const canNext = currentPage < totalPages - 1;
 
@@ -320,14 +340,20 @@ const TemplateCarousel = ({
       </div>
 
       <div className="w-full">
-        <div className="grid w-full grid-cols-2 gap-4">
+        <div className="w-full columns-2 gap-4">
           {visibleTemplates.map((template) => {
             const templateData =
               typeof template.id === "string"
                 ? TEMPLATE_REGISTRY[template.id as TemplateId]
                 : null;
-            const pageWidthPx = PAGE_WIDTH_PX;
-            const pageHeightPx = PAGE_HEIGHT_PX;
+            const isHorizontal =
+              templateData?.orientation === "horizontal-only";
+            const pageWidthPx = isHorizontal
+              ? PAGE_HEIGHT_PX
+              : PAGE_WIDTH_PX;
+            const pageHeightPx = isHorizontal
+              ? PAGE_WIDTH_PX
+              : PAGE_HEIGHT_PX;
             const previewScale = 0.18;
             const scaledWidth = pageWidthPx * previewScale;
             const scaledHeight = pageHeightPx * previewScale;
@@ -335,12 +361,14 @@ const TemplateCarousel = ({
             return (
               <div
                 key={template.id}
-                className="flex flex-col w-full gap-2 cursor-pointer"
+                className="flex flex-col w-full gap-2 cursor-pointer mb-4 break-inside-avoid"
                 onClick={() => {
                   handleTemplateClick(template.id);
                 }}
               >
-                <div className="w-full aspect-[1/1.414] bg-white-100 border border-black-25 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <div
+                  className={`w-full ${isHorizontal ? "aspect-[1.414/1]" : "aspect-[1/1.414]"} bg-white-100 border border-black-25 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden`}
+                >
                   {templateData ? (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div
@@ -359,7 +387,9 @@ const TemplateCarousel = ({
                         >
                           <DesignPaper
                             pageId={`preview-${templateData.id}`}
-                            orientation="vertical"
+                            orientation={
+                              isHorizontal ? "horizontal" : "vertical"
+                            }
                             elements={toPreviewElements(templateData.template)}
                             background={getTemplatePreviewBackground(
                               templateData.id as TemplateId,
@@ -386,17 +416,6 @@ const TemplateCarousel = ({
               </div>
             );
           })}
-          {/* 마지막 페이지 카드 수가 부족해도 2열 그리드 폭이 흔들리지 않게 placeholder를 채운다. */}
-          {placeholders.map((_, index) => (
-            <div
-              key={`placeholder-${index}`}
-              className="flex flex-col w-full gap-2 opacity-0 pointer-events-none"
-              aria-hidden="true"
-            >
-              <div className="w-full aspect-[1/1.414] rounded-lg border border-black-10" />
-              <span className="text-14-semibold text-center">placeholder</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

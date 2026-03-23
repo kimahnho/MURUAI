@@ -206,10 +206,10 @@ type EmotionImageStyle = "photo-boy" | "photo-girl" | "emoji";
 
 ### 감정 카드 이미지 크기
 
-| 스타일 | 소스 테이블 | cover box 크기 |
-|--------|-------------|---------------|
-| photo-boy / photo-girl | emotion_photo | 200×260 |
-| emoji | emotion_sticker | 180×180 |
+| 스타일 | 소스 테이블 | cover box 크기 | 축소 |
+|--------|-------------|---------------|------|
+| photo-boy / photo-girl | emotion_photo | 200×260 | 없음 |
+| emoji | emotion_sticker | 180×180 | `EMOJI_SCALE = 0.7` — `shrinkImageBox()`로 imageBox를 70%로 축소하여 카드 안에 여백 생성 |
 
 ### patchStoryElements 패치 대상
 
@@ -294,11 +294,21 @@ const heroImageUrls = await generateEmotionSceneImages(
 
 ### 이미지 재생성 모달 (`EmotionSceneImageModal.tsx`)
 
-배너 completed 단계에서 "이미지 재생성하기" 클릭 시 열리는 모달:
-- **페이지 선택**: 체크박스로 재생성할 페이지 선택 (전체 선택/해제)
-- **커스텀 프롬프트**: 선택된 페이지마다 장면 설명 입력 필드 노출. 기존 `title + sentence` 뒤에 `(배경: 사용자입력)` 형태로 추가됨. 비어있으면 기본 프롬프트만 사용
-- **크레딧 확인**: 재생성 버튼 클릭 시 `ConfirmDialog`로 "N장 재생성 → N크레딧 차감" 확인 후 실행
-- **부분 생성**: 크레딧 부족 시 앞 페이지부터 잔량만큼만 재생성
+배너 completed 단계에서 "이미지 재생성하기" 클릭 시 열리는 좌우 분할 모달:
+- **좌측 (80%)**: 선택 페이지의 `DesignPaper readOnly` 썸네일 미리보기 + 장면 설명 프롬프트 textarea + 캐릭터(남아/여아) 선택 + 재생성 버튼
+- **우측 (20%)**: 전체 스토리 페이지 썸네일 1열 리스트 (상하 스크롤), 클릭으로 페이지 선택
+- **1장 개별 재생성**: 버튼 클릭 시 1장만 생성 (1크레딧), 성공 후 모달 유지 — 다른 페이지도 연속 재생성 가능
+- **크레딧 즉시 차감**: 생성 시작과 동시에 `recordAiCreditUsage` 호출 + 헤더 잔량 뱃지 -1 갱신
+- **페이지별 프롬프트 보존**: `Map<string, string>`으로 페이지 전환해도 프롬프트 유지
+- **헤더 크레딧 표시**: 모달 열 때 `fetchCreditBalance()` 조회, 재생성마다 로컬 -1 갱신
+
+### 크레딧 부족 모달 (`PartialCreditModal`)
+
+배너에서 이미지 생성 시 크레딧이 부족하면 `PartialCreditModal` 표시 (토스트 대신):
+- **"N장만 생성하기"**: 남은 크레딧만큼 부분 생성 진행
+- **"크레딧 추가 요청하기"**: `requestMoreCredits()` 호출 → 관리자 승인 시 `balance += 30` 누적 충전
+- **"취소"**: 생성 안 함
+- pending 요청 존재 시 "요청 완료" 상태로 시작
 
 ### 타입 안전성 주의
 
@@ -345,10 +355,11 @@ useEffect(() => {
 
 ### 감정 카드 성별 실시간 교체
 
-배너에서 감정 카드 남아/여아 토글 시:
+배너에서 감정 카드 남아/여아/이모지 토글 시 (ready + completed 단계 모두 가능):
 1. `fetchEmotionImageMap(cardStyle)` 호출
 2. `storyPageIds`의 각 페이지에서 `subType === "emotionInference"` 셰이프 찾기
 3. 해당 스토리의 `emotions[0,1,2]`에 매칭 → `fill: url(새이미지)` + `calculateCoverImageBox` 적용
+4. 이모지 스타일 시 `shrinkImageBox(imageBox, el.w, el.h)`로 70% 축소 적용
 4. `setPages`로 즉시 반영
 
 ### 장면 이미지 성별 명시

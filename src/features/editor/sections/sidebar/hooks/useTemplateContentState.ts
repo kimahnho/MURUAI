@@ -30,7 +30,9 @@ export const useTemplateContentState = () => {
       templateDefinition.pages &&
       templateDefinition.pages.length > 1;
 
-    if (hasMultiplePages) {
+    // 기차 템플릿처럼 항상 전체 적용인 다중 페이지 템플릿은 다이얼로그 없이 바로 적용
+    const alwaysApplyAll = templateId === "trainTemplate" || templateId === "trainTemplate2";
+    if (hasMultiplePages && !alwaysApplyAll) {
       openPreview(templateId);
     } else {
       requestTemplate(templateId);

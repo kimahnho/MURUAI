@@ -12,7 +12,6 @@ import { isImageFillElement } from "../utils/imageBoxScaling";
 type PageActionsParams = {
   pages: Page[];
   selectedPageId: string;
-  orientation: "horizontal" | "vertical";
   setPages: Dispatch<SetStateAction<Page[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;
   setEditingTextId: Dispatch<SetStateAction<string | null>>;
@@ -25,7 +24,6 @@ type PageActionsParams = {
 export const usePageActions = ({
   pages,
   selectedPageId,
-  orientation,
   setPages,
   setSelectedIds,
   setEditingTextId,
@@ -38,13 +36,13 @@ export const usePageActions = ({
       pageNumber: newPageNumber,
       templateId: null,
       elements: withLogoCanvasElements([]),
-      orientation,
+      orientation: "vertical",
       rev: 0,
     };
     setPages([...pages, newPage]);
     setActivePage(newPage.id, newPage.orientation);
     mp.track("페이지 추가");
-  }, [orientation, pages, setActivePage, setPages]);
+  }, [pages, setActivePage, setPages]);
 
   const handleAddPageAtIndex = useCallback(
     (index: number) => {
@@ -53,7 +51,7 @@ export const usePageActions = ({
         pageNumber: index + 1,
         templateId: null,
         elements: withLogoCanvasElements([]),
-        orientation,
+        orientation: "vertical",
         rev: 0,
       };
 
@@ -70,7 +68,7 @@ export const usePageActions = ({
       setActivePage(newPage.id, newPage.orientation);
       mp.track("페이지 추가");
     },
-    [orientation, pages, setActivePage, setPages],
+    [pages, setActivePage, setPages],
   );
 
   const handleSelectPage = useCallback(
@@ -233,10 +231,13 @@ export const usePageActions = ({
             return bumpPageRevision({
               ...page,
               templateId: null,
+              background: { type: "none" as const },
+              orientation: "vertical",
               elements: withLogoCanvasElements([]),
             });
           }),
         );
+        setActivePage(pageId, "vertical");
         return;
       }
 
@@ -353,6 +354,7 @@ export const usePageActions = ({
             ? bumpPageRevision({
                 ...page,
                 templateId: null,
+                background: { type: "none" as const },
                 elements: withLogoCanvasElements([]),
               })
             : page,

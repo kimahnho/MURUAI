@@ -223,7 +223,7 @@ useToastStore.getState().showToast("생성 완료!", "primary");
 6. **에디터 전용 UI는 건드리지 않음** — `ColorPickerPopover`, `InlineFontPicker`, `SquareToolBar` 등 캔버스 인터랙션 특화 컴포넌트는 디자인 시스템 대상이 아님
 7. **토스트 에디터 전용 스토어** — `features/editor/store/toastStore.ts`는 에디터 전용. 공유 토스트는 `shared/store/useToastStore.ts` 사용
 8. **word-break 전역 적용** — `global.css`의 `:root`에 `word-break: keep-all` 전역 설정. 에디터 TextBox(`[data-textbox-content]`)에서는 `word-break: normal`로 복원. 서비스 UI 텍스트에 별도 `wordBreak` 설정 불필요
-9. **커스텀 상태 변형 등록 필수** — `hover:bg-black-*`은 `global.css`에 수동 등록됨. `active:bg-black-*` 등 새 상태 변형이 필요하면 `global.css`의 `@layer utilities`에 추가해야 동작함
+9. **커스텀 색상 유틸리티 수동 등록 필수** — primary/black/status(error/warning/success) 색상은 Tailwind v4 자동 생성이 아닌 `global.css`의 `@layer utilities`에 수동 등록. 새 색상 변형(`hover:bg-*`, `active:bg-*` 등)이 필요하면 `global.css`에 추가해야 동작함
 10. **간격은 padding + gap 우선** — 요소 간 간격은 `margin` 대신 부모의 `gap` 또는 `padding`으로 관리한다. margin은 계산이 어렵고 margin collapsing 등 예측 불가능한 동작이 발생할 수 있다. 특히 flex/grid 컨테이너에서는 `gap`을, 섹션 내부 여백은 `padding`을 사용한다
 11. **존재하지 않는 타이포그래피 클래스 사용 금지** — `global.css`에 정의된 클래스만 사용. 예: `text-13-semibold` (미존재) → `text-13-bold` (존재), `text-12-bold` (미존재) → `text-12-semibold` (존재)
 

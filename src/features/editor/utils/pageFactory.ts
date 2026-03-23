@@ -40,8 +40,15 @@ import { bumpPageRevision, ensurePageRevision } from "./pageRevision";
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
+const CLOUDINARY_BASE = "https://res.cloudinary.com/dabbfycew/image/upload";
+const TRAIN_TEMPLATE_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_1`;
+const TRAIN_TEMPLATE_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_2`;
+const TRAIN_TEMPLATE2_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_1`;
+const TRAIN_TEMPLATE2_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_2`;
+
 const getTemplateBackground = (
-  templateId: TemplateId
+  templateId: TemplateId,
+  pageIndex?: number,
 ): Page["background"] | undefined => {
   if (templateId === "fiveSpaceWritingNote") {
     return { type: "image", imageUrl: fiveSpaceWritingNoteBg };
@@ -69,6 +76,18 @@ const getTemplateBackground = (
   }
   if (templateId === "yellowDiaryLines") {
     return { type: "image", imageUrl: yellowDiaryLinesBg };
+  }
+  if (templateId === "trainTemplate") {
+    return {
+      type: "image",
+      imageUrl: pageIndex === 1 ? TRAIN_TEMPLATE_BG_2 : TRAIN_TEMPLATE_BG_1,
+    };
+  }
+  if (templateId === "trainTemplate2") {
+    return {
+      type: "image",
+      imageUrl: pageIndex === 1 ? TRAIN_TEMPLATE2_BG_2 : TRAIN_TEMPLATE2_BG_1,
+    };
   }
   return undefined;
 };
@@ -132,8 +151,6 @@ export const applyTemplateToCurrentPage = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
-  const templateBackground = getTemplateBackground(templateId);
-
   setPages((prevPages) => {
     const currentIndex = prevPages.findIndex(
       (page) => page.id === currentPageId
@@ -146,20 +163,19 @@ export const applyTemplateToCurrentPage = ({
       ...bumpPageRevision(basePage),
       templateId,
       orientation: nextOrientation,
-      background: templateBackground,
+      background: getTemplateBackground(templateId, 0),
       elements: withLogoCanvasElements(
         instantiateTemplate(templates[0])
       ),
     };
 
     if (templates.length > 1) {
-      // 다중 페이지 템플릿은 현재 페이지 다음 인덱스부터 연속 삽입한다.
-      const insertedPages = templates.slice(1).map((template) => ({
+      const insertedPages = templates.slice(1).map((template, i) => ({
         id: crypto.randomUUID(),
         pageNumber: 0,
         templateId,
         orientation: nextOrientation,
-        background: templateBackground,
+        background: getTemplateBackground(templateId, i + 1),
         elements: withLogoCanvasElements(
           instantiateTemplate(template)
         ),
@@ -196,14 +212,12 @@ export const buildTemplatePages = (
       : templateDef.orientation === "horizontal-only"
         ? "horizontal"
         : fallbackOrientation;
-  const bg = getTemplateBackground(templateId);
-
-  const templatePages: Page[] = templates.map((t) => ({
+  const templatePages: Page[] = templates.map((t, i) => ({
     id: crypto.randomUUID(),
     pageNumber: 0,
     templateId,
     orientation,
-    background: bg,
+    background: getTemplateBackground(templateId, i),
     elements: withLogoCanvasElements(instantiateTemplate(t)),
     rev: 0,
   }));
@@ -236,7 +250,6 @@ export const addTemplatePage = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
-  const templateBackground = getTemplateBackground(templateId);
   const firstPageId = crypto.randomUUID();
   setPages((prevPages) => {
     const nextPages = [...prevPages];
@@ -250,7 +263,7 @@ export const addTemplatePage = ({
       pageNumber: 0,
       templateId,
       orientation: nextOrientation as "horizontal" | "vertical",
-      background: templateBackground,
+      background: getTemplateBackground(templateId, index),
       elements: withLogoCanvasElements(instantiateTemplate(template)),
       rev: 0,
     }));
@@ -711,11 +724,11 @@ export const addSelectedTemplatePages = ({
       ? templateDefinition.pages
       : [templateDefinition.template];
 
-  const selectedTemplates = selectedIndices
-    .filter((index) => index >= 0 && index < allTemplates.length)
-    .map((index) => allTemplates[index]);
+  const validIndices = selectedIndices.filter(
+    (index) => index >= 0 && index < allTemplates.length,
+  );
 
-  if (selectedTemplates.length === 0) {
+  if (validIndices.length === 0) {
     return null;
   }
 
@@ -725,24 +738,24 @@ export const addSelectedTemplatePages = ({
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
-  const templateBackground = getTemplateBackground(templateId);
-
   const firstPageId = crypto.randomUUID();
 
   setPages((prevPages) => {
     const nextPages = [...prevPages];
-    selectedTemplates.forEach((template, index) => {
-      const pageId = index === 0 ? firstPageId : crypto.randomUUID();
-      nextPages.push({
-        id: pageId,
-        pageNumber: nextPages.length + 1,
-        templateId,
-        orientation: nextOrientation,
-        background: templateBackground,
-        elements: withLogoCanvasElements(instantiateTemplate(template)),
-        rev: 0,
+    validIndices.forEach((originalIndex, loopIndex) => {
+        const pageId = loopIndex === 0 ? firstPageId : crypto.randomUUID();
+        nextPages.push({
+          id: pageId,
+          pageNumber: nextPages.length + 1,
+          templateId,
+          orientation: nextOrientation,
+          background: getTemplateBackground(templateId, originalIndex),
+          elements: withLogoCanvasElements(
+            instantiateTemplate(allTemplates[originalIndex]),
+          ),
+          rev: 0,
+        });
       });
-    });
     return nextPages;
   });
 

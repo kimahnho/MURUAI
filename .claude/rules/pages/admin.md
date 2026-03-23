@@ -81,7 +81,7 @@ type AdminTab = "dashboard" | "credits" | "users";
 |------|------|------|
 | `admin_list_users()` | 전체 유저 목록 | id, email, display_name, provider, last_sign_in_at, created_at, role, credit_balance/total_used/refill_count |
 | `admin_list_credit_requests()` | 크레딧 요청 목록 | request_id, user_id, user_email, user_display_name, status, credit_balance, created_at, reviewed_at |
-| `admin_manage_credit_request(id, action)` | 승인/거절 | void (승인 시 balance=30 리셋) |
+| `admin_manage_credit_request(id, action)` | 승인/거절 | void (승인 시 `balance += 30` 누적 충전) |
 | `admin_dashboard_metrics(start_date, end_date)` | 대시보드 집계 | 문서/템플릿/활동/다운로드 지표 (없으면 fallback 쿼리) |
 
 모든 RPC는 `SECURITY DEFINER` + admin 체크 (`is_admin()` 호출).

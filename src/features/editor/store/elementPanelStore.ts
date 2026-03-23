@@ -177,6 +177,7 @@ interface ElementPanelStore {
   changeAllMatchingFonts: ChangeAllMatchingFontsFn | null;
   hasMatchingFonts: HasMatchingFontsFn | null;
   textEditingCallbacks: TextEditingCallbacks | null;
+  textEditingRevision: number;
   multiCallbacks: MultiCallbacks | null;
 
   setPanelData: (
@@ -190,6 +191,7 @@ interface ElementPanelStore {
   setChangeAllMatchingFonts: (fn: ChangeAllMatchingFontsFn | null) => void;
   setHasMatchingFonts: (fn: HasMatchingFontsFn | null) => void;
   setTextEditingCallbacks: (callbacks: TextEditingCallbacks | null) => void;
+  bumpTextEditingRevision: () => void;
   setMultiCallbacks: (callbacks: MultiCallbacks | null) => void;
 }
 
@@ -203,6 +205,7 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   changeAllMatchingFonts: null,
   hasMatchingFonts: null,
   textEditingCallbacks: null,
+  textEditingRevision: 0,
   multiCallbacks: null,
 
   setPanelData: (data, update, updateLines) => {
@@ -225,6 +228,9 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   },
   setTextEditingCallbacks: (callbacks) => {
     set({ textEditingCallbacks: callbacks });
+  },
+  bumpTextEditingRevision: () => {
+    set((s) => ({ textEditingRevision: s.textEditingRevision + 1 }));
   },
   setMultiCallbacks: (callbacks) => {
     set({ multiCallbacks: callbacks });

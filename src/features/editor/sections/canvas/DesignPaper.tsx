@@ -154,7 +154,7 @@ const DesignPaper = ({
         ? {
             backgroundColor: "#ffffff",
             backgroundImage: `url(${resolvedBackground.imageUrl})`,
-            backgroundSize: "cover",
+            backgroundSize: "100% 100%",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }

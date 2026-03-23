@@ -36,6 +36,8 @@ const TextPropsContent = () => {
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
   const textCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
+  // getter 기반 UI 값 변경 시 리렌더를 트리거하는 리비전 카운터
+  useElementPanelStore((s) => s.textEditingRevision);
   const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
 
   useEffect(() => {

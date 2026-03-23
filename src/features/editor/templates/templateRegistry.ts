@@ -29,6 +29,10 @@ import { variousLineTracingTemplate } from "./variousLineTracingTemplate";
 import { crossLineTracingTemplate } from "./crossLineTracingTemplate";
 import { easyCrossLineTracingTemplate } from "./easyCrossLineTracingTemplate";
 import { straightLineTracingTemplate } from "./straightLineTracingTemplate";
+import { trainTemplatePage1 } from "./train_template/page_1";
+import { trainTemplatePage2 } from "./train_template/page_2";
+import { trainTemplate2Page1 } from "./train_template_2/page_1";
+import { trainTemplate2Page2 } from "./train_template_2/page_2";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -182,6 +186,20 @@ export const TEMPLATE_REGISTRY = {
     label: "선 긋기 (직선)",
     template: straightLineTracingTemplate,
     orientation: "vertical-only" as TemplateOrientation,
+  },
+  trainTemplate: {
+    id: "trainTemplate",
+    label: "기차 템플릿",
+    template: trainTemplatePage1,
+    orientation: "horizontal-only" as TemplateOrientation,
+    pages: [trainTemplatePage1, trainTemplatePage2],
+  },
+  trainTemplate2: {
+    id: "trainTemplate2",
+    label: "기차 템플릿2",
+    template: trainTemplate2Page1,
+    orientation: "horizontal-only" as TemplateOrientation,
+    pages: [trainTemplate2Page1, trainTemplate2Page2],
   },
 };
 
