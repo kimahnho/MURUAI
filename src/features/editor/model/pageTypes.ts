@@ -5,6 +5,7 @@ import type { CanvasElement } from "./canvasTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 import type { StoryItem } from "../ai/generateEmotionStory";
 import type { BannerPhase } from "../store/emotionSceneStore";
+import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
 
 export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 
@@ -49,4 +50,5 @@ export type CanvasDocument = {
   pages: Page[];
   swappedPageIds?: string[];
   emotionSceneMeta?: EmotionSceneMeta[];
+  focusedAiMode?: FocusedAiModeMeta;
 };

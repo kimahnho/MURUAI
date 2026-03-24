@@ -31,6 +31,8 @@ import { useTemplateStore } from "../store/templateStore";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
 import { useVocabTracingStore } from "../store/vocabTracingStore";
 import { useToastStore } from "../store/toastStore";
+import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
+import { useSideBarStore } from "../store/sideBarStore";
 import { patchHeroImagesOnPages } from "../utils/buildEmotionStoryPages";
 import {
   extractVocabLabels,
@@ -220,6 +222,18 @@ export const useEditorSubscriptions = ({
         bannerPhase: "ready",
       });
       setActivePage(parsedLog.storyPageIds[0]);
+
+      // 랜딩 진입 시 포커스 모드 활성화 + 줌 축소
+      if (parsedLog.source === "landing") {
+        useAiGenerationModeStore.getState().enterFocusedMode({
+          stories: parsedLog.stories,
+          storyPageIds: parsedLog.storyPageIds,
+        });
+        useSideBarStore.getState().setSelectedMenu("ai-story-edit");
+        // 페이지 전체가 보이도록 줌 축소
+        const accessors = useAiGenerationModeStore.getState().pageAccessors;
+        accessors?.setZoom(60);
+      }
     }
 
     // DB 로그 기록 (비차단)

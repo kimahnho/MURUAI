@@ -9,6 +9,8 @@ import { useOrientationStore } from "../store/orientationStore";
 import { useToastStore } from "../store/toastStore";
 import type { CanvasDocument } from "../model/pageTypes";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
+import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
+import { useSideBarStore } from "../store/sideBarStore";
 
 type DocumentLoaderParams = {
   docId?: string;
@@ -91,6 +93,12 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
           }
         }
       }
+      // 포커스 모드 상태 복원
+      if (doc.focusedAiMode) {
+        useAiGenerationModeStore.getState().restore(doc.focusedAiMode);
+        useSideBarStore.getState().setSelectedMenu("ai-story-edit");
+      }
+
       mp.track("문서 열기", { page_count: (canvasData as CanvasDocument).pages?.length ?? 0 });
       const initialOrientation = (canvasData as CanvasDocument).pages[0]
         ?.orientation;

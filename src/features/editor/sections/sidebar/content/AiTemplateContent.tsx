@@ -205,7 +205,7 @@ const AiTemplateContent = () => {
             hoverBgColor="rgba(245, 158, 11, 0.08)"
             title="AI 감정추론 활동"
             description="주제를 입력하면 AI가 스토리를 만들어요"
-            onClick={() => { mp.track("AI 감정추론 시작"); setIsEmotionChoiceModalOpen(true); }}
+            onClick={() => { mp.track("[AI템플릿] 감정추론 시작"); setIsEmotionChoiceModalOpen(true); }}
           />
         </div>
       </div>
@@ -246,7 +246,7 @@ const AiTemplateContent = () => {
             useEditorToastStore
               .getState()
               .showToast("텍스트가 생성되었어요. 내용을 확인 후 이미지를 생성하세요.");
-            mp.track("AI 감정추론 스토리 생성", { topic_length: topic.length });
+            mp.track("[AI템플릿] 감정추론 스토리 생성", { topic_length: topic.length });
           } catch (error) {
             console.error("[AI 감정추론] 스토리 생성 실패:", error);
             captureSentryError(error, "AI 감정추론 스토리 생성");

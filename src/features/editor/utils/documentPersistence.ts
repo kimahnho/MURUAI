@@ -2,9 +2,11 @@
  * 문서 저장 payload 구성과 신규/기존 저장 API 호출을 공통화한 모듈.
  */
 import type { Page, CanvasDocument, EmotionSceneMeta } from "../model/pageTypes";
+import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
 import { resolvePagesForPersistence } from "./persistPages";
 import { saveUserMadeVersion, updateUserMadeVersion } from "./userMadeExport";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
+import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 
 /**
  * 저장 전에 페이지를 영속화 가능한 구조로 정규화한다.
@@ -24,7 +26,24 @@ export const buildPersistPayload = async (
         }))
       : undefined;
 
-  return { pages: persistedPages, ...(emotionSceneMeta && { emotionSceneMeta }) };
+  // 포커스 모드 상태 직렬화
+  const aiGenState = useAiGenerationModeStore.getState();
+  const focusedAiMode: FocusedAiModeMeta | undefined = aiGenState.isActive
+    ? {
+        step: aiGenState.step === "image-generating" ? "text-review" : aiGenState.step,
+        storyPageIds: aiGenState.storyPageIds,
+        stories: aiGenState.stories,
+        imageStyle: aiGenState.imageStyle,
+        cardStyle: aiGenState.cardStyle,
+        source: "landing",
+      }
+    : undefined;
+
+  return {
+    pages: persistedPages,
+    ...(emotionSceneMeta && { emotionSceneMeta }),
+    ...(focusedAiMode && { focusedAiMode }),
+  };
 };
 
 /**

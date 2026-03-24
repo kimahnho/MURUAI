@@ -47,6 +47,7 @@ import { useOrientationControl } from "@/features/editor/hooks/useOrientationCon
 import { extractTextsFromPages } from "@/features/editor/utils/spellCheckTextExtractor";
 import { checkSpelling } from "@/features/editor/ai/checkSpelling";
 import type { Page } from "@/features/editor/model/pageTypes";
+import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 import { mp } from "@/shared/utils/mixpanel";
 
 const ExportModal = lazy(
@@ -132,6 +133,8 @@ const DesignLayout = () => {
   const requestUndo = useUnifiedHistoryStore((state) => state.requestUndo);
   const requestRedo = useUnifiedHistoryStore((state) => state.requestRedo);
   const setPdfExporting = usePageSwapStore((state) => state.setPdfExporting);
+  const isFocusedMode = useAiGenerationModeStore((s) => s.isActive);
+  const focusedStep = useAiGenerationModeStore((s) => s.step);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -356,6 +359,7 @@ const DesignLayout = () => {
             >
               <Home className="h-6 w-6 text-primary" />
             </button>
+            {!isFocusedMode && (
             <button
               type="button"
               onClick={() => navigate("/mydoc")}
@@ -364,7 +368,42 @@ const DesignLayout = () => {
             >
               <FolderOpen className="h-6 w-6 text-black-70" />
             </button>
+            )}
 
+            {isFocusedMode ? (
+              <div className="flex flex-1 items-center justify-center gap-6">
+                {(["text-review", "image-generating", "completed"] as const).map((s, i) => {
+                  const labels = ["텍스트 확인", "이미지 생성", "완료"];
+                  const isCurrentOrPast =
+                    s === focusedStep ||
+                    (s === "text-review" && focusedStep !== "text-review") ||
+                    (s === "image-generating" && focusedStep === "completed");
+                  const isCurrent = s === focusedStep;
+                  return (
+                    <div key={s} className="flex items-center gap-2">
+                      <span
+                        className={`flex items-center justify-center w-5 h-5 rounded-full text-12-semibold ${
+                          isCurrent
+                            ? "bg-primary text-white-100"
+                            : isCurrentOrPast
+                              ? "bg-primary-200 text-primary"
+                              : "bg-black-15 text-black-50"
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span
+                        className={`text-13-bold whitespace-nowrap ${
+                          isCurrent ? "text-primary" : "text-black-50"
+                        }`}
+                      >
+                        {labels[i]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div className="group/title flex min-w-0 shrink h-full items-center px-1">
               <div className="relative flex items-center">
                 <input
@@ -379,7 +418,9 @@ const DesignLayout = () => {
                 <Pencil className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-black-30 opacity-0 group-hover/title:opacity-100 transition-opacity" />
               </div>
             </div>
+            )}
 
+            {!isFocusedMode && (<>
             <div className="flex shrink-0 h-full items-center justify-center gap-2 pr-3">
               <button
                 type="button"
@@ -563,8 +604,10 @@ const DesignLayout = () => {
                 <RotateCcw className="w-4 h-4 text-black-60" />
               </button>
             </div>
+            </>)}
           </div>
 
+          {!isFocusedMode && (
           <div className="flex h-full shrink-0 items-center gap-3 pr-3">
             {/* 맞춤법 검사 버튼 */}
             <div className="relative flex h-full items-center justify-center">
@@ -617,6 +660,7 @@ const DesignLayout = () => {
               </button>
             </div>
           </div>
+          )}
         </div>
       </header>
       {toastMessage && (
@@ -634,7 +678,7 @@ const DesignLayout = () => {
       {isOffline && (
         <div className="flex items-center justify-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 shrink-0">
           <WifiOff className="h-4 w-4 text-amber-600 shrink-0" />
-          <span className="text-13-semibold text-amber-700">
+          <span className="text-13-bold text-amber-700">
             인터넷 연결이 불안정해요. 연결 후 자동 저장됩니다.
           </span>
         </div>

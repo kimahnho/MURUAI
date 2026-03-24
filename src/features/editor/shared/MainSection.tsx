@@ -59,6 +59,7 @@ import {
   addTableElement,
 } from "../utils/pageFactory";
 import { type TemplateId } from "../templates/templateRegistry";
+import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 
 const BottomBar = lazy(() => import("../sections/bottombar/BottomBar"));
 const TemplateChoiceDialog = lazy(() => import("@/features/editor/sections/sidebar/TemplateChoiceDialog"));
@@ -115,6 +116,23 @@ const MainSection = () => {
   const isSyncingOrientationRef = useRef(false);
   const isApplyingHistoryRef = useRef(false);
   const isApplyingTemplateRef = useRef(false);
+
+  const isFocusedMode = useAiGenerationModeStore((s) => s.isActive);
+
+  // 포커스 모드 사이드바 패널에서 페이지를 읽고 수정할 수 있도록 접근자 등록
+  useEffect(() => {
+    useAiGenerationModeStore.getState().registerPageAccessors({
+      getPages: () => pagesRef.current,
+      setPages,
+      getSelectedPageId: () => selectedPageIdRef.current,
+      setSelectedPageId,
+      setZoom,
+    });
+    // 포커스 모드 복원 시 줌 축소
+    if (useAiGenerationModeStore.getState().isActive) {
+      setZoom(60);
+    }
+  }, [setPages, setSelectedPageId, setZoom]);
 
   const { beginTransaction, commitTransaction, recordHistory } = useEditorHistory({
     pages,
@@ -718,45 +736,63 @@ const MainSection = () => {
 
   return (
     <div className="relative flex flex-col w-full h-full overflow-hidden bg-black-20">
-      <CanvasStage
-        containerRef={containerRef}
-        canvasRef={canvasRef}
-        padding={padding}
-        paperWidth={paperWidth}
-        paperHeight={paperHeight}
-        scale={scale}
-        selectedPage={selectedPage}
-        activeOrientation={activeOrientation}
-        selectedIds={selectedIds}
-        editingTextId={editingTextId}
-        onClearSelection={handleClearSelection}
-        onSelectedIdsChange={setSelectedIds}
-        onEditingTextIdChange={setEditingTextId}
-        onElementsChange={handleElementsChange}
-        onInteractionChange={handleInteractionChange}
-        onDeleteElements={handleDeleteElements}
-        aiTipKey={location.key}
-      />
-      <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
-      <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
-      <SpellCheckPanel />
-      <SpellCheckToast />
-      <Suspense fallback={null}>
-        <BottomBar
-          pages={pages}
-          selectedPageId={selectedPageId}
-          onAddPage={handleAddPage}
-          onSelectPage={handleSelectPage}
-          onCopyPage={handleCopyPage}
-          onPastePage={handlePastePage}
-          onPastePages={handlePastePages}
-          onReorderPages={handleReorderPages}
-          onDeletePage={handleDeletePage}
-          onAddPageAtIndex={handleAddPageAtIndex}
-          onMovePage={handleMovePage}
-          onDuplicatePage={handleDuplicatePage}
-          onVisiblePageIdsChange={setVisiblePageIds}
+      <div className="relative flex-1 min-w-0 min-h-0">
+        <CanvasStage
+          containerRef={containerRef}
+          canvasRef={canvasRef}
+          padding={padding}
+          paperWidth={paperWidth}
+          paperHeight={paperHeight}
+          scale={scale}
+          selectedPage={selectedPage}
+          activeOrientation={activeOrientation}
+          selectedIds={selectedIds}
+          editingTextId={editingTextId}
+          onClearSelection={handleClearSelection}
+          onSelectedIdsChange={setSelectedIds}
+          onEditingTextIdChange={setEditingTextId}
+          onElementsChange={handleElementsChange}
+          onInteractionChange={handleInteractionChange}
+          onDeleteElements={handleDeleteElements}
+          aiTipKey={location.key}
         />
+        {/* 포커스 모드: 클릭/드래그 차단, 스크롤은 통과 */}
+        {isFocusedMode && (
+          <div
+            className="absolute inset-0 z-50 overflow-auto"
+            style={{ cursor: "default", overscrollBehavior: "contain" }}
+            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onContextMenu={(e) => { e.preventDefault(); }}
+          />
+        )}
+      </div>
+      <div className={isFocusedMode ? "hidden" : ""}>
+        <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
+      </div>
+      <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
+      <div className={isFocusedMode ? "hidden" : ""}>
+        <SpellCheckPanel />
+        <SpellCheckToast />
+      </div>
+      <Suspense fallback={null}>
+        <div className={`shrink-0 ${isFocusedMode ? "hidden" : ""}`}>
+          <BottomBar
+            pages={pages}
+            selectedPageId={selectedPageId}
+            onAddPage={handleAddPage}
+            onSelectPage={handleSelectPage}
+            onCopyPage={handleCopyPage}
+            onPastePage={handlePastePage}
+            onPastePages={handlePastePages}
+            onReorderPages={handleReorderPages}
+            onDeletePage={handleDeletePage}
+            onAddPageAtIndex={handleAddPageAtIndex}
+            onMovePage={handleMovePage}
+            onDuplicatePage={handleDuplicatePage}
+            onVisiblePageIdsChange={setVisiblePageIds}
+          />
+        </div>
         <TemplateChoiceDialog
           open={!!templateChoiceDialog}
           onClose={() => {
