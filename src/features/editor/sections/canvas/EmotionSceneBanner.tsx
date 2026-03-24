@@ -200,7 +200,7 @@ const EmotionSceneBanner = ({
           return { ...page, elements: nextElements };
         }),
       );
-      mp.track("감정 카드 성별 변경", { style: nextStyle });
+      mp.track("[AI템플릿] 감정추론 카드 성별 변경", { style: nextStyle });
     } catch (error) {
       captureSentryError(error, "감정 카드 이미지 로드");
       useToastStore
@@ -322,7 +322,7 @@ const EmotionSceneBanner = ({
       // 이미지 크레딧 차감 (성공 후, 실제 생성 수만큼)
       void recordAiCreditUsage("emotion", actualStories.length);
 
-      mp.track("AI 장면 이미지 생성", {
+      mp.track("[AI템플릿] 감정추론 이미지 생성 완료", {
         image_style: imageStyle,
         page_count: actualStories.length,
       });
@@ -407,7 +407,7 @@ const EmotionSceneBanner = ({
       useEmotionSceneStore.getState().setGenerationMeta(meta);
       useEmotionSceneStore.getState().setBannerPhase(origIds, "completed");
       void recordAiCreditUsage("emotion", actualStories.length);
-      mp.track("AI 장면 이미지 생성", {
+      mp.track("[AI템플릿] 감정추론 이미지 생성 완료", {
         image_style: imageStyle,
         page_count: actualStories.length,
       });
@@ -473,7 +473,7 @@ const EmotionSceneBanner = ({
       sessionStorage.removeItem("aiGenerationLogId");
     }
 
-    mp.track("AI 감정추론 생성 확정", {
+    mp.track("[AI템플릿] 감정추론 확정", {
       card_style: cardStyle,
       image_style: imageStyle,
     });

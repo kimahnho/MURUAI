@@ -65,7 +65,7 @@ const HomePage = () => {
       );
 
       await createAndOpenDocument({ replace: false, pages });
-      mp.track("랜딩 AI 감정추론 생성", { topic_length: topic.length });
+      mp.track("[AI템플릿] 감정추론 텍스트 생성", { topic_length: topic.length });
     } catch (error) {
       captureSentryError(error, "랜딩 AI 감정추론 생성");
       useToastStore
