@@ -82,6 +82,7 @@ const getCloudinaryUrl = (path: string): string => {
 const uploadToCloudinary = async (
   base64Data: string,
   userId: string,
+  signal?: AbortSignal,
 ): Promise<string> => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error("Cloudinary is not configured");
@@ -101,6 +102,7 @@ const uploadToCloudinary = async (
     {
       method: "POST",
       body: formData,
+      signal,
     },
   );
 
@@ -200,34 +202,46 @@ const generateSingleSceneImage = async (
   referenceBase64: string,
   isReset: boolean,
   gender: "boy" | "girl",
+  signal?: AbortSignal,
 ): Promise<string> => {
   const suffix = isReset ? buildResetSuffix(gender) : buildContinuationSuffix(gender);
   const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\nIMPORTANT: The main character is a Korean ${gender}.\n\n${suffix}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (signal?.aborted) throw new DOMException("Image generation aborted", "AbortError");
     if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, RETRY_DELAY_MS);
+        signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Image generation aborted", "AbortError")); }, { once: true });
+      });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-image-preview",
-      contents: [
-        {
-          inlineData: { mimeType: "image/png", data: referenceBase64 },
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: [
+          {
+            inlineData: { mimeType: "image/png", data: referenceBase64 },
+          },
+          { text: fullPrompt },
+        ],
+        config: {
+          responseModalities: ["Text", "Image"],
+          imageConfig: {
+            aspectRatio: "16:9",
+          },
         },
-        { text: fullPrompt },
-      ],
-      config: {
-        responseModalities: ["Text", "Image"],
-        imageConfig: {
-          aspectRatio: "16:9",
-        },
-      },
-    });
+      });
 
-    const parts = response.candidates?.[0]?.content?.parts;
-    const imagePart = parts?.find((part) => part.inlineData);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+      const parts = response.candidates?.[0]?.content?.parts;
+      const imagePart = parts?.find((part) => part.inlineData);
+      if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    } catch (error) {
+      // 마지막 시도에서도 실패하면 throw
+      if (attempt === MAX_RETRIES - 1) throw error;
+      // 일시적 에러(503, 429 등)는 재시도
+      console.warn(`Image generation attempt ${attempt + 1} failed, retrying...`, error);
+    }
   }
 
   throw new Error("No image generated after retries");
@@ -245,6 +259,7 @@ export const generateEmotionSceneImages = async (
   imageStyle: EmotionImageStyle,
   onProgress?: (current: number, total: number) => void,
   customPrompts?: Map<number, string>,
+  signal?: AbortSignal,
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -285,15 +300,16 @@ export const generateEmotionSceneImages = async (
   let currentAnchor: string = characterBase64;
 
   for (let i = 0; i < stories.length; i++) {
+    if (signal?.aborted) throw new DOMException("Image generation aborted", "AbortError");
     const scene = englishScenes[i] ?? koreanScenes[i];
     const needsReset =
       i === 0 || stories[i].sceneGroup !== stories[i - 1].sceneGroup;
 
     let base64: string;
     if (needsReset) {
-      base64 = await generateSingleSceneImage(ai, scene, characterBase64, true, gender);
+      base64 = await generateSingleSceneImage(ai, scene, characterBase64, true, gender, signal);
     } else {
-      base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false, gender);
+      base64 = await generateSingleSceneImage(ai, scene, currentAnchor, false, gender, signal);
     }
 
     currentAnchor = base64;
@@ -305,7 +321,8 @@ export const generateEmotionSceneImages = async (
   const imageUrls: string[] = [];
 
   for (const base64 of base64Images) {
-    const imagePath = await uploadToCloudinary(base64, userId);
+    if (signal?.aborted) throw new DOMException("Image generation aborted", "AbortError");
+    const imagePath = await uploadToCloudinary(base64, userId, signal);
     const imageUrl = getCloudinaryUrl(imagePath);
     imageUrls.push(imageUrl);
   }
