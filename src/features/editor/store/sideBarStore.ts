@@ -23,6 +23,7 @@ export type SideBarMenu =
   | "aacCard-props"
   | "emotionCard-props"
   | "multi-props"
+  | "ai-story-edit"
   | null;
 
 interface SideBarStore {

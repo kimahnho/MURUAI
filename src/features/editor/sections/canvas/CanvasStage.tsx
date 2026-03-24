@@ -77,7 +77,7 @@ const CanvasStage = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 w-full min-h-0 overflow-auto"
+      className="absolute inset-0 overflow-auto"
       // 텍스트 편집 중 레이아웃 변화로 인한 스크롤 점프를 차단한다.
       style={{ padding: "10px", overflowAnchor: "none" }}
       onPointerDownCapture={handleStagePointerDown}

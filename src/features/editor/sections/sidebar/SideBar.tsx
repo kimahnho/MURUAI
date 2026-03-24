@@ -30,7 +30,9 @@ import AacCardPropsContent from "./content/AacCardPropsContent";
 import EmotionCardPropsContent from "./content/EmotionCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
+import AiStoryEditContent from "./content/AiStoryEditContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
+import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 
 type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props">;
 
@@ -53,6 +55,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   "aacCard-props": "AAC 카드",
   "emotionCard-props": "감정카드",
   "multi-props": "다중 선택",
+  "ai-story-edit": "스토리 편집",
 };
 
 const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
@@ -89,13 +92,26 @@ const CONTENT_COMPONENTS: Record<
   "aacCard-props": AacCardPropsContent,
   "emotionCard-props": EmotionCardPropsContent,
   "multi-props": MultiPropsContent,
+  "ai-story-edit": AiStoryEditContent,
 };
 
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
+  const isFocusedMode = useAiGenerationModeStore((s) => s.isActive);
   const activeTitle = selectedMenu ? MENU_LABELS[selectedMenu] : "";
   const ActiveContent = selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null;
+
+  // 포커스 모드: 아이콘 메뉴 숨기고 패널만 전체 너비로 표시
+  if (isFocusedMode && selectedMenu === "ai-story-edit") {
+    return (
+      <div className="flex h-full">
+        <div className="flex flex-col w-120 h-full border-r border-black-25">
+          <AiStoryEditContent />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">
