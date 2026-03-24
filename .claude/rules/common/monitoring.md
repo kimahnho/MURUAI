@@ -142,13 +142,15 @@ mixpanel.track("이벤트명");
 | `AI 스토리북 캐릭터 생성` | `useStorybookWizardStore.ts` | — |
 | `AI 스토리북 생성 완료` | `useStorybookWizardStore.ts` | `art_style`, `layout` |
 | **AI 감정추론** | | |
-| `AI 감정추론 시작` | `AiTemplateContent.tsx` | — |
-| `AI 감정추론 스토리 생성` | `AiTemplateContent.tsx` | `topic_length` |
-| `감정 카드 성별 변경` | `EmotionSceneBanner.tsx` | `style` |
-| `AI 장면 이미지 생성` | `EmotionSceneBanner.tsx` | `image_style`, `page_count` |
-| `AI 감정추론 생성 확정` | `EmotionSceneBanner.tsx` | `card_style`, `image_style` |
+| `[AI템플릿] 감정추론 시작` | `AiTemplateContent.tsx` | — |
+| `[AI템플릿] 감정추론 스토리 생성` | `AiTemplateContent.tsx` | `topic_length` |
+| `[AI템플릿] 감정추론 텍스트 확인 진입` | `AiStoryEditContent.tsx` | `page_count` |
+| `[AI템플릿] 감정추론 이미지 생성 시작` | `AiStoryEditContent.tsx` | `image_style`, `page_count` |
+| `[AI템플릿] 감정추론 카드 성별 변경` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `style` |
+| `[AI템플릿] 감정추론 이미지 생성 완료` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `image_style`, `page_count` |
+| `[AI템플릿] 감정추론 확정` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `card_style`, `image_style` |
 | **메인 페이지** | | |
-| `랜딩 AI 감정추론 생성` | `HomePage.tsx` | `topic_length` |
+| `[AI템플릿] 감정추론 텍스트 생성` | `HomePage.tsx` | `topic_length` |
 | **대시보드** | | |
 | `대시보드 빈 문서 생성` | `QuickStartSection.tsx` | — |
 | `대시보드 템플릿 바로가기 클릭` | `QuickStartSection.tsx` | `template_id` |
