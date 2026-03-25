@@ -11,6 +11,7 @@ import type { CanvasDocument } from "../model/pageTypes";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 import { useSideBarStore } from "../store/sideBarStore";
+import { migrateLogoFill } from "../utils/logoElement";
 
 type DocumentLoaderParams = {
   docId?: string;
@@ -73,6 +74,10 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
         return;
       }
       setDocName(row.name ?? "");
+
+      // 기존 문서의 로고 fill을 현재 고정 URL로 교체 (빌드 해시 변경 대응)
+      migrateLogoFill((canvasData as CanvasDocument).pages);
+
       setLoadedDocument(canvasData as CanvasDocument);
       setLoadedDocumentId(row.id);
 
@@ -93,10 +98,13 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
           }
         }
       }
-      // 포커스 모드 상태 복원
+      // 포커스 모드 상태 복원 — 메타가 없으면 이전 문서의 상태를 초기화
       if (doc.focusedAiMode) {
         useAiGenerationModeStore.getState().restore(doc.focusedAiMode);
         useSideBarStore.getState().setSelectedMenu("ai-story-edit");
+      } else {
+        useAiGenerationModeStore.getState().exitFocusedMode();
+        useSideBarStore.getState().setSelectedMenu("template");
       }
 
       mp.track("문서 열기", { page_count: (canvasData as CanvasDocument).pages?.length ?? 0 });
