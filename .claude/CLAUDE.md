@@ -94,6 +94,8 @@ src/
 20. **간격은 padding + gap 우선**: 요소 간 간격에 `margin` 대신 부모 `gap` 또는 `padding` 사용 (상세: `.claude/rules/common/design-system.md` 항목 10)
 21. **타이포그래피 클래스 확인 필수**: `global.css`에 정의된 클래스만 사용. `text-13-semibold`(미존재) → `text-13-bold`, `text-12-bold`(미존재) → `text-12-semibold`
 22. **관리자 인증**: `user_profiles.role === "admin"` 기반 — 이메일 하드코딩(`ADMIN_EMAIL`) 금지. `AuthProvider`가 로그인 시 role 조회 → `useAuthStore.setRole()`. 헤더에서 `role === "admin"` 시 "관리자" 버튼 표시
+23. **로고 이미지**: `public/main_logo.png` 고정 경로 사용 — Vite 빌드 해시가 붙는 `src/shared/assets/logo/` import 금지 (`canvas_data`에 저장 시 빌드마다 URL이 변경되어 기존 문서에서 로고가 깨짐). 문서 로드 시 `migrateLogoFill()`로 기존 해시 URL을 고정 URL로 자동 교체
+24. **포커스 모드 초기화**: 문서 전환 시 `aiGenerationModeStore.exitFocusedMode()` + 사이드바 `"template"` 전환 필수 — `useDocumentLoader`에서 `focusedAiMode` 메타가 없으면 자동 초기화
 
 ## 지침 모듈화 원칙
 

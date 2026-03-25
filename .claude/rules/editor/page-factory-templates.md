@@ -131,6 +131,10 @@ withLogoCanvasElements(canvasElements)
 
 두 함수는 다름 — 전자는 `TemplateElement[]`, 후자는 `CanvasElement[]`용
 
+- 로고 이미지: `public/main_logo.png` 고정 경로 — 빌드 해시 없음
+- `migrateLogoFill(pages)`: 문서 로드 시 기존 해시 URL을 고정 URL로 교체 (`useDocumentLoader`에서 호출)
+- **`src/shared/assets/logo/` import를 canvas_data에 저장하면 안 됨** — 빌드마다 URL이 변경됨
+
 ## 실수 방지
 
 1. **`withLogoCanvasElements()` 누락 금지** — 모든 페이지 생성 경로에서 필수
