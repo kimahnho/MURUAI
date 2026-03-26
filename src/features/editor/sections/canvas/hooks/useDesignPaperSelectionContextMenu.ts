@@ -70,11 +70,23 @@ export const useDesignPaperSelectionContextMenu = ({
       ) {
         return;
       }
+      // groupId가 있으면 같은 그룹의 모든 요소를 함께 선택한다.
+      const groupId = selectedElement.groupId;
+      const groupIds = groupId
+        ? elements
+            .filter(
+              (el) =>
+                el.groupId === groupId &&
+                !el.locked &&
+                el.selectable !== false,
+            )
+            .map((el) => el.id)
+        : [elementId];
+      const groupIdSet = new Set(groupIds);
       const baseIds = options?.additive ? currentSelectedIds : [];
-      // 선택된 요소를 배열 선두로 유지해 툴바/액션의 기준 요소가 항상 마지막 클릭 대상이 되게 한다.
       const nextSelectedIds = [
-        elementId,
-        ...baseIds.filter((id) => id !== elementId),
+        ...groupIds,
+        ...baseIds.filter((id) => !groupIdSet.has(id)),
       ];
       selectedIdsRef.current = nextSelectedIds;
       onSelectedIdsChange?.(nextSelectedIds);

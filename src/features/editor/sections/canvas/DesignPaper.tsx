@@ -650,6 +650,12 @@ const DesignPaper = ({
         showHandles
         onResizeHandlePointerDown={handleGroupResizePointerDown}
         onDragPointerDown={handleGroupOverlayDragPointerDown}
+        onContextMenu={(event) => {
+          const firstSelectedId = selectedIds[0];
+          if (firstSelectedId) {
+            openContextMenu(event, firstSelectedId);
+          }
+        }}
       />
       <DesignPaperContextMenu
         contextMenu={contextMenu}
