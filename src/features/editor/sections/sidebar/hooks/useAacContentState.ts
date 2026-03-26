@@ -15,10 +15,12 @@ export const useAacContentState = <Category extends string>({
   initialCategory,
   categoryValueMap,
   cardSize,
+  externalSearch,
 }: {
   initialCategory: Category;
   categoryValueMap: Record<Category, string[]>;
   cardSize: CardSize;
+  externalSearch?: string;
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<Category>(
     initialCategory
@@ -29,11 +31,12 @@ export const useAacContentState = <Category extends string>({
     (state) => state.requestImageFill
   );
 
+  const effectiveSearch = externalSearch ?? searchQuery;
   const categoryValues = categoryValueMap[selectedCategory];
   const categoryImages = (allCards ?? []).filter((card) =>
     categoryValues.includes(card.category)
   );
-  const query = normalizeQuery(searchQuery);
+  const query = normalizeQuery(effectiveSearch);
   const filteredImages = categoryImages.filter((image) =>
     matchesQuery(image.alt, query)
   );

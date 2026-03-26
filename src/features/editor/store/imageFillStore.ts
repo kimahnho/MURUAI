@@ -3,6 +3,7 @@
  */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
+import { useRecentImageUsageStore } from "./recentImageUsageStore";
 
 interface ImageFillStore {
   requestId: number;
@@ -30,6 +31,7 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   source: undefined,
   requestImageFill: (imageUrl, label, size, options) =>
     { mp.track("이미지 추가", { source: options?.source ?? "unknown" });
+      useRecentImageUsageStore.getState().addRecentImage(imageUrl, label ?? "", options?.source ?? "unknown");
       set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,
