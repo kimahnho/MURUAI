@@ -25,7 +25,8 @@ src/features/editor/
         DesignContent.tsx           # AI 이미지 생성
         ElementContent.tsx          # 기본 도형/요소
         EmotionContent.tsx          # 감정 [실제 사진 | 그림 | 이모지] (선그림 임시 비활성화)
-        EmotionAACContent.tsx       # 감정/AAC 통합 탭
+        EmotionAACContent.tsx       # 이미지 통합 탭 (전체/감정/AAC/이미지)
+        AllImagesContent.tsx        # "전체" 탭 — 최근 사용 + 통합 그리드
         FontContent.tsx             # 폰트 선택
         ImageLibraryContent.tsx     # 이미지 라이브러리
         TemplateContent.tsx         # 템플릿 갤러리

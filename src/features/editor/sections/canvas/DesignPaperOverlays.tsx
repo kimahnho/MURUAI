@@ -1,7 +1,7 @@
 /**
  * 선택 박스/가이드 등 캔버스 오버레이 레이어를 렌더링하는 컴포넌트.
  */
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import { getRectFromElement, type Rect, type SelectionRect } from "../../utils/designPaperUtils";
 import type { ResizeHandle } from "../../model/canvasTypes";
@@ -44,6 +44,7 @@ type GroupSelectionOverlayProps = {
     event: ReactPointerEvent<HTMLDivElement>,
     rect: Rect,
   ) => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
 };
 
 // 그룹 선택 시 바운딩 박스를 그린다.
@@ -55,6 +56,7 @@ export const GroupSelectionOverlay = ({
   showHandles = false,
   onResizeHandlePointerDown,
   onDragPointerDown,
+  onContextMenu,
 }: GroupSelectionOverlayProps) => {
   if (!isGroupedSelection || readOnly) return null;
 
@@ -153,6 +155,7 @@ export const GroupSelectionOverlay = ({
           event.stopPropagation();
           onDragPointerDown?.(event, groupBoundingBox);
         }}
+        onContextMenu={onContextMenu}
       />
       {showHandles && (
         <>

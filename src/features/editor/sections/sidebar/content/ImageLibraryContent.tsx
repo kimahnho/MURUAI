@@ -48,7 +48,8 @@ const setDragImageData = (
   event.dataTransfer.effectAllowed = "copy";
 };
 
-const ImageLibraryContent = () => {
+const ImageLibraryContent = ({ externalSearch }: { externalSearch?: string }) => {
+  const hasExternalSearch = externalSearch != null;
   const requestImageFill = useImageFillStore((state) => state.requestImageFill);
   const recentSearches = useRecentImageSearchStore((s) => s.recentSearches);
   const addRecentSearch = useRecentImageSearchStore((s) => s.addRecentSearch);
@@ -62,15 +63,16 @@ const ImageLibraryContent = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
+  const effectiveSearchInput = hasExternalSearch ? externalSearch : searchInput;
+
   useEffect(() => {
-    // 검색 입력은 디바운스로 묶어 연속 입력 시 쿼리 폭주를 방지한다.
     const timer = window.setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
+      setDebouncedSearch(effectiveSearchInput.trim());
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       window.clearTimeout(timer);
     };
-  }, [searchInput]);
+  }, [effectiveSearchInput]);
 
   const filters = useMemo(
     () => ({
@@ -125,6 +127,7 @@ const ImageLibraryContent = () => {
 
   return (
     <div className="flex flex-col w-full h-full gap-4">
+      {!hasExternalSearch && (<>
       <div className="flex flex-col gap-2">
         <label className="text-13-semibold text-black-80">스타일</label>
         <select
@@ -210,6 +213,7 @@ const ImageLibraryContent = () => {
           </div>
         )}
       </div>
+      </>)}
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (

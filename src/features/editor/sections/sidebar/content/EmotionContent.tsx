@@ -183,7 +183,7 @@ const GenderToggle = ({
 );
 
 // 메인 컴포넌트
-const EmotionContent = () => {
+const EmotionContent = ({ externalSearch }: { externalSearch?: string }) => {
   const [selectedMode, setSelectedMode] = useState<"basic" | "ai">("basic");
   const { onSelectEmotion, onSelectEmoji } = useEmotionContentState();
 
@@ -214,7 +214,7 @@ const EmotionContent = () => {
         <div className="flex flex-col flex-1 gap-2 min-h-0">
           {/* AI 모드는 준비 중이므로 현재는 기본 감정 모드만 실제 삽입 경로를 제공한다. */}
           {selectedMode === "basic" ? (
-            <EmotionContentArea onSelectEmotion={onSelectEmotion} onSelectEmoji={onSelectEmoji} />
+            <EmotionContentArea onSelectEmotion={onSelectEmotion} onSelectEmoji={onSelectEmoji} externalSearch={externalSearch} />
           ) : (
             <ComingSoon />
           )}
@@ -227,9 +227,11 @@ const EmotionContent = () => {
 const EmotionContentArea = ({
   onSelectEmotion,
   onSelectEmoji,
+  externalSearch,
 }: {
   onSelectEmotion: (url: string, label: string) => void;
   onSelectEmoji: (url: string, label: string) => void;
+  externalSearch?: string;
 }) => {
   const [selectedType, setSelectedType] = useState<
     "photo" | "drawing" | "line" | "lineEmoji"
@@ -267,15 +269,15 @@ const EmotionContentArea = ({
 
       <div className="flex flex-col flex-1 gap-2 min-h-0">
         {selectedType === "photo" && (
-          <PhotoEmotionContent onSelectEmotion={onSelectEmotion} />
+          <PhotoEmotionContent onSelectEmotion={onSelectEmotion} externalSearch={externalSearch} />
         )}
         {selectedType === "drawing" && (
-          <DrawingEmotionContent onSelectEmotion={onSelectEmoji} />
+          <DrawingEmotionContent onSelectEmotion={onSelectEmoji} externalSearch={externalSearch} />
         )}
         {/* 선그림 임시 비활성화 */}
         {/* {selectedType === "line" && <ComingSoon />} */}
         {selectedType === "lineEmoji" && (
-          <LineEmojiEmotionContent onSelectEmotion={onSelectEmoji} />
+          <LineEmojiEmotionContent onSelectEmotion={onSelectEmoji} externalSearch={externalSearch} />
         )}
       </div>
     </div>
@@ -284,9 +286,12 @@ const EmotionContentArea = ({
 
 const PhotoEmotionContent = ({
   onSelectEmotion,
+  externalSearch,
 }: {
   onSelectEmotion: (url: string, label: string) => void;
+  externalSearch?: string;
 }) => {
+  const hasExternalSearch = externalSearch != null;
   const [gender, setGender] = useState<"boy" | "girl">("boy");
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionPhotos, isLoading } = useEmotionPhotos();
@@ -294,8 +299,7 @@ const PhotoEmotionContent = ({
   const genderEmotions = (allEmotionPhotos ?? []).filter(
     (photo) => photo.category === gender
   );
-  // 성별 탭 필터를 먼저 적용해 검색 결과가 현재 탭 맥락을 벗어나지 않게 유지한다.
-  const query = normalizeQuery(searchTerm);
+  const query = normalizeQuery(hasExternalSearch ? externalSearch : searchTerm);
   const filteredEmotions = genderEmotions.filter((emotion) =>
     matchesQuery(emotion.label, query)
   );
@@ -303,7 +307,7 @@ const PhotoEmotionContent = ({
   return (
     <div className="flex flex-col w-full h-full gap-3">
       <GenderToggle gender={gender} onGenderChange={setGender} />
-      <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      {!hasExternalSearch && <SearchInput value={searchTerm} onChange={setSearchTerm} />}
       <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
@@ -344,20 +348,23 @@ const PhotoEmotionContent = ({
 
 const DrawingEmotionContent = ({
   onSelectEmotion,
+  externalSearch,
 }: {
   onSelectEmotion: (url: string, label: string) => void;
+  externalSearch?: string;
 }) => {
+  const hasExternalSearch = externalSearch != null;
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionEmojis, isLoading } = useEmotionEmojis();
 
-  const query = normalizeQuery(searchTerm);
+  const query = normalizeQuery(hasExternalSearch ? externalSearch : searchTerm);
   const filteredEmotions = (allEmotionEmojis ?? []).filter((emotion) =>
     matchesQuery(emotion.label, query)
   );
 
   return (
     <div className="flex flex-col w-full h-full gap-3">
-      <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      {!hasExternalSearch && <SearchInput value={searchTerm} onChange={setSearchTerm} />}
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
           불러오는 중입니다
@@ -374,20 +381,23 @@ const DrawingEmotionContent = ({
 
 const LineEmojiEmotionContent = ({
   onSelectEmotion,
+  externalSearch,
 }: {
   onSelectEmotion: (url: string, label: string) => void;
+  externalSearch?: string;
 }) => {
+  const hasExternalSearch = externalSearch != null;
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allStickers, isLoading } = useEmotionStickers();
 
-  const query = normalizeQuery(searchTerm);
+  const query = normalizeQuery(hasExternalSearch ? externalSearch : searchTerm);
   const filteredEmotions = (allStickers ?? []).filter((emotion) =>
     matchesQuery(emotion.label, query)
   );
 
   return (
     <div className="flex flex-col w-full h-full gap-3">
-      <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      {!hasExternalSearch && <SearchInput value={searchTerm} onChange={setSearchTerm} />}
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
           불러오는 중입니다

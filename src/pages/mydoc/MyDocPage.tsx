@@ -32,6 +32,7 @@ type DocMeta = {
   id: string;
   name: string | null;
   created_at: string | null;
+  updated_at: string | null;
   canvas_data?: unknown | null;
 };
 
@@ -255,10 +256,10 @@ const MyDocPage = () => {
 
       const { data, error } = await supabase
         .from("user_made_n")
-        .select("id,name,created_at,canvas_data")
+        .select("id,name,created_at,updated_at,canvas_data")
         .eq("user_id", user.id)
         .is("deleted_at", null)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(PAGE_SIZE + 1);
 
       if (cancelled) return;
@@ -328,11 +329,11 @@ const MyDocPage = () => {
 
     const { data, error } = await supabase
       .from("user_made_n")
-      .select("id,name,created_at,canvas_data")
+      .select("id,name,created_at,updated_at,canvas_data")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .lt("created_at", lastDoc.created_at!)
+      .order("updated_at", { ascending: false })
+      .lt("updated_at", lastDoc.updated_at!)
       .limit(PAGE_SIZE + 1);
 
     if (error) {
@@ -453,7 +454,7 @@ const MyDocPage = () => {
         name: nextName,
         canvas_data: srcData?.canvas_data,
       })
-      .select("id,name,created_at,canvas_data")
+      .select("id,name,created_at,updated_at,canvas_data")
       .single();
     if (error || !data) {
       if (error) captureSentryError(error, "MyDocPage 문서 복제");

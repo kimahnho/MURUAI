@@ -41,7 +41,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   page: "페이지",
   template: "템플릿",
   "ai-template": "AI 템플릿",
-  "emotion-aac": "이미지 상징",
+  "emotion-aac": "이미지",
   element: "요소",
   text: "텍스트",
   font: "글꼴",

@@ -52,7 +52,8 @@ const setDragImageData = (
   event.dataTransfer.effectAllowed = "copy";
 };
 
-const AACContent = () => {
+const AACContent = ({ externalSearch }: { externalSearch?: string }) => {
+  const hasExternalSearch = externalSearch != null;
   const {
     selectedCategory,
     searchQuery,
@@ -65,6 +66,7 @@ const AACContent = () => {
     initialCategory: "food",
     categoryValueMap: CATEGORY_VALUE_MAP,
     cardSize: AAC_CARD_SIZE,
+    externalSearch,
   });
 
   const handleImageError = (
@@ -108,16 +110,18 @@ const AACContent = () => {
         ))}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-s text-black-50" />
-        <input
-          type="text"
-          placeholder="검색..."
-        value={searchQuery}
-        onChange={(e) => { onSearchChange(e.target.value); }}
-          className="w-full pl-10 pr-4 py-3 border border-black-25 rounded-lg text-14-regular placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
-        />
-      </div>
+      {!hasExternalSearch && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-s text-black-50" />
+          <input
+            type="text"
+            placeholder="검색..."
+            value={searchQuery}
+            onChange={(e) => { onSearchChange(e.target.value); }}
+            className="w-full pl-10 pr-4 py-3 border border-black-25 rounded-lg text-14-regular placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4">
         {/* 이미지 선택/드래그 모두 같은 삽입 액션으로 연결된다. */}

@@ -252,7 +252,7 @@ const ColorPickerPopover = ({
       className={`h-7 w-7 rounded-full border transition-transform hover:scale-110 ${
         value.toUpperCase() === color.toUpperCase()
           ? "border-primary ring-2 ring-primary-200 scale-110"
-          : "border-black-25"
+          : "border-black-40"
       }`}
       style={{ backgroundColor: color }}
       aria-label={`색상 ${color}`}
@@ -318,7 +318,7 @@ const ColorPickerPopover = ({
                       className={`h-5 w-5 shrink-0 rounded-full border ${
                         isTransparent
                           ? "border-primary ring-2 ring-primary-200"
-                          : "border-black-25"
+                          : "border-black-40"
                       }`}
                       style={CHECKERBOARD_BG}
                     />
