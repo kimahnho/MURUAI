@@ -5,7 +5,7 @@
 ## 아키텍처
 
 ```
-사이드바 패널 (감정/AAC/이미지 상징/업로드)
+사이드바 패널 (감정/AAC/이미지/업로드)
   → imageFillStore.requestImageFill(url, label?, size?, options?)
     → requestId 증가
       → useImageFillSubscription이 변경 감지
@@ -32,11 +32,11 @@ interface ImageFillStore {
 
 | 소스 | 크기 | 결정 방식 |
 |------|------|-----------|
-| 이미지 상징 (library) | 최대 256px, 원본 비율 유지 | `new Image()` 로드 후 `naturalWidth/naturalHeight`로 비율 계산 |
+| 이미지 라이브러리 (library) | 최대 256px, 원본 비율 유지 | `new Image()` 로드 후 `naturalWidth/naturalHeight`로 비율 계산 |
 | 감정 사진 (emotion) | 200×260 (photo), 200×200 (emoji) | 하드코딩 상수 |
 | AAC (aac) | 200×200 | 하드코딩 상수 |
 
-이미지 상징은 클릭 시 `new Image()`로 원본 크기를 읽어 비율을 유지한다. 로드 실패 시 256×256 fallback.
+이미지 라이브러리은 클릭 시 `new Image()`로 원본 크기를 읽어 비율을 유지한다. 로드 실패 시 256×256 fallback.
 
 ```typescript
 const MAX_INSERT_SIZE = 256;
@@ -132,6 +132,7 @@ calculateCoverImageBox(elementW, elementH, imageW?, imageH?)
 4. **라벨 역검색 정확도** — 요소 위치가 변경되면 라벨 매칭이 깨질 수 있음
 5. **플레이스홀더 텍스트 리터럴 매칭** — 정확한 문자열로 비교하므로 변경 시 양쪽 수정 필수
 6. **리사이즈 중 imageBox는 startImageBox 기준** — `targetElement.imageBox`(이전 프레임 결과) 사용 금지, 누적 오차로 점프 발생
+7. **`requestImageFill` 호출 시 최근 사용 이미지 자동 추적** — `recentImageUsageStore.addRecentImage`가 내부에서 호출됨
 
 ## 관련 파일
 
@@ -144,3 +145,5 @@ calculateCoverImageBox(elementW, elementH, imageW?, imageH?)
 | 이미지 라이브러리 UI | `src/features/editor/sections/sidebar/content/ImageLibraryContent.tsx` |
 | 감정 콘텐츠 UI | `src/features/editor/sections/sidebar/content/EmotionContent.tsx` |
 | AAC 콘텐츠 UI | `src/features/editor/sections/sidebar/content/AACContent.tsx` |
+| 전체 탭 (통합 그리드) | `src/features/editor/sections/sidebar/content/AllImagesContent.tsx` |
+| 최근 사용 이미지 스토어 | `src/features/editor/store/recentImageUsageStore.ts` |
