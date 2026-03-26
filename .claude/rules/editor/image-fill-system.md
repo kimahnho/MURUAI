@@ -114,6 +114,16 @@ calculateCoverImageBox(elementW, elementH, imageW?, imageH?)
 - `tolerance = mmToPx(5)`
 - 가장 가까운 라벨의 ID 반환
 
+## 리사이즈 중 imageBox 동작
+
+| 핸들 | imageBox 계산 | 효과 |
+|------|--------------|------|
+| 코너 (nw/ne/sw/se) | `computeScaledImageBox(startImageBox, w, h)` | cover — 비율 유지, 잘림 |
+| 측면 (n/s/e/w) | `{ x: 0, y: 0, w, h }` | squish — 요소에 맞춰 찌그러짐 |
+
+- **`startImageBox` 캡처**: `handleDragStateChange(isDragging=true)` 시점에서 원본 imageBox를 `activeInteractionRef.startImageBox`에 저장. 드래그 중 항상 원본 기준으로 계산하여 부동소수점 누적 오차 방지
+- 측면 핸들 판별: `activeInteraction.handle.length === 1`
+
 ## 실수 방지
 
 1. **`forceInsert` 사용 시 source 명시** — source에 따라 자동 선택 여부 결정
@@ -121,6 +131,7 @@ calculateCoverImageBox(elementW, elementH, imageW?, imageH?)
 3. **AAC 카드 y-offset** — AAC 카드는 라벨 영역 고려하여 `y - 5px` 보정
 4. **라벨 역검색 정확도** — 요소 위치가 변경되면 라벨 매칭이 깨질 수 있음
 5. **플레이스홀더 텍스트 리터럴 매칭** — 정확한 문자열로 비교하므로 변경 시 양쪽 수정 필수
+6. **리사이즈 중 imageBox는 startImageBox 기준** — `targetElement.imageBox`(이전 프레임 결과) 사용 금지, 누적 오차로 점프 발생
 
 ## 관련 파일
 

@@ -62,8 +62,8 @@ const elementTransformStyle = [
 
 ### 리사이즈
 
-- **Shift+코너**: 가로세로 비율 유지 (`aspectRatio = width/height`)
-- **측면만**: 독립 너비/높이 조절
+- **코너**: 항상 비율 유지 (uniform scale 기반, Shift 불필요)
+- **측면**: 독립 너비/높이 조절 — 이미지 요소는 imageBox = 요소 크기로 squish
 - **최소 제약**: `minWidth`/`minHeight` (기본 80px) 위반 시 위치 보정
 
 ### 이미지 스케일

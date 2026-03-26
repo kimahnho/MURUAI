@@ -103,6 +103,12 @@ Y: [top, center, bottom] × 대상 요소 [top, center, bottom]
 - **테두리**: 모든 선택이 같은 도형 타입일 때만
 - **정렬 배분**: `selectedElements.length >= 3`일 때 활성화
 
+## 그룹 선택
+
+- **클릭 시 그룹 확장**: `handleSelect`에서 클릭된 요소에 `groupId`가 있으면 같은 그룹의 모든 요소를 `nextSelectedIds`에 포함 (`locked`/`selectable===false` 제외)
+- **GroupSelectionOverlay 우클릭**: `onContextMenu` prop으로 컨텍스트 메뉴 열림 — 그룹화/해제/복사/삭제 메뉴 표시
+- **그룹화/해제**: `useDesignPaperActions`의 `groupSelectedElements()`/`ungroupSelectedElements()` — `groupId` UUID 할당/제거
+
 ## 실수 방지
 
 1. **activeInteractionRef 미정리**: `handleDragStateChange` 종료 시 반드시 `null`로 설정

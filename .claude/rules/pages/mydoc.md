@@ -39,7 +39,8 @@ Promise.all([
 ### 2단계: 문서 목록 (canvas_data 포함, 페이지네이션)
 ```typescript
 supabase.from("user_made_n")
-  .select("id,name,created_at,canvas_data")
+  .select("id,name,created_at,updated_at,canvas_data")
+  .order("updated_at", { ascending: false })
   .limit(PAGE_SIZE + 1);  // PAGE_SIZE = 20
 
 // 타겟은 문서 ID로 필터링
@@ -49,7 +50,7 @@ supabase.from("user_made_targets_n")
 
 ## 페이지네이션
 
-- 커서 기반: `.lt("created_at", lastCreatedAt).limit(PAGE_SIZE + 1)`
+- 커서 기반: `.lt("updated_at", lastUpdatedAt).limit(PAGE_SIZE + 1)`
 - `hasMore`: 21개 조회 → 20개 표시 + hasMore 판단
 - "더 보기" 버튼 (`Spinner` 로딩 표시)
 - 전체 개수: 별도 `count` 쿼리 (페이지네이션과 독립)
