@@ -69,10 +69,10 @@ const RecentDocumentsSection = () => {
 
       const { data, error } = await supabase
         .from("user_made_n")
-        .select("id,name,created_at,canvas_data")
+        .select("id,name,created_at,updated_at,canvas_data")
         .eq("user_id", user.id)
         .is("deleted_at", null)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(4);
 
       if (cancelled) return;
