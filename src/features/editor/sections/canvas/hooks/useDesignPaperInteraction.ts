@@ -104,6 +104,7 @@ export const useDesignPaperInteraction = ({
     startRect?: Rect;
     startFontSize?: number;
     handle?: ResizeHandle;
+    startImageBox?: { x: number; y: number; w: number; h: number };
   } | null>(null);
   const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
   const { startPointerDragSession } = usePointerDragSession();
@@ -345,16 +346,23 @@ export const useDesignPaperInteraction = ({
       targetElement &&
       isImageFillElement(targetElement)
     ) {
+      const isEdgeHandle =
+        activeInteraction.handle != null &&
+        activeInteraction.handle.length === 1;
+      const imageBox = isEdgeHandle
+        ? { x: 0, y: 0, w: nextRect.width, h: nextRect.height }
+        : computeScaledImageBox(
+            activeInteraction.startImageBox ??
+              (targetElement as ShapeElement).imageBox,
+            nextRect.width,
+            nextRect.height,
+          );
       updateElement(elementId, {
         x: nextRect.x,
         y: nextRect.y,
         w: nextRect.width,
         h: nextRect.height,
-        imageBox: computeScaledImageBox(
-          (targetElement as ShapeElement).imageBox,
-          nextRect.width,
-          nextRect.height,
-        ),
+        imageBox,
       });
       setActivePreview({ id: elementId, rect: nextRect });
       return;
@@ -414,6 +422,10 @@ export const useDesignPaperInteraction = ({
             ? targetElement.style.fontSize
             : undefined,
         handle,
+        startImageBox:
+          targetElement && isImageFillElement(targetElement)
+            ? (targetElement as ShapeElement).imageBox
+            : undefined,
       };
       if (context?.type === "drag") {
         // 드래그 시작 시 그룹 스냅샷을 한 번 만들고 이동 내내 재사용해
@@ -494,11 +506,17 @@ export const useDesignPaperInteraction = ({
           isImageFillElement(targetElement) &&
           isResize
         ) {
-          updates.imageBox = computeScaledImageBox(
-            (targetElement as ShapeElement).imageBox,
-            finalRect.width,
-            finalRect.height,
-          );
+          const isEdgeHandle =
+            activeInteraction?.handle != null &&
+            activeInteraction.handle.length === 1;
+          updates.imageBox = isEdgeHandle
+            ? { x: 0, y: 0, w: finalRect.width, h: finalRect.height }
+            : computeScaledImageBox(
+                activeInteraction?.startImageBox ??
+                  (targetElement as ShapeElement).imageBox,
+                finalRect.width,
+                finalRect.height,
+              );
         }
         const labelId =
           targetElement &&

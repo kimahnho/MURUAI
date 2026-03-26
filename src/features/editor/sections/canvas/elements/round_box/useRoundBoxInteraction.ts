@@ -40,7 +40,7 @@ interface UseRoundBoxInteractionParams {
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize" },
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle },
   ) => void;
   onImageScaleChange?: (value: number) => void;
   onImageOffsetChange?: (value: { x: number; y: number }) => void;
@@ -108,7 +108,7 @@ export const useRoundBoxInteraction = ({
       },
       onStart: () => {
         if (type === "drag" || type === "resize") {
-          onDragStateChange?.(true, rectRef.current, { type });
+          onDragStateChange?.(true, rectRef.current, { type, handle });
         }
       },
       onMove: ({ moveEvent, dx, dy }) => {
@@ -234,11 +234,10 @@ export const useRoundBoxInteraction = ({
         let nextHeight = startRect.height;
 
         const isCornerHandle = handle.length === 2;
-        const isShiftPressed = moveEvent.shiftKey;
         const aspectRatio = startRect.width / startRect.height;
 
-        if (isShiftPressed && isCornerHandle) {
-          // 쉬프트+코너 리사이즈는 원본 비율을 보존해 도형 스케일만 바뀌도록 한다.
+        if (isCornerHandle) {
+          // 코너 리사이즈는 항상 원본 비율을 보존해 도형 스케일만 바뀌도록 한다.
           if (handle.includes("e")) {
             nextWidth = startRect.width + dx;
           }
@@ -252,14 +251,12 @@ export const useRoundBoxInteraction = ({
             nextHeight = startRect.height - dy;
           }
 
-          const widthChange = Math.abs(nextWidth - startRect.width);
-          const heightChange = Math.abs(nextHeight - startRect.height);
-
-          if (widthChange > heightChange) {
-            nextHeight = nextWidth / aspectRatio;
-          } else {
-            nextWidth = nextHeight * aspectRatio;
-          }
+          const scaleX = nextWidth / startRect.width;
+          const scaleY = nextHeight / startRect.height;
+          const uniformScale =
+            Math.abs(scaleX - 1) > Math.abs(scaleY - 1) ? scaleX : scaleY;
+          nextWidth = startRect.width * uniformScale;
+          nextHeight = startRect.height * uniformScale;
 
           if (handle.includes("w")) {
             nextX = startRect.x + startRect.width - nextWidth;
@@ -289,7 +286,7 @@ export const useRoundBoxInteraction = ({
           if (handle.includes("w")) {
             nextX = startRect.x + (startRect.width - minWidth);
           }
-          if (isShiftPressed && isCornerHandle) {
+          if (isCornerHandle) {
             nextHeight = nextWidth / aspectRatio;
             if (handle.includes("n")) {
               nextY = startRect.y + startRect.height - nextHeight;
@@ -302,7 +299,7 @@ export const useRoundBoxInteraction = ({
           if (handle.includes("n")) {
             nextY = startRect.y + (startRect.height - minHeight);
           }
-          if (isShiftPressed && isCornerHandle) {
+          if (isCornerHandle) {
             nextWidth = nextHeight * aspectRatio;
             if (handle.includes("w")) {
               nextX = startRect.x + startRect.width - nextWidth;
