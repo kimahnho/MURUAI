@@ -132,7 +132,8 @@ calculateCoverImageBox(elementW, elementH, imageW?, imageH?)
 4. **라벨 역검색 정확도** — 요소 위치가 변경되면 라벨 매칭이 깨질 수 있음
 5. **플레이스홀더 텍스트 리터럴 매칭** — 정확한 문자열로 비교하므로 변경 시 양쪽 수정 필수
 6. **리사이즈 중 imageBox는 startImageBox 기준** — `targetElement.imageBox`(이전 프레임 결과) 사용 금지, 누적 오차로 점프 발생
-7. **`requestImageFill` 호출 시 최근 사용 이미지 자동 추적** — `recentImageUsageStore.addRecentImage`가 내부에서 호출됨
+7. **`requestImageFill` 호출 시 최근 사용 이미지 자동 추적** — `recentImageUsageStore.addRecentImage`가 내부에서 호출됨. sessionStorage에 영속화 (Zustand persist 미들웨어)
+8. **AllImagesContent 삽입 크기 분기** — 감정 이미지(`source === "emotion"`)는 200×260, AAC는 200×200, 라이브러리는 원본 비율 최대 256px
 
 ## 관련 파일
 
