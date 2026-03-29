@@ -46,6 +46,16 @@ import emotionDiaryBg from "@/features/editor/templates/template_pdf/emotion-dia
 import pictureDiaryLineNoteBg from "@/features/editor/templates/template_pdf/picture-diary-line-note/preview.png";
 import dictationPracticeBg from "@/features/editor/templates/template_pdf/dictation-practice/preview.png";
 import yellowDiaryLinesBg from "@/features/editor/templates/template_pdf/yellow-diary-lines/preview.png";
+import coloring1Bg from "@/features/editor/templates/template_pdf/coloring-1/preview.png";
+import coloring2Bg from "@/features/editor/templates/template_pdf/coloring-2/preview.png";
+import coloring3Bg from "@/features/editor/templates/template_pdf/coloring-3/preview.png";
+import coloring4Bg from "@/features/editor/templates/template_pdf/coloring-4/preview.png";
+import coloring5Bg from "@/features/editor/templates/template_pdf/coloring-5/preview.png";
+import dotTracing1Bg from "@/features/editor/templates/template_pdf/dot-tracing-1/preview.png";
+import dotTracing2Bg from "@/features/editor/templates/template_pdf/dot-tracing-2/preview.png";
+import dotTracing3Bg from "@/features/editor/templates/template_pdf/dot-tracing-3/preview.png";
+import dotTracing4Bg from "@/features/editor/templates/template_pdf/dot-tracing-4/preview.png";
+import dotTracing5Bg from "@/features/editor/templates/template_pdf/dot-tracing-5/preview.png";
 
 const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
@@ -84,7 +94,17 @@ const isBasicTemplate = (templateId: string) =>
   templateId === "easyCrossLineTracing" ||
   templateId === "straightLineTracing" ||
   templateId === "trainTemplate" ||
-  templateId === "trainTemplate2";
+  templateId === "trainTemplate2" ||
+  templateId === "coloringPage1" ||
+  templateId === "coloringPage2" ||
+  templateId === "coloringPage3" ||
+  templateId === "coloringPage4" ||
+  templateId === "coloringPage5" ||
+  templateId === "dotTracingPage1" ||
+  templateId === "dotTracingPage2" ||
+  templateId === "dotTracingPage3" ||
+  templateId === "dotTracingPage4" ||
+  templateId === "dotTracingPage5";
 
 const sortBasicTemplates = (a: string, b: string) => {
   if (a === "trainTemplate" && b !== "trainTemplate") return -1;
@@ -129,6 +149,26 @@ const sortBasicTemplates = (a: string, b: string) => {
   if (b === "easyCrossLineTracing" && a !== "easyCrossLineTracing") return 1;
   if (a === "crossLineTracing" && b !== "crossLineTracing") return -1;
   if (b === "crossLineTracing" && a !== "crossLineTracing") return 1;
+  if (a === "coloringPage1" && b !== "coloringPage1") return -1;
+  if (b === "coloringPage1" && a !== "coloringPage1") return 1;
+  if (a === "coloringPage2" && b !== "coloringPage2") return -1;
+  if (b === "coloringPage2" && a !== "coloringPage2") return 1;
+  if (a === "coloringPage3" && b !== "coloringPage3") return -1;
+  if (b === "coloringPage3" && a !== "coloringPage3") return 1;
+  if (a === "coloringPage4" && b !== "coloringPage4") return -1;
+  if (b === "coloringPage4" && a !== "coloringPage4") return 1;
+  if (a === "coloringPage5" && b !== "coloringPage5") return -1;
+  if (b === "coloringPage5" && a !== "coloringPage5") return 1;
+  if (a === "dotTracingPage1" && b !== "dotTracingPage1") return -1;
+  if (b === "dotTracingPage1" && a !== "dotTracingPage1") return 1;
+  if (a === "dotTracingPage2" && b !== "dotTracingPage2") return -1;
+  if (b === "dotTracingPage2" && a !== "dotTracingPage2") return 1;
+  if (a === "dotTracingPage3" && b !== "dotTracingPage3") return -1;
+  if (b === "dotTracingPage3" && a !== "dotTracingPage3") return 1;
+  if (a === "dotTracingPage4" && b !== "dotTracingPage4") return -1;
+  if (b === "dotTracingPage4" && a !== "dotTracingPage4") return 1;
+  if (a === "dotTracingPage5" && b !== "dotTracingPage5") return -1;
+  if (b === "dotTracingPage5" && a !== "dotTracingPage5") return 1;
   return sortNormalTemplates(a, b);
 };
 
@@ -199,6 +239,16 @@ const getTemplatePreviewBackground = (templateId: TemplateId) => {
   if (templateId === "yellowDiaryLines") {
     return { type: "image" as const, imageUrl: yellowDiaryLinesBg };
   }
+  if (templateId === "coloringPage1") return { type: "image" as const, imageUrl: coloring1Bg };
+  if (templateId === "coloringPage2") return { type: "image" as const, imageUrl: coloring2Bg };
+  if (templateId === "coloringPage3") return { type: "image" as const, imageUrl: coloring3Bg };
+  if (templateId === "coloringPage4") return { type: "image" as const, imageUrl: coloring4Bg };
+  if (templateId === "coloringPage5") return { type: "image" as const, imageUrl: coloring5Bg };
+  if (templateId === "dotTracingPage1") return { type: "image" as const, imageUrl: dotTracing1Bg };
+  if (templateId === "dotTracingPage2") return { type: "image" as const, imageUrl: dotTracing2Bg };
+  if (templateId === "dotTracingPage3") return { type: "image" as const, imageUrl: dotTracing3Bg };
+  if (templateId === "dotTracingPage4") return { type: "image" as const, imageUrl: dotTracing4Bg };
+  if (templateId === "dotTracingPage5") return { type: "image" as const, imageUrl: dotTracing5Bg };
   return undefined;
 };
 

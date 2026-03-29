@@ -13,6 +13,16 @@ import emotionDiaryBg from "../templates/template_pdf/emotion-diary/preview.png"
 import pictureDiaryLineNoteBg from "../templates/template_pdf/picture-diary-line-note/preview.png";
 import dictationPracticeBg from "../templates/template_pdf/dictation-practice/preview.png";
 import yellowDiaryLinesBg from "../templates/template_pdf/yellow-diary-lines/preview.png";
+import coloring1Bg from "../templates/template_pdf/coloring-1/preview.png";
+import coloring2Bg from "../templates/template_pdf/coloring-2/preview.png";
+import coloring3Bg from "../templates/template_pdf/coloring-3/preview.png";
+import coloring4Bg from "../templates/template_pdf/coloring-4/preview.png";
+import coloring5Bg from "../templates/template_pdf/coloring-5/preview.png";
+import dotTracing1Bg from "../templates/template_pdf/dot-tracing-1/preview.png";
+import dotTracing2Bg from "../templates/template_pdf/dot-tracing-2/preview.png";
+import dotTracing3Bg from "../templates/template_pdf/dot-tracing-3/preview.png";
+import dotTracing4Bg from "../templates/template_pdf/dot-tracing-4/preview.png";
+import dotTracing5Bg from "../templates/template_pdf/dot-tracing-5/preview.png";
 import { stripStyleTags } from "../sections/canvas/elements/text/textContentUtils";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
@@ -89,6 +99,16 @@ const getTemplateBackground = (
       imageUrl: pageIndex === 1 ? TRAIN_TEMPLATE2_BG_2 : TRAIN_TEMPLATE2_BG_1,
     };
   }
+  if (templateId === "coloringPage1") return { type: "image", imageUrl: coloring1Bg };
+  if (templateId === "coloringPage2") return { type: "image", imageUrl: coloring2Bg };
+  if (templateId === "coloringPage3") return { type: "image", imageUrl: coloring3Bg };
+  if (templateId === "coloringPage4") return { type: "image", imageUrl: coloring4Bg };
+  if (templateId === "coloringPage5") return { type: "image", imageUrl: coloring5Bg };
+  if (templateId === "dotTracingPage1") return { type: "image", imageUrl: dotTracing1Bg };
+  if (templateId === "dotTracingPage2") return { type: "image", imageUrl: dotTracing2Bg };
+  if (templateId === "dotTracingPage3") return { type: "image", imageUrl: dotTracing3Bg };
+  if (templateId === "dotTracingPage4") return { type: "image", imageUrl: dotTracing4Bg };
+  if (templateId === "dotTracingPage5") return { type: "image", imageUrl: dotTracing5Bg };
   return undefined;
 };
 
