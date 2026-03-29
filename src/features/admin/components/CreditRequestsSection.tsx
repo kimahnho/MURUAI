@@ -89,7 +89,7 @@ const CreditRequestsSection = () => {
                     type="button"
                     onClick={() => handleApprove(req.request_id)}
                     disabled={manage.isPending}
-                    className="flex items-center gap-1 rounded-lg bg-success px-3 py-1.5 text-13-semibold text-white-100 hover:opacity-90 disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-lg bg-success px-3 py-1.5 text-13-bold text-white-100 hover:opacity-90 disabled:opacity-50"
                   >
                     <Check className="h-4 w-4" />
                     승인
@@ -98,7 +98,7 @@ const CreditRequestsSection = () => {
                     type="button"
                     onClick={() => setRejectTarget(req.request_id)}
                     disabled={manage.isPending}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-13-semibold text-black-70 hover:bg-black-5 disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-13-bold text-black-70 hover:bg-black-5 disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
                     거절
@@ -116,7 +116,7 @@ const CreditRequestsSection = () => {
           <button
             type="button"
             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-            className="flex items-center gap-1 text-13-semibold text-black-70 hover:text-black-70"
+            className="flex items-center gap-1 text-13-bold text-black-70 hover:text-black-70"
           >
             처리 이력 ({processedRequests.length})
             {isHistoryOpen ? (

@@ -29,7 +29,7 @@ const DateRangeFilter = ({
             type="button"
             onClick={() => { onPresetChange(preset.id); }}
             disabled={isLoading}
-            className={`rounded-lg px-3 py-1.5 text-13-semibold transition ${
+            className={`rounded-lg px-3 py-1.5 text-13-bold transition ${
               range.preset === preset.id
                 ? "bg-primary text-white"
                 : "text-black-70 hover:bg-black-5"

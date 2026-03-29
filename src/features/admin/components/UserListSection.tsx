@@ -85,9 +85,9 @@ const UserListSection = () => {
             </tr>
             <tr className="border-b border-slate-200 bg-black-5">
               <th colSpan={6} />
-              <th className="whitespace-nowrap px-3 py-1.5 text-11-regular text-black-70">잔여</th>
-              <th className="whitespace-nowrap px-3 py-1.5 text-11-regular text-black-70">누적</th>
-              <th className="whitespace-nowrap px-3 py-1.5 text-11-regular text-black-70">리필</th>
+              <th className="whitespace-nowrap px-3 py-1.5 text-12-regular text-black-70">잔여</th>
+              <th className="whitespace-nowrap px-3 py-1.5 text-12-regular text-black-70">누적</th>
+              <th className="whitespace-nowrap px-3 py-1.5 text-12-regular text-black-70">리필</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -117,7 +117,7 @@ const UserListSection = () => {
                     <span className="text-12-regular text-black-70">유저</span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3 text-center text-13-semibold text-black-70">
+                <td className="whitespace-nowrap px-3 py-3 text-center text-13-bold text-black-70">
                   {user.credit_balance}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-13-regular text-black-70">
