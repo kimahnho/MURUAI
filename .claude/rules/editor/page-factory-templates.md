@@ -62,7 +62,7 @@ TEMPLATE_REGISTRY = {
 }
 ```
 
-### 템플릿 카테고리 (26개)
+### 템플릿 카테고리 (36개)
 
 | 카테고리 | 템플릿 |
 |----------|--------|
@@ -72,6 +72,8 @@ TEMPLATE_REGISTRY = {
 | AAC/시각 | findItem, visualSchedule, labelSheet3x8, pictureSchedule |
 | 선긋기 | wavyLineTracing, variousLineTracing, crossLineTracing, easyCrossLineTracing, straightLineTracing |
 | 기차 | trainTemplate (2페이지, horizontal-only), trainTemplate2 (2페이지, horizontal-only) |
+| 색칠공부 | coloringPage1~5 (배경 이미지 기반, vertical-only) |
+| 점선 따라그리기 | dotTracingPage1~5 (배경 이미지 기반, vertical-only) |
 
 ### Orientation 제약
 
