@@ -42,6 +42,22 @@
 | (관리자 전용) | 대시보드 집계 | `admin_dashboard_metrics(start_date, end_date)` — 문서/활동/다운로드 지표 |
 | (RLS 헬퍼) | 관리자 권한 확인 | `is_admin()` — `SECURITY DEFINER`로 RLS 재귀 방지. `user_profiles.role = 'admin'` 확인 |
 
+### Studio (치료 AI) 전용 테이블
+
+| 테이블 | 용도 | 소유권 컬럼 | 소프트 삭제 |
+|--------|------|------------|------------|
+| `therapy_sessions` | 세션 기록 (대화+평가) | `user_id` | `deleted_at` |
+| `therapy_worksheets` | 생성된 학습지 (→ user_made_n 연결) | `user_id` | `deleted_at` |
+| `therapy_chat_logs` | 채팅 메시지 이력 | `user_id` | `deleted_at` |
+| `therapy_student_profiles` | 치료 전용 아동 프로필 (student_id FK) | `user_id` | `deleted_at` |
+| `therapy_evaluations` | 세션 평가 점수 | `user_id` | `deleted_at` |
+
+### Studio RPC
+
+| 함수 | 용도 |
+|------|------|
+| `admin_update_user_role(user_id, new_role)` | 관리자가 유저 role 변경 (user/admin/tester) |
+
 ### 미사용 테이블
 
 | 테이블 | 비고 |

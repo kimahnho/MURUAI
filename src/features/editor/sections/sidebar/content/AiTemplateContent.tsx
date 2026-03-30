@@ -38,7 +38,7 @@ const AiTemplateContent = () => {
   const [isRequesting, setIsRequesting] = useState(false);
 
   const remaining = creditBalance;
-  const monthlyUsed = creditBalance !== null ? MONTHLY_AI_CREDIT_LIMIT - creditBalance : null;
+  const remainingCredits = creditBalance;
   const isQuotaExhausted = remaining !== null && remaining <= 0;
   const isCreditLow = remaining !== null && remaining > 0 && remaining <= 5;
 
@@ -130,11 +130,11 @@ const AiTemplateContent = () => {
         }`}>
           <div className="flex flex-col">
             <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : isCreditLow ? "text-warning-700" : "text-black-60"}`}>
-              이번 달 이미지 크레딧
+              이번 달 남은 이미지 크레딧
             </span>
             <div className="flex items-baseline gap-1">
               <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-80"}`}>
-                {monthlyUsed !== null ? monthlyUsed : "--"}
+                {remainingCredits !== null ? remainingCredits : "--"}
               </span>
               <span className="text-14-regular text-black-50">
                 / {MONTHLY_AI_CREDIT_LIMIT}

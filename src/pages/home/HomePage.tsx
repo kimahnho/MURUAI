@@ -3,6 +3,7 @@
  * pages 레벨에서 features/editor와 features/home을 조합한다.
  */
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";
@@ -20,11 +21,20 @@ const PENDING_TOPIC_KEY = "pendingLandingTopic";
 const PENDING_AI_LOG_KEY = "pendingAiLog";
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const role = useAuthStore((s) => s.role);
   const openAuthModal = useModalStore((s) => s.openAuthModal);
   const { createAndOpenDocument } = useCreateDocumentNavigation();
   const [isGenerating, setIsGenerating] = useState(false);
   const executingRef = useRef(false);
+
+  // tester 유저는 /studio로 리다이렉트
+  useEffect(() => {
+    if (isAuthenticated && role === "tester") {
+      navigate("/studio", { replace: true });
+    }
+  }, [isAuthenticated, role, navigate]);
 
   // 비인증 → 로그인 완료 후 대기 중인 생성 자동 실행
   useEffect(() => {

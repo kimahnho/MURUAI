@@ -11,6 +11,7 @@ const AdminGuard = lazy(() => import("@/pages/admin/AdminGuard"));
 const AdminPage = lazy(() => import("@/pages/admin/AdminPage"));
 const AdminUserDocsPage = lazy(() => import("@/pages/admin/AdminUserDocsPage"));
 const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
+const StudioRoute = lazy(() => import("@/pages/studio/StudioRoute"));
 const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
 
 const withSuspense = (element: React.ReactElement) => (
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: "about",
         element: withSuspense(<AboutPage />),
+      },
+      {
+        path: "studio/:chatId?",
+        element: withSuspense(<StudioRoute />),
       },
       {
         path: "admin",

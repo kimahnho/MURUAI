@@ -33,6 +33,16 @@ import { trainTemplatePage1 } from "./train_template/page_1";
 import { trainTemplatePage2 } from "./train_template/page_2";
 import { trainTemplate2Page1 } from "./train_template_2/page_1";
 import { trainTemplate2Page2 } from "./train_template_2/page_2";
+import { coloringPage1 } from "./coloringPage1";
+import { coloringPage2 } from "./coloringPage2";
+import { coloringPage3 } from "./coloringPage3";
+import { coloringPage4 } from "./coloringPage4";
+import { coloringPage5 } from "./coloringPage5";
+import { dotTracingPage1 } from "./dotTracingPage1";
+import { dotTracingPage2 } from "./dotTracingPage2";
+import { dotTracingPage3 } from "./dotTracingPage3";
+import { dotTracingPage4 } from "./dotTracingPage4";
+import { dotTracingPage5 } from "./dotTracingPage5";
 
 export type TemplateOrientation = "free" | "vertical-only" | "horizontal-only";
 
@@ -200,6 +210,66 @@ export const TEMPLATE_REGISTRY = {
     template: trainTemplate2Page1,
     orientation: "horizontal-only" as TemplateOrientation,
     pages: [trainTemplate2Page1, trainTemplate2Page2],
+  },
+  coloringPage1: {
+    id: "coloringPage1",
+    label: "색칠공부 1",
+    template: coloringPage1,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  coloringPage2: {
+    id: "coloringPage2",
+    label: "색칠공부 2",
+    template: coloringPage2,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  coloringPage3: {
+    id: "coloringPage3",
+    label: "색칠공부 3",
+    template: coloringPage3,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  coloringPage4: {
+    id: "coloringPage4",
+    label: "색칠공부 4",
+    template: coloringPage4,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  coloringPage5: {
+    id: "coloringPage5",
+    label: "색칠공부 5",
+    template: coloringPage5,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dotTracingPage1: {
+    id: "dotTracingPage1",
+    label: "점선 따라그리기 1",
+    template: dotTracingPage1,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dotTracingPage2: {
+    id: "dotTracingPage2",
+    label: "점선 따라그리기 2",
+    template: dotTracingPage2,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dotTracingPage3: {
+    id: "dotTracingPage3",
+    label: "점선 따라그리기 3",
+    template: dotTracingPage3,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dotTracingPage4: {
+    id: "dotTracingPage4",
+    label: "점선 따라그리기 4",
+    template: dotTracingPage4,
+    orientation: "vertical-only" as TemplateOrientation,
+  },
+  dotTracingPage5: {
+    id: "dotTracingPage5",
+    label: "점선 따라그리기 5",
+    template: dotTracingPage5,
+    orientation: "vertical-only" as TemplateOrientation,
   },
 };
 

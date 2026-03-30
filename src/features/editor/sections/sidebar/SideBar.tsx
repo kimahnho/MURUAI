@@ -10,6 +10,7 @@ import {
   Box,
   Type,
   Upload,
+  HeartPulse,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import UploadContent from "./content/UploadContent";
@@ -31,10 +32,12 @@ import EmotionCardPropsContent from "./content/EmotionCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
 import AiStoryEditContent from "./content/AiStoryEditContent";
+import TherapyContextContent from "./content/TherapyContextContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
 import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props" | "ai-story-edit">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
@@ -56,9 +59,10 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   "emotionCard-props": "감정카드",
   "multi-props": "다중 선택",
   "ai-story-edit": "스토리 편집",
+  therapy: "치료 AI",
 };
 
-const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
+const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool; roleOnly?: string[] }> = [
   { id: "design", icon: PenTool },
   { id: "page", icon: FileText },
   { id: "template", icon: Layout },
@@ -67,6 +71,7 @@ const MENU_ITEMS: Array<{ id: MenuItemId; icon: typeof PenTool }> = [
   { id: "element", icon: Box },
   { id: "text", icon: Type },
   { id: "upload", icon: Upload },
+  { id: "therapy", icon: HeartPulse, roleOnly: ["tester", "admin"] },
 ];
 
 // 메뉴 id와 콘텐츠 컴포넌트를 1:1 매핑해 토글 로직을 단순화하고, 메뉴 확장 시 분기 누락을 줄인다.
@@ -93,11 +98,13 @@ const CONTENT_COMPONENTS: Record<
   "emotionCard-props": EmotionCardPropsContent,
   "multi-props": MultiPropsContent,
   "ai-story-edit": AiStoryEditContent,
+  therapy: TherapyContextContent,
 };
 
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
+  const role = useAuthStore((s) => s.role);
   const isFocusedMode = useAiGenerationModeStore((s) => s.isActive);
   const activeTitle = selectedMenu ? MENU_LABELS[selectedMenu] : "";
   const ActiveContent = selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null;
@@ -117,7 +124,7 @@ const SideBar = () => {
     <div className="flex h-full">
       {/* 좌측 아이콘 메뉴: 편집 도구 카테고리 전환 */}
       <div className="flex flex-col w-20 h-full px-1 pt-2 border-r border-black-25 gap-2">
-        {MENU_ITEMS.map((item) => {
+        {MENU_ITEMS.filter((item) => !item.roleOnly || (role && item.roleOnly.includes(role))).map((item) => {
           const Icon = item.icon;
           return (
             <button

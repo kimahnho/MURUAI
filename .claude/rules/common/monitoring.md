@@ -172,6 +172,11 @@ mixpanel.track("이벤트명");
 | `랜딩 하단 CTA 클릭` | `CapabilitySection.tsx` | — |
 | **관리자** | | |
 | `관리자 대시보드 접속` | `AdminPage.tsx` | — |
+| **치료 AI (Studio)** | | |
+| `치료 학습지 생성` | `TherapyChatPanel.tsx` | `domain`, `sheet_count` |
+| `치료 세션 시작` | `SessionRecorder.tsx` | `domain` |
+| `치료 세션 평가 저장` | `SessionRecorder.tsx` | `duration_seconds` |
+| `치료 학습지 캔버스 열기` | `WorkspacePage.tsx` | `domain`, `sheet_count` |
 
 ### 새 이벤트 추가 시
 

@@ -44,12 +44,12 @@ const TemplatesTable = ({
                 : 0;
             return (
               <div key={template.templateId} className="flex items-center gap-4">
-                <span className="w-5 shrink-0 text-right text-13-semibold text-black-70">
+                <span className="w-5 shrink-0 text-right text-13-bold text-black-70">
                   {index + 1}
                 </span>
                 <div className="flex flex-1 flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-13-semibold text-black-80">
+                    <span className="text-13-bold text-black-80">
                       {getTemplateLabel(template.templateId)}
                     </span>
                     <div className="flex items-center gap-3 text-12-regular text-black-70">

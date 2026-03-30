@@ -83,7 +83,7 @@ const WeekdayCalendar = ({
   const renderGrid = (days: Date[], highlightRange: { start: Date; end: Date }) => (
     <div className="grid grid-cols-7 gap-1.5">
       {WEEKDAY_LABELS.map((label) => (
-        <div key={`label-${label}`} className="text-center text-11-regular text-black-70">
+        <div key={`label-${label}`} className="text-center text-12-regular text-black-70">
           {label}
         </div>
       ))}
@@ -101,7 +101,7 @@ const WeekdayCalendar = ({
         return (
           <div key={key} className={`${baseClass} ${styleClass}`}>
             <div className="text-12-semibold">{day.getDate()}</div>
-            <div className="text-11-regular">
+            <div className="text-12-regular">
               {inRange && count > 0 ? `${count}명` : ""}
             </div>
           </div>

@@ -20,7 +20,7 @@ const Header = () => {
     <header className="flex w-full h-14 px-4 md:h-18 md:px-15 justify-between items-center border-b border-b-black-25">
       <button
         type="button"
-        onClick={() => navigate("/")}
+        onClick={() => navigate(role === "tester" ? "/studio" : "/")}
         className="flex items-center justify-center cursor-pointer"
         aria-label="홈으로 이동"
       >
@@ -39,20 +39,32 @@ const Header = () => {
                 <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">관리자</span>
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard")}
-              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
-            >
-              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">대시보드</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/mydoc")}
-              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
-            >
-              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">내 학습자료</span>
-            </button>
+            {role === "tester" ? (
+              <button
+                type="button"
+                onClick={() => navigate("/studio")}
+                className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+              >
+                <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">스튜디오</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard")}
+                  className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+                >
+                  <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">대시보드</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/mydoc")}
+                  className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+                >
+                  <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">내 학습자료</span>
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => navigate("/about")}

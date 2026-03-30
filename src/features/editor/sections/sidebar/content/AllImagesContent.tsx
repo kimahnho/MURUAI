@@ -134,6 +134,8 @@ const AllImagesContent = ({
         requestImageFill(url, label, { width: MAX_INSERT_SIZE, height: MAX_INSERT_SIZE }, { forceInsert: true, source: "library" });
       };
       imgEl.src = url;
+    } else if (source === "emotion") {
+      requestImageFill(url, label, { width: 200, height: 260 }, { forceInsert: true, source });
     } else {
       requestImageFill(url, label, { width: 200, height: 200 }, { forceInsert: true, source });
     }

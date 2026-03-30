@@ -143,7 +143,7 @@ const AdminDashboardView = ({
           <button
             type="button"
             onClick={onSignOut}
-            className="h-9 rounded-xl border border-slate-200 bg-white px-4 text-13-semibold text-black-70 hover:bg-black-5"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-4 text-13-bold text-black-70 hover:bg-black-5"
           >
             로그아웃
           </button>
@@ -181,7 +181,7 @@ const AdminDashboardView = ({
               <button
                 type="button"
                 onClick={onRetry}
-                className="rounded-xl border border-error-100 bg-white px-3 py-1 text-13-semibold text-error-700 hover:bg-error-50"
+                className="rounded-xl border border-error-100 bg-white px-3 py-1 text-13-bold text-error-700 hover:bg-error-50"
               >
                 다시 시도
               </button>
@@ -263,7 +263,7 @@ const AdminDashboardView = ({
               <span className="text-14-semibold text-black-90">유저별 자료</span>
               <Link
                 to="/admin/user-docs"
-                className="flex items-center gap-1 text-13-semibold text-primary hover:underline"
+                className="flex items-center gap-1 text-13-bold text-primary hover:underline"
               >
                 전체 보기
                 <ChevronRight className="h-4 w-4" />
