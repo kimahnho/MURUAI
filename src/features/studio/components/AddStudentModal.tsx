@@ -127,7 +127,7 @@ const AddStudentModal = ({ onClose, onCreated }: AddStudentModalProps) => {
 
           {/* 특이사항 */}
           <div className="flex flex-col gap-1">
-            <label className="text-13-regular font-semibold text-black-70">특이사항</label>
+            <label className="text-13-regular font-semibold text-black-70">특이사항 <span className="font-normal text-black-40">(선택사항)</span></label>
             <input
               value={significant}
               onChange={(e) => setSignificant(e.target.value)}
@@ -138,7 +138,7 @@ const AddStudentModal = ({ onClose, onCreated }: AddStudentModalProps) => {
 
           {/* 학습 목표 */}
           <div className="flex flex-col gap-1">
-            <label className="text-13-regular font-semibold text-black-70">학습 목표</label>
+            <label className="text-13-regular font-semibold text-black-70">학습 목표 <span className="font-normal text-black-40">(선택사항)</span></label>
             <input
               value={learningGoal}
               onChange={(e) => setLearningGoal(e.target.value)}
