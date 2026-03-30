@@ -24,8 +24,6 @@ const WorkspacePage = ({ onClose }: WorkspacePageProps) => {
 
   const sessionSet = useTherapyStore((s) => s.sessionSet);
   const workspaceSheets = useTherapyStore((s) => s.workspaceSheets);
-  const isRecording = useTherapyStore((s) => s.isRecording);
-  const stopRecording = useTherapyStore((s) => s.stopRecording);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -34,8 +32,6 @@ const WorkspacePage = ({ onClose }: WorkspacePageProps) => {
 
   const handleOpenInCanvas = async () => {
     try {
-      if (isRecording) stopRecording();
-
       const sheets = workspaceSheets.map((s) => s.suggestion);
       let imageUrls: string[] | undefined;
 

@@ -1,5 +1,5 @@
 /**
- * /studio/:chatId? 메인 페이지 — AI 채팅 + 세션 사이드바 + 녹화 오버레이.
+ * /studio/:chatId? 메인 페이지 — AI 채팅 + 세션 사이드바.
  * chatId가 있으면 DB에서 세션 복원, 없으면 빈 상태(새 채팅).
  */
 import { useState, useEffect, useRef } from "react";
@@ -7,14 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useTherapyStore } from "../store/useTherapyStore";
 import { getUserSessions } from "../data/therapyService";
-import { startSession, finishSession, saveSessionMessages, saveEvaluation, loadSessionMessages, archiveSession } from "../data/sessionService";
+import { startSession, loadSessionMessages, archiveSession } from "../data/sessionService";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { detectDomain } from "../ai/domainDetection";
-import { mp } from "@/shared/utils/mixpanel";
-import useToastStore from "@/shared/store/useToastStore";
 import TherapyChatPanel from "../components/TherapyChatPanel";
 import SessionSidebar from "../components/SessionSidebar";
-import RecordingOverlay from "../components/RecordingOverlay";
 import type { SessionSet, TherapySession } from "../model/therapyTypes";
 import WorkspacePage from "./WorkspacePage";
 
@@ -27,9 +24,7 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
   const user = useAuthStore((s) => s.user);
 
   const sessions = useTherapyStore((s) => s.sessions);
-  const messages = useTherapyStore((s) => s.messages);
   const activeSession = useTherapyStore((s) => s.activeSession);
-  const currentDomain = useTherapyStore((s) => s.currentDomain);
   const selectedStudent = useTherapyStore((s) => s.selectedStudent);
 
   // 사이드바 아동 필터 (아동 선택과 별도)
@@ -57,14 +52,6 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
     return () => { document.body.style.overflow = ""; };
   }, [isWorkspaceOpen]);
 
-  // 녹화 상태 (store에서 관리 — 페이지 이동 후에도 유지)
-  const isRecording = useTherapyStore((s) => s.isRecording);
-  const showEvaluation = useTherapyStore((s) => s.showEvaluation);
-  const recSessionId = useTherapyStore((s) => s.recSessionId);
-  const recStartTime = useTherapyStore((s) => s.recStartTime);
-  const startRecordingAction = useTherapyStore((s) => s.startRecording);
-  const stopRecordingAction = useTherapyStore((s) => s.stopRecording);
-  const dismissEvaluation = useTherapyStore((s) => s.dismissEvaluation);
   const sessionIdRef = useRef<string | null>(null);
 
   // 세션 목록 로드
@@ -183,51 +170,8 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
     navigate("/studio");
   };
 
-  // ── 녹화 (store 기반) ──
-
-  const handleStartRecording = () => {
-    // 별도 세션을 만들지 않고 현재 활성 채팅 세션에 녹화를 연결
-    const chatSessionId = activeSession?.id;
-    if (!chatSessionId) return;
-    startRecordingAction(chatSessionId);
-    mp.track("치료 세션 시작", { domain: currentDomain });
-  };
-
-  const handleStopRecording = () => {
-    stopRecordingAction();
-  };
-
-  const handleSaveEvaluation = async (scores: Record<string, number>, notes: string) => {
-    if (!user?.id || !recSessionId) return;
-    const elapsed = Math.round((Date.now() - recStartTime) / 1000);
-    const evaluation = { scores, notes: notes || undefined };
-    try {
-      await finishSession(recSessionId, evaluation, elapsed);
-      await saveSessionMessages(user.id, recSessionId, messages);
-      await saveEvaluation(user.id, recSessionId, selectedStudent?.studentId, evaluation);
-      mp.track("치료 세션 평가 저장", { duration_seconds: elapsed });
-      useToastStore.getState().showToast("세션이 저장되었어요!", "success");
-    } catch (err) {
-      captureSentryError(err, "TherapyPage 평가 저장");
-      useToastStore.getState().showToast("저장에 실패했어요.");
-    }
-    dismissEvaluation();
-  };
-
-  const handleDismissEval = () => {
-    dismissEvaluation();
-  };
-
   return (
     <>
-      <RecordingOverlay
-        isRecording={isRecording}
-        onStop={handleStopRecording}
-        onSaveEvaluation={handleSaveEvaluation}
-        onDismissEval={handleDismissEval}
-        showEvaluation={showEvaluation}
-      />
-
       <div className="flex h-[calc(100vh-56px)] md:h-[calc(100vh-72px)]">
         {/* 사이드바 (좌측, 데스크탑만) */}
         <div className="hidden lg:block w-72 shrink-0 h-full">
@@ -246,9 +190,6 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
         <div className="flex-1 min-w-0">
           <TherapyChatPanel
             onApproveSessionSet={handleApproveSessionSet}
-            isRecording={isRecording}
-            showEvaluation={showEvaluation}
-            onStartRecording={handleStartRecording}
             onFirstMessage={handleFirstMessage}
             onNavigateToChat={(id) => navigate(`/studio/${id}`, { replace: true })}
             userId={user?.id}
