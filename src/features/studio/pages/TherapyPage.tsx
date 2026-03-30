@@ -31,6 +31,13 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
   const activeSession = useTherapyStore((s) => s.activeSession);
   const currentDomain = useTherapyStore((s) => s.currentDomain);
   const selectedStudent = useTherapyStore((s) => s.selectedStudent);
+
+  // 사이드바 아동 필터 (아동 선택과 별도)
+  const [filterStudentId, setFilterStudentId] = useState<string | null>(null);
+  const filteredSessions = filterStudentId
+    ? sessions.filter((s) => s.studentId === filterStudentId)
+    : sessions;
+
   const setSessions = useTherapyStore((s) => s.setSessions);
   const setActiveSession = useTherapyStore((s) => s.setActiveSession);
   const setMessages = useTherapyStore((s) => s.setMessages);
@@ -117,22 +124,20 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
       }
     };
 
-    // sessions 목록이 로드된 후에만 실행
-    if (sessions.length > 0 || !user?.id) {
-      void loadSession();
-    }
-  }, [chatId, sessions.length]);
+    void loadSession();
+  }, [chatId]);
 
   // 첫 메시지 → 세션 생성 (navigate는 하지 않음 — AI 응답 후 TherapyChatPanel에서 처리)
   const handleFirstMessage = async (text: string): Promise<string | undefined> => {
     if (!user?.id) return undefined;
     const domain = detectDomain(text).primary;
+    const studentId = (selectedStudent as unknown as Record<string, unknown>)?.id as string | undefined;
     try {
-      const id = await startSession(user.id, domain, selectedStudent?.studentId, text);
+      const id = await startSession(user.id, domain, studentId, text);
       const newSession: TherapySession = {
         id,
         userId: user.id,
-        studentId: selectedStudent?.studentId,
+        studentId,
         title: text,
         domain,
         status: "active",
@@ -227,11 +232,13 @@ const TherapyPage = ({ chatId }: TherapyPageProps) => {
         {/* 사이드바 (좌측, 데스크탑만) */}
         <div className="hidden lg:block w-72 shrink-0 h-full">
           <SessionSidebar
-            sessions={sessions}
+            sessions={filteredSessions}
             activeSessionId={activeSession?.id}
             onSelectSession={handleSelectSession}
             onDeleteSession={handleDeleteSession}
             onNewSession={handleNewSession}
+            onFilterByStudent={setFilterStudentId}
+            filterStudentId={filterStudentId}
           />
         </div>
 

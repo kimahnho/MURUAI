@@ -2,7 +2,7 @@
  * 치료 AI 채팅 메인 패널 — 메시지 목록 + 입력 바.
  * 사용자 입력 → 의도 분류 → 파이프라인 실행 → 결과 표시.
  */
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Sparkles, RotateCcw, Circle, Bot, User } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTherapyStore } from "../store/useTherapyStore";
@@ -67,10 +67,8 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
     sessionIdRef.current = activeSessionId;
   }, [activeSessionId]);
 
-  // 녹화/평가 상태 변경 시 hover 리셋
-  useEffect(() => {
-    setRecHovered(false);
-  }, [isRecording, showEvaluation]);
+  // 녹화/평가 중이면 hover 표시하지 않음 (렌더 시 계산)
+  const effectiveRecHovered = recHovered && !isRecording && !showEvaluation;
 
   // store에 추가 + DB에 즉시 저장 (ref로 최신 세션 ID 참조)
   const addAndSaveMessage = (
@@ -101,7 +99,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
   }, [messages.length]);
 
   // 메시지 전송 (retryText가 있으면 재시도)
-  const processMessage = useCallback(async (text: string, isRetry: boolean) => {
+  const processMessage = async (text: string, isRetry: boolean) => {
     if (!text || isProcessing) return;
 
     lastUserTextRef.current = text;
@@ -173,7 +171,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
       addAndSaveMessage("assistant", `${message}\n다시 시도하려면 아래 버튼을 눌러주세요.`, "error");
       captureSentryError(err, "TherapyChatPanel 메시지 처리");
     }
-  }, [isProcessing, messages, selectedStudent, addAndSaveMessage, addMessage, setPhase, setError, setSessionSet, setCurrentDomain, setWarnings, onFirstMessage, userId, sendMessage]);
+  };
 
   const handleSend = () => {
     const text = input.trim();
@@ -203,16 +201,19 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
   // 공유 입력 바
   const inputBarContent = (
     <div className="flex items-center gap-2">
-      {/* 아동 선택 버튼 (입력 바 외부 좌측) */}
+      {/* 아동 선택 (외부 좌측) */}
       <StudentPickerButton
         selectedStudent={selectedStudent as { id: string; name: string; significant?: string } | null}
         onSelect={(student) => setSelectedStudent(student as typeof selectedStudent)}
       />
 
-      <div className={cn(
-        "flex flex-1 items-center gap-2 rounded-2xl border bg-white px-3 py-2.5 transition",
-        isProcessing ? "border-black-15 bg-black-5" : "border-black-25 focus-within:border-primary",
-      )}>
+      {/* 입력 필드 */}
+      <div
+        className={cn(
+          "flex flex-1 items-center gap-2 rounded-2xl border-2 bg-white px-3 py-2.5 shadow-lg transition",
+          isProcessing ? "border-black-20" : "border-black-25 focus-within:border-primary focus-within:shadow-xl",
+        )}
+      >
       {/* REC 버튼 — 도메인이 감지된 후(대화 시작 후) + 녹화/평가 중 아닐 때만 */}
       {!isRecording && !showEvaluation && currentDomain && (
         <div
@@ -229,7 +230,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
             <Circle className="h-4 w-4" />
           </button>
           <AnimatePresence>
-            {recHovered && (
+            {effectiveRecHovered && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -334,7 +335,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full max-w-xl rounded-3xl bg-black-15 p-3"
+            className="w-full max-w-xl rounded-3xl bg-black-25 p-3"
           >
             {inputBarContent}
           </motion.div>
@@ -408,7 +409,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
               </div>
             </div>
           )}
-          {phase === "error" && lastUserTextRef.current && (
+          {phase === "error" && (
             <div className="flex justify-center">
               <button
                 type="button"
@@ -424,7 +425,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
       </ScrollArea>
 
       {/* 하단 입력 바 */}
-      <div className="shrink-0 border-t border-black-20 bg-black-15 px-4 py-3">
+      <div className="shrink-0 border-t border-black-25 bg-black-25 px-4 py-3">
         {inputBarContent}
       </div>
     </div>

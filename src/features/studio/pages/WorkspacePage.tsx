@@ -2,12 +2,16 @@
  * 학습지 상세 확인 모달 — 채팅에서 보이지 않는 description을 확인 후 캔버스로 생성.
  * 바깥 클릭 → 모달 닫기 → 채팅에서 수정 가능.
  */
-import { ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { useTherapyStore } from "../store/useTherapyStore";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 import { buildTherapyWorksheetPages } from "../utils/buildTherapyWorksheetPages";
+import { generateWorksheetImages } from "../ai/generateWorksheetImages";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
+import useToastStore from "@/shared/store/useToastStore";
 import { WORKSHEET_TYPE_LABELS, DIFFICULTY_LABELS } from "../model/therapyConstants";
 
 interface WorkspacePageProps {
@@ -16,25 +20,48 @@ interface WorkspacePageProps {
 
 const WorkspacePage = ({ onClose }: WorkspacePageProps) => {
   const { createAndOpenDocument } = useCreateDocumentNavigation();
+  const user = useAuthStore((s) => s.user);
 
   const sessionSet = useTherapyStore((s) => s.sessionSet);
   const workspaceSheets = useTherapyStore((s) => s.workspaceSheets);
   const isRecording = useTherapyStore((s) => s.isRecording);
   const stopRecording = useTherapyStore((s) => s.stopRecording);
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+
   if (!sessionSet) return null;
 
   const handleOpenInCanvas = async () => {
     try {
-      // 녹화 중이면 자동 종료 → 평가 패널은 캔버스에서 표시
-      if (isRecording) {
-        stopRecording();
+      if (isRecording) stopRecording();
+
+      const sheets = workspaceSheets.map((s) => s.suggestion);
+      let imageUrls: string[] | undefined;
+
+      // 이미지 생성 시도
+      if (user?.id) {
+        setIsGenerating(true);
+        setProgress({ current: 0, total: sheets.length });
+        try {
+          imageUrls = await generateWorksheetImages(
+            sheets,
+            sessionSet.domain,
+            user.id,
+            (current, total) => setProgress({ current, total }),
+          );
+        } catch (err) {
+          console.warn("이미지 생성 실패, 텍스트 fallback 사용", err);
+          useToastStore.getState().showToast("이미지 생성에 실패했어요. 텍스트로 대체합니다.");
+        }
+        setIsGenerating(false);
       }
 
-      mp.track("치료 학습지 캔버스 열기", { domain: sessionSet.domain, sheet_count: workspaceSheets.length });
-      const pages = buildTherapyWorksheetPages(workspaceSheets, sessionSet.domain);
+      mp.track("치료 학습지 캔버스 열기", { domain: sessionSet.domain, sheet_count: workspaceSheets.length, has_images: !!imageUrls });
+      const pages = buildTherapyWorksheetPages(workspaceSheets, sessionSet.domain, imageUrls);
       await createAndOpenDocument({ pages });
     } catch (err) {
+      setIsGenerating(false);
       captureSentryError(err, "WorkspacePage 캔버스 열기");
     }
   };
@@ -119,10 +146,20 @@ const WorkspacePage = ({ onClose }: WorkspacePageProps) => {
           <button
             type="button"
             onClick={handleOpenInCanvas}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-14-semibold text-white-100 hover:bg-primary-700 transition cursor-pointer"
+            disabled={isGenerating}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-14-semibold text-white-100 hover:bg-primary-700 transition cursor-pointer disabled:opacity-60"
           >
-            <ExternalLink className="h-4 w-4" />
-            캔버스에서 생성하기
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                이미지 생성 중 ({progress.current}/{progress.total})
+              </>
+            ) : (
+              <>
+                <ExternalLink className="h-4 w-4" />
+                캔버스에서 생성하기
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -1,10 +1,18 @@
 /**
- * 채팅 사이드바 — 이전 채팅 목록 + 새 채팅 버튼 + 삭제.
+ * 채팅 사이드바 — 아동 필터 + 채팅 목록 + 새 채팅 버튼 + 삭제.
  */
-import { Plus, MessageSquare, CheckCircle, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, MessageSquare, CheckCircle, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/shared/api/supabase";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 import type { TherapySession } from "../model/therapyTypes";
 import { THERAPY_DOMAIN_LABELS } from "../model/therapyTypes";
 import { cn } from "../lib/utils";
+
+interface StudentFilter {
+  id: string;
+  name: string;
+}
 
 interface SessionSidebarProps {
   sessions: TherapySession[];
@@ -12,6 +20,8 @@ interface SessionSidebarProps {
   onSelectSession: (session: TherapySession) => void;
   onDeleteSession: (sessionId: string) => void;
   onNewSession: () => void;
+  onFilterByStudent: (studentId: string | null) => void;
+  filterStudentId: string | null;
   isLoading?: boolean;
 }
 
@@ -21,8 +31,26 @@ const SessionSidebar = ({
   onSelectSession,
   onDeleteSession,
   onNewSession,
+  onFilterByStudent,
+  filterStudentId,
   isLoading,
 }: SessionSidebarProps) => {
+  const [students, setStudents] = useState<StudentFilter[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const user = useAuthStore((s) => s.user);
+
+  // 아동 목록 로드 (필터용)
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("students_n")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("name")
+      .then(({ data }) => setStudents(data ?? []));
+  }, [user?.id]);
+
   const handleDelete = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     onDeleteSession(sessionId);
@@ -43,6 +71,61 @@ const SessionSidebar = ({
         </button>
       </div>
 
+      {/* 아동 필터 */}
+      {students.length > 0 && (
+        <div className="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-black-15">
+          <button
+            type="button"
+            onClick={() => {
+              if (scrollRef.current) scrollRef.current.scrollLeft -= 80;
+            }}
+            className="shrink-0 flex items-center justify-center h-6 w-6 rounded-md hover:bg-black-10 text-black-40 cursor-pointer"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+
+          <div ref={scrollRef} className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide flex-1">
+            <button
+              type="button"
+              onClick={() => onFilterByStudent(null)}
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1 text-12-regular transition cursor-pointer",
+                !filterStudentId
+                  ? "bg-primary text-white-100"
+                  : "bg-white border border-black-20 text-black-60 hover:border-primary-200",
+              )}
+            >
+              전체
+            </button>
+            {students.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onFilterByStudent(s.id)}
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-12-regular transition cursor-pointer whitespace-nowrap",
+                  filterStudentId === s.id
+                    ? "bg-primary text-white-100"
+                    : "bg-white border border-black-20 text-black-60 hover:border-primary-200",
+                )}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (scrollRef.current) scrollRef.current.scrollLeft += 80;
+            }}
+            className="shrink-0 flex items-center justify-center h-6 w-6 rounded-md hover:bg-black-10 text-black-40 cursor-pointer"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 채팅 목록 */}
       <div className="flex-1 overflow-auto px-2 py-2">
         {isLoading ? (
@@ -56,7 +139,7 @@ const SessionSidebar = ({
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-14-semibold text-black-50">
-                아직 채팅이 없어요
+                {filterStudentId ? "이 아동의 채팅이 없어요" : "아직 채팅이 없어요"}
               </span>
               <span className="text-12-regular text-black-40">
                 학습지를 요청하면 자동으로 저장돼요.
@@ -83,7 +166,7 @@ const SessionSidebar = ({
                   {/* 텍스트 */}
                   <div className="flex flex-col gap-px min-w-0 flex-1">
                     <span className={cn(
-                      "truncate text-13-regular font-semibold",
+                      "truncate text-13-regular font-bold",
                       isActive ? "text-primary" : "text-black-80",
                     )}>
                       {session.title ?? domainLabel}

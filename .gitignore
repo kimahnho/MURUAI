@@ -30,3 +30,5 @@ dist-ssr
 
 batch
 .gstack/
+.claude/therapy-handoff/
+.claude/therapy-master/

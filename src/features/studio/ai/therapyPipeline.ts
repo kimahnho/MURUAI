@@ -13,6 +13,7 @@ import { MAX_MESSAGES_CONTEXT, MAX_MESSAGE_CONTENT_LENGTH, DEFAULT_SHEET_COUNT }
 import { checkSafety } from "./safetyCheck";
 import { detectDomain } from "./domainDetection";
 import { anonymizeForLLM } from "./anonymizeForLLM";
+import { getOverlay } from "./agentOverlay";
 import { enforceGuardrails } from "./guardrails";
 import { callStudioApi } from "../data/therapyService";
 
@@ -109,15 +110,24 @@ function messagesToContents(
 // ── 진단 텍스트 추출 ──
 
 function buildDiagnosisText(profile?: TherapyStudentProfile): string | undefined {
-  if (!profile?.diagnosis?.primary) return undefined;
-  const parts: string[] = [profile.diagnosis.primary];
-  if (profile.diagnosis.comorbidities.length > 0) {
-    parts.push(...profile.diagnosis.comorbidities);
+  // TherapyStudentProfile의 구조화된 진단 정보
+  if (profile?.diagnosis?.primary) {
+    const parts: string[] = [profile.diagnosis.primary];
+    if (profile.diagnosis.comorbidities.length > 0) {
+      parts.push(...profile.diagnosis.comorbidities);
+    }
+    if (profile.functionalAge) {
+      parts.push(`기능연령: ${profile.functionalAge}개월`);
+    }
+    return parts.join(", ");
   }
-  if (profile.functionalAge) {
-    parts.push(`기능연령: ${profile.functionalAge}개월`);
-  }
-  return parts.join(", ");
+
+  // students_n의 significant 필드에서 직접 가져오기 (fallback)
+  const profileRaw = profile as unknown as Record<string, unknown>;
+  const significant = profileRaw?.significant as string | undefined;
+  if (significant) return significant;
+
+  return undefined;
 }
 
 // ── 핵심: 단일 메시지 처리 ──
@@ -167,12 +177,22 @@ ${currentSheets.map((s, i) => `${i + 1}번: "${s.title}" (${s.worksheetType}, ${
 수정 요청된 장만 변경하고, 나머지 장은 위 목록 그대로 유지하세요.`
     : "";
 
+  // 아동 정보 컨텍스트 (이름, 나이, 진단)
+  const studentRaw = studentProfile as unknown as Record<string, unknown>;
+  const studentName = studentRaw?.name as string | undefined;
+  const birthYear = studentRaw?.birth_year as string | undefined;
+  const studentAge = birthYear ? `${new Date().getFullYear() - Number(birthYear)}세` : undefined;
+  const studentGender = studentRaw?.gender as string | undefined;
+  const studentContext = studentName
+    ? `\n[선택된 아동] 이름: ${studentName}${studentAge ? `, 나이: ${studentAge}` : ""}${studentGender ? `, 성별: ${studentGender}` : ""}`
+    : "";
+
   const contents = messagesToContents(messages);
   contents.push({
     role: "user",
     parts: [{
       text: `${anonymizedPrompt}
-${sheetsContext}
+${studentContext}${sheetsContext}
 [학습지 생성 시 규칙]
 - sheets 배열에 ${DEFAULT_SHEET_COUNT}장을 포함하세요.
 - 각 장의 title은 구체적으로 작성하세요. (❌ "같은 것 찾기" → ✅ "과일 그림 중 똑같은 것 선으로 잇기")
@@ -183,12 +203,22 @@ ${sheetsContext}
 
   const diagnosisText = buildDiagnosisText(studentProfile);
 
+  // Overlay 조회 (있으면 프롬프트에 주입)
+  const studentId = (studentProfile as unknown as Record<string, unknown>)?.id as string | undefined;
+  const therapistId = (studentProfile as unknown as Record<string, unknown>)?.userId as string | undefined;
+  const [studentOv, therapistOv] = await Promise.all([
+    studentId ? getOverlay(studentId, "student").catch(() => null) : null,
+    therapistId ? getOverlay(therapistId, "therapist").catch(() => null) : null,
+  ]);
+
   const response = await withRetry(() =>
     callStudioApi({
       contents,
       domain: detection.primary,
       lightweight: true,
       studentDiagnosis: diagnosisText,
+      studentOverlay: studentOv?.content,
+      therapistOverlay: therapistOv?.content,
       responseSchema: STUDIO_RESPONSE_SCHEMA,
     }),
   );

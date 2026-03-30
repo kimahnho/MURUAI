@@ -24,8 +24,26 @@ const PAGE_HEIGHT = mmToPx(297);
 export function buildTherapyWorksheetPages(
   sheets: WorkspaceSheet[],
   domain: TherapyDomain,
+  imageUrls?: string[],
 ): Page[] {
   return sheets.map((sheet, index) => {
+    const imageUrl = imageUrls?.[index];
+
+    // 이미지 URL이 있으면: 배경 이미지 + 로고만
+    if (imageUrl) {
+      const page: Page = {
+        id: crypto.randomUUID(),
+        pageNumber: index + 1,
+        templateId: null,
+        orientation: "vertical",
+        background: { type: "image", imageUrl },
+        elements: withLogoCanvasElements([]),
+        rev: 0,
+      };
+      return page;
+    }
+
+    // 이미지 없으면: 기존 fallback (텍스트 + 빈 사각형)
     const elements = buildSheetElements(sheet, domain);
     const page: Page = {
       id: crypto.randomUUID(),

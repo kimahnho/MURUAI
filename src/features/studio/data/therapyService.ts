@@ -21,6 +21,8 @@ interface StudioApiParams {
   lightweight?: boolean;
   autoLearnedContext?: string;
   studentDiagnosis?: string;
+  studentOverlay?: string;
+  therapistOverlay?: string;
   responseSchema?: Record<string, unknown>;
 }
 
@@ -92,6 +94,9 @@ function buildDevSystemInstruction(params: StudioApiParams): string {
     "",
     "## sheets 각 항목 필드",
     "title(string), worksheetType(string), difficulty(easy|medium|hard), itemCount(2~8), description(string)",
+    "",
+    "## reply 작성 규칙",
+    "reply에서 아동 이름을 언급할 때는 **이름** 형식으로 볼드 표기하세요. 예: **민준**이를 위한 학습지",
   ];
   if (params.domain) {
     parts.push(`\n현재 도메인: ${params.domain}`);

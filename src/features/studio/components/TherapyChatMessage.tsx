@@ -46,7 +46,7 @@ const TherapyChatMessage = ({ message, onApproveSessionSet }: TherapyChatMessage
           isSafety && "bg-error-50 border border-error-100 text-error-700",
           isError && "bg-warning-50 border border-warning-100 text-warning-700",
         )}>
-          {message.content}
+          {renderBoldText(message.content)}
         </div>
 
         {/* 세션 세트 카드 (AI 메시지에만) */}
@@ -117,6 +117,17 @@ const SheetCardContent = ({ sheet }: { sheet: { title: string; worksheetType: st
     </div>
   );
 };
+
+// **텍스트** → <strong>텍스트</strong> 변환
+function renderBoldText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 function formatTime(iso: string): string {
   try {

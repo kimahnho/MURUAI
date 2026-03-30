@@ -43,6 +43,8 @@ export default async function handler(
     lightweight,
     autoLearnedContext,
     studentDiagnosis,
+    studentOverlay,
+    therapistOverlay,
     responseSchema,
   } = req.body ?? {};
 
@@ -78,6 +80,8 @@ export default async function handler(
     lightweight: lightweight ?? true,
     autoLearnedContext,
     studentDiagnosis,
+    studentOverlay,
+    therapistOverlay,
   });
 
   try {

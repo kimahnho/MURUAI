@@ -77,6 +77,8 @@ interface BuildPromptOptions {
   lightweight?: boolean;
   autoLearnedContext?: string;
   studentDiagnosis?: string;
+  studentOverlay?: string;
+  therapistOverlay?: string;
 }
 
 /**
@@ -86,7 +88,7 @@ interface BuildPromptOptions {
  * - image-prompt.md: 이미지 생성 스타일 가이드 (lightweight가 아닐 때만)
  */
 export function buildServerSystemPrompt(options: BuildPromptOptions): string {
-  const { domain, lightweight = false, autoLearnedContext, studentDiagnosis } = options;
+  const { domain, lightweight = false, autoLearnedContext, studentDiagnosis, studentOverlay, therapistOverlay } = options;
 
   const parts: string[] = [];
 
@@ -124,12 +126,23 @@ export function buildServerSystemPrompt(options: BuildPromptOptions): string {
     parts.push(`\n[자동 학습된 학생 특성]\n${autoLearnedContext}`);
   }
 
+  // Student Overlay (아동 행동 패턴, 선호 테마, 혼동쌍, 적정 난이도)
+  if (studentOverlay) {
+    parts.push(`\n## 아동 프로필 (자동 생성)\n${studentOverlay}`);
+  }
+
+  // Therapist Overlay (치료사 스타일, 선호 세팅, 수정 패턴)
+  if (therapistOverlay) {
+    parts.push(`\n## 치료사 스타일 (자동 생성)\n${therapistOverlay}\n\n⚠️ 중요: 치료사 프로필은 참고용입니다. 현재 치료사의 요청이 프로필과 다르면 현재 요청을 우선합니다.`);
+  }
+
   // 응답 형식 규칙 (항상 마지막에 추가)
   parts.push(`## 응답 형식 규칙
 항상 JSON 객체로 응답하세요: {"intent": "generate|modify|chat", "reply": "메시지", "sheets": [...]}
 - intent "generate": 새 학습지 생성. sheets에 5장 필수.
 - intent "modify": 기존 학습지 수정. sheets에 수정 포함 전체 5장 필수. sheets 없이 reply만 보내면 안 됩니다.
-- intent "chat": 일반 대화. sheets 없음.`);
+- intent "chat": 일반 대화. sheets 없음.
+- reply에서 아동 이름을 언급할 때는 **이름** 형식으로 볼드 표기하세요.`);
 
   return parts.join("\n\n---\n\n");
 }
