@@ -24,6 +24,7 @@ export type SideBarMenu =
   | "emotionCard-props"
   | "multi-props"
   | "ai-story-edit"
+  | "therapy"
   | null;
 
 interface SideBarStore {

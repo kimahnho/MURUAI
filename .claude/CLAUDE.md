@@ -30,8 +30,9 @@ src/
     assets/         # 이미지, 아이콘
   features/
     editor/         # 핵심 디자인 에디터
-    home/           # 홈 페이지차
+    home/           # 홈 페이지
     admin/          # 관리자 대시보드
+    studio/         # AI 치료 활동 생성기 (/studio)
   pages/            # 라우트 레벨 페이지
 ```
 
@@ -96,6 +97,10 @@ src/
 22. **관리자 인증**: `user_profiles.role === "admin"` 기반 — 이메일 하드코딩(`ADMIN_EMAIL`) 금지. `AuthProvider`가 로그인 시 role 조회 → `useAuthStore.setRole()`. 헤더에서 `role === "admin"` 시 "관리자" 버튼 표시
 23. **로고 이미지**: `public/main_logo.png` 고정 경로 사용 — Vite 빌드 해시가 붙는 `src/shared/assets/logo/` import 금지 (`canvas_data`에 저장 시 빌드마다 URL이 변경되어 기존 문서에서 로고가 깨짐). 문서 로드 시 `migrateLogoFill()`로 기존 해시 URL을 고정 URL로 자동 교체
 24. **포커스 모드 초기화**: 문서 전환 시 `aiGenerationModeStore.exitFocusedMode()` + 사이드바 `"template"` 전환 필수 — `useDocumentLoader`에서 `focusedAiMode` 메타가 없으면 자동 초기화
+25. **Studio 도메인 레퍼런스**: `api/_lib/studio/refs/` 파일은 서버 전용 — 클라이언트에서 직접 import 금지. `anonymizeForLLM()`으로 PII 제거 후 API 호출 필수
+26. **Studio 접근 제어**: `/studio` 경로는 `role === "tester" || role === "admin"` 만 접근 가능. `UserRole` 타입에 `"tester"` 포함. 에디터 사이드바 치료 탭도 동일 조건
+27. **Studio 크레딧 미적용**: 치료 AI 사용에 크레딧을 차감하지 않음. 기존 크레딧 시스템 건드리지 않음
+28. **Studio 기존 영향 금지**: `shared/` 오염 금지 (`useAuthStore` UserRole 확장만 예외), 기존 API 엔드포인트 변경 금지
 
 ## 지침 모듈화 원칙
 
@@ -157,6 +162,7 @@ src/
 | ------------------ | ----------------------------------------------------- |
 | AI 감정 추론 생성  | `.claude/rules/ai/emotion-inference-ai-generation.md` |
 | 스토리북 AI 생성기 | `.claude/rules/ai/storybook.md`                       |
+| AI 치료 활동 (Studio) | `.claude/rules/ai/studio.md`                       |
 
 ### 페이지 (`rules/pages/`)
 

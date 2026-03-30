@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { User } from "@supabase/supabase-js";
 
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "admin" | "tester";
 
 interface AuthState {
   user: User | null;
