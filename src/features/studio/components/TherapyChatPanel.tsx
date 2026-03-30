@@ -3,13 +3,14 @@
  * 사용자 입력 → 의도 분류 → 파이프라인 실행 → 결과 표시.
  */
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, RotateCcw, Circle, Bot, User } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { Send, Loader2, Sparkles, RotateCcw, Bot, User } from "lucide-react";
+import { motion } from "framer-motion";
 import { useTherapyStore } from "../store/useTherapyStore";
 import { sendMessage } from "../ai/therapyPipeline";
+import { buildWorksheetImagePrompt } from "../ai/generateWorksheetImages";
 import { saveChatMessage } from "../data/therapyService";
 import { updateSessionSheets } from "../data/sessionService";
-import type { SessionSet, ChatMessage } from "../model/therapyTypes";
+import type { SessionSet, ChatMessage, ImagePromptEntry } from "../model/therapyTypes";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
 import TherapyChatMessage from "./TherapyChatMessage";
@@ -20,9 +21,6 @@ import { cn } from "../lib/utils";
 
 interface TherapyChatPanelProps {
   onApproveSessionSet: (set: SessionSet) => void;
-  isRecording: boolean;
-  showEvaluation: boolean;
-  onStartRecording: () => void;
   onFirstMessage: (text: string) => Promise<string | undefined>;
   onNavigateToChat?: (chatId: string) => void;
   userId?: string;
@@ -37,10 +35,9 @@ const EXAMPLE_CHIPS = [
   "사회성 순서 맞추기",
 ];
 
-const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, onStartRecording, onFirstMessage, onNavigateToChat, userId, activeSessionId }: TherapyChatPanelProps) => {
+const TherapyChatPanel = ({ onApproveSessionSet, onFirstMessage, onNavigateToChat, userId, activeSessionId }: TherapyChatPanelProps) => {
   const [input, setInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
-  const [recHovered, setRecHovered] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastUserTextRef = useRef<string>("");
@@ -51,7 +48,6 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
   const selectedStudent = useTherapyStore((s) => s.selectedStudent);
   const setSelectedStudent = useTherapyStore((s) => s.setSelectedStudent);
   const sessionSet = useTherapyStore((s) => s.sessionSet);
-  const currentDomain = useTherapyStore((s) => s.currentDomain);
   const warnings = useTherapyStore((s) => s.warnings);
   const addMessage = useTherapyStore((s) => s.addMessage);
   const setPhase = useTherapyStore((s) => s.setPhase);
@@ -66,9 +62,6 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
   useEffect(() => {
     sessionIdRef.current = activeSessionId;
   }, [activeSessionId]);
-
-  // 녹화/평가 중이면 hover 표시하지 않음 (렌더 시 계산)
-  const effectiveRecHovered = recHovered && !isRecording && !showEvaluation;
 
   // store에 추가 + DB에 즉시 저장 (ref로 최신 세션 ID 참조)
   const addAndSaveMessage = (
@@ -98,9 +91,36 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
     }
   }, [messages.length]);
 
+  // "이미지 프롬프트" 요청 감지 → 현재 학습지의 실제 프롬프트를 출력
+  const isImagePromptRequest = (text: string) =>
+    /이미지\s*프롬프트/.test(text) && sessionSet?.sheets && sessionSet.sheets.length > 0;
+
+  const handleImagePromptRequest = (text: string) => {
+    addAndSaveMessage("user", text);
+    const sheets = sessionSet!.sheets;
+    const imagePrompts: ImagePromptEntry[] = sheets.map((sheet, i) => ({
+      index: i,
+      title: sheet.title,
+      prompt: buildWorksheetImagePrompt(sheet, sessionSet!.domain),
+    }));
+    addAndSaveMessage(
+      "assistant",
+      `학습지 ${sheets.length}장의 이미지 생성 프롬프트입니다.`,
+      "imagePrompt",
+      { imagePrompts },
+    );
+  };
+
   // 메시지 전송 (retryText가 있으면 재시도)
   const processMessage = async (text: string, isRetry: boolean) => {
     if (!text || isProcessing) return;
+
+    // 이미지 프롬프트 요청이면 AI 호출 없이 즉시 출력
+    if (!isRetry && isImagePromptRequest(text)) {
+      setInput("");
+      handleImagePromptRequest(text);
+      return;
+    }
 
     lastUserTextRef.current = text;
 
@@ -214,36 +234,6 @@ const TherapyChatPanel = ({ onApproveSessionSet, isRecording, showEvaluation, on
           isProcessing ? "border-black-20" : "border-black-25 focus-within:border-primary focus-within:shadow-xl",
         )}
       >
-      {/* REC 버튼 — 도메인이 감지된 후(대화 시작 후) + 녹화/평가 중 아닐 때만 */}
-      {!isRecording && !showEvaluation && currentDomain && (
-        <div
-          className="relative shrink-0 self-center"
-          onMouseEnter={() => setRecHovered(true)}
-          onMouseLeave={() => setRecHovered(false)}
-        >
-          <button
-            type="button"
-            onClick={onStartRecording}
-            className="flex items-center justify-center h-8 w-8 rounded-xl transition cursor-pointer hover:bg-error-50 text-black-40 hover:text-error"
-            aria-label="세션 녹화"
-          >
-            <Circle className="h-4 w-4" />
-          </button>
-          <AnimatePresence>
-            {effectiveRecHovered && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 4 }}
-                transition={{ duration: 0.15 }}
-                className="absolute bottom-full left-0 mb-2 w-52 rounded-lg bg-black-90 px-3 py-2 text-12-regular text-white-100 shadow-lg pointer-events-none z-50 whitespace-normal"
-              >
-                세션을 기록하면 다음 학습지에 아동의 진행 상황이 반영돼요
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
       <textarea
         ref={inputRef}
         value={input}

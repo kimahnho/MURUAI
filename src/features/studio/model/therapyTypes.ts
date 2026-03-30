@@ -76,6 +76,7 @@ export type ChatMessageType =
   | "clarification"
   | "safetyAlert"
   | "suggestion"
+  | "imagePrompt"
   | "error";
 
 export interface ChatMessage {
@@ -87,12 +88,19 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface ImagePromptEntry {
+  index: number;
+  title: string;
+  prompt: string;
+}
+
 export interface ChatMessageMetadata {
   domain?: TherapyDomain;
   confidence?: number;
   worksheetSuggestion?: WorksheetSuggestion;
   sessionSet?: SessionSet;
   quickActions?: QuickAction[];
+  imagePrompts?: ImagePromptEntry[];
 }
 
 export interface QuickAction {

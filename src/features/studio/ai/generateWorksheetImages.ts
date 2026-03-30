@@ -35,17 +35,16 @@ const LAYOUT_HINTS: Record<string, string> = {
   sequencing: "4-5 scene cards arranged in a row showing a sequence of events. Numbers below each card.",
 };
 
-// ── 단일 학습지 이미지 생성 ──
+// ── 단일 학습지 이미지 프롬프트 생성 (외부에서도 사용) ──
 
-async function generateSingleImage(
+export function buildWorksheetImagePrompt(
   sheet: WorksheetSuggestion,
   domain: TherapyDomain,
-): Promise<string> {
-  const ai = getGenAI();
+): string {
   const layoutHint = LAYOUT_HINTS[sheet.worksheetType] ?? "Activity items arranged clearly on the page.";
   const domainLabel = THERAPY_DOMAIN_LABELS[domain];
 
-  const prompt = `Generate a COMPLETE A4 educational worksheet page image that fills the ENTIRE canvas.
+  return `Generate a COMPLETE A4 educational worksheet page image that fills the ENTIRE canvas.
 Portrait orientation (3:4 aspect ratio, like 210×297mm). Pure white background extending to ALL edges. Print-ready.
 The content must fill the full page — no empty margins, no page border effect.
 
@@ -75,6 +74,16 @@ CRITICAL RULES:
 - No text anywhere in the image. No Korean or English characters. Only illustrations.
 - No border, frame, or outline around the page. The white background must extend to all edges.
 - No drop shadow or page-like framing effect. The image IS the page, not a picture of a page.`;
+}
+
+// ── 단일 학습지 이미지 생성 ──
+
+async function generateSingleImage(
+  sheet: WorksheetSuggestion,
+  domain: TherapyDomain,
+): Promise<string> {
+  const ai = getGenAI();
+  const prompt = buildWorksheetImagePrompt(sheet, domain);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {

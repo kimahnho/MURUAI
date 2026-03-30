@@ -8,6 +8,7 @@ import type { ChatMessage, SessionSet } from "../model/therapyTypes";
 import { WORKSHEET_TYPE_LABELS, DIFFICULTY_LABELS } from "../model/therapyConstants";
 import { Avatar } from "../ui/avatar";
 import { cn } from "../lib/utils";
+import ImagePromptMessage from "./ImagePromptMessage";
 
 interface TherapyChatMessageProps {
   message: ChatMessage;
@@ -48,6 +49,11 @@ const TherapyChatMessage = ({ message, onApproveSessionSet }: TherapyChatMessage
         )}>
           {renderBoldText(message.content)}
         </div>
+
+        {/* 이미지 프롬프트 아코디언 (AI 메시지에만) */}
+        {message.type === "imagePrompt" && message.metadata?.imagePrompts && !isUser && (
+          <ImagePromptMessage prompts={message.metadata.imagePrompts} />
+        )}
 
         {/* 세션 세트 카드 (AI 메시지에만) */}
         {sessionSet && !isUser && (
