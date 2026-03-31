@@ -10,13 +10,13 @@ import { getGenAI } from "@/shared/api/genai";
 // ── 타입 ──
 
 export type InputIntent =
-  | "generate"      // 새 학습지 생성
-  | "modify"        // 기존 학습지 수정
-  | "adapt"         // 기존 학습지를 다른 아동에게 적용
-  | "imagePrompt"   // 단일 이미지 프롬프트만
-  | "conversation"  // 임상 질문/상담/관찰 공유
-  | "approve"       // 현재 결과 확정
-  | "retry"         // 다시 만들기
+  | "generate" // 새 학습지 생성
+  | "modify" // 기존 학습지 수정
+  | "adapt" // 기존 학습지를 다른 아동에게 적용
+  | "imagePrompt" // 단일 이미지 프롬프트만
+  | "conversation" // 임상 질문/상담/관찰 공유
+  | "approve" // 현재 결과 확정
+  | "retry" // 다시 만들기
   | "unknown";
 
 export interface InputAnalysis {
@@ -43,27 +43,67 @@ export interface InputAnalysis {
 // ── 로컬 의도 감지 (Gemini fallback용) ──
 
 const APPROVE_PATTERNS = [
-  "만들어", "좋아", "좋아요", "이대로", "진행", "네", "응",
-  "만들기", "생성", "ㅇㅇ", "ㅇ", "이걸로", "대로 할게요",
-  "추천대로", "대로 해주세요",
+  "만들어",
+  "좋아",
+  "좋아요",
+  "이대로",
+  "진행",
+  "네",
+  "응",
+  "만들기",
+  "생성",
+  "ㅇㅇ",
+  "ㅇ",
+  "이걸로",
+  "대로 할게요",
+  "추천대로",
+  "대로 해주세요",
 ];
 const RETRY_PATTERNS = ["다시", "다른", "다르게", "새로", "변경"];
 const EASY_PATTERNS = ["쉽게", "쉬운", "쉬움", "낮춰", "내려"];
 const HARD_PATTERNS = ["어렵게", "어려운", "어려움", "높여", "올려"];
-const NOISE_PATTERNS = /^[ㅋㅎㅠㅜ.!?…~]+$|^감사합니다$|^수고하세요$|^알겠습니다$|^넵$|^네네$/;
+const NOISE_PATTERNS =
+  /^[ㅋㅎㅠㅜ.!?…~]+$|^감사합니다$|^수고하세요$|^알겠습니다$|^넵$|^네네$/;
 
-const GENERATION_ACTION_VERBS = ["만들어", "생성", "해줘", "줘", "필요", "해야", "시작"];
+const GENERATION_ACTION_VERBS = [
+  "만들어",
+  "생성",
+  "해줘",
+  "줘",
+  "필요",
+  "해야",
+  "시작",
+];
 const GENERATION_NOUNS = ["학습지", "자료", "워크시트", "활동지", "프로그램"];
 const GENERATION_SPECIFIC = [
-  "컷", "장으로",
-  "같은것찾기", "짝맞추기", "틀린그림", "순서맞추기",
-  "선긋기", "따라쓰기", "단어카드",
-  "ㅅ발음", "ㄹ발음", "ㅈ발음", "ㅊ발음", "ㄱ발음",
+  "컷",
+  "장으로",
+  "같은것찾기",
+  "짝맞추기",
+  "틀린그림",
+  "순서맞추기",
+  "선긋기",
+  "따라쓰기",
+  "단어카드",
+  "ㅅ발음",
+  "ㄹ발음",
+  "ㅈ발음",
+  "ㅊ발음",
+  "ㄱ발음",
 ];
 
 function isGenerationRequest(text: string): boolean {
   if (GENERATION_SPECIFIC.some((s) => text.includes(s))) return true;
-  const hasDomain = ["감정", "인지", "언어", "소근육", "사회성", "놀이", "조음", "발음"].some((d) => text.includes(d));
+  const hasDomain = [
+    "감정",
+    "인지",
+    "언어",
+    "소근육",
+    "사회성",
+    "놀이",
+    "조음",
+    "발음",
+  ].some((d) => text.includes(d));
   const hasAction = GENERATION_ACTION_VERBS.some((v) => text.includes(v));
   const hasNoun = GENERATION_NOUNS.some((n) => text.includes(n));
   return (hasDomain && hasAction) || hasNoun;
@@ -71,7 +111,8 @@ function isGenerationRequest(text: string): boolean {
 
 function isConversationSignal(text: string): boolean {
   const signals = [
-    /어떻게/, /\?$|인가요|일까요|할까요|나요|시나요|인데|는데|거든|잖아|되죠/,
+    /어떻게/,
+    /\?$|인가요|일까요|할까요|나요|시나요|인데|는데|거든|잖아|되죠/,
     /반응|집중|흥미|관심|좋아[하해]|싫어[하해]|거부|울|웃/,
     /오늘|지금|방금|아까|세션\s*중|치료\s*중/,
     /도움|조언|의견|팁|방법|전략|접근/,
@@ -83,23 +124,41 @@ function isConversationSignal(text: string): boolean {
 }
 
 function hasStrongQuestionMarker(text: string): boolean {
-  return /할까요|일까요|인가요|나요|시나요|되죠|괜찮을까|어떨까|좋을까/.test(text);
+  return /할까요|일까요|인가요|나요|시나요|되죠|괜찮을까|어떨까|좋을까/.test(
+    text,
+  );
 }
 
-const ADAPT_PATTERNS = /(?:한테도|에게도|에게\s*맞게|한테\s*맞게|적용해|변환해|써줘|맞춰줘|조정해).*(?:학습지|자료|활동)|(?:학습지|자료|활동).*(?:한테도|에게도|적용|변환|맞게)/;
+const ADAPT_PATTERNS =
+  /(?:한테도|에게도|에게\s*맞게|한테\s*맞게|적용해|변환해|써줘|맞춰줘|조정해).*(?:학습지|자료|활동)|(?:학습지|자료|활동).*(?:한테도|에게도|적용|변환|맞게)/;
 
 /** 로컬 패턴 기반 의도 감지 (Gemini 실패 시 fallback) */
-export function detectIntentLocal(text: string, hasResult: boolean): InputIntent {
+export function detectIntentLocal(
+  text: string,
+  hasResult: boolean,
+): InputIntent {
   const t = text.trim();
-  if (NOISE_PATTERNS.test(t) || t.length < 2) return hasResult ? "unknown" : "conversation";
+  if (NOISE_PATTERNS.test(t) || t.length < 2)
+    return hasResult ? "unknown" : "conversation";
   if (ADAPT_PATTERNS.test(t) && hasResult) return "adapt";
-  if (hasResult && APPROVE_PATTERNS.some((p) => t.includes(p)) && !isGenerationRequest(t)) return "approve";
+  if (
+    hasResult &&
+    APPROVE_PATTERNS.some((p) => t.includes(p)) &&
+    !isGenerationRequest(t)
+  )
+    return "approve";
   if (RETRY_PATTERNS.some((p) => t.includes(p)) && hasResult) return "retry";
-  if (hasResult && (EASY_PATTERNS.some((p) => t.includes(p)) || HARD_PATTERNS.some((p) => t.includes(p)))) return "modify";
+  if (
+    hasResult &&
+    (EASY_PATTERNS.some((p) => t.includes(p)) ||
+      HARD_PATTERNS.some((p) => t.includes(p)))
+  )
+    return "modify";
   if (hasStrongQuestionMarker(t)) return "conversation";
   if (isGenerationRequest(t)) return "generate";
   if (isConversationSignal(t)) return "conversation";
-  if (/이미지|그림|일러스트|프롬프트/.test(t) && !/학습지|세트|5장/.test(t)) return "imagePrompt";
+  if (/이미지|그림|일러스트|프롬프트/.test(t) && !/학습지|세트|5장/.test(t))
+    return "imagePrompt";
   return hasResult ? "modify" : "generate";
 }
 
@@ -108,7 +167,19 @@ export function detectIntentLocal(text: string, hasResult: boolean): InputIntent
 const INPUT_ANALYSIS_SCHEMA = {
   type: "object" as const,
   properties: {
-    intent: { type: "string" as const, enum: ["generate", "modify", "adapt", "imagePrompt", "conversation", "approve", "retry", "unknown"] },
+    intent: {
+      type: "string" as const,
+      enum: [
+        "generate",
+        "modify",
+        "adapt",
+        "imagePrompt",
+        "conversation",
+        "approve",
+        "retry",
+        "unknown",
+      ],
+    },
     student: {
       type: "object" as const,
       properties: {
@@ -189,7 +260,7 @@ ${context.previousMessages?.length ? `최근 대화:\n${context.previousMessages
 
     const response = await Promise.race([
       ai.models.generateContent({
-        model: "gemini-2.0-flash-lite",
+        model: "gemini-3.1-flash-lite",
         contents: [{ role: "user", parts: [{ text }] }],
         config: {
           systemInstruction: systemPrompt,
@@ -197,14 +268,17 @@ ${context.previousMessages?.length ? `최근 대화:\n${context.previousMessages
           responseSchema: INPUT_ANALYSIS_SCHEMA,
         },
       }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10000),
+      ),
     ]);
 
     const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!responseText) throw new Error("Empty response");
     const parsed = JSON.parse(responseText);
     if (!parsed?.intent || !parsed?.student) throw new Error("Invalid schema");
-    if (typeof parsed.student.detected !== "boolean") parsed.student.detected = false;
+    if (typeof parsed.student.detected !== "boolean")
+      parsed.student.detected = false;
     return parsed as InputAnalysis;
   } catch {
     // Gemini 실패 → 로컬 fallback
