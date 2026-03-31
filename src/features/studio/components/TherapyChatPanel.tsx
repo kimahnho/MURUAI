@@ -301,7 +301,7 @@ const TherapyChatPanel = ({ onApproveSessionSet, onFirstMessage, onNavigateToCha
               transition={{ duration: 0.4, delay: 0.2 }}
               className="text-14-regular text-black-50 max-w-md"
             >
-              아동의 진단명, 나이, 도메인을 함께 알려주시면 더 정확해요.
+              아동의 진단명, 나이, 관심사를 함께 알려주시면 더 정확해요.
             </motion.p>
 
             {/* 아동 선택 안내 */}
