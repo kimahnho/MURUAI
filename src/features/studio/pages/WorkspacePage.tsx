@@ -47,7 +47,7 @@ const WorkspacePage = ({ onClose }: WorkspacePageProps) => {
             (current, total) => setProgress({ current, total }),
           );
         } catch (err) {
-          console.warn("이미지 생성 실패, 텍스트 fallback 사용", err);
+          captureSentryError(err, "WorkspacePage 이미지 생성 실패");
           useToastStore.getState().showToast("이미지 생성에 실패했어요. 텍스트로 대체합니다.");
         }
         setIsGenerating(false);
