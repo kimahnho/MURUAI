@@ -8,6 +8,7 @@ import type {
   ChatMessage,
   TherapyDomain,
   WorksheetSuggestion,
+  ConfidenceScore,
 } from "../model/therapyTypes";
 import { MAX_MESSAGES_CONTEXT, MAX_MESSAGE_CONTENT_LENGTH, DEFAULT_SHEET_COUNT } from "../model/therapyConstants";
 import { checkSafety } from "./safetyCheck";
@@ -15,6 +16,8 @@ import { detectDomain } from "./domainDetection";
 import { anonymizeForLLM } from "./anonymizeForLLM";
 import { getOverlay } from "./agentOverlay";
 import { enforceGuardrails } from "./guardrails";
+import { calculateConfidence } from "./confidenceScore";
+import { recordMetric } from "../model/qualityMetrics";
 import { callStudioApi } from "../data/therapyService";
 
 // ── Gemini 응답 고정 스키마 ──
@@ -42,8 +45,17 @@ export const STUDIO_RESPONSE_SCHEMA = {
           difficulty: { type: "string" as const, enum: ["easy", "medium", "hard"] },
           itemCount: { type: "integer" as const, description: "항목 수 (2~8)" },
           description: { type: "string" as const, description: "치료사 지시 포함 활동 설명" },
+          imagePrompt: {
+            type: "string" as const,
+            description: `이 학습지의 이미지 생성 프롬프트. 반드시 포함:
+1) 치료 목표(아동이 수행할 행동)
+2) 구체적 시각 자극(사물명, 배치, 수량)
+3) 아트 스타일(진단 적응형)
+4) 레이아웃(격자/시퀀스/단일장면 등)
+예시: "ㅅ 초성 조음치료 짝맞추기. 왼쪽에 사과/소/수박/사자 실물사진 4개, 오른쪽에 한글 글자 카드. 점선으로 연결. 흰 배경, 두꺼운 외곽선, 밝은 단색."`,
+          },
         },
-        required: ["title", "worksheetType", "difficulty", "itemCount", "description"],
+        required: ["title", "worksheetType", "difficulty", "itemCount", "description", "imagePrompt"],
       },
     },
   },
@@ -119,6 +131,10 @@ function buildDiagnosisText(profile?: TherapyStudentProfile): string | undefined
     if (profile.functionalAge) {
       parts.push(`기능연령: ${profile.functionalAge}개월`);
     }
+    // 적응 전략 포함 (Gemini가 학습지 설계 시 반영)
+    if (profile.diagnosis.adaptations && profile.diagnosis.adaptations.length > 0) {
+      parts.push(`적응전략: ${profile.diagnosis.adaptations.join(", ")}`);
+    }
     return parts.join(", ");
   }
 
@@ -138,6 +154,7 @@ export interface StudioResponse {
   sheets?: WorksheetSuggestion[];
   domain: TherapyDomain;
   warnings: string[];
+  confidence?: ConfidenceScore;
 }
 
 /**
@@ -195,9 +212,11 @@ ${currentSheets.map((s, i) => `${i + 1}번: "${s.title}" (${s.worksheetType}, ${
 ${studentContext}${sheetsContext}
 [학습지 생성 시 규칙]
 - sheets 배열에 ${DEFAULT_SHEET_COUNT}장을 포함하세요.
-- 각 장의 title은 구체적으로 작성하세요. (❌ "같은 것 찾기" → ✅ "과일 그림 중 똑같은 것 선으로 잇기")
+- 각 장의 title은 구체적으로 작성하세요. (❌ "같은 것 찾기" → ✅ "ㅅ 소리 나는 낱말 그림과 글자 짝짓기")
 - difficulty는 단계에 따라 상승: 도입 easy → 심화 hard
-- description에 치료사가 아동에게 줄 구체적 지시를 포함하세요.`,
+- description에 치료사가 아동에게 줄 구체적 지시를 포함하세요.
+- imagePrompt는 치료 목표를 반영한 구체적 이미지 설계: 사물명, 배치, 수량, 아트 스타일을 명시하세요.
+  예: "ㅅ 초성 조음치료. 사과/소/수박/사자 사물 카드 4개를 2×2 격자 배치. 각 사물 아래 빈 이름표 공간. 깔끔한 플랫 일러스트, 두꺼운 외곽선, 밝은 단색, 흰 배경."`,
     }],
   });
 
@@ -215,7 +234,7 @@ ${studentContext}${sheetsContext}
     callStudioApi({
       contents,
       domain: detection.primary,
-      lightweight: true,
+      lightweight: false, // 임상 도메인 참조 + image-prompt.md 전체 포함
       studentDiagnosis: diagnosisText,
       studentOverlay: studentOv?.content,
       therapistOverlay: therapistOv?.content,
@@ -260,6 +279,7 @@ ${studentContext}${sheetsContext}
           difficulty: normalizeDifficulty(String(item.difficulty ?? "medium")),
           itemCount: Math.min(Math.max(Number(item.itemCount) || 3, 2), 8),
           description: String(item.description ?? ""),
+          imagePrompt: item.imagePrompt ? String(item.imagePrompt) : undefined,
         };
 
         const { corrected, warnings, blocked } = enforceGuardrails({
@@ -278,12 +298,31 @@ ${studentContext}${sheetsContext}
         };
       });
 
+    // 신뢰도 점수 산출
+    const confidence = calculateConfidence({
+      domainConfidence: detection.confidence,
+      domain: detection.primary,
+      difficulty: sheets[0]?.difficulty ?? "medium",
+      autoLearned: studentProfile?.autoLearned,
+      guardrailWarningCount: allWarnings.length,
+      hasStudentProfile: !!studentProfile,
+    });
+
+    // 메트릭 기록
+    recordMetric("generation_complete", { domain: detection.primary, intent, sheetCount: sheets.length });
+    if (detection.confidence !== "none") {
+      recordMetric("domain_detected", { domain: detection.primary, confidence: detection.confidence });
+    } else {
+      recordMetric("domain_fallback", { domain: detection.primary });
+    }
+
     return {
       intent,
       reply: reply || `${detection.primary} 도메인으로 학습지 ${sheets.length}장을 설계했어요.`,
       sheets,
       domain: detection.primary,
       warnings: allWarnings,
+      confidence,
     };
   }
 

@@ -3,18 +3,29 @@
  * 사용자 입력에서 아동 이름/나이/진단을 추출하여 프로필 매칭 또는 생성을 제안한다.
  */
 import type { TherapyStudentProfile, DiagnosisCode, DiagnosisProfile } from "../model/therapyTypes";
+import { DIAGNOSIS_ADAPTATIONS } from "../model/therapyConstants";
 
-// ── 진단 패턴 (한국어 → DiagnosisCode) ──
+// ── 진단 패턴 (한국어 → DiagnosisCode) — Main 3 17종 ──
 
 const DIAGNOSIS_PATTERNS: Array<{ pattern: RegExp; code: DiagnosisCode; offsetMonths: number }> = [
-  { pattern: /ASD\s*(?:Level\s*|L)?3|자폐\s*3급|자폐\s*3수준/i, code: "ASD_L3", offsetMonths: -24 },
-  { pattern: /ASD\s*(?:Level\s*|L)?2|자폐\s*2급|자폐\s*2수준/i, code: "ASD_L2", offsetMonths: -18 },
-  { pattern: /ASD\s*(?:Level\s*|L)?1|자폐\s*1급|아스퍼거/i, code: "ASD_L1", offsetMonths: -12 },
-  { pattern: /ADHD|주의력\s*결핍/i, code: "ADHD", offsetMonths: -6 },
-  { pattern: /지적\s*장애\s*중도|지적\s*장애\s*중증/i, code: "ID_SEVERE", offsetMonths: -36 },
-  { pattern: /지적\s*장애\s*중등도/i, code: "ID_MODERATE", offsetMonths: -30 },
-  { pattern: /지적\s*장애(?:\s*경도)?/i, code: "ID_MILD", offsetMonths: -18 },
-  { pattern: /언어\s*발달\s*지연|언어\s*지연/i, code: "LANG_DELAY", offsetMonths: -6 },
+  { pattern: /ASD\s*(?:Level\s*|L)3|자폐\s*3급|자폐\s*중증/i, code: "ASD_L3", offsetMonths: -24 },
+  { pattern: /ASD\s*(?:Level\s*|L)2|자폐\s*2급/i, code: "ASD_L2", offsetMonths: -18 },
+  { pattern: /ASD\s*(?:Level\s*|L)1|자폐\s*1급|아스퍼거|고기능\s*ASD|고기능\s*자폐/i, code: "ASD_L1", offsetMonths: -12 },
+  { pattern: /ADHD|주의력결핍|과잉행동/i, code: "ADHD", offsetMonths: -6 },
+  { pattern: /지적장애\s*중도|지적장애\s*중증|지적장애\s*심도|ID\s*severe/i, code: "ID_severe", offsetMonths: -36 },
+  { pattern: /지적장애\s*중등도|ID\s*moderate/i, code: "ID_moderate", offsetMonths: -30 },
+  { pattern: /지적장애\s*경도|지적장애|ID\s*mild/i, code: "ID_mild", offsetMonths: -18 },
+  { pattern: /다운증후군|다운/i, code: "down", offsetMonths: -18 },
+  { pattern: /언어발달지연|언어지연/i, code: "language_delay", offsetMonths: -6 },
+  { pattern: /뇌성마비|CP/i, code: "CP", offsetMonths: -24 },
+  { pattern: /발달성\s*협응장애|DCD/i, code: "DCD", offsetMonths: -12 },
+  // ─── 확장 진단 패턴 ───
+  { pattern: /경계선\s*지능|경계\s*지능|borderline\s*intellectual/i, code: "borderline_intellectual", offsetMonths: -12 },
+  { pattern: /선택적\s*함묵|함묵증|selective\s*mutism/i, code: "selective_mutism", offsetMonths: -6 },
+  { pattern: /말더듬|유창성\s*장애|stuttering/i, code: "stuttering", offsetMonths: 0 },
+  { pattern: /청각장애|난청|hearing\s*impair/i, code: "hearing_impaired", offsetMonths: -12 },
+  { pattern: /구개열|구순열|cleft/i, code: "cleft_palate", offsetMonths: -6 },
+  { pattern: /전반적\s*발달\s*지연|GDD|global\s*developmental/i, code: "global_developmental_delay", offsetMonths: -18 },
 ];
 
 // ── 이름 추출 ──
@@ -74,18 +85,23 @@ export function extractStudentInfo(text: string): ExtractedStudentInfo {
  */
 export function extractDiagnosis(text: string): DiagnosisProfile {
   const codes: DiagnosisCode[] = [];
-  let minOffset = 0;
+  let totalOffset = 0;
 
   for (const { pattern, code, offsetMonths } of DIAGNOSIS_PATTERNS) {
     if (pattern.test(text)) {
       codes.push(code);
-      minOffset = Math.min(minOffset, offsetMonths);
+      totalOffset = Math.min(totalOffset, offsetMonths); // 가장 심한 보정 적용
     }
   }
+
+  // 진단별 적응 전략 수집 + 중복 제거
+  const adaptations = [...new Set(codes.flatMap((c) => DIAGNOSIS_ADAPTATIONS[c] ?? []))];
 
   return {
     primary: codes[0],
     comorbidities: codes.slice(1),
+    functionalAgeOffset: totalOffset,
+    adaptations,
     rawText: text,
   };
 }
@@ -100,8 +116,8 @@ export function calculateFunctionalAge(
   const ageMonths = ageYears * 12;
   if (!diagnosis?.primary) return ageMonths;
 
-  const match = DIAGNOSIS_PATTERNS.find((p) => p.code === diagnosis.primary);
-  const offset = match?.offsetMonths ?? 0;
+  // DiagnosisProfile에 이미 계산된 functionalAgeOffset 사용 (모든 매칭 코드의 min)
+  const offset = diagnosis.functionalAgeOffset ?? 0;
 
   return Math.max(18, ageMonths + offset);
 }
@@ -129,7 +145,7 @@ export function buildTemporaryProfile(
 ): Partial<TherapyStudentProfile> {
   return {
     userId,
-    diagnosis: info.diagnosis ?? { comorbidities: [], rawText: "" },
+    diagnosis: info.diagnosis ?? { comorbidities: [], functionalAgeOffset: 0, adaptations: [], rawText: "" },
     functionalAge: info.age ? calculateFunctionalAge(info.age, info.diagnosis) : 0,
     therapyGoals: [],
     articulationTargets: [],

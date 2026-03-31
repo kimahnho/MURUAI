@@ -1,8 +1,12 @@
 /**
  * 학습지 이미지 생성 — Gemini 2.5 Flash Image로 A4 학습지 이미지 5장 생성.
- * 각 WorksheetSuggestion에 대해 완성된 학습지 페이지 이미지를 생성한다.
+ *
+ * v2: 임상 지식 기반 이미지 프롬프트
+ * - Gemini가 생성한 imagePrompt 우선 사용 (임상 맥락 포함)
+ * - 진단 적응형 아트 스타일 선택
+ * - 치료 도메인별 레이아웃 가이드
  */
-import type { WorksheetSuggestion, TherapyDomain } from "../model/therapyTypes";
+import type { WorksheetSuggestion, TherapyDomain, DiagnosisProfile } from "../model/therapyTypes";
 import { THERAPY_DOMAIN_LABELS } from "../model/therapyTypes";
 import { getGenAI } from "@/shared/api/genai";
 
@@ -13,67 +17,181 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 3000;
 const IMAGE_MODEL = "gemini-2.5-flash-image";
 
-// ── 아트 스타일 (Style A: Flat Illustration — 기본) ──
+// ── 진단 적응형 아트 스타일 ──
 
-const ART_STYLE = `Clean, flat Korean children's educational illustration style.
+const ART_STYLES = {
+  flat: `Clean, flat Korean children's educational illustration style.
 Thick black outlines (2-3px). Solid bright colors with minimal shading.
-Pure white background that extends to ALL edges — NO borders, NO frames, NO margins, NO decorative outlines.
-Rounded, friendly shapes.
-No text, labels, numbers, or symbols in the image.
-No 3D rendering, no anime, no watermarks.
-The image must fill the ENTIRE canvas edge-to-edge with NO visible border or frame of any kind.`;
+Rounded, friendly shapes. Pure white background extending to ALL edges.
+No text, labels, numbers in the image. No borders or frames.`,
 
-// ── 활동 유형별 레이아웃 힌트 ──
+  lowStimulation: `Low-stimulation style for sensory-sensitive children.
+Pastel tones only. Thin gentle outlines. Pure white background ONLY.
+No patterns, no textures, no gradients. Minimal visual elements.
+Very soft colors. Maximum visual clarity with minimum stimulation.`,
 
-const LAYOUT_HINTS: Record<string, string> = {
-  findSame: "A reference image on the left, 3-4 candidate images on the right arranged in a grid. One matches exactly.",
-  matchPairs: "Two columns. Left column has 3-4 items. Right column has matching items in different order. Dotted lines connect them.",
-  spotDifference: "Two nearly identical scenes side by side. 3-5 subtle differences between them.",
-  categorize: "6-8 objects scattered in the center. Two labeled baskets/boxes at the bottom for sorting.",
-  emotionInference: "A scene showing a child in a situation (center). Below: 4 emotion face choices in a row.",
-  lineConnect: "Two columns of items. Left and right columns should be connected by drawing lines.",
-  sequencing: "4-5 scene cards arranged in a row showing a sequence of events. Numbers below each card.",
+  photorealistic: `Photorealistic style with real-looking objects.
+Clear, high-quality photos of everyday objects on pure white background.
+No cartoon elements. Sharp, recognizable objects that match real life.
+Important for children with intellectual disabilities who need concrete visual references.`,
+
+  ageAppropriate: `Clean, modern illustration suitable for older children.
+NOT childish or babyish. Simple but mature-looking graphics.
+Neutral colors, clean lines. Respectful of the child's chronological age
+while keeping content at functional age level.`,
+} as const;
+
+type ArtStyleKey = keyof typeof ART_STYLES;
+
+/** 진단 기반 아트 스타일 선택 */
+function selectArtStyle(diagnosis?: DiagnosisProfile): { style: string; key: ArtStyleKey } {
+  if (!diagnosis?.primary) return { style: ART_STYLES.flat, key: "flat" };
+
+  const primary = diagnosis.primary;
+  const adaptations = diagnosis.adaptations ?? [];
+
+  // 감각과민 → 저자극
+  if (adaptations.some((a) => a.includes("감각") || a.includes("저자극"))) {
+    return { style: ART_STYLES.lowStimulation, key: "lowStimulation" };
+  }
+
+  // 지적장애 중등도+ → 실물 사진
+  if (adaptations.includes("실물 사진 스타일") || adaptations.includes("실물 사진")) {
+    return { style: ART_STYLES.photorealistic, key: "photorealistic" };
+  }
+
+  // ASD L2/L3 → 저자극 (배경 제거, 시각 구조화)
+  if (primary === "ASD_L2" || primary === "ASD_L3") {
+    return { style: ART_STYLES.lowStimulation, key: "lowStimulation" };
+  }
+
+  // 기본
+  return { style: ART_STYLES.flat, key: "flat" };
+}
+
+// ── 치료 도메인별 이미지 설계 가이드 (임상 지식) ──
+
+const DOMAIN_IMAGE_GUIDES: Record<TherapyDomain, string> = {
+  language: `[언어치료 이미지 원칙]
+- 이미지의 목적: 아동이 목표 음소/단어를 "말하기 위해" 사물을 보는 것
+- 조음치료: 목표 음소가 포함된 단어의 사물 그림 (예: ㅅ → 사과, 소, 수박, 사자)
+- 어휘치료: 범주별 실물 사물 그림 (동물, 과일, 탈것 등)
+- 각 사물은 명확하게 구분 가능해야 함 (크기 충분, 배경 없음)
+- 짝맞추기: 왼쪽 사물 그림 — 오른쪽 대응 항목, 점선 연결 가이드
+- 같은것찾기: 기준 이미지 + 후보 이미지 배열, 정답은 완전 동일`,
+
+  emotion: `[감정치료 이미지 원칙]
+- 이미지의 목적: 아동이 감정을 "인식/판별"하기 위해 표정/상황을 보는 것
+- 표정: 과장된 얼굴 표정 (눈, 입 모양이 감정을 명확히 전달)
+- 상황: 감정을 유발하는 일상 장면 (생일파티→행복, 장난감 빼앗김→슬픔)
+- 선택지: 감정 얼굴 카드 3-4개 (명확하게 다른 감정)
+- ASD 아동: 선택지 간 차이를 극대화 (행복 vs 슬픔, 화남 vs 놀람)`,
+
+  cognition: `[인지치료 이미지 원칙]
+- 이미지의 목적: 아동이 "비교/분류/패턴 파악"을 하기 위한 자극 배열
+- 같은것찾기: 기준 이미지와 후보 간 유사도 조절 (난이도)
+- 분류: 명확한 범주 경계 (동물 vs 탈것 = 쉬움, 포유류 vs 파충류 = 어려움)
+- 순서맞추기: 시간 순서가 명확한 장면 (씨앗→싹→나무)
+- 매칭: 관련성이 직관적인 쌍 (우산-비, 칫솔-치약)`,
+
+  motor: `[소근육치료 이미지 원칙]
+- 이미지의 목적: 아동이 "손을 움직이기 위한" 시각 가이드
+- 선긋기: 시작점과 끝점이 명확한 점선/가이드라인
+- 따라쓰기: 큰 글자 외곽선 (아동이 따라 그음)
+- 색칠: 굵은 테두리의 사물 윤곽 (내부 비워둠)
+- 가위질: 자르기 가이드 선 (직선→곡선→복잡한 형태)
+- 미로: 넓은 통로, 명확한 시작/끝점`,
+
+  social: `[사회성치료 이미지 원칙]
+- 이미지의 목적: 아동이 "적절한 행동을 판단"하기 위한 사회적 상황
+- 또래 상호작용 장면 (인사, 차례 지키기, 나누기, 요청하기)
+- O/X 비교: 적절한 행동 vs 부적절한 행동 나란히 배치
+- 순서: 사회적 스크립트 시각화 (인사→대화→놀이→작별)
+- 상황 판단: 장면 + "어떻게 해야 할까?" 선택지`,
+
+  play: `[놀이치료 이미지 원칙]
+- 이미지의 목적: 아동이 "놀이 방법을 이해"하기 위한 놀이 장면
+- 감각놀이: 다양한 질감/도구 배열 (모래, 물, 점토)
+- 상징놀이: 사물의 실제 용도 vs 놀이 용도 비교
+- 규칙놀이: 단계별 놀이 방법 시각화
+- 구성놀이: 완성품 + 과정 단계`,
 };
 
-// ── 단일 학습지 이미지 프롬프트 생성 (외부에서도 사용) ──
+// ── 이미지 프롬프트 구성 (임상 지식 기반) ──
 
+const CLINICAL_IMAGE_SYSTEM_PROMPT = `당신은 발달장애 아동 치료 학습지 이미지를 설계하는 전문가입니다.
+
+핵심 원칙:
+1. 이미지는 "예쁜 그림"이 아니라 "치료 도구"입니다. 아동이 목표 행동을 수행하기 위한 시각적 자극입니다.
+2. 치료 목표를 먼저 이해하고, 그 목표 달성에 필요한 시각 자극을 설계하세요.
+3. 기능연령에 맞는 복잡도를 적용하세요.
+
+안전 규칙:
+- 폭력/공포/성적 콘텐츠 절대 금지
+- 이미지 안에 텍스트를 직접 넣지 않음 (코드에서 오버레이)
+- A4 흑백 인쇄에서도 구분 가능해야 함`;
+
+/**
+ * 단일 학습지 이미지 프롬프트 생성.
+ * Gemini가 임상 맥락으로 생성한 imagePrompt가 있으면 우선 사용.
+ * 없으면 fallback으로 generic 프롬프트 생성.
+ */
 export function buildWorksheetImagePrompt(
   sheet: WorksheetSuggestion,
   domain: TherapyDomain,
+  diagnosis?: DiagnosisProfile,
 ): string {
-  const layoutHint = LAYOUT_HINTS[sheet.worksheetType] ?? "Activity items arranged clearly on the page.";
+  const { style: artStyle } = selectArtStyle(diagnosis);
+  const domainGuide = DOMAIN_IMAGE_GUIDES[domain];
   const domainLabel = THERAPY_DOMAIN_LABELS[domain];
 
-  return `Generate a COMPLETE A4 educational worksheet page image that fills the ENTIRE canvas.
-Portrait orientation (3:4 aspect ratio, like 210×297mm). Pure white background extending to ALL edges. Print-ready.
-The content must fill the full page — no empty margins, no page border effect.
+  // Gemini가 생성한 임상 imagePrompt가 있으면 그걸 기반으로 보강
+  if (sheet.imagePrompt) {
+    return `Generate a COMPLETE A4 educational worksheet page image. Portrait (3:4).
+Pure white background extending to ALL edges. Print-ready. No borders or frames.
+
+[임상 이미지 설계]
+${sheet.imagePrompt}
+
+[아트 스타일]
+${artStyle}
+
+${domainGuide}
+
+PAGE LAYOUT:
+=== TOP (15%) === Empty white space for title overlay.
+=== MAIN (55-70%) === Content as described above. Objects large enough for young children.
+=== BOTTOM (15-30%) === Response area: dotted lines or circles for answers.
+
+CRITICAL: No text in image. No Korean/English characters. Only illustrations.
+No border/frame. White background to all edges.`;
+  }
+
+  // Fallback: generic 프롬프트 (imagePrompt 없는 경우)
+  return `Generate a COMPLETE A4 educational worksheet page image. Portrait (3:4).
+Pure white background extending to ALL edges. Print-ready. No borders or frames.
 
 Domain: ${domainLabel} (${domain})
 Title: "${sheet.title}"
 Activity: ${sheet.description}
 Difficulty: ${sheet.difficulty}
-Number of items: ${sheet.itemCount}
+Items: ${sheet.itemCount}
 
-${ART_STYLE}
+[아트 스타일]
+${artStyle}
+
+${domainGuide}
 
 PAGE LAYOUT:
-=== TOP AREA (15% of page) ===
-Leave empty white space for title text overlay.
+=== TOP (15%) === Empty white space for title overlay.
+=== MAIN (55-70%) ===
+- Use ${sheet.itemCount} items for ${sheet.difficulty} difficulty.
+- All illustrations simple, clear, child-friendly.
+- Objects large enough for young children to identify.
+=== BOTTOM (15-30%) === Response area: dotted lines or circles for answers.
 
-=== MAIN CONTENT AREA (55-70% of page) ===
-${layoutHint}
-- Use ${sheet.itemCount} items appropriate for ${sheet.difficulty} difficulty.
-- All illustrations should be simple, clear, and child-friendly.
-- Objects should be large enough for young children to identify.
-
-=== BOTTOM AREA (15-30% of page) ===
-Response area: dotted lines or circles for marking answers.
-Leave space for name/date field.
-
-CRITICAL RULES:
-- No text anywhere in the image. No Korean or English characters. Only illustrations.
-- No border, frame, or outline around the page. The white background must extend to all edges.
-- No drop shadow or page-like framing effect. The image IS the page, not a picture of a page.`;
+CRITICAL: No text in image. No Korean/English characters. Only illustrations.
+No border/frame. White background to all edges.`;
 }
 
 // ── 단일 학습지 이미지 생성 ──
@@ -81,9 +199,10 @@ CRITICAL RULES:
 async function generateSingleImage(
   sheet: WorksheetSuggestion,
   domain: TherapyDomain,
+  diagnosis?: DiagnosisProfile,
 ): Promise<string> {
   const ai = getGenAI();
-  const prompt = buildWorksheetImagePrompt(sheet, domain);
+  const prompt = buildWorksheetImagePrompt(sheet, domain, diagnosis);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -91,12 +210,12 @@ async function generateSingleImage(
         model: IMAGE_MODEL,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
+          systemInstruction: CLINICAL_IMAGE_SYSTEM_PROMPT,
           responseModalities: ["Text", "Image"],
           imageConfig: { aspectRatio: "3:4" },
         },
       });
 
-      // base64 이미지 추출
       const parts = response.candidates?.[0]?.content?.parts ?? [];
       for (const part of parts) {
         const inline = (part as { inlineData?: { data: string; mimeType: string } }).inlineData;
@@ -117,7 +236,6 @@ async function generateSingleImage(
 
 async function uploadToCloudinary(base64Data: string, userId: string): Promise<string> {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    // Cloudinary 미설정 시 data URL 반환
     return `data:image/png;base64,${base64Data}`;
   }
 
@@ -146,18 +264,17 @@ export async function generateWorksheetImages(
   domain: TherapyDomain,
   userId: string,
   onProgress?: (current: number, total: number) => void,
+  diagnosis?: DiagnosisProfile,
 ): Promise<string[]> {
   const total = sheets.length;
   const base64Images: string[] = [];
 
-  // Phase 1: 순차 이미지 생성
   for (let i = 0; i < total; i++) {
     onProgress?.(i + 1, total);
-    const base64 = await generateSingleImage(sheets[i], domain);
+    const base64 = await generateSingleImage(sheets[i], domain, diagnosis);
     base64Images.push(base64);
   }
 
-  // Phase 2: Cloudinary 일괄 업로드
   const urls = await Promise.all(
     base64Images.map((b64) => uploadToCloudinary(b64, userId)),
   );

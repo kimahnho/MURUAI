@@ -113,7 +113,7 @@ export async function getOverlay(
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .single();
 
   if (error || !data) return null;
 
