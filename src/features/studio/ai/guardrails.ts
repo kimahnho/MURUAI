@@ -258,7 +258,7 @@ const playRules: Rule[] = [
   {
     id: "P1",
     check: ({ result, diagnosis }) => {
-      if (result.domain === "play" && (diagnosis?.primary === "ASD_L3" || diagnosis?.primary === "ID_severe")) {
+      if (result.domain === "play" && (diagnosis?.primary === "ASD_L3" || diagnosis?.primary === "ID_SEVERE")) {
         return { action: "override", ruleId: "P1", message: "중증 장애: 상징놀이 이상 부적절 → 감각놀이(Stage 1) 수준으로 자동 조정.", corrected: "stage1" };
       }
       return null;
@@ -370,7 +370,7 @@ const globalRules: Rule[] = [
   {
     id: "G5",
     check: ({ result, diagnosis }) => {
-      if (diagnosis?.primary === "stuttering" && !["emotion", "social"].includes(result.domain ?? "")) {
+      if (diagnosis?.primary === "STUTTERING" && !["emotion", "social"].includes(result.domain ?? "")) {
         return { action: "block", ruleId: "G5", message: "유창성장애(말더듬): 말하기 연습 학습지는 불안을 증가시킬 수 있어 직접 SLP 중재가 필요합니다. 단, 감정 표현·자기주장 학습지는 생성 가능합니다." };
       }
       return null;
@@ -379,7 +379,7 @@ const globalRules: Rule[] = [
   {
     id: "G5b",
     check: ({ result, diagnosis }) => {
-      if (diagnosis?.primary === "stuttering" && ["emotion", "social"].includes(result.domain ?? "")) {
+      if (diagnosis?.primary === "STUTTERING" && ["emotion", "social"].includes(result.domain ?? "")) {
         return { action: "warn", ruleId: "G5b", message: "유창성장애 아동: 감정/사회성 학습지를 보조 자료로 제공합니다. 말하기 연습 자체가 아닌 의사소통 자신감 향상에 초점을 맞추세요." };
       }
       return null;
@@ -388,7 +388,7 @@ const globalRules: Rule[] = [
   {
     id: "G6",
     check: ({ diagnosis }) => {
-      if (diagnosis?.primary === "selective_mutism") {
+      if (diagnosis?.primary === "SELECTIVE_MUTISM") {
         return { action: "warn", ruleId: "G6", message: "선택적 함묵증은 학습지보다 환경 조정과 점진적 노출이 우선입니다. 학습지는 보조 자료로만 활용해주세요." };
       }
       return null;
@@ -397,7 +397,7 @@ const globalRules: Rule[] = [
   {
     id: "G7",
     check: ({ diagnosis }) => {
-      if (diagnosis?.primary === "hearing_impaired") {
+      if (diagnosis?.primary === "HEARING_IMPAIRED") {
         return { action: "override", ruleId: "G7", message: "청각장애 아동 → 텍스트 라벨 필수 적용", corrected: "textLabels" };
       }
       return null;

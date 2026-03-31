@@ -32,11 +32,22 @@ export type DiagnosisCode =
   | "ID_SEVERE"
   | "LANG_DELAY"
   | "ADHD"
+  | "DOWN"
+  | "CP"
+  | "DCD"
+  | "BORDERLINE_INTELLECTUAL"
+  | "SELECTIVE_MUTISM"
+  | "STUTTERING"
+  | "HEARING_IMPAIRED"
+  | "CLEFT_PALATE"
+  | "GLOBAL_DEVELOPMENTAL_DELAY"
   | "OTHER";
 
 export interface DiagnosisProfile {
   primary?: DiagnosisCode;
   comorbidities: DiagnosisCode[];
+  functionalAgeOffset?: number;
+  adaptations?: string[];
   rawText: string;
 }
 
@@ -213,6 +224,49 @@ export interface SafetyCheckResult {
   crisisDetected: boolean;
   message?: string;
   hotlines?: string[];
+}
+
+// ── 신뢰도 점수 ──
+
+export interface ConfidenceScore {
+  domainDetection: number;
+  activityMatch: number;
+  difficultyCalibration: number;
+  overall: number;
+  flags: string[];
+  dataMaturity: "initial" | "developing" | "established";
+}
+
+// ── 세션 평가 데이터 ──
+
+export interface SessionEvaluationData {
+  sessionSummary: {
+    accuracy: number;
+    totalItems: number;
+    correct: number;
+    incorrect: number;
+    noResponse: number;
+  };
+  errorAnalysis: {
+    confusedPairs: string[];
+    pattern: string;
+    possibleCause: string;
+  };
+  progressVsPrevious: {
+    previousAccuracy: number;
+    change: string;
+    trend: "improving" | "declining" | "stable";
+    interpretation: string;
+  };
+  nextSessionRecommendation: {
+    domain: TherapyDomain;
+    level: number;
+    focus: string;
+    suggestedActivity: string;
+    difficulty: DifficultyLevel;
+    theme: string;
+  };
+  parentReportSummary: string;
 }
 
 // ── 오버레이 ──

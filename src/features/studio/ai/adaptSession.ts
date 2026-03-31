@@ -29,9 +29,6 @@ export function adaptSessionForStudent(
   const optimalDiff: DifficultyLevel = (autoLearned?.effectiveDifficulty as DifficultyLevel) ?? "easy";
   const difficultyItemMap: Record<DifficultyLevel, number> = { easy: 3, medium: 5, hard: 7 };
 
-  // B아동의 선호 테마
-  const preferredTheme = autoLearned?.preferredActivities?.[0];
-
   const adaptedSheets: WorksheetSuggestion[] = (sourceSet.sheets ?? []).map((sheet, i) => {
     // 역할별 난이도 보정 (첫 장은 easy, 마지막은 한 단계 올림)
     let sheetDiff = optimalDiff;

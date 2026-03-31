@@ -54,8 +54,8 @@ export function detectDomain(
 
   // 점수 순 정렬 (동점 시 DOMAIN_PRIORITY 순서 유지)
   const sorted = DOMAIN_PRIORITY
-    .map((d) => ({ domain: d, score: scores.get(d) ?? 0 }))
-    .sort((a, b) => {
+    .map((d: TherapyDomain) => ({ domain: d, score: scores.get(d) ?? 0 }))
+    .sort((a: { domain: TherapyDomain; score: number }, b: { domain: TherapyDomain; score: number }) => {
       if (b.score !== a.score) return b.score - a.score;
       // 동점 시 DOMAIN_PRIORITY 순서 유지 (이미 정렬됨)
       return 0;

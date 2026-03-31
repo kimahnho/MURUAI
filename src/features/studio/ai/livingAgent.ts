@@ -12,20 +12,20 @@ const DIAGNOSIS_PATTERNS: Array<{ pattern: RegExp; code: DiagnosisCode; offsetMo
   { pattern: /ASD\s*(?:Level\s*|L)2|자폐\s*2급/i, code: "ASD_L2", offsetMonths: -18 },
   { pattern: /ASD\s*(?:Level\s*|L)1|자폐\s*1급|아스퍼거|고기능\s*ASD|고기능\s*자폐/i, code: "ASD_L1", offsetMonths: -12 },
   { pattern: /ADHD|주의력결핍|과잉행동/i, code: "ADHD", offsetMonths: -6 },
-  { pattern: /지적장애\s*중도|지적장애\s*중증|지적장애\s*심도|ID\s*severe/i, code: "ID_severe", offsetMonths: -36 },
-  { pattern: /지적장애\s*중등도|ID\s*moderate/i, code: "ID_moderate", offsetMonths: -30 },
-  { pattern: /지적장애\s*경도|지적장애|ID\s*mild/i, code: "ID_mild", offsetMonths: -18 },
-  { pattern: /다운증후군|다운/i, code: "down", offsetMonths: -18 },
-  { pattern: /언어발달지연|언어지연/i, code: "language_delay", offsetMonths: -6 },
+  { pattern: /지적장애\s*중도|지적장애\s*중증|지적장애\s*심도|ID\s*severe/i, code: "ID_SEVERE", offsetMonths: -36 },
+  { pattern: /지적장애\s*중등도|ID\s*moderate/i, code: "ID_MODERATE", offsetMonths: -30 },
+  { pattern: /지적장애\s*경도|지적장애|ID\s*mild/i, code: "ID_MILD", offsetMonths: -18 },
+  { pattern: /다운증후군|다운/i, code: "DOWN", offsetMonths: -18 },
+  { pattern: /언어발달지연|언어지연/i, code: "LANG_DELAY", offsetMonths: -6 },
   { pattern: /뇌성마비|CP/i, code: "CP", offsetMonths: -24 },
   { pattern: /발달성\s*협응장애|DCD/i, code: "DCD", offsetMonths: -12 },
   // ─── 확장 진단 패턴 ───
-  { pattern: /경계선\s*지능|경계\s*지능|borderline\s*intellectual/i, code: "borderline_intellectual", offsetMonths: -12 },
-  { pattern: /선택적\s*함묵|함묵증|selective\s*mutism/i, code: "selective_mutism", offsetMonths: -6 },
-  { pattern: /말더듬|유창성\s*장애|stuttering/i, code: "stuttering", offsetMonths: 0 },
-  { pattern: /청각장애|난청|hearing\s*impair/i, code: "hearing_impaired", offsetMonths: -12 },
-  { pattern: /구개열|구순열|cleft/i, code: "cleft_palate", offsetMonths: -6 },
-  { pattern: /전반적\s*발달\s*지연|GDD|global\s*developmental/i, code: "global_developmental_delay", offsetMonths: -18 },
+  { pattern: /경계선\s*지능|경계\s*지능|borderline\s*intellectual/i, code: "BORDERLINE_INTELLECTUAL", offsetMonths: -12 },
+  { pattern: /선택적\s*함묵|함묵증|selective\s*mutism/i, code: "SELECTIVE_MUTISM", offsetMonths: -6 },
+  { pattern: /말더듬|유창성\s*장애|stuttering/i, code: "STUTTERING", offsetMonths: 0 },
+  { pattern: /청각장애|난청|hearing\s*impair/i, code: "HEARING_IMPAIRED", offsetMonths: -12 },
+  { pattern: /구개열|구순열|cleft/i, code: "CLEFT_PALATE", offsetMonths: -6 },
+  { pattern: /전반적\s*발달\s*지연|GDD|global\s*developmental/i, code: "GLOBAL_DEVELOPMENTAL_DELAY", offsetMonths: -18 },
 ];
 
 // ── 이름 추출 ──
@@ -145,7 +145,7 @@ export function buildTemporaryProfile(
 ): Partial<TherapyStudentProfile> {
   return {
     userId,
-    diagnosis: info.diagnosis ?? { comorbidities: [], functionalAgeOffset: 0, adaptations: [], rawText: "" },
+    diagnosis: info.diagnosis ?? { comorbidities: [], rawText: "" },
     functionalAge: info.age ? calculateFunctionalAge(info.age, info.diagnosis) : 0,
     therapyGoals: [],
     articulationTargets: [],
