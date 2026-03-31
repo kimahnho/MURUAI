@@ -7,7 +7,16 @@ import type { TherapyDomain } from "../model/therapyTypes";
 import { getGenAI } from "@/shared/api/genai";
 
 export interface ConversationSignal {
-  type: "theme_preference" | "behavior" | "attention" | "difficulty" | "strategy" | "context" | "sensory" | "regression" | "motivation";
+  type:
+    | "theme_preference"
+    | "behavior"
+    | "attention"
+    | "difficulty"
+    | "strategy"
+    | "context"
+    | "sensory"
+    | "regression"
+    | "motivation";
   value: string;
   confidence: number;
 }
@@ -21,7 +30,10 @@ export interface ConversationResponse {
 const CONVERSATION_SCHEMA = {
   type: "object" as const,
   properties: {
-    message: { type: "string" as const, description: "치료사에게 보여줄 응답. 한국어, 친근한 전문가 톤, 3~5문장." },
+    message: {
+      type: "string" as const,
+      description: "치료사에게 보여줄 응답. 한국어, 친근한 전문가 톤, 3~5문장.",
+    },
     signals: {
       type: "array" as const,
       items: {
@@ -39,8 +51,14 @@ const CONVERSATION_SCHEMA = {
       items: {
         type: "object" as const,
         properties: {
-          label: { type: "string" as const, description: "버튼 표시 텍스트 (한국어)" },
-          message: { type: "string" as const, description: "클릭 시 입력될 텍스트 (한국어)" },
+          label: {
+            type: "string" as const,
+            description: "버튼 표시 텍스트 (한국어)",
+          },
+          message: {
+            type: "string" as const,
+            description: "클릭 시 입력될 텍스트 (한국어)",
+          },
         },
         required: ["label", "message"],
       },
@@ -85,7 +103,7 @@ ${context?.sessionHistory?.length ? `\n최근 대화:\n${context.sessionHistory.
   try {
     const ai = getGenAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-3.1-flash-lite",
       contents: [{ role: "user", parts: [{ text }] }],
       config: {
         systemInstruction: systemPrompt,
@@ -102,26 +120,45 @@ ${context?.sessionHistory?.length ? `\n최근 대화:\n${context.sessionHistory.
     const signals: ConversationSignal[] = [];
     const actions: Array<{ label: string; message: string }> = [];
 
-    const themeMatch = text.match(/(강아지|고양이|공룡|자동차|로봇|동물|바다|우주)/g);
+    const themeMatch = text.match(
+      /(강아지|고양이|공룡|자동차|로봇|동물|바다|우주)/g,
+    );
     if (themeMatch) {
       const preferred = themeMatch[themeMatch.length - 1];
-      signals.push({ type: "theme_preference", value: preferred, confidence: 0.8 });
-      actions.push({ label: `${preferred} 테마로 변경`, message: `${preferred} 테마로 바꿔` });
+      signals.push({
+        type: "theme_preference",
+        value: preferred,
+        confidence: 0.8,
+      });
+      actions.push({
+        label: `${preferred} 테마로 변경`,
+        message: `${preferred} 테마로 바꿔`,
+      });
     }
     if (/반응|관심|좋아|집중/.test(text)) {
-      signals.push({ type: "attention", value: text.slice(0, 50), confidence: 0.7 });
+      signals.push({
+        type: "attention",
+        value: text.slice(0, 50),
+        confidence: 0.7,
+      });
     }
     if (/거부|울|싫어|안\s*해/.test(text)) {
-      signals.push({ type: "behavior", value: text.slice(0, 50), confidence: 0.8 });
+      signals.push({
+        type: "behavior",
+        value: text.slice(0, 50),
+        confidence: 0.8,
+      });
     }
 
     let message = "좋은 관찰이에요. ";
     if (themeMatch) {
       message += `${themeMatch[themeMatch.length - 1]}에 반응이 좋다면 테마를 바꿔보시는 건 어떨까요?`;
     } else if (/어떻게/.test(text)) {
-      message += "아동의 현재 상태를 좀 더 알려주시면 구체적인 전략을 제안해드릴 수 있어요.";
+      message +=
+        "아동의 현재 상태를 좀 더 알려주시면 구체적인 전략을 제안해드릴 수 있어요.";
     } else {
-      message += "세션 중 관찰하신 내용을 기록해두면 다음 학습지 생성에 반영할게요.";
+      message +=
+        "세션 중 관찰하신 내용을 기록해두면 다음 학습지 생성에 반영할게요.";
     }
 
     if (actions.length === 0) {

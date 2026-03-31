@@ -2,7 +2,11 @@
  * 세션 평가 — 세션 기록을 분석하여 정확도, 오류 패턴, 진전도, 다음 추천을 생성.
  * Main 3 evaluateSession() 포팅.
  */
-import type { SessionEvaluationData, TherapyDomain, DifficultyLevel } from "../model/therapyTypes";
+import type {
+  SessionEvaluationData,
+  TherapyDomain,
+  DifficultyLevel,
+} from "../model/therapyTypes";
 import { getGenAI } from "@/shared/api/genai";
 
 interface SessionRecord {
@@ -37,12 +41,19 @@ export async function evaluateSession(params: {
 }): Promise<SessionEvaluationData> {
   const { sessionData, generationInfo, autoLearned } = params;
 
-  const correct = sessionData.responses.filter((r) => r.response === "correct").length;
-  const incorrect = sessionData.responses.filter((r) => r.response === "incorrect").length;
-  const noResponse = sessionData.responses.filter((r) => r.response === "noResponse").length;
-  const accuracy = sessionData.responses.length > 0
-    ? Math.round((correct / sessionData.responses.length) * 100)
-    : 0;
+  const correct = sessionData.responses.filter(
+    (r) => r.response === "correct",
+  ).length;
+  const incorrect = sessionData.responses.filter(
+    (r) => r.response === "incorrect",
+  ).length;
+  const noResponse = sessionData.responses.filter(
+    (r) => r.response === "noResponse",
+  ).length;
+  const accuracy =
+    sessionData.responses.length > 0
+      ? Math.round((correct / sessionData.responses.length) * 100)
+      : 0;
 
   const userPrompt = `세션 평가를 수행해주세요.
 
@@ -59,7 +70,12 @@ ${generationInfo.theme ? `- 테마: ${generationInfo.theme}` : ""}
 - 정답률: ${accuracy}%
 
 ## 항목별 메모
-${sessionData.responses.filter((r) => r.memo).map((r) => `- ${r.itemIndex}번: ${r.memo}`).join("\n") || "(없음)"}
+${
+  sessionData.responses
+    .filter((r) => r.memo)
+    .map((r) => `- ${r.itemIndex}번: ${r.memo}`)
+    .join("\n") || "(없음)"
+}
 
 ## 치료사 전체 메모
 ${sessionData.therapistMemo || "(없음)"}
@@ -71,10 +87,11 @@ ${autoLearned ? `## 이전 이력\n세션 수: ${autoLearned.sessionCount}회, �
   try {
     const ai = getGenAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-3.1-flash-lite",
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       config: {
-        systemInstruction: "발달장애 아동 치료 세션 평가 전문가. sessionSummary, errorAnalysis, progressVsPrevious, nextSessionRecommendation, parentReportSummary를 포함한 JSON을 생성하세요.",
+        systemInstruction:
+          "발달장애 아동 치료 세션 평가 전문가. sessionSummary, errorAnalysis, progressVsPrevious, nextSessionRecommendation, parentReportSummary를 포함한 JSON을 생성하세요.",
         responseMimeType: "application/json",
       },
     });
@@ -84,16 +101,32 @@ ${autoLearned ? `## 이전 이력\n세션 수: ${autoLearned.sessionCount}회, �
     return JSON.parse(text) as SessionEvaluationData;
   } catch {
     // Fallback: 기본 평가
-    const prevAcc = autoLearned?.domainAccuracy?.[generationInfo.domain]?.current ?? accuracy;
+    const prevAcc =
+      autoLearned?.domainAccuracy?.[generationInfo.domain]?.current ?? accuracy;
     const change = accuracy - prevAcc;
     return {
-      sessionSummary: { accuracy, totalItems: sessionData.responses.length, correct, incorrect, noResponse },
-      errorAnalysis: { confusedPairs: [], pattern: "분석 데이터 부족", possibleCause: "추가 세션 필요" },
+      sessionSummary: {
+        accuracy,
+        totalItems: sessionData.responses.length,
+        correct,
+        incorrect,
+        noResponse,
+      },
+      errorAnalysis: {
+        confusedPairs: [],
+        pattern: "분석 데이터 부족",
+        possibleCause: "추가 세션 필요",
+      },
       progressVsPrevious: {
         previousAccuracy: prevAcc,
         change: `${change >= 0 ? "+" : ""}${change}%`,
         trend: change > 5 ? "improving" : change < -5 ? "declining" : "stable",
-        interpretation: change > 5 ? "향상 추세" : change < -5 ? "하락 추세 — 난이도 조정 필요" : "유지 중",
+        interpretation:
+          change > 5
+            ? "향상 추세"
+            : change < -5
+              ? "하락 추세 — 난이도 조정 필요"
+              : "유지 중",
       },
       nextSessionRecommendation: {
         domain: generationInfo.domain,

@@ -37,13 +37,15 @@ interface StudioApiResponse {
 
 const isDev = import.meta.env.DEV && !!import.meta.env.VITE_GOOGLE_API_KEY;
 
-export async function callStudioApi(params: StudioApiParams): Promise<StudioApiResponse> {
+export async function callStudioApi(
+  params: StudioApiParams,
+): Promise<StudioApiResponse> {
   // 개발 모드: Gemini 직접 호출 (도메인 레퍼런스 없이 — 서버 전용이므로)
   if (isDev) {
     const ai = getGenAI();
     const systemInstruction = buildDevSystemInstruction(params);
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-3.1-flash-lite",
       contents: params.contents,
       config: {
         systemInstruction,
@@ -57,13 +59,17 @@ export async function callStudioApi(params: StudioApiParams): Promise<StudioApiR
   }
 
   // 프로덕션: 서버 프록시 경유
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const response = await fetch("/api/genai/studio", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
+      ...(session?.access_token && {
+        Authorization: `Bearer ${session.access_token}`,
+      }),
     },
     body: JSON.stringify(params),
   });
@@ -264,7 +270,13 @@ export async function createSession(
 ): Promise<TherapySession> {
   const { data, error } = await supabase
     .from("therapy_sessions")
-    .insert({ user_id: userId, domain, student_id: studentId, status: "active", session_data: {} })
+    .insert({
+      user_id: userId,
+      domain,
+      student_id: studentId,
+      status: "active",
+      session_data: {},
+    })
     .select()
     .single();
   if (error) throw error;
@@ -289,7 +301,9 @@ export async function completeSession(
   if (error) throw error;
 }
 
-export async function getUserSessions(userId: string): Promise<TherapySession[]> {
+export async function getUserSessions(
+  userId: string,
+): Promise<TherapySession[]> {
   const { data, error } = await supabase
     .from("therapy_sessions")
     .select("*")
@@ -309,19 +323,19 @@ export async function saveChatMessage(
   sessionId: string,
   message: ChatMessage,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("therapy_chat_logs")
-    .insert({
-      user_id: userId,
-      session_id: sessionId,
-      role: message.role,
-      content: message.content.slice(0, 2000),
-      metadata: message.metadata ?? null,
-    });
+  const { error } = await supabase.from("therapy_chat_logs").insert({
+    user_id: userId,
+    session_id: sessionId,
+    role: message.role,
+    content: message.content.slice(0, 2000),
+    metadata: message.metadata ?? null,
+  });
   if (error) console.warn("therapy_chat_logs insert failed", error);
 }
 
-export async function getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
+export async function getSessionMessages(
+  sessionId: string,
+): Promise<ChatMessage[]> {
   const { data, error } = await supabase
     .from("therapy_chat_logs")
     .select("*")
@@ -342,7 +356,9 @@ export async function getSessionMessages(sessionId: string): Promise<ChatMessage
 
 // ── 학생 치료 프로필 CRUD ──
 
-export async function getStudentProfile(studentId: string): Promise<TherapyStudentProfile | null> {
+export async function getStudentProfile(
+  studentId: string,
+): Promise<TherapyStudentProfile | null> {
   const { data, error } = await supabase
     .from("therapy_student_profiles")
     .select("*")
@@ -361,17 +377,15 @@ export async function upsertStudentProfile(
   studentId: string,
   profileData: Partial<TherapyStudentProfile>,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("therapy_student_profiles")
-    .upsert(
-      {
-        user_id: userId,
-        student_id: studentId,
-        profile_data: profileData,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "student_id" },
-    );
+  const { error } = await supabase.from("therapy_student_profiles").upsert(
+    {
+      user_id: userId,
+      student_id: studentId,
+      profile_data: profileData,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "student_id" },
+  );
   if (error) throw error;
 }
 
@@ -384,7 +398,9 @@ function mapSession(row: Record<string, unknown>): TherapySession {
     userId: row.user_id as string,
     studentId: row.student_id as string | undefined,
     title: (sessionData.title as string) ?? undefined,
-    sheets: Array.isArray(sessionData.sheets) ? sessionData.sheets as TherapySession["sheets"] : undefined,
+    sheets: Array.isArray(sessionData.sheets)
+      ? (sessionData.sheets as TherapySession["sheets"])
+      : undefined,
     domain: row.domain as TherapyDomain,
     status: row.status as TherapySession["status"],
     messages: [],
@@ -395,13 +411,18 @@ function mapSession(row: Record<string, unknown>): TherapySession {
   };
 }
 
-function mapStudentProfile(row: Record<string, unknown>): TherapyStudentProfile {
-  const pd = row.profile_data as Record<string, unknown> ?? {};
+function mapStudentProfile(
+  row: Record<string, unknown>,
+): TherapyStudentProfile {
+  const pd = (row.profile_data as Record<string, unknown>) ?? {};
   return {
     id: row.id as string,
     userId: row.user_id as string,
     studentId: row.student_id as string,
-    diagnosis: (pd.diagnosis as TherapyStudentProfile["diagnosis"]) ?? { comorbidities: [], rawText: "" },
+    diagnosis: (pd.diagnosis as TherapyStudentProfile["diagnosis"]) ?? {
+      comorbidities: [],
+      rawText: "",
+    },
     functionalAge: (pd.functionalAge as number) ?? 0,
     therapyGoals: (pd.therapyGoals as string[]) ?? [],
     articulationTargets: (pd.articulationTargets as string[]) ?? [],
