@@ -4,8 +4,11 @@
  * 클라이언트 번들에 포함되지 않는다.
  */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const REFS_DIR = join(__dirname, "refs");
 
 // 레퍼런스 파일 캐시 (cold start 이후 재사용)
