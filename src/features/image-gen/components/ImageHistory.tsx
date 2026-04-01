@@ -1,7 +1,6 @@
 /**
  * 이미지 생성 이력 — 우측 하단 썸네일 그리드
  */
-import type { GeneratedImage } from "../model/types";
 import { useImageGenStore } from "../store/useImageGenStore";
 
 export function ImageHistory() {
@@ -31,6 +30,9 @@ export function ImageHistory() {
               alt={img.prompt}
               className="h-full w-full object-cover"
             />
+            {img.referenceImageUrl && (
+              <span className="absolute bottom-1 left-1 text-xs">📎</span>
+            )}
             {img.feedback === "liked" && (
               <span className="absolute bottom-1 right-1 text-xs">👍</span>
             )}

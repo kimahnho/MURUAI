@@ -2,14 +2,25 @@
  * 진단 추출 + 기능연령 계산
  * therapy/ai/therapyAgent.ts의 extractDiagnosis 로직을 경량화하여 이식.
  */
-import type { DiagnosisProfile, VisualStyle, ColorSensitivity, BackgroundLevel } from "../model/types";
+import type {
+  DiagnosisProfile,
+  VisualStyle,
+  ColorSensitivity,
+  BackgroundLevel,
+} from "../model/types";
 
 // ═══ 진단 패턴 (한국어 + 영문 코드) ═══
 
 const DIAGNOSIS_PATTERNS: Array<{ pattern: RegExp; code: string }> = [
-  { pattern: /ASD\s*(?:L|Level\s*|레벨\s*)3|자폐\s*3급|중증\s*자폐/i, code: "ASD_L3" },
+  {
+    pattern: /ASD\s*(?:L|Level\s*|레벨\s*)3|자폐\s*3급|중증\s*자폐/i,
+    code: "ASD_L3",
+  },
   { pattern: /ASD\s*(?:L|Level\s*|레벨\s*)2|자폐\s*2급/i, code: "ASD_L2" },
-  { pattern: /ASD\s*(?:L|Level\s*|레벨\s*)1|자폐\s*1급|경증\s*자폐|아스퍼거/i, code: "ASD_L1" },
+  {
+    pattern: /ASD\s*(?:L|Level\s*|레벨\s*)1|자폐\s*1급|경증\s*자폐|아스퍼거/i,
+    code: "ASD_L1",
+  },
   { pattern: /ASD|자폐|자폐\s*스펙트럼/i, code: "ASD_L1" },
   { pattern: /ADHD|주의력\s*결핍|과잉\s*행동/i, code: "ADHD" },
   { pattern: /지적\s*장애\s*(?:중도|심도)|ID\s*severe/i, code: "ID_severe" },
@@ -55,15 +66,60 @@ export interface VisualDefaults {
 }
 
 const VISUAL_DEFAULTS: Record<string, VisualDefaults> = {
-  ASD_L3:     { style: "pastel", colorSensitivity: "muted", backgroundLevel: "none", complexity: 1 },
-  ASD_L2:     { style: "pastel", colorSensitivity: "muted", backgroundLevel: "simple", complexity: 2 },
-  ASD_L1:     { style: "flat", colorSensitivity: "normal", backgroundLevel: "simple", complexity: 3 },
-  ADHD:       { style: "high_contrast", colorSensitivity: "high_contrast", backgroundLevel: "none", complexity: 3 },
-  ID_severe:  { style: "realistic", colorSensitivity: "normal", backgroundLevel: "none", complexity: 1 },
-  ID_moderate:{ style: "realistic", colorSensitivity: "normal", backgroundLevel: "none", complexity: 2 },
-  ID_mild:    { style: "flat", colorSensitivity: "normal", backgroundLevel: "simple", complexity: 3 },
-  down:       { style: "flat", colorSensitivity: "normal", backgroundLevel: "simple", complexity: 2 },
-  language_delay: { style: "flat", colorSensitivity: "normal", backgroundLevel: "simple", complexity: 3 },
+  ASD_L3: {
+    style: "pastel",
+    colorSensitivity: "muted",
+    backgroundLevel: "none",
+    complexity: 1,
+  },
+  ASD_L2: {
+    style: "pastel",
+    colorSensitivity: "muted",
+    backgroundLevel: "simple",
+    complexity: 2,
+  },
+  ASD_L1: {
+    style: "flat",
+    colorSensitivity: "normal",
+    backgroundLevel: "simple",
+    complexity: 3,
+  },
+  ADHD: {
+    style: "high_contrast",
+    colorSensitivity: "high_contrast",
+    backgroundLevel: "none",
+    complexity: 3,
+  },
+  ID_severe: {
+    style: "realistic",
+    colorSensitivity: "normal",
+    backgroundLevel: "none",
+    complexity: 1,
+  },
+  ID_moderate: {
+    style: "realistic",
+    colorSensitivity: "normal",
+    backgroundLevel: "none",
+    complexity: 2,
+  },
+  ID_mild: {
+    style: "flat",
+    colorSensitivity: "normal",
+    backgroundLevel: "simple",
+    complexity: 3,
+  },
+  down: {
+    style: "flat",
+    colorSensitivity: "normal",
+    backgroundLevel: "simple",
+    complexity: 2,
+  },
+  language_delay: {
+    style: "flat",
+    colorSensitivity: "normal",
+    backgroundLevel: "simple",
+    complexity: 3,
+  },
 };
 
 const DEFAULT_VISUAL: VisualDefaults = {
@@ -85,26 +141,30 @@ export function extractDiagnosis(text: string): DiagnosisProfile {
   const primary = codes[0] ?? null;
   const comorbidities = codes.slice(1);
 
-  // 기능연령 보정
-  const offset = primary ? (AGE_OFFSET[primary] ?? 0) : 0;
-
   return {
     primary,
     comorbidities,
     functionalAgeMonths: null, // 실제 나이와 합산은 호출자가
-    adaptations: codes.flatMap((c) => VISUAL_DEFAULTS[c]?.style ? [`${c} 시각 조절`] : []),
+    adaptations: codes.flatMap((c) =>
+      VISUAL_DEFAULTS[c]?.style ? [`${c} 시각 조절`] : [],
+    ),
   };
 }
 
 /** 생활연령(년) + 진단 → 기능연령(개월) */
-export function calcFunctionalAge(chronoYears: number, diagnosisCode: string | null): number {
+export function calcFunctionalAge(
+  chronoYears: number,
+  diagnosisCode: string | null,
+): number {
   const chronoMonths = chronoYears * 12;
   const offset = diagnosisCode ? (AGE_OFFSET[diagnosisCode] ?? 0) : 0;
   return Math.max(18, chronoMonths + offset); // 최소 18개월
 }
 
 /** 진단 코드 → 시각 기본값 */
-export function getVisualDefaults(diagnosisCode: string | null): VisualDefaults {
+export function getVisualDefaults(
+  diagnosisCode: string | null,
+): VisualDefaults {
   if (!diagnosisCode) return DEFAULT_VISUAL;
   return VISUAL_DEFAULTS[diagnosisCode] ?? DEFAULT_VISUAL;
 }

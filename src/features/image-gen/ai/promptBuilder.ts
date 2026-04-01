@@ -96,8 +96,6 @@ function getLearned(agent: ChildVisualAgent): string {
   const parts: string[] = [];
   if (agent.effectiveThemes.length > 0) parts.push(`Child likes: ${agent.effectiveThemes.join(", ")}.`);
   if (agent.avoidThemes.length > 0) parts.push(`Avoid: ${agent.avoidThemes.join(", ")}.`);
-  const lessons = (agent.learnedPatterns ?? []).filter((p) => p.wasAccepted).slice(-3).map((p) => p.changedParams.additionalInstruction).filter(Boolean);
-  if (lessons.length > 0) parts.push(`Learned: ${lessons.join("; ")}.`);
   return parts.join(" ");
 }
 
@@ -122,6 +120,7 @@ export interface PromptBuildResult {
 export function buildImagePrompt(
   userInput: string,
   agent: ChildVisualAgent,
+  options?: { hasReferenceImage?: boolean },
 ): PromptBuildResult {
   const parsed = parseInput(userInput);
 
@@ -129,6 +128,11 @@ export function buildImagePrompt(
 
   // ══ 1. 유저 입력 (절대 최우선, 그대로) ══
   parts.push(userInput);
+
+  // 참고 이미지 컨텍스트 힌트 (유저 입력 직후, agent 보완 전)
+  if (options?.hasReferenceImage) {
+    parts.push("\n[Reference image attached — use it as visual reference for characters, style, or subject. Maintain its visual identity while applying the instructions above.]");
+  }
 
   // 멀티컷이면 레이아웃 지시 추가
   if (parsed.isMultiCut) {

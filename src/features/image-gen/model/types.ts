@@ -54,9 +54,6 @@ export interface ChildVisualAgent {
   effectiveThemes: string[];
   avoidThemes: string[];
 
-  // 재생성에서 학습한 패턴 (싫어요 → 수정 → 재생성 과정 기록)
-  learnedPatterns: LearnedPattern[];
-
   // 통계
   generationCount: number;
   likedCount: number;
@@ -108,6 +105,45 @@ export interface GeneratedImage {
   backgroundLevel: BackgroundLevel;
   complexity: number;
   feedback: "liked" | "disliked" | "modified" | null;
+  referenceImageUrl?: string;       // 참고 이미지 Cloudinary URL (이력 표시용)
+  createdAt: string;
+}
+
+// ═══ 세션 ═══
+
+export type ImageGenSessionStatus = "active" | "completed" | "archived";
+
+export interface ImageGenSession {
+  id: string;
+  userId: string;
+  studentId: string | null;
+  title: string | null;
+  status: ImageGenSessionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ═══ 채팅 메시지 ═══
+
+export type ImageGenMessageRole = "user" | "assistant";
+
+export interface ImageGenMessageMetadata {
+  type?: "prompt" | "image" | "error" | "clarify";
+  imageUrl?: string;
+  referenceImageUrl?: string;
+  style?: VisualStyle;
+  backgroundLevel?: BackgroundLevel;
+  complexity?: number;
+  resolvedPrompt?: string;
+  imageId?: string;
+}
+
+export interface ImageGenMessage {
+  id: string;
+  sessionId: string;
+  role: ImageGenMessageRole;
+  content: string;
+  metadata?: ImageGenMessageMetadata;
   createdAt: string;
 }
 

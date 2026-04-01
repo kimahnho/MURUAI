@@ -2,6 +2,7 @@
  * 아동 Agent 카드 — 학습 상태 + 자동 적용 설정 표시
  */
 import type { ChildVisualAgent } from "../model/types";
+import { useImageGenStore } from "../store/useImageGenStore";
 import { getAgentSummary } from "../ai/childAgent";
 
 const STYLE_LABELS: Record<string, string> = {
@@ -30,7 +31,8 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, childName }: AgentCardProps) {
-  const summary = getAgentSummary(agent);
+  const learnedPatterns = useImageGenStore((s) => s.learnedPatterns);
+  const summary = getAgentSummary(agent, learnedPatterns);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4">
