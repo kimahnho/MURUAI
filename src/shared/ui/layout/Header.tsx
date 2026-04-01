@@ -20,7 +20,7 @@ const Header = () => {
     <header className="flex w-full h-14 px-4 md:h-18 md:px-15 justify-between items-center border-b border-b-black-25">
       <button
         type="button"
-        onClick={() => navigate(role === "tester" ? "/studio" : "/")}
+        onClick={() => navigate(role === "tester" ? "/image-gen" : "/")}
         className="flex items-center justify-center cursor-pointer"
         aria-label="홈으로 이동"
       >
@@ -31,21 +31,30 @@ const Header = () => {
         {isAuthenticated ? (
           <>
             {role === "admin" && (
-              <button
-                type="button"
-                onClick={() => navigate("/admin")}
-                className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
-              >
-                <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">관리자</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin")}
+                  className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+                >
+                  <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">관리자</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/image-gen")}
+                  className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+                >
+                  <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">이미지 생성</span>
+                </button>
+              </>
             )}
             {role === "tester" ? (
               <button
                 type="button"
-                onClick={() => navigate("/studio")}
+                onClick={() => navigate("/image-gen")}
                 className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
               >
-                <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">스튜디오</span>
+                <span className="text-13-bold md:text-14-semibold text-primary hover:text-primary-700 transition whitespace-nowrap">이미지 생성</span>
               </button>
             ) : (
               <>

@@ -163,6 +163,7 @@ src/
 | AI 감정 추론 생성  | `.claude/rules/ai/emotion-inference-ai-generation.md` |
 | 스토리북 AI 생성기 | `.claude/rules/ai/storybook.md`                       |
 | AI 치료 활동 (Studio) | `.claude/rules/ai/studio.md`                       |
+| AI 이미지 소재 생성 (Image-Gen) | `.claude/rules/ai/image-gen.md`          |
 
 ### 페이지 (`rules/pages/`)
 

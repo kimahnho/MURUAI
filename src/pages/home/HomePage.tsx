@@ -29,10 +29,10 @@ const HomePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const executingRef = useRef(false);
 
-  // tester 유저는 /studio로 리다이렉트
+  // tester 유저는 /image-gen으로 리다이렉트
   useEffect(() => {
     if (isAuthenticated && role === "tester") {
-      navigate("/studio", { replace: true });
+      navigate("/image-gen", { replace: true });
     }
   }, [isAuthenticated, role, navigate]);
 
