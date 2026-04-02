@@ -15,7 +15,6 @@ import {
   useElementPanelStore,
   type EmotionCardPanelData,
 } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import type { AacCardLabelStyle } from "@/features/editor/model/canvasTypes";
 import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -47,16 +46,9 @@ const EmotionCardPropsContent = () => {
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
   const addRecentColor = useRecentColorStore((s) => s.addRecentColor);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
   const boxColorPickerRef = useRef<HTMLInputElement>(null);
 
   const isEmotionCard = panelData?.type === "emotionCard";
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "emotionCard") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   // 이미지가 있으면 박스(스타일) 탭, 없으면 감정(이미지 선택) 탭으로 자동 전환
   useEffect(() => {

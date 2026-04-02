@@ -504,17 +504,10 @@ const MainSection = () => {
 
   useEffect(() => {
     if (elementPanelData) {
-      const menuMap: Record<string, import("../store/sideBarStore").SideBarMenu> = {
-        shape: "shape-props",
-        line: "line-props",
-        arrow: "arrow-props",
-        text: "text-props",
-        aac: "emotion-aac",
-        aacCardV2: "aacCard-props",
-        emotionCard: "emotionCard-props",
-        multi: "multi-props",
-      };
-      setSideBarMenu(menuMap[elementPanelData.type] ?? null);
+      // aac 타입만 실제 탭(emotion-aac)을 열어야 한다. 나머지는 SideBar의 panelData 오버레이로 표시.
+      if (elementPanelData.type === "aac") {
+        setSideBarMenu("emotion-aac");
+      }
       const updateFn = elementPanelData.type === "aac" ? updateElementForAac : updateElementForPanel;
       setPanelData(elementPanelData, updateFn, updateLinesForPanel);
     } else {

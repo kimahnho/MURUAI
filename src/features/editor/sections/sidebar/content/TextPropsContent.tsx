@@ -3,7 +3,7 @@
  * 편집 모드에서는 textEditingCallbacks를 통한 인라인 스타일링,
  * 비편집 모드에서는 요소 레벨 스타일 변경을 제공한다.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { useElementPanelStore, type TextPanelData } from "@/features/editor/store/elementPanelStore";
 import { DEFAULT_LINE_HEIGHT } from "@/features/editor/sections/canvas/elements/text/textContentUtils";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { detectMixedFontFamilyInRichText } from "@/features/editor/sections/canvas/elements/text/textContentUtils";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -38,13 +37,6 @@ const TextPropsContent = () => {
   const textCallbacks = useElementPanelStore((s) => s.textEditingCallbacks);
   // getter 기반 UI 값 변경 시 리렌더를 트리거하는 리비전 카운터
   useElementPanelStore((s) => s.textEditingRevision);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "text") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "text" || !updateElement) return null;
 

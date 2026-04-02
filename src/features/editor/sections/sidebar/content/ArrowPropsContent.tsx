@@ -2,9 +2,7 @@
  * 화살표 요소 선택 시 사이드바에 표시되는 속성 편집 패널.
  * 선 요소와 동일한 UI를 공유한다 (LineArrowPanelUI).
  */
-import { useEffect } from "react";
 import { useElementPanelStore, type LinePanelData } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { LineArrowPanelUI } from "./LinePropsContent";
 
 const ArrowPropsContent = () => {
@@ -12,13 +10,6 @@ const ArrowPropsContent = () => {
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const updateLines = useElementPanelStore((s) => s.updateLines);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "arrow") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "arrow" || !updateElement || !updateLines) return null;
 
