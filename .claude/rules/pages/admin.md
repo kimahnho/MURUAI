@@ -48,6 +48,7 @@ type AdminTab = "dashboard" | "credits" | "users";
 |------|----------|------|
 | KPI 카드 4개 | `KpiCards.tsx` | WAU, 자료 제작, 템플릿 사용률, 다운로드 |
 | AI 기능 사용량 | `AdminDashboardView.tsx` 내부 | `ai_generation_logs` 집계 (감정추론/스토리북, 메인/에디터, 확정 수) |
+| 인기 이미지 | `ImagePopularitySection.tsx` | `image_usage_events` 집계 — 사용 빈도 순 이미지 랭킹 (썸네일+카운트+소스 뱃지) |
 | 일자별 추이 | `TrendChart.tsx` | 생성/다운로드 테이블 |
 | 주간 방문일수 분포 | `DistributionChart.tsx` | 수평 막대 차트 |
 | 요일별 방문 유저 | `WeekdayCalendar.tsx` | 캘린더 히트맵 |
@@ -125,6 +126,7 @@ type AiUsageStat = {
 | 방문일수 분포 | `src/features/admin/components/DistributionChart.tsx` |
 | 요일별 캘린더 | `src/features/admin/components/WeekdayCalendar.tsx` |
 | 템플릿 테이블 | `src/features/admin/components/TemplatesTable.tsx` |
+| 인기 이미지 | `src/features/admin/components/ImagePopularitySection.tsx` |
 | 기간 필터 | `src/features/admin/components/DateRangeFilter.tsx` |
 | 인증 훅 | `src/features/admin/hooks/useAdminAuth.ts` |
 | 대시보드 훅 | `src/features/admin/hooks/useAdminDashboard.ts` |

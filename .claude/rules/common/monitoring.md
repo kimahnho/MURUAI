@@ -149,8 +149,6 @@ mixpanel.track("이벤트명");
 | `[AI템플릿] 감정추론 카드 성별 변경` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `style` |
 | `[AI템플릿] 감정추론 이미지 생성 완료` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `image_style`, `page_count` |
 | `[AI템플릿] 감정추론 확정` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `card_style`, `image_style` |
-| **메인 페이지** | | |
-| `[AI템플릿] 감정추론 텍스트 생성` | `HomePage.tsx` | `topic_length` |
 | **대시보드** | | |
 | `대시보드 빈 문서 생성` | `QuickStartSection.tsx` | — |
 | `대시보드 템플릿 바로가기 클릭` | `QuickStartSection.tsx` | `template_id` |
