@@ -149,6 +149,9 @@ mixpanel.track("이벤트명");
 | `[AI템플릿] 감정추론 카드 성별 변경` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `style` |
 | `[AI템플릿] 감정추론 이미지 생성 완료` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `image_style`, `page_count` |
 | `[AI템플릿] 감정추론 확정` | `AiStoryEditContent.tsx`, `EmotionSceneBanner.tsx` | `card_style`, `image_style` |
+| **랜딩** | | |
+| `랜딩 이미지 클릭` | `HomePage.tsx` | `image_url` |
+| `랜딩 하단 CTA 클릭` | `CtaSection.tsx` | — |
 | **대시보드** | | |
 | `대시보드 빈 문서 생성` | `QuickStartSection.tsx` | — |
 | `대시보드 템플릿 바로가기 클릭` | `QuickStartSection.tsx` | `template_id` |
@@ -165,9 +168,6 @@ mixpanel.track("이벤트명");
 | `Google 로그인` | `useAuth.ts` | — |
 | `카카오 로그인` | `useAuth.ts` | — |
 | `이메일 가입` | `useAuth.ts` | — |
-| **랜딩** | | |
-| `랜딩 CTA 클릭` | `HeroSection.tsx` (레거시) | — |
-| `랜딩 하단 CTA 클릭` | `CapabilitySection.tsx` | — |
 | **관리자** | | |
 | `관리자 대시보드 접속` | `AdminPage.tsx` | — |
 | **치료 AI (Studio)** | | |

@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";
+import { mp } from "@/shared/utils/mixpanel";
+import { captureSentryError } from "@/shared/utils/sentryUtils";
+import useToastStore from "@/shared/store/useToastStore";
 
 import NewLandingPage from "@/features/home/components/landing/NewLandingPage";
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
@@ -77,6 +80,12 @@ const HomePage = () => {
     try {
       const pages = buildImagePage(imageUrl);
       await createAndOpenDocument({ replace: false, pages });
+      mp.track("랜딩 이미지 클릭", { image_url: imageUrl });
+    } catch (error) {
+      captureSentryError(error, "랜딩 이미지 캔버스 이동");
+      useToastStore
+        .getState()
+        .showToast("문서를 생성하지 못했어요. 다시 시도해 주세요.");
     } finally {
       executingRef.current = false;
     }
