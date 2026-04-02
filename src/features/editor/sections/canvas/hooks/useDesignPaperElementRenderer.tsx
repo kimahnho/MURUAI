@@ -217,6 +217,8 @@ export const useDesignPaperElementRenderer = ({
         locked={locked}
         widthMode={element.widthMode ?? "auto"}
         userResizedWidth={element.userResizedWidth}
+        jamoMode={element.jamoMode ?? "off"}
+        jamoHighlights={element.jamoHighlights ?? {}}
         toolbar={buildTextToolbarConfig({
           element,
           fontWeight,

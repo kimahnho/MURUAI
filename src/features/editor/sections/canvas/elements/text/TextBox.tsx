@@ -6,6 +6,7 @@ import type { ResizeHandle } from "../../../../model/canvasTypes";
 import { isTextEmpty } from "./textContentUtils";
 import { selectWordAtPoint } from "./textSelection";
 import type { TextBoxProps } from "./textBoxTypes";
+import { highlightJamoConjoining, renderSplitWord } from "./jamoSplit";
 import { useTextBoxAutoResize } from "./hooks/useTextBoxAutoResize";
 import { useTextBoxEditingHandlers } from "./hooks/useTextBoxEditingHandlers";
 import { useTextBoxInteraction } from "./hooks/useTextBoxInteraction";
@@ -31,6 +32,8 @@ const TextBox = ({
   widthMode = "auto",
   userResizedWidth,
   toolbar,
+  jamoMode = "off",
+  jamoHighlights = {},
   onTextChange,
   onRectChange,
   onWidthModeChange,
@@ -359,7 +362,13 @@ const TextBox = ({
             border: "none",
             boxShadow: "none",
           }}
-          dangerouslySetInnerHTML={{ __html: richText || text }}
+          dangerouslySetInnerHTML={{ __html:
+            jamoMode === "conjoining" && Object.keys(jamoHighlights).length > 0
+              ? highlightJamoConjoining(text, jamoHighlights)
+              : jamoMode === "split" && Object.keys(jamoHighlights).length > 0
+                ? renderSplitWord(text, jamoHighlights, textStyle?.fontSize ? parseInt(String(textStyle.fontSize)) : 24)
+                : (richText || text)
+          }}
         />
       )}
       {showHandles && (

@@ -265,6 +265,168 @@ const MainSection = () => {
     onClearPage: handleClearPage,
   });
 
+  // 자모 분해 이벤트 핸들러 — 텍스트를 자모별 텍스트 박스로 분리
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { elementId, text, x, y, fontSize, color, fontFamily } = (e as CustomEvent).detail;
+      if (!text || !selectedPageId) return;
+
+      // 한글 자모 분해
+      const INITIALS = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+      const MEDIALS = ["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+      const FINALS = ["","ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+
+      const jamoList: { jamo: string; role: string }[] = [];
+      for (const char of text) {
+        const code = char.charCodeAt(0);
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+          const offset = code - 0xAC00;
+          const ini = Math.floor(offset / (21 * 28));
+          const med = Math.floor((offset % (21 * 28)) / 28);
+          const fin = offset % 28;
+          jamoList.push({ jamo: INITIALS[ini], role: "initial" });
+          jamoList.push({ jamo: MEDIALS[med], role: "medial" });
+          if (fin > 0) jamoList.push({ jamo: FINALS[fin], role: "final" });
+        } else {
+          jamoList.push({ jamo: char, role: "other" });
+        }
+      }
+
+      // 음절 구조별 자모 위치 계산
+      // 원본 글자와 동일한 크기감 유지
+      const jamoFontSize = fontSize; // 원본과 동일한 크기
+      const syllableSize = fontSize * 1.8; // 한 음절 블록 (원본 글자 폭 × 1.8)
+      const newElements: Array<{
+        id: string; type: "text"; x: number; y: number; w: number; h: number;
+        text: string; widthMode: "fixed";
+        style: { fontSize: number; fontWeight: "bold"; fontFamily: string; color: string; underline: false; alignX: "center"; alignY: "middle" };
+      }> = [];
+
+      // 모음 유형 판별
+      function getVowelType(medIdx: number): "v" | "h" | "c" {
+        if (new Set([0,1,2,3,4,5,6,7,20]).has(medIdx)) return "v";
+        if (new Set([8,11,12,17,18]).has(medIdx)) return "h";
+        return "c";
+      }
+
+      // 음절 내 자모 위치 (비율: 0~1 범위, syllableSize 기준)
+      // 모든 자모 동일 크기, 위치만 구조에 따라 다름
+      const S = 1.0; // 원본과 동일한 크기
+      type Pos = { rx: number; ry: number; rw: number; rh: number; rfs: number };
+      const POSITIONS: Record<string, Record<string, Pos>> = {
+        v_nf: { // 세로모음, 종성 없음 (가, 기, 나...)
+          initial: { rx: 0,    ry: 0.05, rw: 0.50, rh: 0.90, rfs: S },
+          medial:  { rx: 0.50, ry: 0.05, rw: 0.50, rh: 0.90, rfs: S },
+        },
+        v_wf: { // 세로모음, 종성 있음 (감, 김, 난...)
+          initial: { rx: 0,    ry: 0,    rw: 0.50, rh: 0.55, rfs: S },
+          medial:  { rx: 0.50, ry: 0,    rw: 0.50, rh: 0.55, rfs: S },
+          final:   { rx: 0.10, ry: 0.55, rw: 0.80, rh: 0.45, rfs: S },
+        },
+        h_nf: { // 가로모음, 종성 없음 (고, 노, 두...)
+          initial: { rx: 0.10, ry: 0,    rw: 0.80, rh: 0.50, rfs: S },
+          medial:  { rx: 0.10, ry: 0.50, rw: 0.80, rh: 0.50, rfs: S },
+        },
+        h_wf: { // 가로모음, 종성 있음 (곰, 눈, 물...)
+          initial: { rx: 0.10, ry: 0,    rw: 0.80, rh: 0.36, rfs: S },
+          medial:  { rx: 0.10, ry: 0.33, rw: 0.80, rh: 0.34, rfs: S },
+          final:   { rx: 0.10, ry: 0.64, rw: 0.80, rh: 0.36, rfs: S },
+        },
+        c_nf: { // 복합모음, 종성 없음 (과, 궈...)
+          initial: { rx: 0,    ry: 0,    rw: 0.45, rh: 0.50, rfs: S },
+          medial:  { rx: 0.28, ry: 0.05, rw: 0.72, rh: 0.90, rfs: S },
+        },
+        c_wf: { // 복합모음, 종성 있음 (광, 권...)
+          initial: { rx: 0,    ry: 0,    rw: 0.45, rh: 0.42, rfs: S },
+          medial:  { rx: 0.25, ry: 0,    rw: 0.75, rh: 0.55, rfs: S },
+          final:   { rx: 0.10, ry: 0.58, rw: 0.80, rh: 0.42, rfs: S },
+        },
+      };
+
+      let syllableIdx = 0;
+      let jamoIdx = 0;
+
+      for (const char of text) {
+        const code = char.charCodeAt(0);
+        const sx = x + syllableIdx * syllableSize; // 음절 블록 X
+        const sy = y;
+
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+          const offset = code - 0xAC00;
+          const ini = Math.floor(offset / (21 * 28));
+          const med = Math.floor((offset % (21 * 28)) / 28);
+          const fin = offset % 28;
+          const vt = getVowelType(med);
+          const hasFin = fin > 0;
+          const key = `${vt}_${hasFin ? "wf" : "nf"}`;
+          const pos = POSITIONS[key];
+
+          // 초성
+          const ip = pos.initial;
+          newElements.push({
+            id: crypto.randomUUID(), type: "text",
+            x: sx + ip.rx * syllableSize, y: sy + ip.ry * syllableSize,
+            w: ip.rw * syllableSize, h: ip.rh * syllableSize,
+            text: INITIALS[ini], widthMode: "fixed",
+            style: { fontSize: Math.round(ip.rfs * jamoFontSize), fontWeight: "bold", fontFamily: fontFamily ?? "Pretendard", color: color ?? "#000000", underline: false, alignX: "center", alignY: "middle" },
+          });
+
+          // 중성
+          const mp = pos.medial;
+          newElements.push({
+            id: crypto.randomUUID(), type: "text",
+            x: sx + mp.rx * syllableSize, y: sy + mp.ry * syllableSize,
+            w: mp.rw * syllableSize, h: mp.rh * syllableSize,
+            text: MEDIALS[med], widthMode: "fixed",
+            style: { fontSize: Math.round(mp.rfs * jamoFontSize), fontWeight: "bold", fontFamily: fontFamily ?? "Pretendard", color: color ?? "#000000", underline: false, alignX: "center", alignY: "middle" },
+          });
+
+          // 종성
+          if (hasFin && pos.final) {
+            const fp = pos.final;
+            newElements.push({
+              id: crypto.randomUUID(), type: "text",
+              x: sx + fp.rx * syllableSize, y: sy + fp.ry * syllableSize,
+              w: fp.rw * syllableSize, h: fp.rh * syllableSize,
+              text: FINALS[fin], widthMode: "fixed",
+              style: { fontSize: Math.round(fp.rfs * jamoFontSize), fontWeight: "bold", fontFamily: fontFamily ?? "Pretendard", color: color ?? "#000000", underline: false, alignX: "center", alignY: "middle" },
+            });
+          }
+        } else {
+          // 한글 아닌 문자
+          newElements.push({
+            id: crypto.randomUUID(), type: "text",
+            x: sx, y: sy, w: syllableSize, h: syllableSize * 1.1,
+            text: char, widthMode: "fixed",
+            style: { fontSize: jamoFontSize, fontWeight: "bold", fontFamily: fontFamily ?? "Pretendard", color: color ?? "#000000", underline: false, alignX: "center", alignY: "middle" },
+          });
+        }
+        syllableIdx++;
+      }
+
+      // 원본 요소 삭제 + 자모 요소 추가
+      setPages((prev) =>
+        prev.map((page) =>
+          page.id === selectedPageId
+            ? {
+                ...page,
+                elements: [
+                  ...page.elements.filter((el) => el.id !== elementId),
+                  ...newElements,
+                ],
+              }
+            : page,
+        ),
+      );
+
+      // 새로 생성된 자모 요소들을 선택
+      setSelectedIds(newElements.map((el) => el.id));
+    };
+
+    window.addEventListener("jamo-split-request", handler);
+    return () => window.removeEventListener("jamo-split-request", handler);
+  }, [selectedPageId, setPages, setSelectedIds]);
+
   const { selectedPage, activeOrientation } = useActivePageState({
     pages,
     selectedPageId,

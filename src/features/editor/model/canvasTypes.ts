@@ -49,6 +49,10 @@ export type TextElement = ElementBase & {
   widthMode?: "auto" | "fixed" | "element";
   userResizedWidth?: boolean;
   lockHeight?: boolean;
+  /** 자모 분해 모드 — 조음 치료 음소 강조용 */
+  jamoMode?: "off" | "conjoining" | "split";
+  /** 자모 모드에서 강조할 자모 → 색상 매핑 */
+  jamoHighlights?: Record<string, string>;
   style: {
     fontSize: number;
     fontWeight: "normal" | "bold" | number;

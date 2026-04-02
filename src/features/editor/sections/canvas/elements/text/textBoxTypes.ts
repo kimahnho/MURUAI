@@ -74,6 +74,10 @@ export interface TextBoxProps {
   widthMode?: "auto" | "fixed" | "element";
   userResizedWidth?: boolean;
   toolbar?: TextBoxToolbar;
+  /** 자모 분해 모드 (조음 치료 음소 강조) */
+  jamoMode?: "off" | "conjoining" | "split";
+  /** 자모 강조 매핑 (compat 자모 → 색상) */
+  jamoHighlights?: Record<string, string>;
   onTextChange?: (text: string, richText?: string) => void;
   onRectChange?: (rect: Rect) => void;
   onWidthModeChange?: (mode: "auto" | "fixed" | "element") => void;

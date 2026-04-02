@@ -55,6 +55,38 @@ const TextPropsContent = () => {
         <StaticTextPanel element={element} updateElement={updateElement} />
       )}
 
+      {/* 자모 분해 — 텍스트를 자모별 텍스트 박스로 분리 */}
+      {element.text && /[가-힣]/.test(element.text) && (
+        <div className="flex flex-col gap-2">
+          <div className="text-14-semibold text-black-90">자모 분해</div>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("jamo-split-request", {
+                  detail: {
+                    elementId: element.id,
+                    text: element.text,
+                    x: element.x,
+                    y: element.y,
+                    fontSize: element.style.fontSize,
+                    color: element.style.color,
+                    fontFamily: element.style.fontFamily,
+                  },
+                }),
+              );
+            }}
+            className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-13-bold text-primary transition hover:bg-primary-100"
+          >
+            자모로 분리하기
+          </button>
+          <div className="text-12-regular text-black-40">
+            텍스트를 초성/중성/종성 별로 분리합니다.
+          </div>
+        </div>
+      )}
+
       {/* 레이어 */}
       {moveLayer && <LayerPanel onMoveLayer={(dir) => moveLayer(element.id, dir)} />}
     </div>
@@ -289,6 +321,38 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitLineHeight(); setIsLineHeightEditing(false); e.currentTarget.blur(); } }}
           className="no-spinner w-full rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-90"
         />
+      </div>
+
+      {/* 자모 분해 — 텍스트를 자모별 텍스트 박스로 분리 */}
+      <div className="flex flex-col gap-2">
+        <div className="text-14-semibold text-black-90">자모 분해</div>
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            // 현재 텍스트를 자모로 분해하여 각각 새 텍스트 박스로 생성하는 이벤트 발생
+            window.dispatchEvent(
+              new CustomEvent("jamo-split-request", {
+                detail: {
+                  elementId: element.id,
+                  text: element.text,
+                  x: element.x,
+                  y: element.y,
+                  fontSize: element.style.fontSize,
+                  color: element.style.color,
+                  fontFamily: element.style.fontFamily,
+                },
+              }),
+            );
+          }}
+          className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-13-bold text-primary transition hover:bg-primary-100"
+        >
+          자모로 분리하기
+        </button>
+        <div className="text-12-regular text-black-40">
+          텍스트를 초성/중성/종성 별로 분리된 텍스트 박스로 변환합니다.
+          각 자모를 개별적으로 이동, 크기 조절, 색상 변경할 수 있습니다.
+        </div>
       </div>
 
       {/* 색상 */}
