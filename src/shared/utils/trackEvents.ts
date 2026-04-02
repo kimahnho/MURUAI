@@ -52,3 +52,32 @@ export const trackTemplateUsageEvent = async (
     console.warn("template_usage_events insert failed", error);
   }
 };
+
+export const trackImageUsageEvent = async (
+  imageUrl: string,
+  source: string,
+  label?: string | null,
+  userMadeId?: string | null,
+  userId?: string | null
+) => {
+  const resolvedUserId =
+    userId ?? (await supabase.auth.getUser()).data.user?.id;
+  if (!resolvedUserId) return;
+
+  // url() 래퍼 제거하여 순수 URL만 저장
+  const cleanUrl = imageUrl.startsWith("url(")
+    ? imageUrl.slice(4, -1)
+    : imageUrl;
+
+  const { error } = await supabase.from("image_usage_events").insert({
+    user_id: resolvedUserId,
+    image_url: cleanUrl,
+    source,
+    label: label ?? null,
+    user_made_id: userMadeId ?? null,
+  });
+
+  if (error) {
+    console.warn("image_usage_events insert failed", error);
+  }
+};

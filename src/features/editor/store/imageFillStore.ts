@@ -3,6 +3,7 @@
  */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackImageUsageEvent } from "@/shared/utils/trackEvents";
 import { useRecentImageUsageStore } from "./recentImageUsageStore";
 
 interface ImageFillStore {
@@ -13,6 +14,8 @@ interface ImageFillStore {
   height?: number;
   forceInsert?: boolean;
   source?: string;
+  currentDocId: string | null;
+  setCurrentDocId: (docId: string | null) => void;
   requestImageFill: (
     imageUrl: string,
     label?: string,
@@ -21,7 +24,7 @@ interface ImageFillStore {
   ) => void;
 }
 
-export const useImageFillStore = create<ImageFillStore>((set) => ({
+export const useImageFillStore = create<ImageFillStore>((set, get) => ({
   requestId: 0,
   imageUrl: null,
   label: undefined,
@@ -29,10 +32,25 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   height: undefined,
   forceInsert: false,
   source: undefined,
-  requestImageFill: (imageUrl, label, size, options) =>
-    { mp.track("이미지 추가", { source: options?.source ?? "unknown" });
-      useRecentImageUsageStore.getState().addRecentImage(imageUrl, label ?? "", options?.source ?? "unknown");
-      set((state) => ({
+  currentDocId: null,
+  setCurrentDocId: (docId) => set({ currentDocId: docId }),
+  requestImageFill: (imageUrl, label, size, options) => {
+    mp.track("이미지 추가", { source: options?.source ?? "unknown" });
+    useRecentImageUsageStore
+      .getState()
+      .addRecentImage(imageUrl, label ?? "", options?.source ?? "unknown");
+
+    // DB 이미지 사용 추적 (비차단, base64 임시 이미지 제외)
+    if (!imageUrl.startsWith("data:")) {
+      void trackImageUsageEvent(
+        imageUrl,
+        options?.source ?? "unknown",
+        label ?? null,
+        get().currentDocId,
+      );
+    }
+
+    set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,
       label,
@@ -40,5 +58,6 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
       height: size?.height,
       forceInsert: options?.forceInsert ?? false,
       source: options?.source,
-    })); },
+    }));
+  },
 }));

@@ -68,6 +68,8 @@ src/
     home/           # 홈 페이지
     admin/          # 관리자 대시보드
     storybook/      # AI 스토리북 생성기
+    studio/         # AI 치료 활동 생성기
+    image-gen/      # 특수교육용 이미지 소재 생성
   pages/            # 라우트 레벨 페이지
 api/                # Vercel Serverless Functions (GenAI 프록시)
 ```

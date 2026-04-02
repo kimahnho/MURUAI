@@ -1,19 +1,23 @@
 /**
- * 새 랜딩 페이지 — Snapdeck 스타일 프롬프트 입력 + 기능 소개.
- * 기존 LandingPage.tsx는 삭제하지 않고 보존.
+ * 랜딩 페이지 — 히어로 + 이미지 갤러리 + 에디터 소개 + 선택 이유 + CTA.
  */
-import PromptHeroSection from "./PromptHeroSection";
-import CapabilitySection from "./CapabilitySection";
+import HeroSection from "./HeroSection";
+import ImageGallerySection from "./ImageGallerySection";
+import EditorIntroSection from "./EditorIntroSection";
+import ReasonsSection from "./ReasonsSection";
+import CtaSection from "./CtaSection";
 
 interface NewLandingPageProps {
-  onGenerate: (topic: string) => void;
-  isGenerating: boolean;
+  onImageClick: (imageUrl: string) => void;
 }
 
-const NewLandingPage = ({ onGenerate, isGenerating }: NewLandingPageProps) => (
+const NewLandingPage = ({ onImageClick }: NewLandingPageProps) => (
   <>
-    <PromptHeroSection onGenerate={onGenerate} isGenerating={isGenerating} />
-    <CapabilitySection />
+    <HeroSection />
+    <ImageGallerySection onImageClick={onImageClick} />
+    <EditorIntroSection />
+    <ReasonsSection />
+    <CtaSection />
   </>
 );
 
