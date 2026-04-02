@@ -226,6 +226,7 @@ await trackActivityEvent("login", userId);
 | `trackActivityEvent(type, userId?)` | `activity_events` | `AuthProvider.tsx` |
 | `trackDownloadEvent(userId?, userMadeId?)` | `download_events` | `ExportModal.tsx` |
 | `trackTemplateUsageEvent(templateId, userId?, userMadeId?)` | `template_usage_events` | `useTemplateApplyActions.ts` |
+| `trackImageUsageEvent(imageUrl, source, label?, userMadeId?, userId?)` | `image_usage_events` | `imageFillStore.ts`, `useCanvasFileDrop.ts` |
 
 ### Mixpanel과 DB 이중 추적
 

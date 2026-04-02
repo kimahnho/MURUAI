@@ -51,6 +51,10 @@
 | `/mydoc` | `MyDocPage` | 내 학습자료 |
 | `/admin` | `AdminPage` | 관리자 (AdminGuard 보호) |
 | `/admin/user-docs` | `AdminUserDocsPage` | 유저별 자료 열람 |
+| `/studio` | `TherapyPage` | AI 치료 활동 (tester/admin) |
+| `/studio/workspace` | `WorkspacePage` | 학습지 작업 페이지 |
+| `/image-gen` | `ImageGenPage` | 특수교육용 이미지 소재 생성 (tester/admin) |
+| `/image-gen/:sessionId` | `ImageGenPage` | 기존 대화 복원 |
 
 ### 2. Features (`src/features/`)
 
@@ -60,6 +64,8 @@
 - **home/** — 랜딩/대시보드 UI
 - **admin/** — 관리자 대시보드, 크레딧 관리, 유저 관리
 - **storybook/** — AI 스토리북 생성기
+- **studio/** — AI 치료 활동 생성기 (채팅 기반 학습지 생성)
+- **image-gen/** — 특수교육용 이미지 소재 생성 (아동별 Agent 학습)
 
 ### 3. Shared (`src/shared/`)
 
@@ -130,7 +136,7 @@ AuthProvider (앱 루트)
   → onAuthStateChange — 로그인/로그아웃 감지
 ```
 
-- `user_profiles.role`: `"user"` | `"admin"` — DB 기반, 이메일 하드코딩 금지
+- `user_profiles.role`: `"user"` | `"admin"` | `"tester"` — DB 기반, 이메일 하드코딩 금지
 - AdminGuard: `/admin/*` 경로 보호 — role 로딩 중 스피너, 비인증/비관리자 차단
 
 ## AI 생성 파이프라인
@@ -156,7 +162,7 @@ AuthProvider (앱 루트)
   → imageBox에 위치/크기 저장
 ```
 
-- **업로드 경로**: `muru_uploads/{userId}` (사용자), `muru_emotion_scene/{userId}` (AI 장면), `muru-templates/admin/{template-name}/` (템플릿 배경)
+- **업로드 경로**: `muru_uploads/{userId}` (사용자), `muru_emotion_scene/{userId}` (AI 장면), `muru-templates/admin/{template-name}/` (템플릿 배경), `muru_user_ai_gen/{userId}` (Image-Gen AI), `muru-landing/` (랜딩 갤러리)
 - **지원 포맷**: JPEG, PNG, SVG
 - **캔버스 드롭**: 로컬 프리뷰 즉시 표시 → 백그라운드 Cloudinary 업로드 → URL 교체
 - **CDN 폰트 호스팅**: 184개 CDN 폰트를 Cloudinary에서 서빙
