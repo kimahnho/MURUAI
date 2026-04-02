@@ -1,67 +1,36 @@
 /**
- * 랜딩 히어로 섹션 — 서비스 헤드라인 + CTA + 에디터 미리보기.
+ * 히어로 섹션 — 메인 카피 + 서브 카피.
  */
-import { useModalStore } from "@/shared/store/useModalStore";
-import { mp } from "@/shared/utils/mixpanel";
-import { images } from "@/shared/assets";
+import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
-interface HeroSectionProps {
-  featureSectionRef: React.RefObject<HTMLElement | null>;
-}
+const HeroSection = () => (
+  <section className="flex w-full flex-col items-center bg-linear-to-b from-[#FDFCFF] to-[#f5f3ff] px-4 pb-10 pt-16 md:px-10 md:pb-16 md:pt-28">
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="flex max-w-3xl flex-col items-center gap-5 text-center md:gap-6"
+    >
+      {/* 뱃지 */}
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-white/60 px-4 py-1.5 text-13-bold text-primary backdrop-blur-sm">
+        <Sparkles className="h-3.5 w-3.5" />
+        특수치료 전문 이미지 라이브러리
+      </span>
 
-const HeroSection = ({ featureSectionRef }: HeroSectionProps) => {
-  const openAuthModal = useModalStore((s) => s.openAuthModal);
+      {/* 메인 카피 */}
+      <h1 className="text-headline-32-bold text-black-90 md:text-headline-42-bold">
+        특수치료를 위한
+        <br />
+        교육 이미지 라이브러리
+      </h1>
 
-  const handleScrollToFeatures = () => {
-    featureSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  return (
-    <section className="flex flex-col items-center w-full px-6 pt-16 pb-14 bg-linear-to-b from-primary-50 to-transparent md:px-10 md:pt-24 md:pb-20">
-      <div className="flex flex-col items-center max-w-3xl gap-5 text-center md:gap-6">
-        <h1 className="text-headline-28-bold text-black-90 md:text-headline-42-bold">
-          수업 자료, 더 쉽고 빠르게
-          <br />
-          무루아이와 함께 만들어요
-        </h1>
-
-        <p className="text-title-16-semibold text-black-60 md:text-title-20-semibold">
-          언어치료·특수교육 선생님을 위한 학습지 디자인 도구.
-          <br />
-          25종 템플릿과 AI가 수업 준비 시간을 줄여드려요.
-        </p>
-
-        <div className="flex flex-col items-center gap-3 mt-2 w-full md:flex-row md:justify-center md:gap-4 md:mt-4">
-          <button
-            onClick={() => { mp.track("랜딩 CTA 클릭"); openAuthModal(); }}
-            className="flex w-full h-14 items-center justify-center rounded-xl cursor-pointer hover:opacity-90 transition md:w-50 shadow-md"
-            style={{ background: "linear-gradient(135deg, #7C3AED, #8b5cf6)" }}
-          >
-            <span className="text-title-18-semibold text-white-100">
-              바로 시작하기
-            </span>
-          </button>
-          <button
-            onClick={handleScrollToFeatures}
-            className="flex w-full h-14 items-center justify-center border border-primary rounded-xl cursor-pointer md:w-50"
-          >
-            <span className="text-title-18-semibold text-primary">
-              기능 둘러보기
-            </span>
-          </button>
-        </div>
-
-        {/* 에디터 미리보기 이미지 */}
-        <div className="relative w-full max-w-2xl mt-8 rounded-2xl overflow-hidden shadow-2xl border border-black-25 md:mt-10">
-          <img
-            src={images.mainImage}
-            alt="무루아이 에디터 미리보기"
-            className="w-full h-auto"
-          />
-        </div>
-      </div>
-    </section>
-  );
-};
+      {/* 서브 카피 */}
+      <p className="text-14-regular text-black-70 md:text-title-18-bold">
+        3,000+ 이상의 고퀄리티 이미지를 지금 사용해보세요.
+      </p>
+    </motion.div>
+  </section>
+);
 
 export default HeroSection;
