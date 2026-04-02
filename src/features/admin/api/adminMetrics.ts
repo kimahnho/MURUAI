@@ -97,6 +97,13 @@ export type AdminMetrics = {
   };
 };
 
+export type TopImageItem = {
+  image_url: string;
+  source: string;
+  label: string | null;
+  usage_count: number;
+};
+
 type RpcMetrics = {
   documents?: {
     total_created?: number | null;
@@ -467,4 +474,60 @@ export const fetchAdminMetrics = async (
         : "다운로드 이벤트 로그가 없어 계산할 수 없어요.",
     },
   };
+};
+
+/**
+ * 기간 내 가장 많이 사용된 이미지를 집계하여 반환한다.
+ * image_url 기준 GROUP BY + COUNT 후 상위 N개를 반환.
+ */
+export const fetchTopImages = async (
+  range: AdminDateRange,
+  limit = 20,
+): Promise<TopImageItem[]> => {
+  const startIso = toStartOfDayIso(range.start);
+  const endIso = toEndOfDayIso(range.end);
+
+  const { data, error } = await supabase
+    .from("image_usage_events")
+    .select("image_url,source,label,created_at")
+    .gte("created_at", startIso)
+    .lte("created_at", endIso)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.warn("image_usage_events fetch failed", error);
+    return [];
+  }
+
+  // 클라이언트 집계: image_url 기준 카운트 + 가장 최근 source/label 유지
+  const countMap = new Map<
+    string,
+    { source: string; label: string | null; count: number }
+  >();
+  for (const row of data as Array<{
+    image_url: string;
+    source: string;
+    label: string | null;
+  }>) {
+    const existing = countMap.get(row.image_url);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      countMap.set(row.image_url, {
+        source: row.source,
+        label: row.label,
+        count: 1,
+      });
+    }
+  }
+
+  return Array.from(countMap.entries())
+    .map(([url, info]) => ({
+      image_url: url,
+      source: info.source,
+      label: info.label,
+      usage_count: info.count,
+    }))
+    .sort((a, b) => b.usage_count - a.usage_count)
+    .slice(0, limit);
 };

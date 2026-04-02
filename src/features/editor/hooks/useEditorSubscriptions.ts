@@ -18,6 +18,7 @@ import type { SideBarMenu } from "../store/sideBarStore";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import type { StorySequenceConfig } from "../utils/storySequenceUtils";
 import type { StoryItem } from "../ai/generateEmotionStory";
+import { useImageFillStore } from "../store/imageFillStore";
 import { useImageFillSubscription } from "./useImageFillSubscription";
 import { useFontSubscription } from "./useFontSubscription";
 import { useElementSubscription } from "./useElementSubscription";
@@ -163,7 +164,13 @@ export const useEditorSubscriptions = ({
   const { docId } = useParams<{ docId: string }>();
   const { showEmotionInferenceToast } = useTemplateNotifications();
 
-  // 대시보드에서 전달된 AI intent 소비 (마운트 시 1회)
+  // imageFillStore에 현재 문서 ID를 동기화하여 이미지 사용 추적 시 문서 ID를 포함한다.
+  useEffect(() => {
+    useImageFillStore.getState().setCurrentDocId(docId ?? null);
+    return () => useImageFillStore.getState().setCurrentDocId(null);
+  }, [docId]);
+
+  // 대���보드에서 전달된 AI intent 소비 (마운트 시 1회)
   // 템플릿 intent는 문서 생성 시 canvas_data에 미리 포함되므로 여기서는 AI만 처리한다.
   useEffect(() => {
     const raw = sessionStorage.getItem("pendingEditorIntent");

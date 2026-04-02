@@ -11,6 +11,7 @@ import TrendChart from "./TrendChart";
 import DistributionChart from "./DistributionChart";
 import WeekdayCalendar from "./WeekdayCalendar";
 import TemplatesTable from "./TemplatesTable";
+import ImagePopularitySection from "./ImagePopularitySection";
 import CreditRequestsSection from "./CreditRequestsSection";
 import UserListSection from "./UserListSection";
 import type { AdminMetrics } from "../api/adminMetrics";
@@ -224,6 +225,12 @@ const AdminDashboardView = ({
               </div>
             )}
           </div>
+
+          {/* 인기 이미지 사용 빈도 */}
+          <ImagePopularitySection
+            range={{ start: range.start, end: range.end }}
+            isLoading={isLoading}
+          />
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="xl:col-span-2">
