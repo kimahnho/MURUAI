@@ -163,9 +163,9 @@ const DesignContentView = ({
 
       <button
         onClick={onGenerate}
-        disabled={!canGenerate || true /* TODO: Google AI 복원 시 || true 제거 */}
+        disabled={!canGenerate}
         className={`flex items-center justify-center gap-1.5 w-full py-3 rounded-lg text-14-semibold transition-all ${
-          canGenerate && false /* TODO: Google AI 복원 시 && false 제거 */
+          canGenerate
             ? "bg-primary text-white-100 hover:bg-primary-700"
             : "bg-black-20 text-black-50 cursor-not-allowed"
         }`}
