@@ -2,10 +2,9 @@
  * 도형 선택 시 사이드바에 표시되는 속성 편집 패널.
  * 크기, 모서리, 색상, 이미지, 테두리, 레이어 컨트롤을 제공한다.
  */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Ban, Loader2, Pipette, Upload } from "lucide-react";
 import { useElementPanelStore, type ShapePanelData } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { useImageUploadToCloudinary } from "../hooks/useImageUploadToCloudinary";
 import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
@@ -22,7 +21,6 @@ const ShapePropsContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
 
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
@@ -37,12 +35,6 @@ const ShapePropsContent = () => {
   const [isWidthEditing, setIsWidthEditing] = useState(false);
   const [isHeightEditing, setIsHeightEditing] = useState(false);
   const [isRadiusEditing, setIsRadiusEditing] = useState(false);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "shape") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "shape" || !updateElement) return null;
 

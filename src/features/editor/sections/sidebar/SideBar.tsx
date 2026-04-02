@@ -34,6 +34,8 @@ import TextPropsContent from "./content/TextPropsContent";
 import AiStoryEditContent from "./content/AiStoryEditContent";
 import TherapyContextContent from "./content/TherapyContextContent";
 import { useSideBarStore, type SideBarMenu } from "@/features/editor/store/sideBarStore";
+import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
+import type { PanelData } from "@/features/editor/store/elementPanelStore";
 import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 
@@ -101,13 +103,33 @@ const CONTENT_COMPONENTS: Record<
   therapy: TherapyContextContent,
 };
 
+// panelData.type → props 컴포넌트 + 타이틀 매핑 (aac는 실제 탭이므로 제외)
+const PROPS_OVERLAY: Record<string, { component: ComponentType; title: string }> = {
+  shape: { component: ShapePropsContent, title: "도형" },
+  line: { component: LinePropsContent, title: "선" },
+  arrow: { component: ArrowPropsContent, title: "화살표" },
+  text: { component: TextPropsContent, title: "텍스트" },
+  aacCardV2: { component: AacCardPropsContent, title: "AAC 카드" },
+  emotionCard: { component: EmotionCardPropsContent, title: "감정카드" },
+  multi: { component: MultiPropsContent, title: "다중 선택" },
+};
+
+const resolveOverlay = (panelData: PanelData) => {
+  if (!panelData) return null;
+  return PROPS_OVERLAY[panelData.type] ?? null;
+};
+
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
   const role = useAuthStore((s) => s.role);
   const isFocusedMode = useAiGenerationModeStore((s) => s.isActive);
-  const activeTitle = selectedMenu ? MENU_LABELS[selectedMenu] : "";
-  const ActiveContent = selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null;
+  const panelData = useElementPanelStore((s) => s.panelData);
+
+  // props 오버레이: panelData가 있으면 props 패널을 selectedMenu 대신 표시
+  const overlay = resolveOverlay(panelData);
+  const activeTitle = overlay ? overlay.title : (selectedMenu ? MENU_LABELS[selectedMenu] : "");
+  const ActiveContent = overlay ? overlay.component : (selectedMenu ? CONTENT_COMPONENTS[selectedMenu] : null);
 
   // 포커스 모드: 아이콘 메뉴 숨기고 패널만 전체 너비로 표시
   if (isFocusedMode && selectedMenu === "ai-story-edit") {

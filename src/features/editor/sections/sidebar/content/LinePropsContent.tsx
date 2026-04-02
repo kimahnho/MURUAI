@@ -1,9 +1,7 @@
 /**
  * 선 요소 선택 시 사이드바에 표시되는 속성 편집 패널.
  */
-import { useEffect } from "react";
 import { useElementPanelStore, type LinePanelData } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import { useNumberInput } from "@/features/editor/shared/hooks/useNumberInput";
 import { clamp } from "@/features/editor/utils/domUtils";
 import { resolveMarkers } from "@/features/editor/utils/designPaperUtils";
@@ -44,13 +42,6 @@ const LinePropsContent = () => {
   const updateElement = useElementPanelStore((s) => s.updateElement);
   const updateLines = useElementPanelStore((s) => s.updateLines);
   const moveLayer = useElementPanelStore((s) => s.moveLayer);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "line") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "line" || !updateElement || !updateLines) return null;
 

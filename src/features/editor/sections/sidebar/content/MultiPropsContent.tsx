@@ -1,10 +1,9 @@
 /**
  * 다중 선택 상태에서 사이드바에 표시되는 공통 속성 편집 패널.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Ban } from "lucide-react";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
-import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
 
@@ -15,14 +14,7 @@ const MultiPropsContent = () => {
   const multiCallbacks = useElementPanelStore((s) => s.multiCallbacks);
   const changeAllMatchingColors = useElementPanelStore((s) => s.changeAllMatchingColors);
   const hasMatchingColors = useElementPanelStore((s) => s.hasMatchingColors);
-  const setSideBarMenu = useSideBarStore((s) => s.setSelectedMenu);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
-
-  useEffect(() => {
-    if (!panelData || panelData.type !== "multi") {
-      setSideBarMenu("template");
-    }
-  }, [panelData, setSideBarMenu]);
 
   if (!panelData || panelData.type !== "multi" || !multiCallbacks) return null;
 
