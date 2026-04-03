@@ -34,6 +34,7 @@ interface WorksheetElementStore {
 
   // config 변경 트리거 (구독용)
   configChangeId: number;
+  lastChangedComponentId: string | null;
 
   // 선택된 컴포넌트 (편집 패널용)
   selectedComponentId: string | null;
@@ -74,6 +75,7 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
         c.id === id ? { ...c, config } : c,
       ),
       configChangeId: state.configChangeId + 1,
+      lastChangedComponentId: id,
     }));
   },
   updateElementIds: (id, elementIds) => {
@@ -91,6 +93,7 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
   },
 
   configChangeId: 0,
+  lastChangedComponentId: null,
 
   selectedComponentId: null,
   setSelectedComponentId: (id) => { set({ selectedComponentId: id }); },

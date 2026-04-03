@@ -444,8 +444,8 @@ export const useEditorSubscriptions = ({
     shouldHandle: (state, prevState) =>
       state.configChangeId !== prevState.configChangeId,
     onChange: () => {
-      const { insertedComponents, selectedComponentId } = useWorksheetElementStore.getState();
-      const comp = insertedComponents.find((c) => c.id === selectedComponentId);
+      const { insertedComponents, lastChangedComponentId } = useWorksheetElementStore.getState();
+      const comp = insertedComponents.find((c) => c.id === lastChangedComponentId);
       if (!comp) return;
 
       const activePageId = selectedPageIdRef.current;
