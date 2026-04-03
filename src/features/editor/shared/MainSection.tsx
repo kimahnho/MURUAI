@@ -344,7 +344,6 @@ const MainSection = () => {
       };
 
       let syllableIdx = 0;
-      let jamoIdx = 0;
 
       for (const char of text) {
         const code = char.charCodeAt(0);
