@@ -43,10 +43,26 @@ const DEFAULT_TABLE_SIZE = 3;
 const clampSize = (value: number) =>
   Math.min(MAX_TABLE_SIZE, Math.max(MIN_TABLE_SIZE, value));
 
+const SyllableBoxIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 40 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width="24"
+    height="28"
+  >
+    <rect x="1" y="1" width="38" height="46" rx="0" fill="#E5FFF5" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="1" width="20" height="19" rx="0" fill="#FDD8D8" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="32" width="38" height="15" rx="0" fill="#FFFAE0" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+  </svg>
+);
+
 const ElementContent = () => {
   // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
   const onSelectShape = useElementStore((s) => s.requestElement);
   const requestTableElement = useElementStore((s) => s.requestTableElement);
+  const requestSyllableBox = useElementStore((s) => s.requestSyllableBox);
 
   const [showTablePopup, setShowTablePopup] = useState(false);
   const [tableRows, setTableRows] = useState(DEFAULT_TABLE_SIZE);
@@ -191,6 +207,23 @@ const ElementContent = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-col w-full gap-3">
+        <div className="flex items-center">
+          <span className="flex text-title-16-semibold items-center">
+            음절상자
+          </span>
+        </div>
+        <button
+          onClick={() => { requestSyllableBox(); }}
+          className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group w-full"
+        >
+          <SyllableBoxIcon className="text-black-70 group-hover:text-primary transition-colors" />
+          <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
+            음절상자
+          </span>
+        </button>
       </div>
     </div>
   );

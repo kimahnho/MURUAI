@@ -19,9 +19,11 @@ interface ElementStore {
   requestedType: ElementType | null;
   requestedText: TextPreset | null;
   requestedTableConfig: { rows: number; cols: number } | null;
+  requestedSyllableBox: boolean;
   requestElement: (type: ElementType) => void;
   requestText: (preset: TextPreset) => void;
   requestTableElement: (rows: number, cols: number) => void;
+  requestSyllableBox: () => void;
 }
 
 export const useElementStore = create<ElementStore>((set) => ({
@@ -29,6 +31,7 @@ export const useElementStore = create<ElementStore>((set) => ({
   requestedType: null,
   requestedText: null,
   requestedTableConfig: null,
+  requestedSyllableBox: false,
   requestElement: (type) =>
     { mp.track("요소 생성", { element_type: type });
       set((state) => ({
@@ -36,6 +39,7 @@ export const useElementStore = create<ElementStore>((set) => ({
       requestedType: type,
       requestedText: null,
       requestedTableConfig: null,
+      requestedSyllableBox: false,
     })); },
   requestText: (preset) =>
     { mp.track("요소 생성", { element_type: "text" });
@@ -44,6 +48,7 @@ export const useElementStore = create<ElementStore>((set) => ({
       requestedType: "text",
       requestedText: preset,
       requestedTableConfig: null,
+      requestedSyllableBox: false,
     })); },
   requestTableElement: (rows, cols) =>
     { mp.track("요소 생성", { element_type: "table" });
@@ -52,5 +57,15 @@ export const useElementStore = create<ElementStore>((set) => ({
       requestedType: "table",
       requestedText: null,
       requestedTableConfig: { rows, cols },
+      requestedSyllableBox: false,
+    })); },
+  requestSyllableBox: () =>
+    { mp.track("요소 생성", { element_type: "syllableBox" });
+      set((state) => ({
+      requestId: state.requestId + 1,
+      requestedType: "rect",
+      requestedText: null,
+      requestedTableConfig: null,
+      requestedSyllableBox: true,
     })); },
 }));
