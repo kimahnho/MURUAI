@@ -247,7 +247,7 @@ const ArtStyleStep = () => {
           <textarea
             value={customPromptTemplate ?? ""}
             onChange={(e) => { setCustomPromptTemplate(e.target.value); }}
-            placeholder="원하는 그림체를 설명해 주세요 (예: 따뜻한 수채화풍, 파스텔 톤, 부드러운 선)"
+            placeholder="예: 볼터치 있는 귀여운 아이, 따뜻한 색감"
             rows={3}
             className="mt-1 w-full resize-none rounded-lg border border-black-20 px-3 py-2 text-13-regular placeholder:text-black-30 focus:border-primary focus:outline-none"
           />
