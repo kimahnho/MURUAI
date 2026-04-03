@@ -3,7 +3,7 @@
  * 카드형 토글 UI로 컴포넌트별 편집 폼 표시.
  * 삽입된 컴포넌트가 없으면 렌더하지 않음.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
@@ -110,6 +110,19 @@ const WorksheetRightPanel = () => {
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const removeInsertedComponent = useWorksheetElementStore((s) => s.removeInsertedComponent);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const prevCountRef = useRef(insertedComponents.length);
+
+  // 새 컴포넌트 삽입 시 자동 펼침
+  useEffect(() => {
+    if (insertedComponents.length > prevCountRef.current) {
+      // 마지막에 추가된 컴포넌트를 자동 펼침
+      const newComp = insertedComponents[insertedComponents.length - 1];
+      if (newComp) {
+        setExpandedIds((prev) => new Set([...prev, newComp.id]));
+      }
+    }
+    prevCountRef.current = insertedComponents.length;
+  }, [insertedComponents]);
 
   if (insertedComponents.length === 0) return null;
 

@@ -40,7 +40,7 @@ import {
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
-import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig } from "../utils/buildWorksheetPage";
+import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 
 type TextPreset = {
@@ -471,20 +471,32 @@ export const useEditorSubscriptions = ({
         insertY,
       ).map((el) => (existingGroupId ? { ...el, groupId: existingGroupId } : el));
 
-      // 기존 요소 제거 + 새 요소 삽입 (같은 위치)
-      setPages((prev) =>
-        prev.map((p) => {
-          if (p.id !== activePageId) return p;
-          const filtered = p.elements.filter((el) => !oldElementIdSet.has(el.id));
-          return { ...p, elements: [...filtered, ...newElements] };
-        }),
+      // 기존 요소 제거 + 새 요소 삽입
+      const updatedElements = page.elements
+        .filter((el) => !oldElementIdSet.has(el.id))
+        .concat(newElements);
+
+      // 변경된 elementIds를 먼저 업데이트 (reflow에서 참조)
+      const store = useWorksheetElementStore.getState();
+      store.updateElementIds(comp.id, newElements.map((el) => el.id));
+
+      // 전체 워크시트 컴포넌트 자동 레이아웃 (겹침 방지 + 간격 유지)
+      const latestComps = useWorksheetElementStore.getState().insertedComponents;
+      const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
+        updatedElements,
+        latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
       );
 
-      // elementIds 업데이트
-      useWorksheetElementStore.getState().updateElementIds(
-        comp.id,
-        newElements.map((el) => el.id),
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId ? { ...p, elements: reflowedElements } : p,
+        ),
       );
+
+      // reflow 후 elementIds 동기화
+      for (const [compId, newIds] of updatedElementIds) {
+        useWorksheetElementStore.getState().updateElementIds(compId, newIds);
+      }
     },
     deps: [pagesRef, selectedPageIdRef, setPages],
   });

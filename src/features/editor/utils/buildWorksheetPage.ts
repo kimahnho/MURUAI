@@ -532,6 +532,75 @@ export const buildWorksheetComponentElementsFromConfig = (
   return elements;
 };
 
+/**
+ * 모든 워크시트 컴포넌트를 Y축 순서대로 재정렬.
+ * 컴포넌트 크기 변경 시 아래 컴포넌트들을 자동으로 밀거나 당김.
+ * @returns 재정렬된 전체 elements 배열 + 컴포넌트별 새 elementIds
+ */
+export const reflowWorksheetComponents = (
+  pageElements: CanvasElement[],
+  insertedComponents: { id: string; elementIds: string[] }[],
+): {
+  elements: CanvasElement[];
+  updatedElementIds: Map<string, string[]>;
+} => {
+  // 워크시트에 속하지 않는 요소 (로고 등)
+  const worksheetElementIds = new Set<string>();
+  for (const comp of insertedComponents) {
+    for (const eid of comp.elementIds) worksheetElementIds.add(eid);
+  }
+  const nonWorksheetElements = pageElements.filter((el) => !worksheetElementIds.has(el.id));
+
+  // 컴포넌트별 요소 그룹 + 현재 최소 Y좌표로 정렬
+  const compGroups = insertedComponents.map((comp) => {
+    const idSet = new Set(comp.elementIds);
+    const elements = pageElements.filter((el) => idSet.has(el.id));
+    let minY = Infinity;
+    for (const el of elements) {
+      if ("y" in el) {
+        const y = (el as { y: number }).y;
+        if (y < minY) minY = y;
+      }
+    }
+    return { comp, elements, minY: minY === Infinity ? MARGIN : minY };
+  });
+
+  // Y좌표 순으로 정렬
+  compGroups.sort((a, b) => a.minY - b.minY);
+
+  // 순서대로 재배치
+  let curY = MARGIN;
+  const allReflowed: CanvasElement[] = [...nonWorksheetElements];
+  const updatedElementIds = new Map<string, string[]>();
+
+  for (const group of compGroups) {
+    // 기존 최소 Y와의 차이 계산 → 전체 요소를 동일하게 이동
+    const deltaY = curY - group.minY;
+
+    const shifted = group.elements.map((el) => {
+      if ("y" in el) {
+        return { ...el, y: (el as { y: number }).y + deltaY };
+      }
+      return el;
+    });
+
+    allReflowed.push(...shifted);
+    updatedElementIds.set(group.comp.id, shifted.map((el) => el.id));
+
+    // 이 컴포넌트의 최하단 Y 계산
+    let maxBottom = curY;
+    for (const el of shifted) {
+      if ("y" in el && "h" in el) {
+        const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+        if (bottom > maxBottom) maxBottom = bottom;
+      }
+    }
+    curY = maxBottom + COMP_GAP;
+  }
+
+  return { elements: allReflowed, updatedElementIds };
+};
+
 export const buildWorksheetPage = (components: WorksheetComponent[]): Page => {
   const allElements: CanvasElement[] = [];
   let curY = MARGIN;
