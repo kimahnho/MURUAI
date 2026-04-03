@@ -20,20 +20,27 @@ const RETRY_DELAY_MS = 2000;
 const buildCharacterPrompt = (
   childInfo: ChildInfo,
   stylePrompt: string,
+  customPrompt?: string,
 ): string => {
   const gender = childInfo.gender === "male" ? "boy" : "girl";
   const age = childInfo.age;
 
+  // 유저 입력이 있으면 최우선 배치
+  const userSection = customPrompt
+    ? `\nIMPORTANT — The user specifically requested the following character traits. These take top priority:\n${customPrompt}\n`
+    : "";
+
   return `Create a single full-body character design of a ${age}-year-old Korean ${gender}.
+${userSection}
+Art style: ${stylePrompt}
 
-${stylePrompt}
-
-The character should:
+The character MUST:
 - Face the viewer in a friendly, neutral standing pose
-- Wear casual everyday Korean children's clothing
-- Have a warm, gentle smile
-- Be centered on a clean white background
 - Show the full body from head to feet
+- Have a warm, gentle smile
+
+Background MUST be:
+- Pure solid white (#FFFFFF), no gradients, no shadows, no scenery
 
 This is a character reference sheet — only one character, no background scene, no text or labels.`;
 };
@@ -58,10 +65,7 @@ export const generateCharacterReference = async (
 
   // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
-  const basePrompt = buildCharacterPrompt(childInfo, preset.promptTemplate);
-  const prompt = customPrompt
-    ? `${basePrompt}\n\nAdditional character details requested by the user:\n${customPrompt}`
-    : basePrompt;
+  const prompt = buildCharacterPrompt(childInfo, preset.promptTemplate, customPrompt);
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
