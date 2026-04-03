@@ -1,8 +1,11 @@
 /**
  * 학습자료 컴포넌트 편집 오른쪽 패널.
- * 캔버스에 삽입된 워크시트 컴포넌트의 속성을 편집한다.
+ * 카드형 토글 UI로 컴포넌트별 편집 폼 표시.
  * 삽입된 컴포넌트가 없으면 렌더하지 않음.
  */
+import { useState } from "react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import { COMPONENT_META } from "@/features/worksheet-editor/constants/defaults";
 import type {
@@ -34,6 +37,42 @@ import {
 } from "@/features/worksheet-editor/sections/forms/EditorForms";
 import type { InsertedWorksheetComponent } from "@/features/editor/store/worksheetElementStore";
 
+// 보상 트래커 전용 아이콘 편집 폼
+const RewardTrackerFormWithIcon = ({
+  config,
+  onUpdate,
+}: {
+  config: RewardTrackerConfig;
+  onUpdate: <T extends WorksheetConfig>(updater: (prev: T) => T) => void;
+}) => (
+  <>
+    <RewardTrackerForm config={config} onUpdate={onUpdate} />
+    <div className="mt-3">
+      <label className="block text-[10.5px] font-semibold text-black-55 uppercase tracking-wider mb-1">
+        아이콘
+      </label>
+      <div className="flex gap-1.5 flex-wrap">
+        {["☆", "⭐", "♥", "♡", "✓", "●", "★"].map((icon) => (
+          <button
+            key={icon}
+            type="button"
+            className={`w-9 h-9 rounded-lg border-[1.5px] text-base flex items-center justify-center cursor-pointer transition ${
+              (config as RewardTrackerConfig & { icon?: string }).icon === icon
+                ? "border-primary bg-primary-50"
+                : "border-black-25 bg-white-100 hover:border-primary-200"
+            }`}
+            onClick={() =>
+              onUpdate((c: RewardTrackerConfig) => ({ ...c, icon })) as never
+            }
+          >
+            {icon}
+          </button>
+        ))}
+      </div>
+    </div>
+  </>
+);
+
 const renderForm = (
   comp: InsertedWorksheetComponent,
   onUpdate: <T extends WorksheetConfig>(updater: (prev: T) => T) => void,
@@ -50,7 +89,7 @@ const renderForm = (
     case "grid_NxM":
       return <GridForm config={comp.config as GridConfig} onUpdate={onUpdate} />;
     case "reward_tracker":
-      return <RewardTrackerForm config={comp.config as RewardTrackerConfig} onUpdate={onUpdate} />;
+      return <RewardTrackerFormWithIcon config={comp.config as RewardTrackerConfig} onUpdate={onUpdate} />;
     case "checklist_table":
       return <ChecklistTableForm config={comp.config as ChecklistTableConfig} onUpdate={onUpdate} />;
     case "info_guide":
@@ -68,74 +107,82 @@ const renderForm = (
 
 const WorksheetRightPanel = () => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
-  const selectedComponentId = useWorksheetElementStore((s) => s.selectedComponentId);
-  const setSelectedComponentId = useWorksheetElementStore((s) => s.setSelectedComponentId);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const removeInsertedComponent = useWorksheetElementStore((s) => s.removeInsertedComponent);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // 삽입된 컴포넌트가 없으면 패널 숨김
   if (insertedComponents.length === 0) return null;
 
-  const selectedComp = insertedComponents.find((c) => c.id === selectedComponentId);
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
-    <div className="w-80 shrink-0 border-l border-black-25 bg-white-100 overflow-y-auto flex flex-col">
+    <div className="w-80 shrink-0 border-l border-black-25 bg-black-10 overflow-y-auto flex flex-col">
       {/* 헤더 */}
-      <div className="px-4 py-3 border-b border-black-25 bg-black-5">
+      <div className="px-4 py-3 bg-white-100 border-b border-black-25">
         <p className="text-13-bold text-black-90">학습자료 편집</p>
-        <p className="text-[11px] text-black-55 mt-0.5">삽입된 컴포넌트를 선택하여 편집</p>
+        <p className="text-[11px] text-black-55 mt-0.5">
+          {insertedComponents.length}개 컴포넌트
+        </p>
       </div>
 
-      {/* 컴포넌트 목록 */}
-      <div className="px-3 py-2 border-b border-black-25">
-        <p className="text-[10px] text-black-50 uppercase tracking-wider font-bold mb-1.5">
-          삽입된 컴포넌트 ({insertedComponents.length})
-        </p>
-        <div className="flex flex-col gap-0.5">
-          {insertedComponents.map((comp) => {
-            const meta = COMPONENT_META[comp.type];
-            const isSelected = comp.id === selectedComponentId;
-            return (
-              <div
-                key={comp.id}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition ${
-                  isSelected
-                    ? "bg-primary-50 border border-primary-200"
-                    : "hover:bg-black-5 border border-transparent"
-                }`}
-                onClick={() => setSelectedComponentId(comp.id)}
+      {/* 컴포넌트 카드 목록 */}
+      <div className="p-3 flex flex-col gap-2.5">
+        {insertedComponents.map((comp) => {
+          const meta = COMPONENT_META[comp.type];
+          const isExpanded = expandedIds.has(comp.id);
+
+          return (
+            <div
+              key={comp.id}
+              className="bg-white-100 rounded-xl border border-black-25 shadow-sm overflow-hidden"
+            >
+              {/* 카드 헤더 — 클릭으로 토글 */}
+              <button
+                type="button"
+                className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-black-5 transition"
+                onClick={() => toggleExpand(comp.id)}
               >
-                <span className="text-sm shrink-0">{meta.icon}</span>
-                <span className="text-12-semibold flex-1 min-w-0 truncate">{meta.name}</span>
+                <span className="text-base shrink-0">{meta.icon}</span>
+                <span className="text-12-semibold flex-1 min-w-0 truncate text-black-90">
+                  {meta.name}
+                </span>
                 <button
                   type="button"
-                  className="w-5 h-5 rounded text-black-50 hover:text-error-700 hover:bg-error-50 flex items-center justify-center text-xs transition shrink-0"
+                  className="w-6 h-6 rounded-md text-black-45 hover:text-error-700 hover:bg-error-50 flex items-center justify-center transition shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeInsertedComponent(comp.id);
                   }}
                 >
-                  ✕
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-black-45 shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-black-45 shrink-0" />
+                )}
+              </button>
 
-      {/* 선택된 컴포넌트 편집 폼 */}
-      {selectedComp && (
-        <div className="px-4 py-3 flex-1">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">{COMPONENT_META[selectedComp.type].icon}</span>
-            <span className="text-13-bold">{COMPONENT_META[selectedComp.type].name} 편집</span>
-          </div>
-          {renderForm(selectedComp, (updater) => {
-            const newConfig = updater(selectedComp.config as never);
-            updateComponentConfig(selectedComp.id, newConfig);
-          })}
-        </div>
-      )}
+              {/* 카드 바디 — 편집 폼 */}
+              {isExpanded && (
+                <div className="px-3.5 pb-3.5 pt-1 border-t border-black-20">
+                  {renderForm(comp, (updater) => {
+                    const newConfig = updater(comp.config as never);
+                    updateComponentConfig(comp.id, newConfig);
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

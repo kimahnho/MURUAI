@@ -238,28 +238,40 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
 
 const buildRewardTracker = (config: RewardTrackerConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
-  const slotSize = mmToPx(6);
-  const gap = mmToPx(2);
-  const totalW = config.slot_count * (slotSize + gap);
-  let startX = x + CONTENT_W - totalW;
+  const slotSize = mmToPx(14); // 14mm (기존 6mm에서 2배+ 확대)
+  const gap = mmToPx(4);
+  const icon = (config as RewardTrackerConfig & { icon?: string }).icon || "☆";
+  const totalW = config.slot_count * (slotSize + gap) - gap;
+  const startX = x + (CONTENT_W - totalW) / 2; // 중앙 정렬
 
   if (config.label) {
     els.push(textEl({
-      x: startX - mmToPx(20), y, w: mmToPx(18), h: slotSize,
+      x, y, w: CONTENT_W, h: mmToPx(7),
       text: config.label,
-      style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
+      style: { fontSize: 16, fontWeight: "bold", color: "#666666", underline: false, alignX: "center", alignY: "middle" },
     }));
   }
+
+  const slotY = config.label ? y + mmToPx(8) : y;
 
   for (let i = 0; i < config.slot_count; i++) {
     els.push(shapeEl({
-      type: "ellipse", x: startX + i * (slotSize + gap), y, w: slotSize, h: slotSize,
+      type: "ellipse",
+      x: startX + i * (slotSize + gap), y: slotY,
+      w: slotSize, h: slotSize,
       fill: "#ffffff",
-      border: { enabled: true, color: "#ffc107", width: 1, style: "solid" },
+      border: { enabled: true, color: "#ffc107", width: 2, style: "solid" },
+    }));
+    els.push(textEl({
+      x: startX + i * (slotSize + gap), y: slotY,
+      w: slotSize, h: slotSize,
+      text: icon,
+      style: { fontSize: 22, fontWeight: "normal", color: "#ffc107", underline: false, alignX: "center", alignY: "middle" },
     }));
   }
 
-  return { elements: els, height: slotSize + mmToPx(2) };
+  const totalH = (config.label ? mmToPx(8) : 0) + slotSize + mmToPx(3);
+  return { elements: els, height: totalH };
 };
 
 const buildChecklist = (config: ChecklistTableConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {

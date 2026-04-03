@@ -349,15 +349,19 @@ export const useEditorSubscriptions = ({
       const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
+      // groupId 부여 — 컴포넌트를 하나의 그룹으로 묶음
+      const groupId = crypto.randomUUID();
+      const groupedElements = newElements.map((el) => ({ ...el, groupId }));
+
       // 캔버스에 삽입
       setPages((prev) =>
         prev.map((p) =>
           p.id === activePageId
-            ? { ...p, elements: [...p.elements, ...newElements] }
+            ? { ...p, elements: [...p.elements, ...groupedElements] }
             : p,
         ),
       );
-      setSelectedIds(newElements.map((el) => el.id));
+      setSelectedIds(groupedElements.map((el) => el.id));
       setEditingTextId(null);
 
       // 오른쪽 편집 패널용 컴포넌트 추적
@@ -365,7 +369,7 @@ export const useEditorSubscriptions = ({
         id: crypto.randomUUID(),
         type: compType,
         config: structuredClone(DEFAULT_CONFIGS[compType]),
-        elementIds: newElements.map((el) => el.id),
+        elementIds: groupedElements.map((el) => el.id),
       });
     },
     deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
@@ -396,11 +400,15 @@ export const useEditorSubscriptions = ({
 
       for (const comp of state.requestedBatch) {
         const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
-        allNewElements.push(...elements);
+
+        // groupId 부여
+        const groupId = crypto.randomUUID();
+        const groupedElements = elements.map((el) => ({ ...el, groupId }));
+        allNewElements.push(...groupedElements);
 
         // 다음 컴포넌트의 Y 계산
         let compMaxY = curY;
-        for (const el of elements) {
+        for (const el of groupedElements) {
           if ("y" in el && "h" in el) {
             const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
             if (bottom > compMaxY) compMaxY = bottom;
@@ -413,7 +421,7 @@ export const useEditorSubscriptions = ({
           id: crypto.randomUUID(),
           type: comp.type,
           config: structuredClone(comp.config),
-          elementIds: elements.map((el) => el.id),
+          elementIds: groupedElements.map((el) => el.id),
         });
       }
 
@@ -444,22 +452,24 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
-      // 기존 요소의 Y좌표 찾기 (재빌드 시 같은 위치에 배치)
+      // 기존 요소의 Y좌표 + groupId 찾기
       const oldElementIdSet = new Set(comp.elementIds);
-      let insertY = 56.7; // 기본 마진
+      let insertY = 56.7;
+      let existingGroupId: string | undefined;
       for (const el of page.elements) {
-        if (oldElementIdSet.has(el.id) && "y" in el) {
-          insertY = (el as { y: number }).y;
+        if (oldElementIdSet.has(el.id)) {
+          if ("y" in el) insertY = (el as { y: number }).y;
+          if ("groupId" in el) existingGroupId = (el as { groupId?: string }).groupId;
           break;
         }
       }
 
-      // config로 새 요소 빌드
+      // config로 새 요소 빌드 + groupId 유지
       const newElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
         insertY,
-      );
+      ).map((el) => (existingGroupId ? { ...el, groupId: existingGroupId } : el));
 
       // 기존 요소 제거 + 새 요소 삽입 (같은 위치)
       setPages((prev) =>
@@ -478,6 +488,30 @@ export const useEditorSubscriptions = ({
     },
     deps: [pagesRef, selectedPageIdRef, setPages],
   });
+
+  // 캔버스 요소 삭제 시 편집 패널 자동 정리 — groupId로 묶인 요소가 페이지에서 사라지면 패널에서도 제거
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const { insertedComponents } = useWorksheetElementStore.getState();
+      if (insertedComponents.length === 0) return;
+
+      const pages = pagesRef.current;
+      const allElementIds = new Set<string>();
+      for (const page of pages) {
+        for (const el of page.elements) {
+          allElementIds.add(el.id);
+        }
+      }
+
+      for (const comp of insertedComponents) {
+        const hasAnyElement = comp.elementIds.some((id) => allElementIds.has(id));
+        if (!hasAnyElement) {
+          useWorksheetElementStore.getState().removeInsertedComponent(comp.id);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [pagesRef]);
 
   useOrientationSubscription({
     selectedPageIdRef,
