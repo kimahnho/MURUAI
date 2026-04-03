@@ -490,9 +490,9 @@ export const addSyllableBoxElement = ({
 
   const groupId = crypto.randomUUID();
 
-  // 전체 프레임 (초록 배경)
-  const parentW = mmToPx(50);
-  const parentH = mmToPx(60);
+  // 전체 프레임 (초록 배경) — 60% 크기
+  const parentW = mmToPx(30);
+  const parentH = mmToPx(36);
   const parentX = (pageWidth - parentW) / 2;
   const parentY = (pageHeight - parentH) / 2;
 

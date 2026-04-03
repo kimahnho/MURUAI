@@ -24,25 +24,6 @@ type ShapeItem = {
   type: ElementType;
 };
 
-const SHAPES: ShapeItem[] = [
-  { id: 1, name: "사각형", icon: Square, type: "rect" },
-  { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
-  { id: 3, name: "원", icon: Circle, type: "ellipse" },
-  { id: 4, name: "모자이크", icon: Grid3x3, type: "mosaic" },
-  { id: 5, name: "원형모자이크", icon: CircleDashed, type: "circleMosaic" },
-  { id: 6, name: "선", icon: Minus, type: "line" },
-  { id: 7, name: "화살표", icon: ArrowRight, type: "arrow" },
-  { id: 8, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
-  { id: 9, name: "감정카드", icon: SmilePlus, type: "emotionCard" },
-];
-
-const MIN_TABLE_SIZE = 1;
-const MAX_TABLE_SIZE = 20;
-const DEFAULT_TABLE_SIZE = 3;
-
-const clampSize = (value: number) =>
-  Math.min(MAX_TABLE_SIZE, Math.max(MIN_TABLE_SIZE, value));
-
 const SyllableBoxIcon = ({ className }: { className?: string }) => (
   <svg
     viewBox="0 0 40 48"
@@ -57,6 +38,33 @@ const SyllableBoxIcon = ({ className }: { className?: string }) => (
     <rect x="1" y="32" width="38" height="15" rx="0" fill="#FFFAE0" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
   </svg>
 );
+
+type ShapeItemWithCustom = ShapeItem | {
+  id: number;
+  name: string;
+  customIcon: React.FC<{ className?: string }>;
+  action: "syllableBox";
+};
+
+const SHAPES: (ShapeItem | ShapeItemWithCustom)[] = [
+  { id: 1, name: "사각형", icon: Square, type: "rect" },
+  { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
+  { id: 3, name: "원", icon: Circle, type: "ellipse" },
+  { id: 4, name: "모자이크", icon: Grid3x3, type: "mosaic" },
+  { id: 5, name: "원형모자이크", icon: CircleDashed, type: "circleMosaic" },
+  { id: 6, name: "선", icon: Minus, type: "line" },
+  { id: 7, name: "화살표", icon: ArrowRight, type: "arrow" },
+  { id: 8, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
+  { id: 9, name: "감정카드", icon: SmilePlus, type: "emotionCard" },
+  { id: 10, name: "음절상자", customIcon: SyllableBoxIcon, action: "syllableBox" },
+];
+
+const MIN_TABLE_SIZE = 1;
+const MAX_TABLE_SIZE = 20;
+const DEFAULT_TABLE_SIZE = 3;
+
+const clampSize = (value: number) =>
+  Math.min(MAX_TABLE_SIZE, Math.max(MIN_TABLE_SIZE, value));
 
 const ElementContent = () => {
   // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
@@ -91,15 +99,25 @@ const ElementContent = () => {
         </div>
         <div className="grid grid-cols-3 gap-2">
           {SHAPES.map((shape) => {
-            const Icon = shape.icon;
+            const isSyllableBox = "action" in shape && shape.action === "syllableBox";
+            const handleClick = () => {
+              if (isSyllableBox) {
+                requestSyllableBox();
+              } else if ("type" in shape) {
+                onSelectShape(shape.type);
+              }
+            };
             return (
               <button
                 key={shape.id}
-                // 도형 선택 이벤트는 type만 전달하고, 기본 크기/위치는 스토어 생성 규칙으로 일관 처리한다.
-                onClick={() => { onSelectShape(shape.type); }}
+                onClick={handleClick}
                 className="flex flex-col items-center justify-center gap-2 px-2 py-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group"
               >
-                <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                {"customIcon" in shape ? (
+                  <shape.customIcon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                ) : (
+                  <shape.icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                )}
                 <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
                   {shape.name}
                 </span>
@@ -209,22 +227,6 @@ const ElementContent = () => {
         </div>
       </div>
 
-      <div className="flex flex-col w-full gap-3">
-        <div className="flex items-center">
-          <span className="flex text-title-16-semibold items-center">
-            음절상자
-          </span>
-        </div>
-        <button
-          onClick={() => { requestSyllableBox(); }}
-          className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group w-full"
-        >
-          <SyllableBoxIcon className="text-black-70 group-hover:text-primary transition-colors" />
-          <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
-            음절상자
-          </span>
-        </button>
-      </div>
     </div>
   );
 };
