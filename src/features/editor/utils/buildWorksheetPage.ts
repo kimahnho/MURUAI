@@ -29,7 +29,7 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 const PAGE_W = mmToPx(210);
 const MARGIN = mmToPx(15);
 const CONTENT_W = PAGE_W - MARGIN * 2;
-const COMP_GAP = mmToPx(5);
+const COMP_GAP = mmToPx(10);
 
 const uid = () => crypto.randomUUID();
 

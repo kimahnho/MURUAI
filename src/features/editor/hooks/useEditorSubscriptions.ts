@@ -343,7 +343,7 @@ export const useEditorSubscriptions = ({
           if (bottom > maxY) maxY = bottom;
         }
       }
-      const insertY = maxY + 15; // 15px 간격
+      const insertY = maxY + 38; // ~10mm 간격
 
       const compType = state.requestedComponent;
       const newElements = buildWorksheetComponentElements(compType, insertY);
@@ -391,8 +391,8 @@ export const useEditorSubscriptions = ({
       }
 
       const allNewElements: import("../model/canvasTypes").CanvasElement[] = [];
-      let curY = maxY + 15;
-      const GAP = 15;
+      let curY = maxY + 38; // ~10mm
+      const GAP = 38; // ~10mm
 
       for (const comp of state.requestedBatch) {
         const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
