@@ -1,16 +1,24 @@
 /**
  * Step 4.5: AI 캐릭터 레퍼런스 이미지 생성 및 확인.
  * 선택한 그림체로 캐릭터를 AI 생성하고, 사용자가 컨펌하거나 다시 생성할 수 있다.
+ * "캐릭터 저장" 버튼으로 Cloudinary + Supabase에 저장하여 재사용 가능.
  */
 import { useEffect, useRef, useState } from "react";
-import { Loader2, RefreshCw, Upload } from "lucide-react";
+import { Bookmark, Loader2, RefreshCw, Upload } from "lucide-react";
 
+import { supabase } from "@/shared/api/supabase";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
+import { saveCharacter } from "../../api/savedCharacterApi";
 
 const ReferenceImageStep = () => {
   const referenceImageBase64 = useStorybookWizardStore(
     (s) => s.formData.referenceImageBase64,
   );
+  const artStyle = useStorybookWizardStore((s) => s.formData.artStyle);
+  const customPromptTemplate = useStorybookWizardStore(
+    (s) => s.formData.customPromptTemplate,
+  );
+  const childInfo = useStorybookWizardStore((s) => s.formData.childInfo);
   const isLoading = useStorybookWizardStore((s) => s.isLoading);
   const error = useStorybookWizardStore((s) => s.error);
   const generateCharacterRef = useStorybookWizardStore(
@@ -25,7 +33,10 @@ const ReferenceImageStep = () => {
   const setCharacterPrompt = useStorybookWizardStore(
     (s) => s.setCharacterPrompt,
   );
+
   const [localPrompt, setLocalPrompt] = useState(characterPrompt ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasTriggered = useRef(false);
 
@@ -39,6 +50,7 @@ const ReferenceImageStep = () => {
 
   const handleRegenerate = () => {
     setCharacterPrompt(localPrompt);
+    setSaveSuccess(false);
     void generateCharacterRef();
   };
 
@@ -51,9 +63,34 @@ const ReferenceImageStep = () => {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1];
       setReferenceImageBase64(base64);
+      setSaveSuccess(false);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  };
+
+  const handleSaveCharacter = async () => {
+    if (!referenceImageBase64) return;
+
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+
+    setIsSaving(true);
+    try {
+      await saveCharacter({
+        userId: data.user.id,
+        name: childInfo?.name ? `${childInfo.name} 캐릭터` : "캐릭터",
+        imageBase64: referenceImageBase64,
+        artStyleId: artStyle ?? null,
+        promptTemplate: artStyle === "custom" ? (customPromptTemplate ?? null) : null,
+        childInfo: childInfo ?? null,
+      });
+      setSaveSuccess(true);
+    } catch {
+      // 저장 실패 — 조용히 무시
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -99,7 +136,7 @@ const ReferenceImageStep = () => {
 
       {/* 버튼 영역 */}
       {!isLoading && (
-        <div className="flex gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={handleRegenerate}
@@ -116,6 +153,22 @@ const ReferenceImageStep = () => {
             <Upload className="h-4 w-4" />
             직접 업로드
           </button>
+          {referenceImageBase64 && !saveSuccess && (
+            <button
+              type="button"
+              onClick={() => { void handleSaveCharacter(); }}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-4 py-2 text-13-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+            >
+              <Bookmark className="h-4 w-4" />
+              {isSaving ? "저장 중..." : "캐릭터 저장"}
+            </button>
+          )}
+          {saveSuccess && (
+            <span className="flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-13-semibold text-green-700">
+              저장 완료
+            </span>
+          )}
         </div>
       )}
 

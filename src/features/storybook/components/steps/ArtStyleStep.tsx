@@ -1,32 +1,120 @@
 /**
- * 4단계: 스타일 설정 — 그림체 드롭다운(이미지 미리보기) + 폰트 드롭다운 + 레이아웃 2종.
+ * 4단계: 스타일 설정 — 저장된 캐릭터 + 그림체 드롭다운(프리셋+커스텀) + 폰트 + 레이아웃.
  */
-import { useState } from "react";
-import { Check, ChevronDown, ImageIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, ChevronDown, ImageIcon, Pencil, Trash2, X } from "lucide-react";
 
 import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
+import { supabase } from "@/shared/api/supabase";
 
-import type { ArtStylePreset, PageLayout } from "../../model/storybookTypes";
+import type { ArtStylePreset, PageLayout, SavedCharacter } from "../../model/storybookTypes";
 import { LAYOUT_OPTIONS } from "../../model/storybookTypes";
 import { ART_STYLE_PRESETS } from "../../data/artStylePresets";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
+import { fetchSavedCharacters, deleteCharacter } from "../../api/savedCharacterApi";
 
 const ArtStyleStep = () => {
   const artStyle = useStorybookWizardStore((s) => s.formData.artStyle);
   const fontFamily = useStorybookWizardStore((s) => s.formData.fontFamily);
   const layout = useStorybookWizardStore((s) => s.formData.layout);
+  const customPromptTemplate = useStorybookWizardStore((s) => s.formData.customPromptTemplate);
+  const selectedCharacterId = useStorybookWizardStore((s) => s.formData.selectedCharacterId);
   const setArtStyle = useStorybookWizardStore((s) => s.setArtStyle);
   const setFontFamily = useStorybookWizardStore((s) => s.setFontFamily);
   const setLayout = useStorybookWizardStore((s) => s.setLayout);
+  const setCustomPromptTemplate = useStorybookWizardStore((s) => s.setCustomPromptTemplate);
+  const selectSavedCharacter = useStorybookWizardStore((s) => s.selectSavedCharacter);
+  const clearSavedCharacter = useStorybookWizardStore((s) => s.clearSavedCharacter);
 
   const [isStyleOpen, setIsStyleOpen] = useState(false);
   const [isFontOpen, setIsFontOpen] = useState(false);
+  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
 
   const selectedPreset = ART_STYLE_PRESETS.find((p) => p.id === artStyle);
   const selectedFont = FONT_OPTIONS.find((f) => f.family === fontFamily);
+  const isCustom = artStyle === "custom";
+
+  // 저장된 캐릭터 목록 로드
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      try {
+        const characters = await fetchSavedCharacters(data.user.id);
+        setSavedCharacters(characters);
+      } catch {
+        // 테이블 미생성 등 에러 무시
+      }
+    })();
+  }, []);
+
+  const handleDeleteCharacter = async (id: string) => {
+    try {
+      await deleteCharacter(id);
+      setSavedCharacters((prev) => prev.filter((c) => c.id !== id));
+      if (selectedCharacterId === id) {
+        clearSavedCharacter();
+      }
+    } catch {
+      // 삭제 실패 무시
+    }
+  };
+
+  const handleSelectCharacter = (character: SavedCharacter) => {
+    if (selectedCharacterId === character.id) {
+      clearSavedCharacter();
+    } else {
+      selectSavedCharacter(character);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5">
+      {/* 저장된 캐릭터 */}
+      {savedCharacters.length > 0 && (
+        <Section title="저장된 캐릭터">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {savedCharacters.map((character) => (
+              <div
+                key={character.id}
+                className="relative shrink-0 group"
+              >
+                <button
+                  type="button"
+                  onClick={() => { handleSelectCharacter(character); }}
+                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+                    selectedCharacterId === character.id
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-black-20 hover:border-primary/50"
+                  }`}
+                >
+                  <img
+                    src={character.imageUrl}
+                    alt={character.name}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { void handleDeleteCharacter(character.id); }}
+                  className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <span className="block text-center text-11-regular text-black-50 mt-1 truncate w-20">
+                  {character.name}
+                </span>
+              </div>
+            ))}
+          </div>
+          {selectedCharacterId && (
+            <p className="text-12-regular text-primary mt-1">
+              캐릭터가 선택되었어요. 다음 단계에서 바로 생성을 시작합니다.
+            </p>
+          )}
+        </Section>
+      )}
+
       {/* 그림체 드롭다운 */}
       <Section title="그림체">
         <div className="relative">
@@ -36,7 +124,7 @@ const ArtStyleStep = () => {
             className="flex w-full items-center justify-between rounded-lg border border-black-25 px-3 py-2.5 text-left transition hover:bg-black-5"
           >
             <span className="text-14-regular text-black-80">
-              {selectedPreset?.label ?? "그림체를 선택하세요"}
+              {isCustom ? "직접 입력" : selectedPreset?.label ?? "그림체를 선택하세요"}
             </span>
             <ChevronDown className={`h-4 w-4 text-black-50 transition ${isStyleOpen ? "rotate-180" : ""}`} />
           </button>
@@ -51,11 +139,31 @@ const ArtStyleStep = () => {
                   onClick={() => { setArtStyle(preset.id); setIsStyleOpen(false); }}
                 />
               ))}
+              {/* 구분선 */}
+              <div className="mx-3 my-1 border-t border-black-15" />
+              {/* 직접 입력 */}
+              <button
+                type="button"
+                onClick={() => { setArtStyle("custom"); setIsStyleOpen(false); }}
+                className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-black-5 ${
+                  isCustom ? "bg-primary-50" : ""
+                }`}
+              >
+                <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded bg-black-10">
+                  <Pencil className="h-5 w-5 text-black-50" />
+                </div>
+                <div className="flex flex-1 flex-col">
+                  <span className="text-13-semibold text-black-90">직접 입력</span>
+                  <span className="text-11-regular text-black-50">프롬프트로 그림체를 직접 설명</span>
+                </div>
+                {isCustom && <Check className="h-4 w-4 shrink-0 text-primary" />}
+              </button>
             </div>
           )}
         </div>
 
-        {selectedPreset && (
+        {/* 프리셋 미리보기 */}
+        {selectedPreset && !isCustom && (
           <div className="mt-1 rounded-lg border border-black-15 overflow-hidden">
             <img
               src={selectedPreset.previewImage}
@@ -66,6 +174,17 @@ const ArtStyleStep = () => {
               <span className="text-12-regular text-black-50">{selectedPreset.description}</span>
             </div>
           </div>
+        )}
+
+        {/* 커스텀 프롬프트 입력 */}
+        {isCustom && (
+          <textarea
+            value={customPromptTemplate ?? ""}
+            onChange={(e) => { setCustomPromptTemplate(e.target.value); }}
+            placeholder="원하는 그림체를 설명해 주세요 (예: 따뜻한 수채화풍, 파스텔 톤, 부드러운 선)"
+            rows={3}
+            className="mt-1 w-full resize-none rounded-lg border border-black-20 px-3 py-2 text-13-regular placeholder:text-black-30 focus:border-primary focus:outline-none"
+          />
         )}
       </Section>
 

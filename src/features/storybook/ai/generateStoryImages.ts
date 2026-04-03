@@ -183,13 +183,14 @@ export const generateStoryImages = async (
   layout: PageLayout,
   referenceImageBase64?: string,
   onProgress?: (current: number, total: number) => void,
+  customPromptTemplate?: string,
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
   // }
 
   const preset = ART_STYLE_PRESETS.find((p) => p.id === artStyleId);
-  if (!preset) {
+  if (!preset && !customPromptTemplate) {
     throw new Error(`Unknown art style: ${artStyleId}`);
   }
 
@@ -215,7 +216,7 @@ export const generateStoryImages = async (
   }
 
   // 프롬프트 조합: [영문 장면] + ", " + [promptTemplate]
-  const stylePostfix = preset.promptTemplate;
+  const stylePostfix = customPromptTemplate ?? preset?.promptTemplate ?? "";
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
   // ── Phase 1: sceneGroup 기반 듀얼 레퍼런스로 base64 수집 ──

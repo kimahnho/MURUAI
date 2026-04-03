@@ -38,8 +38,11 @@ export const validateProposal = (
   return null;
 };
 
-export const validateArtStyle = (style: ArtStyleId | null): string | null => {
+export const validateArtStyle = (style: ArtStyleId | null, customPromptTemplate?: string): string | null => {
   if (!style) return "그림체를 선택해 주세요.";
+  if (style === "custom" && (!customPromptTemplate || !customPromptTemplate.trim())) {
+    return "커스텀 그림체 프롬프트를 입력해 주세요.";
+  }
   return null;
 };
 
@@ -58,7 +61,7 @@ export const canAdvance = (
       return validateProposal(activeProposal) === null;
     }
     case 4:
-      return validateArtStyle(formData.artStyle) === null;
+      return validateArtStyle(formData.artStyle, formData.customPromptTemplate) === null;
     case 45:
       return true; // 기본 캐릭터 이미지가 자동 설정되므로 항상 통과
     case 5:
