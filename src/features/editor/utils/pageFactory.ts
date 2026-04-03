@@ -475,6 +475,104 @@ export const addShapeElement = ({
   return nextElement.id;
 };
 
+export const addSyllableBoxElement = ({
+  pageId,
+  setPages,
+  getOrientation,
+}: {
+  pageId: string;
+  setPages: Dispatch<SetStateAction<Page[]>>;
+  getOrientation: () => "horizontal" | "vertical" | null;
+}): string[] => {
+  const pageOrientation = getOrientation();
+  const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
+  const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
+
+  const groupId = crypto.randomUUID();
+
+  // 전체 프레임 (초록 배경) — 60% 크기
+  const parentW = mmToPx(30);
+  const parentH = mmToPx(36);
+  const parentX = (pageWidth - parentW) / 2;
+  const parentY = (pageHeight - parentH) / 2;
+
+  // 초성 영역 (분홍, 좌상단)
+  const pinkW = parentW * 0.53;
+  const pinkH = parentH * 0.4;
+
+  // 종성 영역 (노랑, 하단 전체 너비)
+  const yellowH = parentH * 0.33;
+
+  const parentRect: CanvasElement = {
+    id: crypto.randomUUID(),
+    type: "rect",
+    x: parentX,
+    y: parentY,
+    w: parentW,
+    h: parentH,
+    fill: "#E5FFF5",
+    radius: 0,
+    groupId,
+    border: {
+      enabled: true,
+      color: "#000000",
+      width: 2,
+      style: "dashed",
+    },
+  };
+
+  const pinkRect: CanvasElement = {
+    id: crypto.randomUUID(),
+    type: "rect",
+    x: parentX,
+    y: parentY,
+    w: pinkW,
+    h: pinkH,
+    fill: "#FDD8D8",
+    radius: 0,
+    groupId,
+    border: {
+      enabled: true,
+      color: "#000000",
+      width: 2,
+      style: "dashed",
+    },
+  };
+
+  const yellowRect: CanvasElement = {
+    id: crypto.randomUUID(),
+    type: "rect",
+    x: parentX,
+    y: parentY + parentH - yellowH,
+    w: parentW,
+    h: yellowH,
+    fill: "#FFFAE0",
+    radius: 0,
+    groupId,
+    border: {
+      enabled: true,
+      color: "#000000",
+      width: 2,
+      style: "dashed",
+    },
+  };
+
+  const ids = [parentRect.id, pinkRect.id, yellowRect.id];
+
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === pageId
+        ? bumpPageRevision({
+            ...page,
+            elements: [...page.elements, parentRect, pinkRect, yellowRect],
+          })
+        : page
+    )
+  );
+
+  return ids;
+};
+
 export const addAacCardElement = ({
   pageId,
   setPages,

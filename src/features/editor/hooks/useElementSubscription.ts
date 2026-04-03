@@ -6,7 +6,7 @@ import { useElementStore } from "../store/elementStore";
 import type { Page } from "../model/pageTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
-import { addAacCardElement, addEmotionCardElement } from "../utils/pageFactory";
+import { addAacCardElement, addEmotionCardElement, addSyllableBoxElement } from "../utils/pageFactory";
 
 type TextPreset = {
   text: string;
@@ -75,7 +75,15 @@ export const useElementSubscription = ({
     getOrientation: () => "horizontal" | "vertical" | null,
     requestedText?: TextPreset,
     requestedTableConfig?: { rows: number; cols: number } | null,
-  ) => {
+    requestedSyllableBox?: boolean,
+  ): string | string[] | null => {
+    if (requestedType === "rect" && requestedSyllableBox) {
+      return addSyllableBoxElement({
+        pageId: activePageId,
+        setPages,
+        getOrientation,
+      });
+    }
     if (requestedType === "text") {
       return addTextElement({
         pageId: activePageId,
@@ -149,15 +157,17 @@ export const useElementSubscription = ({
           ?.orientation ?? null;
       // 스토어 요청 타입을 실제 요소 생성기로 매핑해
       // 구독 훅에서는 선택/편집 상태 전환만 담당한다.
-      const elementId = createElementFromRequest(
+      const result = createElementFromRequest(
         state.requestedType,
         activePageId,
         getOrientation,
         state.requestedText ?? undefined,
         state.requestedTableConfig,
+        state.requestedSyllableBox,
       );
-      if (!elementId) return;
-      setSelectedIds([elementId]);
+      if (!result) return;
+      const ids = Array.isArray(result) ? result : [result];
+      setSelectedIds(ids);
       setEditingTextId(null);
     },
     deps: [

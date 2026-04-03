@@ -24,7 +24,29 @@ type ShapeItem = {
   type: ElementType;
 };
 
-const SHAPES: ShapeItem[] = [
+const SyllableBoxIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 40 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width="24"
+    height="28"
+  >
+    <rect x="1" y="1" width="38" height="46" rx="0" fill="#E5FFF5" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="1" width="20" height="19" rx="0" fill="#FDD8D8" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="32" width="38" height="15" rx="0" fill="#FFFAE0" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+  </svg>
+);
+
+type ShapeItemWithCustom = ShapeItem | {
+  id: number;
+  name: string;
+  customIcon: React.FC<{ className?: string }>;
+  action: "syllableBox";
+};
+
+const SHAPES: (ShapeItem | ShapeItemWithCustom)[] = [
   { id: 1, name: "사각형", icon: Square, type: "rect" },
   { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
   { id: 3, name: "원", icon: Circle, type: "ellipse" },
@@ -34,6 +56,7 @@ const SHAPES: ShapeItem[] = [
   { id: 7, name: "화살표", icon: ArrowRight, type: "arrow" },
   { id: 8, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
   { id: 9, name: "감정카드", icon: SmilePlus, type: "emotionCard" },
+  { id: 10, name: "음절상자", customIcon: SyllableBoxIcon, action: "syllableBox" },
 ];
 
 const MIN_TABLE_SIZE = 1;
@@ -47,6 +70,7 @@ const ElementContent = () => {
   // 요소 생성 요청은 전역 element store로 보내 캔버스/히스토리 경로를 동일하게 유지한다.
   const onSelectShape = useElementStore((s) => s.requestElement);
   const requestTableElement = useElementStore((s) => s.requestTableElement);
+  const requestSyllableBox = useElementStore((s) => s.requestSyllableBox);
 
   const [showTablePopup, setShowTablePopup] = useState(false);
   const [tableRows, setTableRows] = useState(DEFAULT_TABLE_SIZE);
@@ -75,15 +99,25 @@ const ElementContent = () => {
         </div>
         <div className="grid grid-cols-3 gap-2">
           {SHAPES.map((shape) => {
-            const Icon = shape.icon;
+            const isSyllableBox = "action" in shape && shape.action === "syllableBox";
+            const handleClick = () => {
+              if (isSyllableBox) {
+                requestSyllableBox();
+              } else if ("type" in shape) {
+                onSelectShape(shape.type);
+              }
+            };
             return (
               <button
                 key={shape.id}
-                // 도형 선택 이벤트는 type만 전달하고, 기본 크기/위치는 스토어 생성 규칙으로 일관 처리한다.
-                onClick={() => { onSelectShape(shape.type); }}
+                onClick={handleClick}
                 className="flex flex-col items-center justify-center gap-2 px-2 py-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary-50 transition-all cursor-pointer group"
               >
-                <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                {"customIcon" in shape ? (
+                  <shape.customIcon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                ) : (
+                  <shape.icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
+                )}
                 <span className="text-12-semibold text-black-90 group-hover:text-primary transition-colors">
                   {shape.name}
                 </span>
@@ -192,6 +226,7 @@ const ElementContent = () => {
           )}
         </div>
       </div>
+
     </div>
   );
 };
