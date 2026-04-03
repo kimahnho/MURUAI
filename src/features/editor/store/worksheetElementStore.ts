@@ -24,7 +24,11 @@ interface WorksheetElementStore {
   insertedComponents: InsertedWorksheetComponent[];
   addInsertedComponent: (comp: InsertedWorksheetComponent) => void;
   updateComponentConfig: (id: string, config: WorksheetConfig) => void;
+  updateElementIds: (id: string, elementIds: string[]) => void;
   removeInsertedComponent: (id: string) => void;
+
+  // config 변경 트리거 (구독용)
+  configChangeId: number;
 
   // 선택된 컴포넌트 (편집 패널용)
   selectedComponentId: string | null;
@@ -54,6 +58,14 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
       insertedComponents: state.insertedComponents.map((c) =>
         c.id === id ? { ...c, config } : c,
       ),
+      configChangeId: state.configChangeId + 1,
+    }));
+  },
+  updateElementIds: (id, elementIds) => {
+    set((state) => ({
+      insertedComponents: state.insertedComponents.map((c) =>
+        c.id === id ? { ...c, elementIds } : c,
+      ),
     }));
   },
   removeInsertedComponent: (id) => {
@@ -62,6 +74,8 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
       selectedComponentId: state.selectedComponentId === id ? null : state.selectedComponentId,
     }));
   },
+
+  configChangeId: 0,
 
   selectedComponentId: null,
   setSelectedComponentId: (id) => { set({ selectedComponentId: id }); },

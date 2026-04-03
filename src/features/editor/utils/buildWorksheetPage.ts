@@ -5,7 +5,7 @@
  */
 import type { CanvasElement, TextElement, ShapeElement, TableElement } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
-import type { WorksheetComponent } from "@/features/worksheet-editor/model/types";
+import type { WorksheetComponent, WorksheetConfig } from "@/features/worksheet-editor/model/types";
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
@@ -498,6 +498,18 @@ export const buildWorksheetComponentElements = (
   insertY: number,
 ): CanvasElement[] => {
   const config = structuredClone(DEFAULT_CONFIGS[componentType]);
+  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY);
+};
+
+/**
+ * 주어진 config로 CanvasElement[]를 생성.
+ * 편집 패널에서 config 변경 시 요소를 재빌드할 때 사용.
+ */
+export const buildWorksheetComponentElementsFromConfig = (
+  componentType: WorksheetComponentType,
+  config: WorksheetConfig,
+  insertY: number,
+): CanvasElement[] => {
   const comp: WorksheetComponent = {
     id: crypto.randomUUID(),
     type: componentType,

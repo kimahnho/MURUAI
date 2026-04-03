@@ -40,7 +40,7 @@ import {
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
-import { buildWorksheetComponentElements } from "../utils/buildWorksheetPage";
+import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig } from "../utils/buildWorksheetPage";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 
 type TextPreset = {
@@ -369,6 +369,55 @@ export const useEditorSubscriptions = ({
       });
     },
     deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
+  });
+
+  // 학습자료 컴포넌트 config 변경 → 캔버스 요소 재빌드 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.configChangeId !== prevState.configChangeId,
+    onChange: () => {
+      const { insertedComponents, selectedComponentId } = useWorksheetElementStore.getState();
+      const comp = insertedComponents.find((c) => c.id === selectedComponentId);
+      if (!comp) return;
+
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      // 기존 요소의 Y좌표 찾기 (재빌드 시 같은 위치에 배치)
+      const oldElementIdSet = new Set(comp.elementIds);
+      let insertY = 56.7; // 기본 마진
+      for (const el of page.elements) {
+        if (oldElementIdSet.has(el.id) && "y" in el) {
+          insertY = (el as { y: number }).y;
+          break;
+        }
+      }
+
+      // config로 새 요소 빌드
+      const newElements = buildWorksheetComponentElementsFromConfig(
+        comp.type,
+        comp.config,
+        insertY,
+      );
+
+      // 기존 요소 제거 + 새 요소 삽입 (같은 위치)
+      setPages((prev) =>
+        prev.map((p) => {
+          if (p.id !== activePageId) return p;
+          const filtered = p.elements.filter((el) => !oldElementIdSet.has(el.id));
+          return { ...p, elements: [...filtered, ...newElements] };
+        }),
+      );
+
+      // elementIds 업데이트
+      useWorksheetElementStore.getState().updateElementIds(
+        comp.id,
+        newElements.map((el) => el.id),
+      );
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages],
   });
 
   useOrientationSubscription({
