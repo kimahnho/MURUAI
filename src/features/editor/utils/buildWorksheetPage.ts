@@ -38,7 +38,7 @@ const textEl = (
 ): TextElement => ({
   id: uid(),
   type: "text",
-  locked: true,
+  locked: false,
   style: {
     fontSize: 16,
     fontWeight: "normal",

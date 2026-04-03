@@ -41,6 +41,7 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements } from "../utils/buildWorksheetPage";
+import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 
 type TextPreset = {
   text: string;
@@ -344,9 +345,11 @@ export const useEditorSubscriptions = ({
       }
       const insertY = maxY + 15; // 15px 간격
 
-      const newElements = buildWorksheetComponentElements(state.requestedComponent, insertY);
+      const compType = state.requestedComponent;
+      const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
+      // 캔버스에 삽입
       setPages((prev) =>
         prev.map((p) =>
           p.id === activePageId
@@ -356,6 +359,14 @@ export const useEditorSubscriptions = ({
       );
       setSelectedIds(newElements.map((el) => el.id));
       setEditingTextId(null);
+
+      // 오른쪽 편집 패널용 컴포넌트 추적
+      useWorksheetElementStore.getState().addInsertedComponent({
+        id: crypto.randomUUID(),
+        type: compType,
+        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        elementIds: newElements.map((el) => el.id),
+      });
     },
     deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
   });
