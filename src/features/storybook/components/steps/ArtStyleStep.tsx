@@ -1,8 +1,8 @@
 /**
  * 4단계: 스타일 설정 — 저장된 캐릭터 + 그림체 드롭다운(프리셋+커스텀) + 폰트 + 레이아웃.
  */
-import { useEffect, useState } from "react";
-import { Check, ChevronDown, ImageIcon, Pencil, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, ImageIcon, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import { supabase } from "@/shared/api/supabase";
@@ -11,7 +11,7 @@ import type { ArtStylePreset, PageLayout, SavedCharacter } from "../../model/sto
 import { LAYOUT_OPTIONS } from "../../model/storybookTypes";
 import { ART_STYLE_PRESETS } from "../../data/artStylePresets";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
-import { fetchSavedCharacters, deleteCharacter } from "../../api/savedCharacterApi";
+import { fetchSavedCharacters, deleteCharacter, saveCharacter } from "../../api/savedCharacterApi";
 
 const ArtStyleStep = () => {
   const artStyle = useStorybookWizardStore((s) => s.formData.artStyle);
@@ -26,9 +26,13 @@ const ArtStyleStep = () => {
   const selectSavedCharacter = useStorybookWizardStore((s) => s.selectSavedCharacter);
   const clearSavedCharacter = useStorybookWizardStore((s) => s.clearSavedCharacter);
 
+  const childInfo = useStorybookWizardStore((s) => s.formData.childInfo);
+
   const [isStyleOpen, setIsStyleOpen] = useState(false);
   const [isFontOpen, setIsFontOpen] = useState(false);
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const characterFileRef = useRef<HTMLInputElement>(null);
 
   const selectedPreset = ART_STYLE_PRESETS.find((p) => p.id === artStyle);
   const selectedFont = FONT_OPTIONS.find((f) => f.family === fontFamily);
@@ -68,52 +72,114 @@ const ArtStyleStep = () => {
     }
   };
 
+  const handleCharacterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return;
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          resolve(dataUrl.split(",")[1]);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const saved = await saveCharacter({
+        userId: authData.user.id,
+        name: childInfo?.name ? `${childInfo.name} 캐릭터` : "캐릭터",
+        imageBase64: base64,
+        artStyleId: artStyle ?? null,
+        promptTemplate: artStyle === "custom" ? (customPromptTemplate ?? null) : null,
+        childInfo: childInfo ?? null,
+      });
+      setSavedCharacters((prev) => [saved, ...prev]);
+    } catch {
+      // 업로드 실패 무시
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {/* 저장된 캐릭터 */}
-      {savedCharacters.length > 0 && (
-        <Section title="저장된 캐릭터">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {savedCharacters.map((character) => (
-              <div
-                key={character.id}
-                className="relative shrink-0 group"
-              >
-                <button
-                  type="button"
-                  onClick={() => { handleSelectCharacter(character); }}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
-                    selectedCharacterId === character.id
-                      ? "border-primary ring-2 ring-primary/30"
-                      : "border-black-20 hover:border-primary/50"
-                  }`}
-                >
-                  <img
-                    src={character.imageUrl}
-                    alt={character.name}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { void handleDeleteCharacter(character.id); }}
-                  className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white-100"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                <span className="block text-center text-11-regular text-black-50 mt-1 truncate w-20">
-                  {character.name}
-                </span>
-              </div>
-            ))}
+      <Section title="저장된 캐릭터">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {/* 업로드 버튼 */}
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={() => characterFileRef.current?.click()}
+              disabled={isUploading}
+              className="w-20 h-20 rounded-lg border-2 border-dashed border-black-25 flex flex-col items-center justify-center gap-1 transition hover:border-primary hover:bg-primary-50 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <span className="text-11-regular text-black-40">업로드 중</span>
+              ) : (
+                <>
+                  <Plus className="h-5 w-5 text-black-40" />
+                  <span className="text-10-regular text-black-40">업로드</span>
+                </>
+              )}
+            </button>
+            <span className="block text-center text-11-regular text-black-50 mt-1 w-20"> </span>
           </div>
-          {selectedCharacterId && (
-            <p className="text-12-regular text-primary mt-1">
-              캐릭터가 선택되었어요. 다음 단계에서 바로 생성을 시작합니다.
-            </p>
-          )}
-        </Section>
-      )}
+          {savedCharacters.map((character) => (
+            <div
+              key={character.id}
+              className="relative shrink-0 group"
+            >
+              <button
+                type="button"
+                onClick={() => { handleSelectCharacter(character); }}
+                className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+                  selectedCharacterId === character.id
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-black-20 hover:border-primary/50"
+                }`}
+              >
+                <img
+                  src={character.imageUrl}
+                  alt={character.name}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => { void handleDeleteCharacter(character.id); }}
+                className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+              <span className="block text-center text-11-regular text-black-50 mt-1 truncate w-20">
+                {character.name}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-11-regular text-black-40">
+          배경이 흰색인 캐릭터 이미지를 업로드해 주세요.
+        </p>
+        {selectedCharacterId && (
+          <p className="text-12-regular text-primary mt-1">
+            캐릭터가 선택되었어요. 다음 단계에서 바로 생성을 시작합니다.
+          </p>
+        )}
+        <input
+          ref={characterFileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => { void handleCharacterUpload(e); }}
+          className="hidden"
+        />
+      </Section>
 
       {/* 그림체 드롭다운 */}
       <Section title="그림체">
