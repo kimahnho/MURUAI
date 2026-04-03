@@ -4,6 +4,7 @@
  */
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
+import { EXAMPLE_1_EUUMHWA, EXAMPLE_2_PARENTS_DAY, EXAMPLE_3_VOCABULARY } from "@/features/worksheet-editor/utils/examples";
 
 interface PaletteItem {
   type: WorksheetComponentType;
@@ -53,11 +54,37 @@ const badgeCls = {
 };
 const badgeLabels = { text: "텍스트", new: "NEW" };
 
+const EXAMPLES = [
+  { label: "예제1: 유음화", data: EXAMPLE_1_EUUMHWA },
+  { label: "예제2: 어버이날", data: EXAMPLE_2_PARENTS_DAY },
+  { label: "예제3: 단어학습", data: EXAMPLE_3_VOCABULARY },
+];
+
 const WorksheetBuilderTab = () => {
   const requestInsert = useWorksheetElementStore((s) => s.requestInsert);
+  const requestBatchInsert = useWorksheetElementStore((s) => s.requestBatchInsert);
 
   return (
     <div className="flex flex-col gap-3 py-1">
+      {/* 예제 3종 */}
+      <div>
+        <p className="text-[10px] text-black-50 uppercase tracking-widest font-bold mb-2 px-1">
+          예제 템플릿
+        </p>
+        <div className="flex flex-col gap-1">
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex.label}
+              type="button"
+              className="w-full px-3 py-2 rounded-lg text-left text-12-semibold bg-primary-50 text-primary border border-primary-200 hover:bg-primary-100 transition"
+              onClick={() => requestBatchInsert(ex.data)}
+            >
+              📋 {ex.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {PALETTE_SECTIONS.map((section) => (
         <div key={section.title}>
           <p className="text-[10px] text-black-50 uppercase tracking-widest font-bold mb-2 px-1">

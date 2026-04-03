@@ -371,6 +371,65 @@ export const useEditorSubscriptions = ({
     deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
   });
 
+  // 학습자료 예제 일괄 삽입 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.batchRequestId !== prevState.batchRequestId && Boolean(state.requestedBatch),
+    onChange: (state) => {
+      if (!state.requestedBatch || state.requestedBatch.length === 0) return;
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      let maxY = 56.7;
+      for (const el of page.elements) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > maxY) maxY = bottom;
+        }
+      }
+
+      const allNewElements: import("../model/canvasTypes").CanvasElement[] = [];
+      let curY = maxY + 15;
+      const GAP = 15;
+
+      for (const comp of state.requestedBatch) {
+        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
+        allNewElements.push(...elements);
+
+        // 다음 컴포넌트의 Y 계산
+        let compMaxY = curY;
+        for (const el of elements) {
+          if ("y" in el && "h" in el) {
+            const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+            if (bottom > compMaxY) compMaxY = bottom;
+          }
+        }
+        curY = compMaxY + GAP;
+
+        // 편집 패널용 추적
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: crypto.randomUUID(),
+          type: comp.type,
+          config: structuredClone(comp.config),
+          elementIds: elements.map((el) => el.id),
+        });
+      }
+
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? { ...p, elements: [...p.elements, ...allNewElements] }
+            : p,
+        ),
+      );
+      setSelectedIds([]);
+      setEditingTextId(null);
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
+  });
+
   // 학습자료 컴포넌트 config 변경 → 캔버스 요소 재빌드 구독
   useStoreSubscription({
     subscribe: useWorksheetElementStore.subscribe,

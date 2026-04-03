@@ -5,7 +5,7 @@
  */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
-import type { WorksheetComponentType, WorksheetConfig } from "@/features/worksheet-editor/model/types";
+import type { WorksheetComponentType, WorksheetConfig, WorksheetComponent } from "@/features/worksheet-editor/model/types";
 
 export interface InsertedWorksheetComponent {
   id: string;
@@ -19,6 +19,11 @@ interface WorksheetElementStore {
   requestId: number;
   requestedComponent: WorksheetComponentType | null;
   requestInsert: (componentType: WorksheetComponentType) => void;
+
+  // 예제 일괄 삽입 요청
+  batchRequestId: number;
+  requestedBatch: WorksheetComponent[] | null;
+  requestBatchInsert: (components: WorksheetComponent[]) => void;
 
   // 삽입된 컴포넌트 추적
   insertedComponents: InsertedWorksheetComponent[];
@@ -43,6 +48,16 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
     set((state) => ({
       requestId: state.requestId + 1,
       requestedComponent: componentType,
+    }));
+  },
+
+  batchRequestId: 0,
+  requestedBatch: null,
+  requestBatchInsert: (components) => {
+    mp.track("학습자료 예제 로드", { component_count: components.length });
+    set((state) => ({
+      batchRequestId: state.batchRequestId + 1,
+      requestedBatch: components.map((c) => ({ ...structuredClone(c), id: crypto.randomUUID() })),
     }));
   },
 
