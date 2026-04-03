@@ -119,8 +119,8 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   coloring_area: { icon: "🎨", name: "색칠 영역" },
 };
 
-export const NOTEBOOK_SPECS: Record<string, { cols: number; px: string; fs: string; maxRows: number }> = {
-  "5칸": { cols: 5, px: "14mm", fs: "27pt", maxRows: 6 },
-  "8칸": { cols: 8, px: "8.8mm", fs: "17pt", maxRows: 10 },
-  "10칸": { cols: 10, px: "7mm", fs: "14pt", maxRows: 12 },
+export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {
+  "5칸": { cols: 5, cellSize: "32mm", fs: "27pt", maxRows: 6 },
+  "8칸": { cols: 8, cellSize: "20mm", fs: "17pt", maxRows: 10 },
+  "10칸": { cols: 10, cellSize: "16mm", fs: "14pt", maxRows: 12 },
 };

@@ -1,5 +1,5 @@
-/** 중앙 A4 미리보기 패널 — 자동 스케일링 */
-import { useEffect, useRef } from "react";
+/** 중앙 A4 미리보기 패널 — 210mm 실제 렌더 + CSS scale 축소 */
+import { useEffect, useRef, useState } from "react";
 
 import { useWorksheetStore } from "../store/worksheetStore";
 import type {
@@ -64,52 +64,33 @@ const PreviewPanel = () => {
   const activeIndex = useWorksheetStore((s) => s.activeIndex);
   const wrapRef = useRef<HTMLDivElement>(null);
   const scalerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
 
-  // Auto-scale content to fit A4
+  // wrapper 실제 픽셀 너비 ÷ scaler 실제 픽셀 너비 = scale
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const wrap = wrapRef.current;
-      const sc = scalerRef.current;
-      if (!wrap || !sc) return;
+    const wrap = wrapRef.current;
+    const scaler = scalerRef.current;
+    if (!wrap || !scaler) return;
 
+    const update = () => {
       const wrapW = wrap.clientWidth;
-      const a4H = wrapW * (297 / 210);
-
-      sc.style.transform = "none";
-      sc.style.width = "100%";
-      void sc.offsetHeight; // force reflow
-
-      const cH = sc.scrollHeight;
-      if (cH > a4H) {
-        const r = a4H / cH;
-        sc.style.transform = `scale(${r})`;
-        sc.style.transformOrigin = "top left";
-        sc.style.width = `${100 / r}%`;
+      const scalerW = scaler.scrollWidth;
+      if (scalerW > 0) {
+        setScale(wrapW / scalerW);
       }
-    }, 80);
+    };
+    update();
 
-    return () => clearTimeout(timer);
-  }, [components, activeIndex]);
+    const ro = new ResizeObserver(update);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
 
-  if (components.length === 0) {
-    return (
-      <div className="flex-1 bg-black-25 overflow-y-auto p-5 flex flex-col items-center print:bg-white-100 print:p-0 print:block print:w-full">
-        <div className="text-[11px] text-black-55 uppercase tracking-wide mb-3 flex items-center gap-1.5 self-start print:hidden">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          실시간 미리보기
-        </div>
-        <div className="ws-a4-wrapper" ref={wrapRef}>
-          <div className="ws-a4-scaler" ref={scalerRef}>
-            <div className="ws-a4-empty">
-              컴포넌트를 추가하면
-              <br />
-              여기에 미리보기가 표시됩니다
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const previewContent = components.map((comp, i) => (
+    <div key={comp.id} className={`ws-comp ${i === activeIndex ? "ws-active" : ""}`}>
+      {renderMini(comp)}
+    </div>
+  ));
 
   return (
     <div className="flex-1 bg-black-25 overflow-y-auto p-5 flex flex-col items-center print:bg-white-100 print:p-0 print:block print:w-full">
@@ -117,13 +98,26 @@ const PreviewPanel = () => {
         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
         실시간 미리보기
       </div>
-      <div className="ws-a4-wrapper" ref={wrapRef}>
-        <div className="ws-a4-scaler" ref={scalerRef}>
-          {components.map((comp, i) => (
-            <div key={comp.id} className={`ws-comp ${i === activeIndex ? "ws-active" : ""}`}>
-              {renderMini(comp)}
+      {/* wrapper: CSS aspect-ratio로 A4 비율 보장, overflow:hidden으로 클리핑 */}
+      <div ref={wrapRef} className="ws-a4-wrapper">
+        {/* scaler: 210mm(실제 A4 너비)로 렌더 → scale()로 wrapper에 맞춤 */}
+        <div
+          ref={scalerRef}
+          className="ws-a4-scaler"
+          style={{
+            transform: scale > 0 ? `scale(${scale})` : "scale(0.5)",
+            transformOrigin: "top left",
+          }}
+        >
+          {components.length === 0 ? (
+            <div className="ws-a4-empty">
+              컴포넌트를 추가하면
+              <br />
+              여기에 미리보기가 표시됩니다
             </div>
-          ))}
+          ) : (
+            previewContent
+          )}
         </div>
       </div>
     </div>

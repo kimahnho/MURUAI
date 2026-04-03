@@ -12,7 +12,6 @@ import {
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useTemplateContentState } from "../hooks/useTemplateContentState";
-import { useTemplateStore } from "@/features/editor/store/templateStore";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,
@@ -499,8 +498,6 @@ const TemplateContent = () => {
     requestTemplate,
   } = useTemplateContentState();
 
-  const requestInsertPages = useTemplateStore((s) => s.requestInsertPages);
-
   const previewElements = withLogoTemplateElements(
     buildAacBoardElements({
       rows: aacRows,
@@ -622,11 +619,7 @@ const TemplateContent = () => {
       </div>
 
       {activeTab === "builder" ? (
-        <WorksheetBuilderTab
-          onInsertPage={(page) => {
-            requestInsertPages([page]);
-          }}
-        />
+        <WorksheetBuilderTab />
       ) : (
       <div className="flex flex-col w-full gap-6">
         <div className="flex flex-col w-full gap-3">

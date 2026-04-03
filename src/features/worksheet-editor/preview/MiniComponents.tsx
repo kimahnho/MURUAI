@@ -200,7 +200,7 @@ export const MiniWritingPractice = ({ config }: { config: WritingPracticeConfig 
       {config.show_model && config.text && <div className="ws-writing-model">{config.text}</div>}
       <div
         className="ws-writing-grid"
-        style={{ gridTemplateColumns: `repeat(${nb.cols}, ${nb.px})`, gridAutoRows: nb.px }}
+        style={{ gridTemplateColumns: `repeat(${nb.cols}, ${nb.cellSize})`, gridAutoRows: nb.cellSize }}
       >
         {Array.from({ length: total }).map((_, i) => {
           const ch = i < chars.length ? chars[i] : "";

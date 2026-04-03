@@ -1,6 +1,6 @@
 /* 학습자료 에디터 — A4 미리보기 전용 스타일 */
 
-/* A4 wrapper */
+/* A4 wrapper — aspect-ratio로 비율 고정, scaler를 scale()로 축소 표시 */
 .ws-a4-wrapper {
   width: 100%;
   max-width: 560px;
@@ -12,18 +12,20 @@
   position: relative;
 }
 
+/* scaler: 실제 A4 너비(210mm)로 렌더 → transform:scale()로 wrapper에 맞춤 */
 .ws-a4-scaler {
-  padding: 8mm;
-  transform-origin: top left;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 10mm;
 }
 
 .ws-a4-empty {
-  height: 100%;
+  height: 200mm;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ccc;
-  font-size: 11px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -363,17 +365,17 @@
   .ws-a4-wrapper {
     box-shadow: none;
     border-radius: 0;
-    width: 100%;
+    width: 210mm !important;
     max-width: none;
     aspect-ratio: auto;
     overflow: visible;
     page-break-inside: avoid;
   }
   .ws-a4-scaler {
-    transform: scale(2) !important;
-    transform-origin: top left;
-    width: 50% !important;
-    padding: 7.5mm;
+    transform: none !important;
+    width: 210mm !important;
+    min-height: auto !important;
+    padding: 10mm !important;
   }
   .ws-comp.ws-active {
     outline: none;

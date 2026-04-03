@@ -1,74 +1,93 @@
 /**
  * 템플릿 탭의 "직접 만들기" 서브탭 내용.
- * 학습자료 컴포넌트 목록 + 모달 편집기 오픈.
+ * 컴포넌트 클릭 시 현재 페이지에 바로 CanvasElement로 삽입.
  */
-import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
+import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
 
-import Button from "@/shared/ui/Button";
-import type { Page } from "@/features/editor/model/pageTypes";
-import WorksheetBuilderModal from "./WorksheetBuilderModal";
-
-interface WorksheetBuilderTabProps {
-  onInsertPage: (page: Page) => void;
+interface PaletteItem {
+  type: WorksheetComponentType;
+  icon: string;
+  name: string;
+  desc: string;
+  badge?: "text" | "new";
 }
 
-const COMPONENT_LIST = [
-  { icon: "📝", name: "지시문", desc: "제목 + 활동 안내" },
-  { icon: "⭐", name: "보상 트래커", desc: "스티커/별 칸" },
-  { icon: "💬", name: "안내 가이드", desc: "캐릭터 + 설명" },
-  { icon: "🔄", name: "변환 쌍", desc: "간→갈 발음 변화" },
-  { icon: "🔁", name: "반복 연습", desc: "바바바 교대운동" },
-  { icon: "✋", name: "문장 선택", desc: "[A / B] 골라 읽기" },
-  { icon: "⊞", name: "그리드", desc: "단어카드/이미지 배열" },
-  { icon: "🅰️", name: "아웃라인 제목", desc: "속 빈 큰 글씨 + 색칠" },
-  { icon: "✏️", name: "쓰기 연습", desc: "음절 격자 따라쓰기" },
-  { icon: "🎨", name: "색칠 영역", desc: "라인아트 색칠 활동" },
-  { icon: "📊", name: "체크리스트", desc: "어휘 목록/기록표" },
+const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
+  {
+    title: "기본 컴포넌트",
+    items: [
+      { type: "header_instruction", icon: "📝", name: "지시문", desc: "제목 + 활동 안내", badge: "text" },
+      { type: "reward_tracker", icon: "⭐", name: "보상 트래커", desc: "스티커/별 칸", badge: "text" },
+      { type: "info_guide", icon: "💬", name: "안내 가이드", desc: "캐릭터 + 설명" },
+    ],
+  },
+  {
+    title: "조음 · 음운",
+    items: [
+      { type: "arrow_transform", icon: "🔄", name: "변환 쌍", desc: "간→갈 발음 변화", badge: "text" },
+      { type: "sequential_repeat", icon: "🔁", name: "반복 연습", desc: "바바바 교대운동", badge: "text" },
+      { type: "selection_sentence", icon: "✋", name: "문장 선택", desc: "[A / B] 골라 읽기", badge: "text" },
+      { type: "grid_NxM", icon: "⊞", name: "그리드", desc: "단어카드/이미지 배열" },
+    ],
+  },
+  {
+    title: "어휘 · 읽기 · 한글",
+    items: [
+      { type: "outline_title", icon: "🅰️", name: "아웃라인 제목", desc: "속 빈 큰 글씨", badge: "new" },
+      { type: "writing_practice", icon: "✏️", name: "쓰기 연습", desc: "음절 격자 따라쓰기", badge: "new" },
+      { type: "coloring_area", icon: "🎨", name: "색칠 영역", desc: "라인아트 색칠 활동", badge: "new" },
+    ],
+  },
+  {
+    title: "기록",
+    items: [
+      { type: "checklist_table", icon: "📊", name: "체크리스트", desc: "어휘 목록/기록표", badge: "text" },
+    ],
+  },
 ];
 
-const WorksheetBuilderTab = ({ onInsertPage }: WorksheetBuilderTabProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const badgeCls = {
+  text: "bg-success-50 text-success-700",
+  new: "bg-primary-50 text-primary",
+};
+const badgeLabels = { text: "텍스트", new: "NEW" };
+
+const WorksheetBuilderTab = () => {
+  const requestInsert = useWorksheetElementStore((s) => s.requestInsert);
 
   return (
-    <div className="flex flex-col gap-4 p-3">
-      {/* CTA */}
-      <Button
-        variant="primary"
-        fullWidth
-        icon={<Pencil className="h-4 w-4" />}
-        onClick={() => setIsModalOpen(true)}
-      >
-        학습자료 만들기
-      </Button>
-
-      {/* Component list (read-only preview) */}
-      <div>
-        <p className="text-11-semibold text-black-55 uppercase tracking-wider mb-2">
-          사용 가능한 컴포넌트
-        </p>
-        <div className="flex flex-col gap-1">
-          {COMPONENT_LIST.map((item) => (
-            <div
-              key={item.name}
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-black-5 cursor-default"
-            >
-              <span className="text-base shrink-0">{item.icon}</span>
-              <div className="min-w-0">
-                <div className="text-12-semibold truncate">{item.name}</div>
-                <div className="text-[10px] text-black-55 truncate">{item.desc}</div>
-              </div>
-            </div>
-          ))}
+    <div className="flex flex-col gap-3 py-1">
+      {PALETTE_SECTIONS.map((section) => (
+        <div key={section.title}>
+          <p className="text-[10px] text-black-50 uppercase tracking-widest font-bold mb-2 px-1">
+            {section.title}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {section.items.map((item) => (
+              <button
+                key={item.type}
+                type="button"
+                className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg cursor-pointer transition border border-transparent hover:bg-primary-50 hover:border-primary-200 text-left"
+                onClick={() => requestInsert(item.type)}
+              >
+                <span className="text-base shrink-0">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-12-semibold flex items-center gap-1.5 flex-wrap">
+                    {item.name}
+                    {item.badge && (
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded font-semibold ${badgeCls[item.badge]}`}>
+                        {badgeLabels[item.badge]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-black-55 mt-0.5 truncate">{item.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Modal */}
-      <WorksheetBuilderModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onApply={onInsertPage}
-      />
+      ))}
     </div>
   );
 };

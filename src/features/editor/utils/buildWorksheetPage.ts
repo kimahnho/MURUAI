@@ -19,7 +19,8 @@ import type {
   WritingPracticeConfig,
   ColoringAreaConfig,
 } from "@/features/worksheet-editor/model/types";
-import { NOTEBOOK_SPECS } from "@/features/worksheet-editor/constants/defaults";
+import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
+import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
 import { withLogoCanvasElements } from "./logoElement";
 
 const MM_TO_PX = 3.7795;
@@ -486,6 +487,25 @@ const buildComponentElements = (
     default:
       return { elements: [], height: 0 };
   }
+};
+
+/**
+ * 단일 컴포넌트 타입의 기본 config로 CanvasElement[]를 생성.
+ * 캔버스의 현재 페이지에 직접 삽입할 때 사용.
+ */
+export const buildWorksheetComponentElements = (
+  componentType: WorksheetComponentType,
+  insertY: number,
+): CanvasElement[] => {
+  const config = structuredClone(DEFAULT_CONFIGS[componentType]);
+  const comp: WorksheetComponent = {
+    id: crypto.randomUUID(),
+    type: componentType,
+    config,
+    collapsed: false,
+  };
+  const { elements } = buildComponentElements(comp, MARGIN, insertY);
+  return elements;
 };
 
 export const buildWorksheetPage = (components: WorksheetComponent[]): Page => {

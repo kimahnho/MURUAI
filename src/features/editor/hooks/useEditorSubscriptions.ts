@@ -39,6 +39,8 @@ import {
   extractVocabLabels,
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
+import { useWorksheetElementStore } from "../store/worksheetElementStore";
+import { buildWorksheetComponentElements } from "../utils/buildWorksheetPage";
 
 type TextPreset = {
   text: string;
@@ -319,6 +321,43 @@ export const useEditorSubscriptions = ({
     addShapeElement,
     addLineElement,
     addTableElement,
+  });
+
+  // 학습자료 컴포넌트 삽입 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.requestedComponent),
+    onChange: (state) => {
+      if (!state.requestedComponent) return;
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      // 현재 페이지 최하단 Y좌표 계산
+      let maxY = 56.7; // mmToPx(15) ≈ 기본 마진
+      for (const el of page.elements) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > maxY) maxY = bottom;
+        }
+      }
+      const insertY = maxY + 15; // 15px 간격
+
+      const newElements = buildWorksheetComponentElements(state.requestedComponent, insertY);
+      if (newElements.length === 0) return;
+
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? { ...p, elements: [...p.elements, ...newElements] }
+            : p,
+        ),
+      );
+      setSelectedIds(newElements.map((el) => el.id));
+      setEditingTextId(null);
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
   });
 
   useOrientationSubscription({
