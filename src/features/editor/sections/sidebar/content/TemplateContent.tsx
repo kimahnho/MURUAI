@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useTemplateContentState } from "../hooks/useTemplateContentState";
+import { useTemplateStore } from "@/features/editor/store/templateStore";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,
@@ -36,6 +37,7 @@ import {
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
+import WorksheetBuilderTab from "./WorksheetBuilderTab";
 import { getPreviewMetrics } from "./previewMetrics";
 import fiveSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/ten-space-writing-note/preview.png";
@@ -497,6 +499,8 @@ const TemplateContent = () => {
     requestTemplate,
   } = useTemplateContentState();
 
+  const requestInsertPages = useTemplateStore((s) => s.requestInsertPages);
+
   const previewElements = withLogoTemplateElements(
     buildAacBoardElements({
       rows: aacRows,
@@ -587,8 +591,43 @@ const TemplateContent = () => {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<"templates" | "builder">("templates");
+
   return (
     <>
+      {/* 탭 토글 */}
+      <div className="flex gap-1 mb-4 p-1 bg-black-20 rounded-lg">
+        <button
+          type="button"
+          className={`flex-1 px-3 py-1.5 rounded-md text-12-semibold transition ${
+            activeTab === "templates"
+              ? "bg-white-100 text-black-90 shadow-sm"
+              : "text-black-55 hover:text-black-70"
+          }`}
+          onClick={() => setActiveTab("templates")}
+        >
+          미리 만든 템플릿
+        </button>
+        <button
+          type="button"
+          className={`flex-1 px-3 py-1.5 rounded-md text-12-semibold transition ${
+            activeTab === "builder"
+              ? "bg-white-100 text-black-90 shadow-sm"
+              : "text-black-55 hover:text-black-70"
+          }`}
+          onClick={() => setActiveTab("builder")}
+        >
+          직접 만들기
+        </button>
+      </div>
+
+      {activeTab === "builder" ? (
+        <WorksheetBuilderTab
+          onInsertPage={(page) => {
+            requestInsertPages([page]);
+          }}
+        />
+      ) : (
       <div className="flex flex-col w-full gap-6">
         <div className="flex flex-col w-full gap-3">
           <SectionHeader icon={Grid3x3} title="AAC 의사소통 판" />
@@ -639,6 +678,7 @@ const TemplateContent = () => {
           templates={BASIC_TEMPLATES}
         />
       </div>
+      )}
 
       <AacBoardModal
         isOpen={isAacModalOpen}
