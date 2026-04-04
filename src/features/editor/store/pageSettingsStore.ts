@@ -38,7 +38,13 @@ const cloneBackground = (background: PageBackground): PageBackground => {
     return { type: "color", color: background.color };
   }
   if (background.type === "image") {
-    return { type: "image", imageUrl: background.imageUrl };
+    return {
+      type: "image",
+      imageUrl: background.imageUrl,
+      scale: background.scale,
+      offsetX: background.offsetX,
+      offsetY: background.offsetY,
+    };
   }
   return { type: "none" };
 };

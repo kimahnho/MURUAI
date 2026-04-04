@@ -1,8 +1,8 @@
 /**
  * 페이지 배경/번호 표시 설정을 편집하는 사이드바 패널.
  */
-import { ImagePlus, Loader2, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { ImagePlus, Images, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { usePageSettingsStore } from "@/features/editor/store/pageSettingsStore";
 import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
@@ -181,89 +181,74 @@ const PageContent = () => {
 
         {background.type === "image" && (
           <div className="flex flex-col gap-2">
-            <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-black-30 text-13-semibold text-black-80 hover:border-primary hover:text-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60">
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ImagePlus className="h-4 w-4" />
-              )}
-              <span>배경 이미지 업로드</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                disabled={isUploading}
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-            </label>
-            {background.imageUrl && (
-              <div className="flex items-center justify-between rounded-lg border border-black-25 bg-black-5 p-2">
-                <img
-                  src={background.imageUrl}
-                  alt="현재 배경 이미지"
-                  className="h-14 w-20 rounded object-cover"
+            {!background.imageUrl ? (
+              <>
+                {/* 이미지 미선택: 업로드 버튼 + 파일 목록 */}
+                <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-black-30 text-13-semibold text-black-80 hover:border-primary hover:text-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60">
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  <span>배경 이미지 업로드</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    disabled={isUploading}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+                <UploadedFileList
+                  items={uploadedFileItems}
+                  isFetching={isFetchingUploads}
+                  activeImageUrl={null}
+                  onSelect={(imageUrl) => { updateBackground({ type: "image", imageUrl }); }}
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateBackground({ type: "none" });
-                  }}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-black-25 text-black-70 hover:text-red-500"
-                  aria-label="배경 이미지 제거"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              </>
+            ) : (
+              <>
+                {/* 배경 이미지 크기/위치 */}
+                <div className="rounded-lg border border-black-15 bg-black-5 p-2.5 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-12-semibold text-black-50 shrink-0 w-7">크기</span>
+                    <EditableNumberInput
+                      value={Math.round((background.scale ?? 1) * 100)}
+                      min={10}
+                      max={100}
+                      onChange={(v) => { updateBackground({ ...background, scale: v / 100 }); }}
+                      className="w-16 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
+                    />
+                    <span className="text-12-semibold text-black-50 shrink-0">%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-12-semibold text-black-50 shrink-0 w-7">위치</span>
+                    <span className="text-12-regular text-black-40 shrink-0">가로</span>
+                    <EditableNumberInput
+                      value={background.offsetX ?? 0}
+                      onChange={(v) => { updateBackground({ ...background, offsetX: v }); }}
+                      className="w-14 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
+                    />
+                    <span className="text-12-regular text-black-40 shrink-0">세로</span>
+                    <EditableNumberInput
+                      value={background.offsetY ?? 0}
+                      onChange={(v) => { updateBackground({ ...background, offsetY: v }); }}
+                      className="w-14 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* 다른 이미지 선택하기 */}
+                <ImageChangePicker
+                  items={uploadedFileItems}
+                  isFetching={isFetchingUploads}
+                  isUploading={isUploading}
+                  activeImageUrl={background.imageUrl}
+                  onSelect={(imageUrl) => { updateBackground({ type: "image", imageUrl }); }}
+                  onUpload={handleImageUpload}
+                />
+              </>
             )}
-            <div className="rounded-lg border border-black-25 p-2">
-              <div className="mb-2 text-12-semibold text-black-70">
-                내가 업로드한 파일
-              </div>
-              <div className="h-80 overflow-y-auto">
-                {isFetchingUploads ? (
-                  <div className="flex h-full items-center justify-center text-12-regular text-black-50">
-                    업로드 목록을 불러오는 중입니다.
-                  </div>
-                ) : uploadedFileItems.length === 0 ? (
-                  <div className="flex h-full items-center justify-center rounded border border-dashed border-black-20 text-12-regular text-black-50">
-                    업로드된 파일이 없습니다.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4">
-                    {uploadedFileItems.map((file) => {
-                      const isActive =
-                        background.type === "image" &&
-                        background.imageUrl === file.imageUrl;
-                      return (
-                        <button
-                          key={file.id}
-                          type="button"
-                          onClick={() => {
-                            updateBackground({
-                              type: "image",
-                              imageUrl: file.imageUrl,
-                            });
-                          }}
-                          className={`overflow-hidden rounded-lg border transition ${
-                            isActive
-                              ? "border-primary ring-1 ring-primary-300"
-                              : "border-black-20 hover:border-black-40"
-                          }`}
-                          aria-label="업로드 이미지 배경으로 선택"
-                        >
-                          <img
-                            src={file.imageUrl}
-                            alt="업로드 이미지"
-                            className="h-20 w-full object-cover"
-                            loading="lazy"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         )}
       </section>
@@ -355,3 +340,170 @@ const PageContent = () => {
 };
 
 export default PageContent;
+
+// ─── 서브 컴포넌트 ───
+
+// 포커스 시 자유 편집, 빈 값으로 blur 시 이전 값 복원
+const EditableNumberInput = ({
+  value,
+  onChange,
+  min,
+  max,
+  step = 10,
+  className,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  className?: string;
+}) => {
+  const [draft, setDraft] = useState<string>(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+  const prevValueRef = useRef(value);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setDraft(String(value));
+      prevValueRef.current = value;
+    }
+  }, [value, isFocused]);
+
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={isFocused ? draft : value}
+      onFocus={(e) => {
+        setIsFocused(true);
+        prevValueRef.current = value;
+        e.target.select();
+      }}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        const num = Number(raw);
+        if (raw !== "" && !Number.isNaN(num)) {
+          const clamped = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, num));
+          onChange(clamped);
+        }
+      }}
+      onBlur={() => {
+        setIsFocused(false);
+        if (draft === "" || Number.isNaN(Number(draft))) {
+          setDraft(String(prevValueRef.current));
+          onChange(prevValueRef.current);
+        }
+      }}
+      className={className}
+    />
+  );
+};
+
+type FileItem = { id: string; imageUrl: string };
+
+// 이미지 미선택 시 표시되는 업로드 파일 목록
+const UploadedFileList = ({
+  items,
+  isFetching,
+  activeImageUrl,
+  onSelect,
+}: {
+  items: FileItem[];
+  isFetching: boolean;
+  activeImageUrl: string | null;
+  onSelect: (imageUrl: string) => void;
+}) => (
+  <div className="rounded-lg border border-black-25 p-2">
+    <div className="mb-2 text-12-semibold text-black-70">내가 업로드한 파일</div>
+    <div className="h-80 overflow-y-auto">
+      {isFetching ? (
+        <div className="flex h-full items-center justify-center text-12-regular text-black-50">
+          업로드 목록을 불러오는 중입니다.
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex h-full items-center justify-center rounded border border-dashed border-black-20 text-12-regular text-black-50">
+          업로드된 파일이 없습니다.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {items.map((file) => (
+            <button
+              key={file.id}
+              type="button"
+              onClick={() => { onSelect(file.imageUrl); }}
+              className={`overflow-hidden rounded-lg border transition ${
+                activeImageUrl === file.imageUrl
+                  ? "border-primary ring-1 ring-primary-300"
+                  : "border-black-20 hover:border-black-40"
+              }`}
+              aria-label="업로드 이미지 배경으로 선택"
+            >
+              <img src={file.imageUrl} alt="업로드 이미지" className="h-20 w-full object-cover" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// 이미지 선택 후 "다른 이미지 선택하기" 토글 버튼 + 파일 목록
+const ImageChangePicker = ({
+  items,
+  isFetching,
+  isUploading,
+  activeImageUrl,
+  onSelect,
+  onUpload,
+}: {
+  items: FileItem[];
+  isFetching: boolean;
+  isUploading: boolean;
+  activeImageUrl: string;
+  onSelect: (imageUrl: string) => void;
+  onUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => { setIsOpen((v) => !v); }}
+        className="flex h-9 items-center justify-center gap-2 rounded-lg border border-black-30 text-13-semibold text-black-80 hover:border-primary hover:text-primary"
+      >
+        <Images className="h-4 w-4" />
+        <span>{isOpen ? "닫기" : "다른 이미지 선택하기"}</span>
+      </button>
+      {isOpen && (
+        <div className="flex flex-col gap-2">
+          <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-black-30 text-13-semibold text-black-70 hover:border-primary hover:text-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60">
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4" />
+            )}
+            <span>새 이미지 업로드</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              disabled={isUploading}
+              onChange={onUpload}
+              className="hidden"
+            />
+          </label>
+          <UploadedFileList
+            items={items}
+            isFetching={isFetching}
+            activeImageUrl={activeImageUrl}
+            onSelect={onSelect}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
