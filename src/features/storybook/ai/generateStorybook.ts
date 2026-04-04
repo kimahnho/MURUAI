@@ -105,6 +105,7 @@ export const generateStorybook = async (
   childInfo: ChildInfo,
   referenceImageBase64?: string,
   onImageProgress?: (current: number, total: number) => void,
+  customPromptTemplate?: string,
 ): Promise<StoryBook> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -143,7 +144,7 @@ export const generateStorybook = async (
   }
 
   try {
-    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress);
+    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress, customPromptTemplate);
     pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
   } catch (error) {
     console.error("Story image generation failed:", error);

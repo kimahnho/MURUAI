@@ -51,6 +51,17 @@ export interface StoryBook {
   createdAt: string;
 }
 
+export interface SavedCharacter {
+  id: string;
+  userId: string;
+  name: string;
+  imageUrl: string;
+  artStyleId: ArtStyleId | null;
+  promptTemplate: string | null;
+  childInfoSnapshot: ChildInfo | null;
+  createdAt: string;
+}
+
 // ─── 그림체 ───
 
 export type ArtStyleId =
@@ -58,7 +69,8 @@ export type ArtStyleId =
   | "pixar-style"
   | "cozy-sketch"
   | "crayon-sketch"
-  | "minimal-illustration";
+  | "minimal-illustration"
+  | "custom";
 
 export interface ArtStylePreset {
   id: ArtStyleId;
@@ -94,6 +106,8 @@ export interface WizardFormData {
   editedProposal: StoryProposal | null;
   referenceImageBase64?: string;
   characterPrompt?: string;
+  customPromptTemplate?: string;
+  selectedCharacterId?: string;
 }
 
 // ─── 상수 ───
@@ -158,4 +172,6 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   editedProposal: null,
   referenceImageBase64: undefined,
   characterPrompt: undefined,
+  customPromptTemplate: undefined,
+  selectedCharacterId: undefined,
 };

@@ -19,8 +19,8 @@ src/features/storybook/
       ChildInfoStep.tsx           # 1단계: 아동 정보 (선택/직접 입력)
       TopicStep.tsx               # 2단계: 주제 입력
       ProposalStep.tsx            # 3단계: 기획서 선택/수정
-      ArtStyleStep.tsx            # 4단계: 그림체/폰트/레이아웃
-      ReferenceImageStep.tsx      # 4.5단계: AI 캐릭터 레퍼런스 확인/재생성
+      ArtStyleStep.tsx            # 4단계: 그림체/폰트/레이아웃 + 저장된 캐릭터 목록/업로드
+      ReferenceImageStep.tsx      # 4.5단계: AI 캐릭터 레퍼런스 확인/재생성 + 캐릭터 저장
       GeneratingStep.tsx          # 5단계: 생성 중 + 이미지 진행 상황 표시
       CompleteStep.tsx            # 6단계: 완료 결과
   store/
@@ -35,6 +35,9 @@ src/features/storybook/
     generateStoryImages.ts       # 장면 이미지 생성 (Gemini 2.5-flash-image)
   utils/
     buildStoryPages.ts           # StoryBook → Page[] 변환
+  api/
+    savedCharacterApi.ts          # 저장된 캐릭터 CRUD (Cloudinary 업로드 + Supabase)
+    customArtStyleApi.ts          # 커스텀 그림체 CRUD (Supabase, 향후 확장용)
   data/
     artStylePresets.ts            # 그림체 5종 프리셋 + 프롬프트
     studentService.ts             # 학습자 목록 Supabase 쿼리
@@ -90,6 +93,19 @@ interface WizardFormData {
   editedProposal: StoryProposal | null;
   referenceImageBase64?: string; // AI 생성 캐릭터 레퍼런스 (base64)
   characterPrompt?: string;      // 캐릭터 생성 시 사용자 커스텀 프롬프트
+  customPromptTemplate?: string; // 커스텀 그림체 프롬프트 (artStyle === "custom" 시 사용)
+  selectedCharacterId?: string;  // 저장된 캐릭터 선택 시 ID (Step 4.5 스킵 판단용)
+}
+
+interface SavedCharacter {
+  id: string;
+  userId: string;
+  name: string;
+  imageUrl: string;
+  artStyleId: ArtStyleId | null;
+  promptTemplate: string | null;
+  childInfoSnapshot: ChildInfo | null;
+  createdAt: string;
 }
 
 type ArtStyleId =
@@ -97,7 +113,8 @@ type ArtStyleId =
   | "pixar-style"
   | "cozy-sketch"
   | "crayon-sketch"
-  | "minimal-illustration";
+  | "minimal-illustration"
+  | "custom";
 ```
 
 ## 상수
@@ -123,7 +140,7 @@ type ArtStyleId =
 ### 모델 및 설정
 
 - **텍스트 생성**: `gemini-2.5-flash` (`@google/genai` SDK)
-- **이미지 생성**: `gemini-3.1-flash-image-preview`, `imageConfig: { aspectRatio }` — 레이아웃별 다름 (가로형 `"3:4"`, 세로형 `"16:9"`)
+- **이미지 생성**: `gemini-2.5-flash-image`, `imageConfig: { aspectRatio }` — 레이아웃별 다름 (가로형 `"3:4"`, 세로형 `"16:9"`)
 
 ### AI 캐릭터 레퍼런스 생성 (`generateCharacterReference.ts`)
 
@@ -132,20 +149,26 @@ generateCharacterReference(artStyleId, childInfo, customPrompt?): Promise<string
 ```
 
 - 그림체 프리셋의 `promptTemplate` + 아동 정보(성별, 나이)로 캐릭터 단독 이미지 생성
-- `customPrompt`: 사용자가 Step 4.5에서 입력한 캐릭터 특징 (예: "안경을 쓴", "빨간 모자를 쓴") — 기본 프롬프트에 append
-- `aspectRatio: "1:1"`, 흰 배경, 정면 전신
+- `customPrompt`: 사용자가 Step 4.5에서 입력한 캐릭터 특징 — 프롬프트 **최상단**에 `IMPORTANT — top priority`로 배치
+- 배경: `Pure solid white (#FFFFFF)` 강제
+- `artStyle === "custom"` 시: `"watercolor-fairytale"` fallback으로 프리셋 조회 + `customPromptTemplate`을 `customPrompt`로 전달
+- `aspectRatio: "1:1"`, 정면 전신
 - `MAX_RETRIES = 3`, `RETRY_DELAY_MS = 2000`
 
-### sceneGroup 기반 이미지 생성 (`generateStoryImages.ts`)
+### 듀얼 레퍼런스 이미지 생성 (`generateStoryImages.ts`)
 
 ```typescript
-generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress?): Promise<string[]>
+generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress?, customPromptTemplate?): Promise<string[]>
 // pages: Array<{ sceneDescription: string; sceneGroup: number }>
 // referenceImageBase64: AI 생성 캐릭터 레퍼런스 (base64)
 ```
 
-- **sceneGroup별 그룹 순차 생성**: 그룹 첫 장은 캐릭터 레퍼런스 사용, 후속은 첫 장 생성 이미지를 레퍼런스로 재활용
-- **2단계 파이프라인**: Phase 1에서 그룹별 순차 base64 수집 → Phase 2에서 일괄 Cloudinary 업로드
+- **듀얼 레퍼런스 구조**: 캐릭터 레퍼런스(항상 고정) + sceneGroup별 장면 앵커(첫 생성 이미지 고정)
+  - sceneGroup 첫 페이지: 캐릭터 레퍼런스만 → `CHARACTER_ONLY_SUFFIX`
+  - sceneGroup 후속 페이지: 캐릭터 + 장면 앵커 → `DUAL_REF_SUFFIX`
+  - `sceneGroupAnchors` Map으로 관리 — 이전 앵커 체인(`shouldResetAnchor`, `MAX_ANCHOR_CHAIN`) 제거
+- **`customPromptTemplate`**: `artStyle === "custom"` 시 프리셋 `promptTemplate` 대신 사용
+- **2단계 파이프라인**: Phase 1에서 순차 base64 수집 → Phase 2에서 일괄 Cloudinary 업로드
 - **한→영 번역**: `translateScenesToEnglish()` — 10개 장면을 1회 Gemini 호출로 일괄 번역 (실패 시 한국어 fallback)
 - **재시도**: `MAX_RETRIES = 3`, `RETRY_DELAY_MS = 2000`
 - **Cloudinary 폴더**: `muru_storybook_gen/{userId}`
@@ -188,8 +211,38 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 - ✅ 이미지 크레딧: 월 30크레딧 제한, 이미지 1장 = 1크레딧 (`ai_template_usage.image_count`, `aiTemplateUsage.ts`)
 - ✅ Mixpanel 퍼널 추적: 시작/스텝이동/기획서선택/캐릭터생성/완료
 - ✅ Sentry 에러 추적: 모든 catch 블록에 captureException 적용
-- ❌ DB 저장 미구현 — 스토어에만 존재
+- ✅ 듀얼 레퍼런스 이미지 일관성 (캐릭터 고정 + sceneGroup별 장면 앵커)
+- ✅ 커스텀 그림체 직접입력 (`"custom"` artStyle + textarea)
+- ✅ 캐릭터 저장/재사용 (`user_saved_characters` 테이블 + Cloudinary `muru-saved-characters/`)
 - ❌ 페이지별 재생성 (C.2) 미구현 — 후속 작업
+
+## 커스텀 그림체 직접입력
+
+- Step 4 그림체 드롭다운: 5종 프리셋 아래 구분선 + "직접 입력" 옵션
+- "직접 입력" 선택 시: `artStyle = "custom"`, 드롭다운 아래 textarea 노출
+- textarea 입력 → `formData.customPromptTemplate`에 저장
+- validation: `artStyle === "custom"` && `customPromptTemplate` 비어있으면 차단
+- 이미지 생성 시: `ART_STYLE_PRESETS`의 `promptTemplate` 대신 `customPromptTemplate` 사용
+
+## 캐릭터 저장/재사용
+
+### 저장 경로 2가지
+
+1. **Step 4.5 "캐릭터 저장" 버튼** — AI 생성/업로드 캐릭터를 Cloudinary + Supabase에 저장
+2. **Step 4 "+" 업로드 버튼** — 파일 선택 → Cloudinary 업로드 + Supabase 저장 → 목록 즉시 반영
+
+### 재사용 (Step 4)
+
+- 최상단 "저장된 캐릭터" 영역 — 80x80px 가로 스크롤 나열
+- 캐릭터 클릭: `artStyleId` 설정 + `customPromptTemplate` 설정 + URL → base64 변환 → `referenceImageBase64` 설정
+- "다음" 클릭: `selectedCharacterId` + `referenceImageBase64` 존재 → Step 4.5 스킵 → Step 5로 직행 + `generateBook()` 자동 호출
+- 캐릭터 hover → X 버튼: 소프트 삭제 (`deleted_at`)
+
+### DB 테이블
+
+- `user_saved_characters`: `user_id`, `name`, `image_url`, `art_style_id`, `prompt_template`, `child_info_snapshot`(jsonb), `deleted_at`
+- `user_custom_art_styles`: 향후 확장용 (현재 UI 미사용)
+- Cloudinary 폴더: `muru-saved-characters/{userId}/`
 
 ## 주의사항
 
@@ -219,6 +272,8 @@ generateStoryImages(pages, artStyleId, layout, referenceImageBase64?, onProgress
 | AI 오케스트레이터 | `src/features/storybook/ai/generateStorybook.ts` |
 | AI 이미지 생성 | `src/features/storybook/ai/generateStoryImages.ts` |
 | 캐릭터 확인 UI | `src/features/storybook/components/steps/ReferenceImageStep.tsx` |
+| 캐릭터 CRUD | `src/features/storybook/api/savedCharacterApi.ts` |
+| 커스텀 그림체 CRUD | `src/features/storybook/api/customArtStyleApi.ts` |
 | 페이지 빌더 | `src/features/storybook/utils/buildStoryPages.ts` |
 | 그림체 프리셋 | `src/features/storybook/data/artStylePresets.ts` |
 | 학습자 쿼리 | `src/features/storybook/data/studentService.ts` |
