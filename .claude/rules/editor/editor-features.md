@@ -43,6 +43,57 @@ interface PageNumbering {
 startPage: numbering.startPage ?? 1,
 ```
 
+## 페이지 배경 이미지 크기/위치 조절
+
+### PageBackground 타입
+
+```typescript
+type PageBackground =
+  | { type: "none" }
+  | { type: "color"; color: string }
+  | { type: "image"; imageUrl: string; scale?: number; offsetX?: number; offsetY?: number };
+```
+
+- `scale`: 기본 1 (100%), 비율 유지 확대/축소. 사이드바에서 10~100% 범위 조절
+- `offsetX`, `offsetY`: 기본 0 (px), 중앙 기준 이동. 사이드바에서 숫자 입력
+- 하위 호환: 기존 문서에 `scale`/`offsetX`/`offsetY`가 없으면 기본값(100%, 0, 0) 적용
+
+### 렌더링 (DesignPaper)
+
+```typescript
+backgroundSize: `${(scale ?? 1) * 100}%`,
+backgroundPosition: `calc(50% + ${offsetX ?? 0}px) calc(50% + ${offsetY ?? 0}px)`,
+```
+
+CSS `background-image`로 렌더링 — 별도 `<img>` 요소 아님. PDF 출력(`html-to-image`)에서 자동 캡처됨.
+
+### 사이드바 UI (PageContent)
+
+- 배경 이미지 미선택: 업로드 버튼 + 업로드 파일 목록
+- 배경 이미지 선택됨: 크기(%) + 위치(가로/세로) 입력 + "다른 이미지 선택하기" 토글 버튼
+- 배경 제거: 상단 "없음" 버튼 (별도 삭제 버튼 없음)
+- 숫자 입력: `EditableNumberInput` — 포커스 시 전체 선택, 빈 값으로 blur 시 이전 값 복원, step=10
+
+### cloneBackground 규칙
+
+새 필드 추가 시 `pageSettingsStore.ts`의 `cloneBackground` 함수에 반드시 추가해야 함:
+```typescript
+if (background.type === "image") {
+  return { type: "image", imageUrl: ..., scale: ..., offsetX: ..., offsetY: ... };
+}
+```
+
+### 관련 파일
+
+| 역할 | 경로 |
+|------|------|
+| 타입 | `src/features/editor/model/pageTypes.ts` |
+| 스토어 | `src/features/editor/store/pageSettingsStore.ts` |
+| 구독 | `src/features/editor/hooks/usePageSettingsSubscription.ts` |
+| 렌더 | `src/features/editor/sections/canvas/DesignPaper.tsx` |
+| 설정 UI | `src/features/editor/sections/sidebar/content/PageContent.tsx` |
+| 기본값 | `src/features/editor/utils/pagePresentation.ts` |
+
 ## 템플릿 PDF 자산 관리
 
 - 경로: `src/features/editor/templates/template_pdf/<template-slug>/`
