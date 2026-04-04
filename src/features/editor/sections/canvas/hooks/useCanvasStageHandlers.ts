@@ -75,6 +75,7 @@ export const useCanvasStageHandlers = ({
                         const prevEl = page.elements.find((pe) => pe.id === el.id);
                         if (prevEl && "y" in prevEl && "y" in el && (el as {y:number}).y !== (prevEl as {y:number}).y) {
                           draggingCompIdRef.current = comp.id;
+                          useWorksheetElementStore.getState().setDraggingWorksheet(true);
                           break;
                         }
                       }
@@ -121,7 +122,7 @@ export const useCanvasStageHandlers = ({
                   elements: reflowedElements,
                 }));
               });
-            }, 60); // 60ms 쓰로틀 (더 매끄러운 동작)
+            }, 200); // 200ms — CSS transition과 동기화
           }
         }
 
@@ -139,10 +140,12 @@ export const useCanvasStageHandlers = ({
       if (isActive) {
         isDraggingRef.current = true;
         lastOrderRef.current = null;
+        draggingCompIdRef.current = null;
         beginTransaction();
       } else {
         isDraggingRef.current = false;
         draggingCompIdRef.current = null;
+        useWorksheetElementStore.getState().setDraggingWorksheet(false);
 
         // 쓰로틀 타이머 정리
         if (reflowThrottleRef.current !== null) {

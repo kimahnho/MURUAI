@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
+import { useWorksheetElementStore } from "../../store/worksheetElementStore";
 import {
   DesignPaperContextMenu,
   type ContextMenuState,
@@ -129,6 +130,7 @@ const DesignPaper = ({
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
+  const isDraggingWorksheet = useWorksheetElementStore((s) => s.isDraggingWorksheet);
   const [activePreview, setActivePreview] = useState<{
     id: string;
     rect: Rect;
@@ -676,7 +678,7 @@ const DesignPaper = ({
         setContextMenu={setContextMenu}
       />
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
-        <SmartGuideOverlay guides={smartGuides.guides} />
+        <SmartGuideOverlay guides={isDraggingWorksheet ? [] : smartGuides.guides} />
       </div>
       {isRotating && rotationBadge && (
         <RotationBadge
