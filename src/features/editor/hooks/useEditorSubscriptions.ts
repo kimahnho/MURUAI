@@ -349,14 +349,12 @@ export const useEditorSubscriptions = ({
       const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
-      // 컴포넌트 ID + groupId 생성
+      // 컴포넌트 ID 생성
       const wsCompId = crypto.randomUUID();
-      const groupId = crypto.randomUUID();
 
-      // worksheetMeta + groupId 스탬프
+      // worksheetMeta 스탬프 (groupId 없음 → 개별 요소 클릭/편집 가능)
       const stampedElements = newElements.map((el) => ({
         ...el,
-        groupId,
         worksheetMeta: { componentId: wsCompId, componentType: compType },
       }));
 
@@ -421,10 +419,8 @@ export const useEditorSubscriptions = ({
         const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
 
         const wsCompId = crypto.randomUUID();
-        const groupId = crypto.randomUUID();
         const stampedElements = elements.map((el) => ({
           ...el,
-          groupId,
           worksheetMeta: { componentId: wsCompId, componentType: comp.type },
         }));
         allNewElements.push(...stampedElements);
@@ -505,26 +501,23 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
-      // 기존 요소의 Y좌표 + groupId 찾기
+      // 기존 요소의 Y좌표 찾기
       const oldElementIdSet = new Set(comp.elementIds);
       let insertY = 56.7;
-      let existingGroupId: string | undefined;
       for (const el of page.elements) {
         if (oldElementIdSet.has(el.id)) {
           if ("y" in el) insertY = (el as { y: number }).y;
-          if ("groupId" in el) existingGroupId = (el as { groupId?: string }).groupId;
           break;
         }
       }
 
-      // config로 새 요소 빌드 + groupId + worksheetMeta 유지
+      // config로 새 요소 빌드 + worksheetMeta 스탬프
       const newElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
         insertY,
       ).map((el) => ({
         ...el,
-        ...(existingGroupId ? { groupId: existingGroupId } : {}),
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
       }));
 
