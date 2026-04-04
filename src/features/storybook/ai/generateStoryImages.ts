@@ -104,71 +104,48 @@ ${JSON.stringify(scenes)}`;
   return parsed.map((item) => (typeof item === "string" ? item : String(item)));
 };
 
-// ─── 적응형 앵커 리셋 판단 ───
-
-// 같은 앵커(이전 생성 이미지)로 연속 생성할 최대 횟수 — 초과 시 품질 보호를 위해 자동 리셋
-const MAX_ANCHOR_CHAIN = 3;
-
-// 이전 장면과 현재 장면의 물리적 배경이 바뀌었는지 AI가 판단
-const shouldResetAnchor = async (
-  ai: GenAIClient,
-  prevScene: string,
-  currentScene: string,
-): Promise<boolean> => {
-  const prompt = `You are evaluating two consecutive scenes in a children's story book.
-
-Previous scene: "${prevScene}"
-Current scene: "${currentScene}"
-
-Should the current scene use a completely NEW background/setting?
-Answer YES if:
-- The physical location has clearly changed (e.g., forest → village, home → school)
-- The scene composition needs to be fundamentally different
-
-Answer NO if:
-- The scenes share the same or similar setting
-- Only the character's action/emotion changes, not the environment
-
-Answer ONLY "YES" or "NO".`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseModalities: ["Text"] },
-    });
-
-    const text =
-      response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
-    return text.trim().toUpperCase().startsWith("YES");
-  } catch {
-    // 판단 실패 시 연속 사용 — MAX_ANCHOR_CHAIN에서 안전하게 리셋됨
-    return false;
-  }
-};
-
-// ─── 단일 페이지 이미지 생성 ───
+// ─── 단일 페이지 이미지 생성 (듀얼 레퍼런스) ───
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
-// 연속 생성 시: 이전 이미지를 레퍼런스로 일관성 유지
-const CONSISTENCY_SUFFIX = `The attached image is a previous scene from the same story.
-Maintain the exact same character appearance, art style, lighting, and color palette.
-Only change the scene details as described.`;
+// 캐릭터 레퍼런스만 있을 때 (sceneGroup 첫 페이지)
+const CHARACTER_ONLY_SUFFIX = `The attached image is the character reference for this story.
+Preserve this character's exact face, hair, clothing, body proportions, and overall appearance.
+Draw the character in the new scene described above, keeping the art style consistent.`;
+
+// 캐릭터 레퍼런스 + 장면 앵커 둘 다 있을 때 (sceneGroup 후속 페이지)
+const DUAL_REF_SUFFIX = `Two reference images are attached.
+The FIRST image is the character reference — preserve this character's exact face, hair, clothing, and proportions.
+The SECOND image is a previous scene from the same location — maintain the same background environment, lighting, color temperature, and atmosphere.
+Only change the character's action and expression as the new scene describes.`;
 
 const generateSingleImage = async (
   ai: GenAIClient,
   imagePrompt: string,
   aspectRatio: string,
-  referenceBase64?: string,
+  characterRef?: string,
+  sceneAnchor?: string,
 ): Promise<string> => {
-  const contents = referenceBase64
-    ? [
-        { inlineData: { mimeType: "image/png" as const, data: referenceBase64 } },
-        { text: `${imagePrompt}\n\n${CONSISTENCY_SUFFIX}` },
-      ]
-    : imagePrompt;
+  let contents: string | Array<Record<string, unknown>>;
+
+  if (characterRef && sceneAnchor) {
+    // 듀얼 레퍼런스: 캐릭터 고정 + 장면 연속성
+    contents = [
+      { inlineData: { mimeType: "image/png" as const, data: characterRef } },
+      { inlineData: { mimeType: "image/png" as const, data: sceneAnchor } },
+      { text: `${imagePrompt}\n\n${DUAL_REF_SUFFIX}` },
+    ];
+  } else if (characterRef) {
+    // 캐릭터 레퍼런스만 (sceneGroup 첫 페이지)
+    contents = [
+      { inlineData: { mimeType: "image/png" as const, data: characterRef } },
+      { text: `${imagePrompt}\n\n${CHARACTER_ONLY_SUFFIX}` },
+    ];
+  } else {
+    // 레퍼런스 없음 (텍스트 전용)
+    contents = imagePrompt;
+  }
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -206,13 +183,14 @@ export const generateStoryImages = async (
   layout: PageLayout,
   referenceImageBase64?: string,
   onProgress?: (current: number, total: number) => void,
+  customPromptTemplate?: string,
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
   // }
 
   const preset = ART_STYLE_PRESETS.find((p) => p.id === artStyleId);
-  if (!preset) {
+  if (!preset && !customPromptTemplate) {
     throw new Error(`Unknown art style: ${artStyleId}`);
   }
 
@@ -238,39 +216,32 @@ export const generateStoryImages = async (
   }
 
   // 프롬프트 조합: [영문 장면] + ", " + [promptTemplate]
-  const stylePostfix = preset.promptTemplate;
+  const stylePostfix = customPromptTemplate ?? preset?.promptTemplate ?? "";
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
-  // ── Phase 1: 적응형 순차 생성으로 base64 수집 (모두 성공해야 진행) ──
-  // AI가 장면 간 맥락 변화를 실시간 판단하여 앵커를 리셋하거나 연속 사용
+  // ── Phase 1: sceneGroup 기반 듀얼 레퍼런스로 base64 수집 ──
+  // 캐릭터 레퍼런스: 항상 원본 고정 (외형 일관성)
+  // 장면 앵커: sceneGroup별 첫 생성 이미지 고정 (배경/분위기 연속성, 열화 없음)
   const base64Images: string[] = new Array(pages.length);
-  let currentAnchor: string | undefined = referenceImageBase64;
-  let chainLength = 0;
+  const sceneGroupAnchors = new Map<number, string>();
 
   for (let i = 0; i < pages.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
     const imagePrompt = `${scene}, ${stylePostfix}`;
-    let needsReset = false;
+    const group = pages[i].sceneGroup;
 
-    if (i === 0 || !currentAnchor) {
-      needsReset = true;
-    } else if (chainLength >= MAX_ANCHOR_CHAIN) {
-      needsReset = true;
-    } else {
-      const prevScene = englishScenes[i - 1] ?? koreanScenes[i - 1];
-      needsReset = await shouldResetAnchor(ai, prevScene, scene);
-    }
+    const sceneAnchor = sceneGroupAnchors.get(group);
+    const base64 = await generateSingleImage(
+      ai,
+      imagePrompt,
+      aspectRatio,
+      referenceImageBase64,
+      sceneAnchor,
+    );
 
-    let base64: string;
-    if (needsReset) {
-      // 리셋: 캐릭터 레퍼런스로 생성 (없으면 텍스트 전용)
-      base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, referenceImageBase64);
-      currentAnchor = base64;
-      chainLength = 0;
-    } else {
-      // 연속: 현재 앵커(이전 생성 이미지)를 레퍼런스로 사용
-      base64 = await generateSingleImage(ai, imagePrompt, aspectRatio, currentAnchor);
-      chainLength++;
+    // sceneGroup의 첫 페이지 결과를 해당 그룹의 장면 앵커로 저장
+    if (!sceneAnchor) {
+      sceneGroupAnchors.set(group, base64);
     }
 
     base64Images[i] = base64;
