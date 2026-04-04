@@ -37,6 +37,7 @@ import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
 import WorksheetBuilderTab from "./WorksheetBuilderTab";
+import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import { getPreviewMetrics } from "./previewMetrics";
 import fiveSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/ten-space-writing-note/preview.png";
@@ -601,7 +602,10 @@ const TemplateContent = () => {
               ? "bg-white-100 text-black-90 shadow-sm"
               : "text-black-55 hover:text-black-70"
           }`}
-          onClick={() => setActiveTab("templates")}
+          onClick={() => {
+            setActiveTab("templates");
+            useWorksheetElementStore.getState().hidePanel();
+          }}
         >
           미리 만든 템플릿
         </button>

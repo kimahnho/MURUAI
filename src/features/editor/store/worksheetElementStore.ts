@@ -41,6 +41,14 @@ interface WorksheetElementStore {
   // 선택된 컴포넌트 (편집 패널용)
   selectedComponentId: string | null;
   setSelectedComponentId: (id: string | null) => void;
+
+  // 패널 가시성
+  isPanelVisible: boolean;
+  showPanel: () => void;
+  hidePanel: () => void;
+
+  // 캔버스 요소 ID → 컴포넌트 ID 역검색
+  findComponentByElementId: (elementId: string) => string | null;
 }
 
 export const useWorksheetElementStore = create<WorksheetElementStore>((set) => ({
@@ -118,4 +126,16 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
 
   selectedComponentId: null,
   setSelectedComponentId: (id) => { set({ selectedComponentId: id }); },
+
+  isPanelVisible: false,
+  showPanel: () => { set({ isPanelVisible: true }); },
+  hidePanel: () => { set({ isPanelVisible: false }); },
+
+  findComponentByElementId: (elementId) => {
+    const comps: InsertedWorksheetComponent[] = (useWorksheetElementStore as { getState: () => WorksheetElementStore }).getState().insertedComponents;
+    for (const comp of comps) {
+      if (comp.elementIds.includes(elementId)) return comp.id;
+    }
+    return null;
+  },
 }));

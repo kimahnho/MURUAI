@@ -107,6 +107,7 @@ const renderForm = (
 
 const WorksheetRightPanel = () => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
+  const isPanelVisible = useWorksheetElementStore((s) => s.isPanelVisible);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
   const reorderInsertedComponent = useWorksheetElementStore((s) => s.reorderInsertedComponent);
@@ -119,7 +120,6 @@ const WorksheetRightPanel = () => {
   // 새 컴포넌트 삽입 시 자동 펼침
   useEffect(() => {
     if (insertedComponents.length > prevCountRef.current) {
-      // 마지막에 추가된 컴포넌트를 자동 펼침
       const newComp = insertedComponents[insertedComponents.length - 1];
       if (newComp) {
         setExpandedIds((prev) => new Set([...prev, newComp.id]));
@@ -128,7 +128,8 @@ const WorksheetRightPanel = () => {
     prevCountRef.current = insertedComponents.length;
   }, [insertedComponents]);
 
-  if (insertedComponents.length === 0) return null;
+  // 패널 표시 조건: 명시적으로 열었거나 (직접 만들기 탭), 삽입된 컴포넌트가 있을 때
+  if (!isPanelVisible && insertedComponents.length === 0) return null;
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -149,7 +150,19 @@ const WorksheetRightPanel = () => {
         </p>
       </div>
 
+      {/* 빈 상태 */}
+      {insertedComponents.length === 0 && (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center text-black-45">
+            <p className="text-2xl mb-2">📝</p>
+            <p className="text-13-bold mb-1">컴포넌트 없음</p>
+            <p className="text-[11px]">왼쪽 &quot;직접 만들기&quot; 탭에서<br />컴포넌트를 추가하세요</p>
+          </div>
+        </div>
+      )}
+
       {/* 컴포넌트 카드 목록 */}
+      {insertedComponents.length > 0 && (
       <div className="p-3 flex flex-col gap-2.5">
         {insertedComponents.map((comp, idx) => {
           const meta = COMPONENT_META[comp.type];
@@ -237,6 +250,7 @@ const WorksheetRightPanel = () => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

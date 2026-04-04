@@ -2,6 +2,8 @@
  * 템플릿 탭의 "직접 만들기" 서브탭 내용.
  * 컴포넌트 클릭 시 현재 페이지에 바로 CanvasElement로 삽입.
  */
+import { useEffect } from "react";
+
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
 import { EXAMPLE_1_EUUMHWA, EXAMPLE_2_PARENTS_DAY, EXAMPLE_3_VOCABULARY } from "@/features/worksheet-editor/utils/examples";
@@ -63,6 +65,12 @@ const EXAMPLES = [
 const WorksheetBuilderTab = () => {
   const requestInsert = useWorksheetElementStore((s) => s.requestInsert);
   const requestBatchInsert = useWorksheetElementStore((s) => s.requestBatchInsert);
+  const showPanel = useWorksheetElementStore((s) => s.showPanel);
+
+  // 직접 만들기 탭이 활성화되면 패널 표시
+  useEffect(() => {
+    showPanel();
+  }, [showPanel]);
 
   return (
     <div className="flex flex-col gap-3 py-1">
