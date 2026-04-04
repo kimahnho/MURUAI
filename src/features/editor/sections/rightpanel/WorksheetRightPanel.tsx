@@ -108,6 +108,7 @@ const renderForm = (
 const WorksheetRightPanel = () => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
   const isPanelVisible = useWorksheetElementStore((s) => s.isPanelVisible);
+  const selectedComponentId = useWorksheetElementStore((s) => s.selectedComponentId);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
   const reorderInsertedComponent = useWorksheetElementStore((s) => s.reorderInsertedComponent);
@@ -127,6 +128,13 @@ const WorksheetRightPanel = () => {
     }
     prevCountRef.current = insertedComponents.length;
   }, [insertedComponents]);
+
+  // 캔버스 클릭으로 selectedComponentId가 바뀌면 해당 카드 자동 펼침
+  useEffect(() => {
+    if (selectedComponentId) {
+      setExpandedIds((prev) => new Set([...prev, selectedComponentId]));
+    }
+  }, [selectedComponentId]);
 
   // 패널 표시 조건: 명시적으로 열었거나 (직접 만들기 탭), 삽입된 컴포넌트가 있을 때
   if (!isPanelVisible && insertedComponents.length === 0) return null;
@@ -168,6 +176,7 @@ const WorksheetRightPanel = () => {
           const meta = COMPONENT_META[comp.type];
           const isExpanded = expandedIds.has(comp.id);
           const isDragOver = dragOverIndex === idx;
+          const isSelected = selectedComponentId === comp.id;
 
           return (
             <div
@@ -184,8 +193,12 @@ const WorksheetRightPanel = () => {
                 setDragOverIndex(null);
               }}
               onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
-              className={`bg-white-100 rounded-xl border shadow-sm overflow-hidden transition-all ${
-                isDragOver ? "border-primary border-2 scale-[1.02]" : "border-black-25"
+              className={`rounded-xl border shadow-sm overflow-hidden transition-all ${
+                isDragOver
+                  ? "border-primary border-2 scale-[1.02] bg-white-100"
+                  : isSelected
+                    ? "border-primary-300 bg-primary-50 ring-2 ring-primary-200"
+                    : "border-black-25 bg-white-100"
               }`}
             >
               {/* 카드 헤더 — 드래그 가능 + 토글 + 순서 이동 + 삭제 */}
