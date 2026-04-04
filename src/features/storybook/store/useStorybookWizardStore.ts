@@ -288,8 +288,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const { formData } = get();
       if (!formData.childInfo) return;
 
-      // custom인 경우 ART_STYLE_PRESETS에서 못 찾으므로 커스텀 프롬프트 사용
-      const effectiveArtStyle = formData.artStyle === "custom" ? "watercolor-fairytale" : (formData.artStyle ?? "watercolor-fairytale");
+      // custom이면 "custom" 그대로 전달 — generateCharacterReference에서 프리셋 없이 유저 입력만 사용
+      const effectiveArtStyle = formData.artStyle ?? "watercolor-fairytale";
 
       set({ isLoading: true, error: null });
       try {
