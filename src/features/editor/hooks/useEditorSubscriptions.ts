@@ -349,27 +349,45 @@ export const useEditorSubscriptions = ({
       const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
-      // groupId 부여 — 컴포넌트를 하나의 그룹으로 묶음
+      // 컴포넌트 ID + groupId 생성
+      const wsCompId = crypto.randomUUID();
       const groupId = crypto.randomUUID();
-      const groupedElements = newElements.map((el) => ({ ...el, groupId }));
 
-      // 캔버스에 삽입
+      // worksheetMeta + groupId 스탬프
+      const stampedElements = newElements.map((el) => ({
+        ...el,
+        groupId,
+        worksheetMeta: { componentId: wsCompId, componentType: compType },
+      }));
+
+      const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+        id: wsCompId,
+        type: compType,
+        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        elementIds: stampedElements.map((el) => el.id),
+      };
+
+      // 캔버스 + 페이지 worksheetComponents에 동시 저장
       setPages((prev) =>
         prev.map((p) =>
           p.id === activePageId
-            ? { ...p, elements: [...p.elements, ...groupedElements] }
+            ? {
+                ...p,
+                elements: [...p.elements, ...stampedElements],
+                worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+              }
             : p,
         ),
       );
-      setSelectedIds(groupedElements.map((el) => el.id));
+      setSelectedIds(stampedElements.map((el) => el.id));
       setEditingTextId(null);
 
-      // 오른쪽 편집 패널용 컴포넌트 추적
+      // 인메모리 스토어에도 추가 (편집 패널용)
       useWorksheetElementStore.getState().addInsertedComponent({
-        id: crypto.randomUUID(),
+        id: wsCompId,
         type: compType,
         config: structuredClone(DEFAULT_CONFIGS[compType]),
-        elementIds: groupedElements.map((el) => el.id),
+        elementIds: stampedElements.map((el) => el.id),
       });
     },
     deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
@@ -395,20 +413,24 @@ export const useEditorSubscriptions = ({
       }
 
       const allNewElements: import("../model/canvasTypes").CanvasElement[] = [];
-      let curY = maxY + 38; // ~10mm
-      const GAP = 38; // ~10mm
+      const batchWsComps: import("../model/pageTypes").PageWorksheetComponent[] = [];
+      let curY = maxY + 38;
+      const GAP = 38;
 
       for (const comp of state.requestedBatch) {
         const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
 
-        // groupId 부여
+        const wsCompId = crypto.randomUUID();
         const groupId = crypto.randomUUID();
-        const groupedElements = elements.map((el) => ({ ...el, groupId }));
-        allNewElements.push(...groupedElements);
+        const stampedElements = elements.map((el) => ({
+          ...el,
+          groupId,
+          worksheetMeta: { componentId: wsCompId, componentType: comp.type },
+        }));
+        allNewElements.push(...stampedElements);
 
-        // 다음 컴포넌트의 Y 계산
         let compMaxY = curY;
-        for (const el of groupedElements) {
+        for (const el of stampedElements) {
           if ("y" in el && "h" in el) {
             const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
             if (bottom > compMaxY) compMaxY = bottom;
@@ -416,19 +438,30 @@ export const useEditorSubscriptions = ({
         }
         curY = compMaxY + GAP;
 
-        // 편집 패널용 추적
-        useWorksheetElementStore.getState().addInsertedComponent({
-          id: crypto.randomUUID(),
+        const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+          id: wsCompId,
           type: comp.type,
           config: structuredClone(comp.config),
-          elementIds: groupedElements.map((el) => el.id),
+          elementIds: stampedElements.map((el) => el.id),
+        };
+        batchWsComps.push(wsComp);
+
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId,
+          type: comp.type,
+          config: structuredClone(comp.config),
+          elementIds: stampedElements.map((el) => el.id),
         });
       }
 
       setPages((prev) =>
         prev.map((p) =>
           p.id === activePageId
-            ? { ...p, elements: [...p.elements, ...allNewElements] }
+            ? {
+                ...p,
+                elements: [...p.elements, ...allNewElements],
+                worksheetComponents: [...(p.worksheetComponents ?? []), ...batchWsComps],
+              }
             : p,
         ),
       );
@@ -484,12 +517,16 @@ export const useEditorSubscriptions = ({
         }
       }
 
-      // config로 새 요소 빌드 + groupId 유지
+      // config로 새 요소 빌드 + groupId + worksheetMeta 유지
       const newElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
         insertY,
-      ).map((el) => (existingGroupId ? { ...el, groupId: existingGroupId } : el));
+      ).map((el) => ({
+        ...el,
+        ...(existingGroupId ? { groupId: existingGroupId } : {}),
+        worksheetMeta: { componentId: comp.id, componentType: comp.type },
+      }));
 
       // 기존 요소 제거 + 새 요소 삽입
       const updatedElements = page.elements
@@ -507,43 +544,92 @@ export const useEditorSubscriptions = ({
         latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
       );
 
-      setPages((prev) =>
-        prev.map((p) =>
-          p.id === activePageId ? { ...p, elements: reflowedElements } : p,
-        ),
-      );
-
       // reflow 후 elementIds 동기화
       for (const [compId, newIds] of updatedElementIds) {
         useWorksheetElementStore.getState().updateElementIds(compId, newIds);
       }
+
+      // 페이지에 반영 (elements + worksheetComponents 둘 다)
+      const finalComps = useWorksheetElementStore.getState().insertedComponents;
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? {
+                ...p,
+                elements: reflowedElements,
+                worksheetComponents: finalComps.map((c) => ({
+                  id: c.id,
+                  type: c.type,
+                  config: c.config,
+                  elementIds: c.elementIds,
+                })),
+              }
+            : p,
+        ),
+      );
     },
     deps: [pagesRef, selectedPageIdRef, setPages],
   });
 
-  // 캔버스 요소 삭제 시 편집 패널 자동 정리 — groupId로 묶인 요소가 페이지에서 사라지면 패널에서도 제거
+  // 페이지 전환 감지 + 삭제 동기화 — 1초 간격
   useEffect(() => {
+    let lastPageId = selectedPageIdRef.current;
+
     const timer = setInterval(() => {
+      const currentPageId = selectedPageIdRef.current;
+
+      // 페이지 전환 감지 → 해당 페이지의 worksheetComponents로 복원
+      if (currentPageId !== lastPageId) {
+        lastPageId = currentPageId;
+        const page = pagesRef.current.find((p) => p.id === currentPageId);
+        const pageComps = page?.worksheetComponents ?? [];
+        useWorksheetElementStore.getState().loadFromPage(
+          pageComps.map((c) => ({
+            id: c.id,
+            type: c.type,
+            config: c.config,
+            elementIds: c.elementIds,
+          })),
+        );
+        return;
+      }
+
+      // 삭제 동기화 — 캔버스에서 요소가 사라지면 편집 패널에서도 제거
       const { insertedComponents } = useWorksheetElementStore.getState();
       if (insertedComponents.length === 0) return;
 
-      const pages = pagesRef.current;
-      const allElementIds = new Set<string>();
-      for (const page of pages) {
-        for (const el of page.elements) {
-          allElementIds.add(el.id);
+      const page = pagesRef.current.find((p) => p.id === currentPageId);
+      if (!page) return;
+
+      const pageElementIds = new Set(page.elements.map((el) => el.id));
+      let changed = false;
+      for (const comp of insertedComponents) {
+        const hasAnyElement = comp.elementIds.some((id) => pageElementIds.has(id));
+        if (!hasAnyElement) {
+          useWorksheetElementStore.getState().removeInsertedComponent(comp.id);
+          changed = true;
         }
       }
 
-      for (const comp of insertedComponents) {
-        const hasAnyElement = comp.elementIds.some((id) => allElementIds.has(id));
-        if (!hasAnyElement) {
-          useWorksheetElementStore.getState().removeInsertedComponent(comp.id);
-        }
+      // 페이지의 worksheetComponents도 동기화
+      if (changed) {
+        const latestComps = useWorksheetElementStore.getState().insertedComponents;
+        setPages((prev) =>
+          prev.map((p) =>
+            p.id === currentPageId
+              ? {
+                  ...p,
+                  worksheetComponents: latestComps.map((c) => ({
+                    id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+                  })),
+                }
+              : p,
+          ),
+        );
       }
-    }, 1000);
+    }, 500);
     return () => clearInterval(timer);
-  }, [pagesRef]);
+  }, [pagesRef, selectedPageIdRef, setPages]);
 
   useOrientationSubscription({
     selectedPageIdRef,

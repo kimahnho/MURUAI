@@ -42,6 +42,9 @@ interface WorksheetElementStore {
   selectedComponentId: string | null;
   setSelectedComponentId: (id: string | null) => void;
 
+  // 페이지 전환 시 해당 페이지의 컴포넌트로 복원
+  loadFromPage: (components: InsertedWorksheetComponent[]) => void;
+
   // 패널 가시성
   isPanelVisible: boolean;
   showPanel: () => void;
@@ -126,6 +129,10 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
 
   selectedComponentId: null,
   setSelectedComponentId: (id) => { set({ selectedComponentId: id }); },
+
+  loadFromPage: (components) => {
+    set({ insertedComponents: components, selectedComponentId: null });
+  },
 
   isPanelVisible: false,
   showPanel: () => { set({ isPanelVisible: true }); },
