@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
+import WorksheetComponentOverlay from "./WorksheetComponentOverlay";
 import { useWorksheetElementStore } from "../../store/worksheetElementStore";
 import {
   DesignPaperContextMenu,
@@ -601,6 +602,9 @@ const DesignPaper = ({
       }}
       onContextMenu={openCanvasContextMenu}
     >
+      {!readOnly && (
+        <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
+      )}
       {elements.map((element) => renderElement(element))}
       {/* 페이지 영역 바깥의 요소 부분을 반투명 화이트 오버레이로 덮어 경계 밖임을 시각적으로 표현한다. */}
       {!readOnly && (

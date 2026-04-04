@@ -45,9 +45,13 @@ interface WorksheetElementStore {
   // 페이지 전환 시 해당 페이지의 컴포넌트로 복원
   loadFromPage: (components: InsertedWorksheetComponent[]) => void;
 
-  // 드래그 상태 (스마트 가이드 숨김 + CSS transition 용)
+  // 드래그 상태
   isDraggingWorksheet: boolean;
   setDraggingWorksheet: (v: boolean) => void;
+
+  // hover 상태 (컴포넌트 바운딩 박스 표시용)
+  hoveredComponentId: string | null;
+  setHoveredComponentId: (id: string | null) => void;
 
   // 패널 가시성
   isPanelVisible: boolean;
@@ -140,6 +144,9 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
 
   isDraggingWorksheet: false,
   setDraggingWorksheet: (v) => { set({ isDraggingWorksheet: v }); },
+
+  hoveredComponentId: null,
+  setHoveredComponentId: (id) => { set({ hoveredComponentId: id }); },
 
   isPanelVisible: false,
   showPanel: () => { set({ isPanelVisible: true }); },
