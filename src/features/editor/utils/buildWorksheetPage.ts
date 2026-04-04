@@ -537,6 +537,11 @@ export const buildWorksheetComponentElementsFromConfig = (
  * 컴포넌트 크기 변경 시 아래 컴포넌트들을 자동으로 밀거나 당김.
  * @returns 재정렬된 전체 elements 배열 + 컴포넌트별 새 elementIds
  */
+/**
+ * 모든 워크시트 컴포넌트를 **insertedComponents 배열 순서**대로 재배치.
+ * 배열 순서가 곧 캔버스 상의 위→아래 순서.
+ * 각 컴포넌트의 내부 요소 상대 위치는 유지하고, 컴포넌트 간 COMP_GAP 간격을 보장.
+ */
 export const reflowWorksheetComponents = (
   pageElements: CanvasElement[],
   insertedComponents: { id: string; elementIds: string[] }[],
@@ -551,10 +556,17 @@ export const reflowWorksheetComponents = (
   }
   const nonWorksheetElements = pageElements.filter((el) => !worksheetElementIds.has(el.id));
 
-  // 컴포넌트별 요소 그룹 + 현재 최소 Y좌표로 정렬
-  const compGroups = insertedComponents.map((comp) => {
+  // insertedComponents 배열 순서 그대로 (Y좌표 정렬 안 함 — 배열 순서가 곧 순서)
+  let curY = MARGIN;
+  const allReflowed: CanvasElement[] = [...nonWorksheetElements];
+  const updatedElementIds = new Map<string, string[]>();
+
+  for (const comp of insertedComponents) {
     const idSet = new Set(comp.elementIds);
     const elements = pageElements.filter((el) => idSet.has(el.id));
+    if (elements.length === 0) continue;
+
+    // 이 컴포넌트의 기존 최소 Y
     let minY = Infinity;
     for (const el of elements) {
       if ("y" in el) {
@@ -562,22 +574,12 @@ export const reflowWorksheetComponents = (
         if (y < minY) minY = y;
       }
     }
-    return { comp, elements, minY: minY === Infinity ? MARGIN : minY };
-  });
+    if (minY === Infinity) minY = curY;
 
-  // Y좌표 순으로 정렬
-  compGroups.sort((a, b) => a.minY - b.minY);
+    // delta 계산 — 내부 상대 위치 유지하면서 전체를 curY 위치로 이동
+    const deltaY = curY - minY;
 
-  // 순서대로 재배치
-  let curY = MARGIN;
-  const allReflowed: CanvasElement[] = [...nonWorksheetElements];
-  const updatedElementIds = new Map<string, string[]>();
-
-  for (const group of compGroups) {
-    // 기존 최소 Y와의 차이 계산 → 전체 요소를 동일하게 이동
-    const deltaY = curY - group.minY;
-
-    const shifted = group.elements.map((el) => {
+    const shifted = elements.map((el) => {
       if ("y" in el) {
         return { ...el, y: (el as { y: number }).y + deltaY };
       }
@@ -585,9 +587,9 @@ export const reflowWorksheetComponents = (
     });
 
     allReflowed.push(...shifted);
-    updatedElementIds.set(group.comp.id, shifted.map((el) => el.id));
+    updatedElementIds.set(comp.id, shifted.map((el) => el.id));
 
-    // 이 컴포넌트의 최하단 Y 계산
+    // 이 컴포넌트의 최하단 Y 계산 → 다음 컴포넌트 시작점
     let maxBottom = curY;
     for (const el of shifted) {
       if ("y" in el && "h" in el) {
