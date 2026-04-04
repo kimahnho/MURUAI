@@ -39,24 +39,30 @@ const buildProposalPrompt = (childInfo: ChildInfo, topic: string): string => {
   const childContext = buildChildContext(childInfo);
 
   const diagnosisRule = childInfo.diagnosis || childInfo.learningGoal
-    ? `\n7. 진단명/학습 목표가 있다면 이야기 속에 자연스럽게 반영`
+    ? `\n- 진단명/학습 목표가 있다면 이야기 속에 자연스럽게 반영`
     : "";
 
-  return `당신은 아동 치료 교육 전문가이자 동화 작가입니다.
+  return `당신은 아동 동화 작가입니다.
 
 [아동 정보]
 ${childContext}
 
-[요청]
-주제 "${safeTopic}"에 맞는 ${STORYBOOK_PAGE_COUNT}페이지 그림책 기획서 2개를 만들어주세요.
+[유저 입력]
+"${safeTopic}"
 
-[기획서 작성 규칙]
-1. 각 기획서는 서로 다른 접근 방식 (예: 첫 번째는 일상 이야기, 두 번째는 모험 이야기)
-2. 아동의 이름(${childInfo.name})을 주인공으로 사용
-3. ${childInfo.age}세 아이가 이해할 수 있는 쉬운 문장
-4. ${STORYBOOK_PAGE_COUNT}페이지 이야기 흐름: 도입(1-2) → 전개(3-5) → 절정(6-7) → 결말(8-10)
-5. sceneDescription: 그림 작가에게 전달할 장면 묘사 (구체적인 배경, 인물 표정/동작, 30자 이내)
-6. textContent: 아이가 읽을 본문 (한 문장, 40자 이내)${diagnosisRule}
+[핵심 원칙]
+유저 입력을 최우선으로 존중하세요.
+- 특정 이야기/동화를 입력했다면 (예: 콩쥐팥쥐, 백설공주, 토끼와 거북이): 해당 이야기의 원작 줄거리를 ${STORYBOOK_PAGE_COUNT}페이지로 각색하세요. 아동 이름을 주인공으로 바꾸지 마세요.
+- 주제/테마를 입력했다면 (예: 용기, 친구 사귀기, 감정 표현): 해당 주제로 창작 이야기를 만들되, 아동 이름(${childInfo.name})을 주인공으로 사용하세요.
+- 자유 형식 설명을 입력했다면 (예: 숲에서 길을 잃은 아이 이야기): 해당 설명을 충실히 따라 이야기를 구성하세요.
+
+[기획서 규칙]
+- ${STORYBOOK_PAGE_COUNT}페이지 그림책 기획서 2개를 만드세요
+- 각 기획서는 서로 다른 톤이나 접근 방식으로 작성
+- ${childInfo.age}세 아이가 이해할 수 있는 쉬운 문장
+- 이야기 흐름이 자연스럽게 이어지도록 구성
+- sceneDescription: 그림 작가에게 전달할 장면 묘사 (배경, 인물 표정/동작)
+- textContent: 아이가 읽을 본문 (한 문장, 40자 이내)${diagnosisRule}
 
 JSON만 출력 (설명, 마크다운 없음):
 [
