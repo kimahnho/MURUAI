@@ -39,10 +39,11 @@ export const useCanvasStageHandlers = ({
   beginTransaction,
   commitTransaction,
 }: CanvasStageHandlersParams) => {
-  // 드래그 중 순서 변경 감지용 — 마지막으로 확인한 순서
+  // 드래그 중 순서 변경 감지용
   const lastOrderRef = useRef<string[] | null>(null);
   const isDraggingRef = useRef(false);
   const reflowThrottleRef = useRef<number | null>(null);
+  const draggingCompIdRef = useRef<string | null>(null);
 
   const handleElementsChange = useCallback(
     (nextElements: CanvasElement[]) => {
@@ -65,6 +66,23 @@ export const useCanvasStageHandlers = ({
                 const comps = useWorksheetElementStore.getState().insertedComponents;
                 if (comps.length < 2) return pages;
 
+                // 드래그 중인 컴포넌트 감지 (Y좌표가 이전과 달라진 요소)
+                if (!draggingCompIdRef.current) {
+                  for (const comp of comps) {
+                    const idSet = new Set(comp.elementIds);
+                    for (const el of nextElements) {
+                      if (idSet.has(el.id) && el.worksheetMeta) {
+                        const prevEl = page.elements.find((pe) => pe.id === el.id);
+                        if (prevEl && "y" in prevEl && "y" in el && (el as {y:number}).y !== (prevEl as {y:number}).y) {
+                          draggingCompIdRef.current = comp.id;
+                          break;
+                        }
+                      }
+                    }
+                    if (draggingCompIdRef.current) break;
+                  }
+                }
+
                 // 현재 Y순서 계산
                 const compYs = comps.map((c) => ({
                   id: c.id,
@@ -86,11 +104,12 @@ export const useCanvasStageHandlers = ({
                 const reordered = newOrder.map((id) => comps.find((c) => c.id === id)!);
                 useWorksheetElementStore.setState({ insertedComponents: reordered });
 
-                // reflow (드래그 중인 요소 포함 전체 재배치)
+                // reflow — 드래그 중인 컴포넌트는 제외 (사용자가 자유롭게 이동 중)
                 const { elements: reflowedElements, updatedElementIds } =
                   reflowWorksheetComponents(
                     page.elements,
                     reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+                    draggingCompIdRef.current ?? undefined,
                   );
 
                 for (const [compId, newIds] of updatedElementIds) {
@@ -102,7 +121,7 @@ export const useCanvasStageHandlers = ({
                   elements: reflowedElements,
                 }));
               });
-            }, 80); // 80ms 쓰로틀
+            }, 60); // 60ms 쓰로틀 (더 매끄러운 동작)
           }
         }
 
@@ -123,6 +142,7 @@ export const useCanvasStageHandlers = ({
         beginTransaction();
       } else {
         isDraggingRef.current = false;
+        draggingCompIdRef.current = null;
 
         // 쓰로틀 타이머 정리
         if (reflowThrottleRef.current !== null) {

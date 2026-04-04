@@ -71,7 +71,8 @@ export const useDesignPaperSelectionContextMenu = ({
       ) {
         return;
       }
-      // worksheetMeta가 있으면 컴포넌트 전체 선택 → 재클릭 시 개별 선택
+      // worksheetMeta: 1-click = 컴포넌트 전체 선택, 전체 선택 상태에서 재클릭 = 개별 선택
+      // 개별 선택 후 더블클릭 → 기존 텍스트 편집/도형 편집이 자연스럽게 동작
       const wsMeta = selectedElement.worksheetMeta;
       let nextSelectedIds: string[];
 
@@ -80,16 +81,15 @@ export const useDesignPaperSelectionContextMenu = ({
           .filter((el) => el.worksheetMeta?.componentId === wsMeta.componentId && !el.locked && el.selectable !== false)
           .map((el) => el.id);
 
-        // 이미 이 컴포넌트가 전체 선택된 상태에서 같은 요소를 다시 클릭하면 개별 선택
+        // 이미 이 컴포넌트가 전체 선택된 상태에서 클릭 → 개별 요소 선택
         const isAlreadyComponentSelected =
           currentSelectedIds.length > 1 &&
+          compElementIds.length > 0 &&
           compElementIds.every((id) => currentSelectedIds.includes(id));
 
         if (isAlreadyComponentSelected) {
-          // 개별 요소 선택으로 전환
           nextSelectedIds = [elementId];
         } else {
-          // 컴포넌트 전체 선택
           nextSelectedIds = compElementIds;
         }
       } else {

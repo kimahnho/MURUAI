@@ -545,6 +545,8 @@ export const buildWorksheetComponentElementsFromConfig = (
 export const reflowWorksheetComponents = (
   pageElements: CanvasElement[],
   insertedComponents: { id: string; elementIds: string[] }[],
+  /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
+  skipComponentId?: string,
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
@@ -563,12 +565,30 @@ export const reflowWorksheetComponents = (
 
   for (const comp of insertedComponents) {
     const idSet = new Set(comp.elementIds);
-    const elements = pageElements.filter((el) => idSet.has(el.id));
-    if (elements.length === 0) continue;
+    const compElements = pageElements.filter((el) => idSet.has(el.id));
+    if (compElements.length === 0) continue;
+
+    // 드래그 중인 컴포넌트는 위치를 바꾸지 않고, 공간만 확보
+    if (skipComponentId && comp.id === skipComponentId) {
+      // 원본 위치 그대로 유지
+      allReflowed.push(...compElements);
+      updatedElementIds.set(comp.id, compElements.map((el) => el.id));
+
+      // 이 컴포넌트가 차지하는 높이만큼 curY를 확보
+      let compMaxBottom = curY;
+      for (const el of compElements) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > compMaxBottom) compMaxBottom = bottom;
+        }
+      }
+      curY = compMaxBottom + COMP_GAP;
+      continue;
+    }
 
     // 이 컴포넌트의 기존 최소 Y
     let minY = Infinity;
-    for (const el of elements) {
+    for (const el of compElements) {
       if ("y" in el) {
         const y = (el as { y: number }).y;
         if (y < minY) minY = y;
@@ -579,7 +599,7 @@ export const reflowWorksheetComponents = (
     // delta 계산 — 내부 상대 위치 유지하면서 전체를 curY 위치로 이동
     const deltaY = curY - minY;
 
-    const shifted = elements.map((el) => {
+    const shifted = compElements.map((el) => {
       if ("y" in el) {
         return { ...el, y: (el as { y: number }).y + deltaY };
       }
