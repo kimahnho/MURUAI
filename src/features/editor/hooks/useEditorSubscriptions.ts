@@ -564,7 +564,34 @@ export const useEditorSubscriptions = ({
     deps: [pagesRef, selectedPageIdRef, setPages],
   });
 
-  // 페이지 전환 감지 + 삭제 동기화 — 1초 간격
+  // 초기 로드 시 현재 페이지의 worksheetComponents 복원 + groupId 마이그레이션
+  useEffect(() => {
+    const currentPageId = selectedPageIdRef.current;
+    const page = pagesRef.current.find((p) => p.id === currentPageId);
+    if (page) {
+      // groupId 마이그레이션
+      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+      if (needsMigration) {
+        setPages((prev) =>
+          prev.map((p) =>
+            p.id === currentPageId
+              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+              : p,
+          ),
+        );
+      }
+      // worksheetComponents 복원
+      const pageComps = page.worksheetComponents ?? [];
+      if (pageComps.length > 0) {
+        useWorksheetElementStore.getState().loadFromPage(
+          pageComps.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })),
+        );
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 페이지 전환 감지 + 삭제 동기화 — 0.5초 간격
   useEffect(() => {
     let lastPageId = selectedPageIdRef.current;
 
@@ -585,6 +612,30 @@ export const useEditorSubscriptions = ({
           })),
         );
         return;
+      }
+
+      // 마이그레이션: worksheetMeta가 있는 요소에서 groupId 제거 (이전 버전 호환)
+      const migrationPage = pagesRef.current.find((p) => p.id === currentPageId);
+      if (migrationPage) {
+        const needsMigration = migrationPage.elements.some(
+          (el) => el.worksheetMeta && el.groupId,
+        );
+        if (needsMigration) {
+          setPages((prev) =>
+            prev.map((p) =>
+              p.id === currentPageId
+                ? {
+                    ...p,
+                    elements: p.elements.map((el) =>
+                      el.worksheetMeta && el.groupId
+                        ? { ...el, groupId: undefined }
+                        : el,
+                    ),
+                  }
+                : p,
+            ),
+          );
+        }
       }
 
       // 삭제 동기화 — 캔버스에서 요소가 사라지면 편집 패널에서도 제거
