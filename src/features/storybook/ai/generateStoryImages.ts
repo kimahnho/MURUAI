@@ -79,7 +79,14 @@ const translateScenesToEnglish = async (
   ai: GenAIClient,
   scenes: string[],
 ): Promise<string[]> => {
-  const prompt = `Translate each Korean scene description to concise English for an image generation prompt. Return a JSON array of strings only, no explanation.
+  const prompt = `Translate each Korean scene description to English optimized for image generation.
+
+Rules:
+- Preserve all visual details: background, character action, facial expression, props, atmosphere/color
+- Use vivid, specific English (not "a boy is happy" but "a boy with a wide grin and squinted eyes")
+- Keep each translation under 200 words
+- Do NOT add details not in the Korean original
+- Return a JSON array of strings only, no explanation.
 
 Input:
 ${JSON.stringify(scenes)}`;

@@ -347,6 +347,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           formData.referenceImageBase64,
           (current, total) => { set({ imageProgress: { current, total } }); },
           effectivePromptTemplate,
+          formData.topic,
         );
         set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
         mp.track("AI 스토리북 생성 완료", { art_style: artStyle, layout: formData.layout });

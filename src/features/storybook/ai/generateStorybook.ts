@@ -25,6 +25,7 @@ import { generateStoryImages } from "./generateStoryImages";
 const buildStorybookPrompt = (
   proposal: StoryProposal,
   childInfo: ChildInfo,
+  topic?: string,
 ): string => {
   const pagesBlock = proposal.pages
     .map(
@@ -33,8 +34,12 @@ const buildStorybookPrompt = (
     )
     .join("\n");
 
-  return `당신은 아동 동화 작가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
+  const topicSection = topic
+    ? `\n[원본 유저 요청]\n"${topic}"\n`
+    : "";
 
+  return `당신은 아동 동화 작가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
+${topicSection}
 [기획서]
 제목: ${proposal.title}
 요약: ${proposal.summary}
@@ -43,12 +48,36 @@ const buildStorybookPrompt = (
 [페이지별 초안]
 ${pagesBlock}
 
-[작업 지시]
-1. 각 페이지의 텍스트(text)를 자연스럽고 읽기 쉽게 다듬기 (60자 이내)
-2. 장면 묘사(sceneDescription)를 그림 작가가 그릴 수 있도록 구체적으로 보강 (배경, 인물 표정, 색감, 구도 포함)
-3. ${STORYBOOK_PAGE_COUNT}페이지 전체의 이야기 흐름이 자연스럽게 이어지도록 조정
-4. 아이 이름(${childInfo.name})을 자연스럽게 사용
-5. 각 페이지가 어떤 장소/배경에서 벌어지는지 판단하여 sceneGroup 번호를 부여하세요 (1부터 시작). 같은 장소에서 연속되는 페이지는 같은 sceneGroup을 가집니다.
+═══ 핵심 원칙: 유저 의도 보존 ═══
+- 위 "원본 유저 요청"이 이 이야기의 출발점입니다.
+- 기획서의 줄거리와 주제를 변경하지 마세요.
+- 특정 동화가 원본이라면 핵심 플롯을 훼손하지 마세요.
+- 새 등장인물이나 서브플롯을 추가하지 마세요.
+- 유저가 편집한 텍스트는 최대한 존중하되, 문법과 흐름만 다듬기.
+
+═══ 작업 지시 ═══
+
+1. **텍스트(text) 다듬기**
+   - 자연스럽고 읽기 쉽게, **60자 이내** (공백 포함, 엄격 준수)
+   - ${childInfo.age}세 어휘 수준에 맞추기
+
+2. **장면 묘사(sceneDescription) 보강** — 5요소 필수:
+   - 장소/배경 (구체적 공간 + 시간대/조명)
+   - 인물 동작
+   - 인물 표정 (얼굴 수준의 묘사)
+   - 핵심 소품 1-2개
+   - 분위기/색감 힌트
+   - 같은 장소의 장면은 배경 요소(벽 색, 가구)를 일관되게
+   - 캐릭터 복장은 장소가 바뀌지 않는 한 동일 유지
+
+3. **sceneGroup 부여**
+   - 같은 물리적 장소의 연속 페이지 = 같은 번호
+   - 실내→실외 = 새 그룹 / 같은 방이지만 낮→밤 = 새 그룹
+   - ${STORYBOOK_PAGE_COUNT}페이지에 3~5개 그룹이 적절
+
+4. **이야기 흐름 점검**
+   - 감정 곡선이 자연스럽게 이어지는지
+   - 결말이 열린 채로 끝나지 않는지
 
 JSON만 출력 (설명, 마크다운 없음):
 [
@@ -106,6 +135,7 @@ export const generateStorybook = async (
   referenceImageBase64?: string,
   onImageProgress?: (current: number, total: number) => void,
   customPromptTemplate?: string,
+  topic?: string,
 ): Promise<StoryBook> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -115,7 +145,7 @@ export const generateStorybook = async (
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: buildStorybookPrompt(proposal, childInfo),
+    contents: buildStorybookPrompt(proposal, childInfo, topic),
     config: {
       responseModalities: ["Text"],
     },
