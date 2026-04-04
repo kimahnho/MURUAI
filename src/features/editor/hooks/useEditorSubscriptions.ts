@@ -445,6 +445,26 @@ export const useEditorSubscriptions = ({
       state.configChangeId !== prevState.configChangeId,
     onChange: () => {
       const { insertedComponents, lastChangedComponentId } = useWorksheetElementStore.getState();
+
+      // 순서 변경 → 전체 reflow만 수행 (재빌드 불필요)
+      if (lastChangedComponentId === "__reorder__") {
+        const activePageId = selectedPageIdRef.current;
+        const page = pagesRef.current.find((p) => p.id === activePageId);
+        if (!page) return;
+
+        const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
+          page.elements,
+          insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        );
+        setPages((prev) =>
+          prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
+        );
+        for (const [compId, newIds] of updatedElementIds) {
+          useWorksheetElementStore.getState().updateElementIds(compId, newIds);
+        }
+        return;
+      }
+
       const comp = insertedComponents.find((c) => c.id === lastChangedComponentId);
       if (!comp) return;
 

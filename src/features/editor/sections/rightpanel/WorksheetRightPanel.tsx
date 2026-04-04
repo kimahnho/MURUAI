@@ -4,7 +4,7 @@
  * 삽입된 컴포넌트가 없으면 렌더하지 않음.
  */
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import { COMPONENT_META } from "@/features/worksheet-editor/constants/defaults";
@@ -108,6 +108,7 @@ const renderForm = (
 const WorksheetRightPanel = () => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
+  const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
   const removeInsertedComponent = useWorksheetElementStore((s) => s.removeInsertedComponent);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(insertedComponents.length);
@@ -156,32 +157,54 @@ const WorksheetRightPanel = () => {
               key={comp.id}
               className="bg-white-100 rounded-xl border border-black-25 shadow-sm overflow-hidden"
             >
-              {/* 카드 헤더 — 클릭으로 토글 */}
-              <button
-                type="button"
-                className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-black-5 transition"
-                onClick={() => toggleExpand(comp.id)}
-              >
-                <span className="text-base shrink-0">{meta.icon}</span>
-                <span className="text-12-semibold flex-1 min-w-0 truncate text-black-90">
-                  {meta.name}
-                </span>
+              {/* 카드 헤더 — 토글 + 순서 이동 + 삭제 */}
+              <div className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition">
+                {/* 순서 이동 ↑↓ */}
+                <div className="flex flex-col shrink-0">
+                  <button
+                    type="button"
+                    className="w-5 h-4 flex items-center justify-center text-black-40 hover:text-primary transition disabled:opacity-30"
+                    disabled={insertedComponents.indexOf(comp) === 0}
+                    onClick={() => moveInsertedComponent(comp.id, -1)}
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    className="w-5 h-4 flex items-center justify-center text-black-40 hover:text-primary transition disabled:opacity-30"
+                    disabled={insertedComponents.indexOf(comp) === insertedComponents.length - 1}
+                    onClick={() => moveInsertedComponent(comp.id, 1)}
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* 아이콘 + 이름 — 클릭으로 토글 */}
+                <button
+                  type="button"
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  onClick={() => toggleExpand(comp.id)}
+                >
+                  <span className="text-base shrink-0">{meta.icon}</span>
+                  <span className="text-12-semibold flex-1 min-w-0 truncate text-black-90">
+                    {meta.name}
+                  </span>
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-black-45 shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-black-45 shrink-0" />
+                  )}
+                </button>
+
+                {/* 삭제 */}
                 <button
                   type="button"
                   className="w-6 h-6 rounded-md text-black-45 hover:text-error-700 hover:bg-error-50 flex items-center justify-center transition shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeInsertedComponent(comp.id);
-                  }}
+                  onClick={() => removeInsertedComponent(comp.id)}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-black-45 shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-black-45 shrink-0" />
-                )}
-              </button>
+              </div>
 
               {/* 카드 바디 — 편집 폼 */}
               {isExpanded && (
