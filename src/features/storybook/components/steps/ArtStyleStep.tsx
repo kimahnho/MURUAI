@@ -2,7 +2,7 @@
  * 4단계: 스타일 설정 — 저장된 캐릭터 + 그림체 드롭다운(프리셋+커스텀) + 폰트 + 레이아웃.
  */
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ImageIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ImageIcon, Pencil, Plus, X } from "lucide-react";
 
 import { FONT_OPTIONS } from "@/shared/utils/fontOptions";
 import { supabase } from "@/shared/api/supabase";

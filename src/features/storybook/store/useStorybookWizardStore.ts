@@ -16,7 +16,6 @@ import type {
   SavedCharacter,
 } from "../model/storybookTypes";
 import { INITIAL_FORM_DATA } from "../model/storybookTypes";
-import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 import { canAdvance } from "../model/storybookValidation";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useTemplateStore } from "@/features/editor/store/templateStore";

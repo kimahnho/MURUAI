@@ -29,6 +29,8 @@
 | `user_credits` | AI 크레딧 잔량 추적 (`balance`, `total_used`, `refill_count`). 신규 가입 시 자동 생성 (balance=30) | `user_id` | — |
 | `template_images` | 템플릿 이미지 (배경/요소). `user_id`/`user_role`(admin\|user)로 업로더 추적. RLS 전체 read 허용, 쓰기는 서비스키/관리자만. Cloudinary 폴더: `muru-templates/admin/{template-name}/` | `user_id` | — |
 | `image_usage_events` | 에디터 이미지 사용 빈도 추적 (`image_url`, `source`, `label`). 관리자 대시보드에서 인기 이미지 집계용 | `user_id` | — |
+| `user_saved_characters` | 스토리북 저장된 캐릭터 (이미지 URL + 그림체/프롬프트/아동 스냅샷). Cloudinary 폴더: `muru-saved-characters/{userId}/` | `user_id` | `deleted_at` |
+| `user_custom_art_styles` | 커스텀 그림체 프롬프트 저장 (향후 확장용, 현재 UI 미사용) | `user_id` | `deleted_at` |
 
 ### RPC 통해서만 접근 (직접 `.from()` 없음)
 
@@ -94,7 +96,7 @@
 .from("students_n").select("*").eq("user_id", userId)
 ```
 
-소프트 삭제 테이블: `students_n`, `groups_n`, `groups_members_n`, `schedules_n`, `user_made_n`, `user_made_targets_n`, `user_uploads_n`
+소프트 삭제 테이블: `students_n`, `groups_n`, `groups_members_n`, `schedules_n`, `user_made_n`, `user_made_targets_n`, `user_uploads_n`, `user_saved_characters`, `user_custom_art_styles`
 
 ## Supabase 호출 패턴
 
