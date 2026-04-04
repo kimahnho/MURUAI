@@ -109,9 +109,12 @@ const WorksheetRightPanel = () => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
+  const reorderInsertedComponent = useWorksheetElementStore((s) => s.reorderInsertedComponent);
   const removeInsertedComponent = useWorksheetElementStore((s) => s.removeInsertedComponent);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(insertedComponents.length);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
 
   // 새 컴포넌트 삽입 시 자동 펼침
   useEffect(() => {
@@ -148,17 +151,32 @@ const WorksheetRightPanel = () => {
 
       {/* 컴포넌트 카드 목록 */}
       <div className="p-3 flex flex-col gap-2.5">
-        {insertedComponents.map((comp) => {
+        {insertedComponents.map((comp, idx) => {
           const meta = COMPONENT_META[comp.type];
           const isExpanded = expandedIds.has(comp.id);
+          const isDragOver = dragOverIndex === idx;
 
           return (
             <div
               key={comp.id}
-              className="bg-white-100 rounded-xl border border-black-25 shadow-sm overflow-hidden"
+              draggable
+              onDragStart={() => { dragIndexRef.current = idx; }}
+              onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx); }}
+              onDragLeave={() => { if (dragOverIndex === idx) setDragOverIndex(null); }}
+              onDrop={() => {
+                if (dragIndexRef.current !== null && dragIndexRef.current !== idx) {
+                  reorderInsertedComponent(dragIndexRef.current, idx);
+                }
+                dragIndexRef.current = null;
+                setDragOverIndex(null);
+              }}
+              onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
+              className={`bg-white-100 rounded-xl border shadow-sm overflow-hidden transition-all ${
+                isDragOver ? "border-primary border-2 scale-[1.02]" : "border-black-25"
+              }`}
             >
-              {/* 카드 헤더 — 토글 + 순서 이동 + 삭제 */}
-              <div className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition">
+              {/* 카드 헤더 — 드래그 가능 + 토글 + 순서 이동 + 삭제 */}
+              <div className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition cursor-grab active:cursor-grabbing">
                 {/* 순서 이동 ↑↓ */}
                 <div className="flex flex-col shrink-0">
                   <button

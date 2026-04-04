@@ -31,6 +31,7 @@ interface WorksheetElementStore {
   updateComponentConfig: (id: string, config: WorksheetConfig) => void;
   updateElementIds: (id: string, elementIds: string[]) => void;
   moveInsertedComponent: (id: string, direction: -1 | 1) => void;
+  reorderInsertedComponent: (fromIndex: number, toIndex: number) => void;
   removeInsertedComponent: (id: string) => void;
 
   // config 변경 트리거 (구독용)
@@ -93,6 +94,15 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
       if (idx < 0 || target < 0 || target >= state.insertedComponents.length) return state;
       const next = [...state.insertedComponents];
       [next[idx], next[target]] = [next[target], next[idx]];
+      return { insertedComponents: next, configChangeId: state.configChangeId + 1, lastChangedComponentId: "__reorder__" };
+    });
+  },
+  reorderInsertedComponent: (fromIndex, toIndex) => {
+    set((state) => {
+      if (fromIndex === toIndex) return state;
+      const next = [...state.insertedComponents];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
       return { insertedComponents: next, configChangeId: state.configChangeId + 1, lastChangedComponentId: "__reorder__" };
     });
   },
