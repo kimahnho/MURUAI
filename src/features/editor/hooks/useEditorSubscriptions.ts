@@ -484,6 +484,8 @@ export const useEditorSubscriptions = ({
         const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
           page.elements,
           insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+          undefined,
+          true, // resetX
         );
         setPages((prev) =>
           prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
@@ -535,6 +537,8 @@ export const useEditorSubscriptions = ({
       const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
         updatedElements,
         latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        undefined,
+        true, // resetX
       );
 
       // reflow 후 elementIds 동기화

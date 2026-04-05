@@ -164,11 +164,13 @@ export const useCanvasStageHandlers = ({
 
           const orderChanged = newOrder.some((id, i) => id !== oldOrder[i]);
           if (!orderChanged) {
-            // 순서는 안 바뀌었지만 간격 정리를 위해 reflow
+            // 순서는 안 바뀌었지만 간격 정리 + 중앙정렬을 위해 reflow
             const { elements: reflowedElements, updatedElementIds } =
               reflowWorksheetComponents(
                 page.elements,
                 insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+                undefined,
+                true, // resetX — 드롭 후 중앙정렬
               );
             for (const [compId, newIds] of updatedElementIds) {
               useWorksheetElementStore.getState().updateElementIds(compId, newIds);
@@ -190,6 +192,8 @@ export const useCanvasStageHandlers = ({
             reflowWorksheetComponents(
               page.elements,
               reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+              undefined,
+              true, // resetX — 드롭 후 중앙정렬
             );
           for (const [compId, newIds] of updatedElementIds) {
             useWorksheetElementStore.getState().updateElementIds(compId, newIds);

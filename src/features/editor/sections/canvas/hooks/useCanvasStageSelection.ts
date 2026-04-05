@@ -16,6 +16,8 @@ import {
   rectsIntersect,
   type SelectionRect,
 } from "../../../utils/designPaperUtils";
+import { useWorksheetElementStore } from "../../../store/worksheetElementStore";
+import { getComponentBounds } from "../WorksheetComponentOverlay";
 
 type UseCanvasStageSelectionParams = {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -101,7 +103,30 @@ export const useCanvasStageSelection = ({
       !selectionDragRef.current ||
       (nextRect.width < dragThreshold && nextRect.height < dragThreshold);
     if (isClick) {
-      // 드래그 임계값 미만은 빈 영역 클릭으로 처리해 기존 선택 해제 규칙을 유지한다.
+      // 워크시트 컴포넌트 바운딩 박스 안이면 전체 컴포넌트 선택
+      if (!isAdditive && startPoint) {
+        const wsComps = useWorksheetElementStore.getState().insertedComponents;
+        const pageElements = selectedPage?.elements ?? [];
+        for (const comp of wsComps) {
+          const bounds = getComponentBounds(pageElements, comp.elementIds);
+          if (bounds && startPoint.x >= bounds.x - 4 && startPoint.x <= bounds.x + bounds.w + 4 && startPoint.y >= bounds.y - 4 && startPoint.y <= bounds.y + bounds.h + 4) {
+            const compIds = pageElements
+              .filter((el) => el.worksheetMeta?.componentId === comp.id && !el.locked && el.selectable !== false)
+              .map((el) => el.id);
+            if (compIds.length > 0) {
+              onSelectedIdsChange(compIds);
+              // 우측 편집 패널 연동
+              useWorksheetElementStore.getState().setSelectedComponentId(comp.id);
+              useWorksheetElementStore.getState().showPanel();
+              setPreviewSelectedIds(null);
+              previewSelectedIdsRef.current = null;
+              return;
+            }
+          }
+        }
+      }
+
+      // 빈 영역 클릭으로 처리해 기존 선택 해제 규칙을 유지한다.
       if (!isAdditive) {
         onClearSelection();
       }

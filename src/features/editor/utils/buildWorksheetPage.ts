@@ -547,6 +547,8 @@ export const reflowWorksheetComponents = (
   insertedComponents: { id: string; elementIds: string[] }[],
   /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
   skipComponentId?: string,
+  /** X좌표를 MARGIN으로 리셋할지 여부 (기본 false — 드롭 후에만 true) */
+  resetX?: boolean,
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
@@ -602,15 +604,15 @@ export const reflowWorksheetComponents = (
     if (minY === Infinity) minY = curY;
     if (minX === Infinity) minX = MARGIN;
 
-    // delta 계산 — Y는 curY로 이동, X는 MARGIN(중앙정렬 기준)으로 복원
+    // delta 계산 — Y는 curY로 이동, X는 resetX=true일 때만 MARGIN으로 복원
     const deltaY = curY - minY;
-    const deltaX = MARGIN - minX;
+    const deltaX = resetX ? MARGIN - minX : 0;
 
     const shifted = compElements.map((el) => {
-      if ("y" in el && "x" in el) {
+      if ("y" in el && "x" in el && (deltaY !== 0 || deltaX !== 0)) {
         return { ...el, y: (el as { y: number }).y + deltaY, x: (el as { x: number }).x + deltaX };
       }
-      if ("y" in el) {
+      if ("y" in el && deltaY !== 0) {
         return { ...el, y: (el as { y: number }).y + deltaY };
       }
       return el;
