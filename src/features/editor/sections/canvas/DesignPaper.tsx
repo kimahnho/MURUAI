@@ -17,6 +17,9 @@ import {
   type ContextMenuState,
   type TableContextMenuActions,
 } from "./DesignPaperContextMenu";
+import { extractImageSrc, removeImageBackground } from "../../utils/removeBackground";
+import { useToastStore } from "../../store/toastStore";
+import { bumpPageRevision } from "../../utils/pageRevision";
 import { useTableStore } from "../../store/tableStore";
 import {
   insertRowAt,
@@ -237,6 +240,37 @@ const DesignPaper = ({
     readOnly,
     onElementsChange,
   });
+
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+
+  const handleRemoveBackground = async (elementId: string) => {
+    const element = elements.find((el) => el.id === elementId);
+    if (!element || !("fill" in element) || typeof element.fill !== "string") return;
+
+    const imageSrc = extractImageSrc(element.fill);
+    if (!imageSrc) return;
+
+    setIsRemovingBackground(true);
+    useToastStore.getState().showToast("배경을 제거하고 있어요...", "info");
+
+    try {
+      const newFill = await removeImageBackground(imageSrc);
+      if (onElementsChange) {
+        const nextElements = elements.map((el) =>
+          el.id === elementId && "fill" in el
+            ? { ...el, fill: newFill }
+            : el,
+        );
+        onElementsChange(nextElements);
+      }
+      useToastStore.getState().showToast("배경이 제거되었어요!", "success");
+    } catch {
+      useToastStore.getState().showToast("배경 제거에 실패했어요.", "error");
+    } finally {
+      setIsRemovingBackground(false);
+      setContextMenu(null);
+    }
+  };
 
   const {
     emotionSlotTextIds,
@@ -673,6 +707,8 @@ const DesignPaper = ({
         onUngroup={ungroupSelectedElements}
         onDelete={deleteSelectedElements}
         onMoveLayer={moveElement}
+        onRemoveBackground={(id) => { void handleRemoveBackground(id); }}
+        isRemovingBackground={isRemovingBackground}
         setContextMenu={setContextMenu}
       />
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
