@@ -92,13 +92,7 @@ export const useCanvasStageHandlers = ({
                 compYs.sort((a, b) => a.minY - b.minY);
                 const newOrder = compYs.map((c) => c.id);
 
-                // 순서 변화 없으면 스킵
-                if (
-                  lastOrderRef.current &&
-                  newOrder.every((id, i) => id === lastOrderRef.current![i])
-                ) {
-                  return pages;
-                }
+                // 순서 변화 없어도 reflow 실행 (리사이즈로 높이가 바뀔 수 있음)
                 lastOrderRef.current = newOrder;
 
                 // 스토어 배열 재정렬
