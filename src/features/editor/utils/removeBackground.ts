@@ -1,17 +1,194 @@
 /**
- * @imgly/background-removal을 사용한 이미지 배경 제거 유틸리티.
+ * Canvas flood-fill 기반 이미지 배경 제거 유틸리티.
+ * spectrum-agent-team의 bgRemovalAgent.ts에서 이식.
  * 결과를 Cloudinary에 업로드하여 URL로 반환.
  */
-import { removeBackground } from "@imgly/background-removal";
 import { supabase } from "@/shared/api/supabase";
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
+// ─── 배경 제거 알고리즘 (Canvas flood-fill) ───
+
+const BG_TOLERANCE = 40;
+const FEATHER_RADIUS = 3;
+
+function colorDist(r: number, g: number, b: number, br: number, bg: number, bb: number): number {
+  return Math.sqrt((r - br) ** 2 + (g - bg) ** 2 + (b - bb) ** 2);
+}
+
+function despillWhite(r: number, g: number, b: number): [number, number, number] {
+  const avg = (r + g + b) / 3;
+  const minCh = Math.min(r, g, b);
+  const spill = Math.max(0, minCh - avg * 0.88);
+  if (spill <= 6) return [r, g, b];
+  const reduction = spill * 0.7;
+  return [
+    Math.round(Math.max(0, r - reduction)),
+    Math.round(Math.max(0, g - reduction)),
+    Math.round(Math.max(0, b - reduction)),
+  ];
+}
+
+/**
+ * Canvas flood-fill로 배경을 제거한다.
+ * 이미지 가장자리에서 BFS로 배경색과 유사한 픽셀을 탐색하여 투명화.
+ * @returns 배경이 제거된 PNG Blob
+ */
+function removeBackgroundFromImage(img: HTMLImageElement): Blob | null {
+  const W = img.width;
+  const H = img.height;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, W, H);
+  const data = imageData.data;
+
+  // 1. 코너 4픽셀로 배경색 샘플링
+  const corners = [
+    0,
+    (W - 1) * 4,
+    (H - 1) * W * 4,
+    ((H - 1) * W + W - 1) * 4,
+  ];
+  let bgR = 0;
+  let bgG = 0;
+  let bgB = 0;
+  for (const c of corners) {
+    bgR += data[c];
+    bgG += data[c + 1];
+    bgB += data[c + 2];
+  }
+  bgR /= 4;
+  bgG /= 4;
+  bgB /= 4;
+
+  const isBgColor = (pi: number) =>
+    colorDist(data[pi], data[pi + 1], data[pi + 2], bgR, bgG, bgB) < BG_TOLERANCE;
+
+  // 2. BFS flood-fill (가장자리 → 배경 마스크)
+  const bgMask = new Uint8Array(W * H);
+  const queue = new Int32Array(W * H);
+  let head = 0;
+  let tail = 0;
+
+  const enqueue = (idx: number) => {
+    if (bgMask[idx] === 0 && isBgColor(idx * 4)) {
+      bgMask[idx] = 1;
+      queue[tail++] = idx;
+    }
+  };
+
+  for (let x = 0; x < W; x++) {
+    enqueue(x);
+    enqueue((H - 1) * W + x);
+  }
+  for (let y = 0; y < H; y++) {
+    enqueue(y * W);
+    enqueue(y * W + W - 1);
+  }
+
+  while (head < tail) {
+    const i = queue[head++];
+    const x = i % W;
+    const y = (i / W) | 0;
+    if (x > 0) enqueue(i - 1);
+    if (x < W - 1) enqueue(i + 1);
+    if (y > 0) enqueue(i - W);
+    if (y < H - 1) enqueue(i + W);
+  }
+
+  // 3. 경계 페더링 거리 계산
+  const featherDist = new Float32Array(W * H).fill(Infinity);
+  const fQueue = new Int32Array(W * H);
+  let fHead = 0;
+  let fTail = 0;
+
+  for (let i = 0; i < W * H; i++) {
+    if (bgMask[i] !== 1) continue;
+    const x = i % W;
+    const y = (i / W) | 0;
+    const neighbors = [
+      x > 0 ? i - 1 : -1,
+      x < W - 1 ? i + 1 : -1,
+      y > 0 ? i - W : -1,
+      y < H - 1 ? i + W : -1,
+    ];
+    for (const ni of neighbors) {
+      if (ni >= 0 && bgMask[ni] === 0 && featherDist[ni] === Infinity) {
+        featherDist[ni] = 1;
+        fQueue[fTail++] = ni;
+      }
+    }
+  }
+
+  while (fHead < fTail) {
+    const i = fQueue[fHead++];
+    if (featherDist[i] >= FEATHER_RADIUS) continue;
+    const x = i % W;
+    const y = (i / W) | 0;
+    const neighbors = [
+      x > 0 ? i - 1 : -1,
+      x < W - 1 ? i + 1 : -1,
+      y > 0 ? i - W : -1,
+      y < H - 1 ? i + W : -1,
+    ];
+    for (const ni of neighbors) {
+      if (ni >= 0 && bgMask[ni] === 0 && featherDist[ni] === Infinity) {
+        featherDist[ni] = featherDist[i] + 1;
+        fQueue[fTail++] = ni;
+      }
+    }
+  }
+
+  // 4. alpha 적용 + Despill
+  for (let i = 0; i < W * H; i++) {
+    const pi = i * 4;
+    if (bgMask[i] === 1) {
+      data[pi + 3] = 0;
+    } else if (featherDist[i] <= FEATHER_RADIUS) {
+      const alpha = Math.round(255 * (featherDist[i] / FEATHER_RADIUS));
+      data[pi + 3] = alpha;
+      const [r, g, b] = despillWhite(data[pi], data[pi + 1], data[pi + 2]);
+      data[pi] = r;
+      data[pi + 1] = g;
+      data[pi + 2] = b;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  // canvas → Blob (동기적 toDataURL → Blob 변환)
+  const dataUrl = canvas.toDataURL("image/png");
+  const byteString = atob(dataUrl.split(",")[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: "image/png" });
+}
+
+// ─── 이미지 로드 헬퍼 ───
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("이미지를 불러올 수 없어요."));
+    img.src = src;
+  });
+}
+
+// ─── 공개 API ───
+
 /**
  * fill 문자열에서 이미지 소스 URL/base64를 추출한다.
- * "url(https://...)" → "https://..."
- * "data:image/png;base64,..." → "data:image/png;base64,..."
  */
 export const extractImageSrc = (fill: string): string | null => {
   if (fill.startsWith("url(")) {
@@ -33,29 +210,15 @@ export const isImageFill = (fill: string | undefined): boolean => {
 
 /**
  * 이미지 소스에서 배경을 제거하고, Cloudinary에 업로드하여 fill 포맷 URL을 반환한다.
- * @param imageSrc - 이미지 URL 또는 data URL
- * @returns "url(https://res.cloudinary.com/...)" 형태의 fill 문자열
  */
 export const removeImageBackground = async (
   imageSrc: string,
 ): Promise<string> => {
-  // 1. 이미지를 Blob으로 변환
-  let blob: Blob;
-  if (imageSrc.startsWith("data:")) {
-    const res = await fetch(imageSrc);
-    blob = await res.blob();
-  } else {
-    const res = await fetch(imageSrc);
-    if (!res.ok) throw new Error("이미지를 불러올 수 없어요.");
-    blob = await res.blob();
-  }
+  const img = await loadImage(imageSrc);
+  const resultBlob = removeBackgroundFromImage(img);
+  if (!resultBlob) throw new Error("배경 제거에 실패했어요.");
 
-  // 2. 배경 제거
-  const resultBlob = await removeBackground(blob);
-
-  // 3. Cloudinary 업로드
   const cloudinaryUrl = await uploadBgRemovedToCloudinary(resultBlob);
-
   return `url(${cloudinaryUrl})`;
 };
 
@@ -65,7 +228,6 @@ const uploadBgRemovedToCloudinary = async (
   blob: Blob,
 ): Promise<string> => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    // Cloudinary 미설정 시 base64 폴백
     return blobToDataUrl(blob);
   }
 
@@ -85,7 +247,6 @@ const uploadBgRemovedToCloudinary = async (
   );
 
   if (!response.ok) {
-    // 업로드 실패 시 base64 폴백
     return blobToDataUrl(blob);
   }
 
