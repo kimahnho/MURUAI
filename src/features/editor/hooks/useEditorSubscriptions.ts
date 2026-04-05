@@ -716,13 +716,27 @@ export const useEditorSubscriptions = ({
           }
         }
 
-        // page.worksheetComponents 동기화
+        // 편집 패널 순서를 캔버스 Y좌표 순으로 정렬 + page.worksheetComponents 동기화
         if (needsUpdate) {
-          const finalComps = useWorksheetElementStore.getState().insertedComponents;
+          const allComps = useWorksheetElementStore.getState().insertedComponents;
+          const getMinY = (elementIds: string[]) => {
+            const idSet = new Set(elementIds);
+            let minY = Infinity;
+            for (const el of page.elements) {
+              if (idSet.has(el.id) && "y" in el) {
+                const y = (el as { y: number }).y;
+                if (y < minY) minY = y;
+              }
+            }
+            return minY === Infinity ? 0 : minY;
+          };
+          const sorted = [...allComps].sort((a, b) => getMinY(a.elementIds) - getMinY(b.elementIds));
+          useWorksheetElementStore.setState({ insertedComponents: sorted });
+
           setPages((prev) =>
             prev.map((p) =>
               p.id === currentPageId
-                ? { ...p, worksheetComponents: finalComps.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })) }
+                ? { ...p, worksheetComponents: sorted.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })) }
                 : p,
             ),
           );
