@@ -39,11 +39,12 @@ export const useCanvasStageHandlers = ({
   beginTransaction,
   commitTransaction,
 }: CanvasStageHandlersParams) => {
-  // 드래그 중 순서 변경 감지용
+  // 드래그/리사이즈 중 reflow 관련
   const lastOrderRef = useRef<string[] | null>(null);
   const isDraggingRef = useRef(false);
   const reflowThrottleRef = useRef<number | null>(null);
   const draggingCompIdRef = useRef<string | null>(null);
+  const latestElementsRef = useRef<CanvasElement[] | null>(null);
 
   const handleElementsChange = useCallback(
     (nextElements: CanvasElement[]) => {
@@ -52,74 +53,67 @@ export const useCanvasStageHandlers = ({
         if (!targetPage) return prevPages;
         if (targetPage.elements === nextElements) return prevPages;
 
-        // 드래그 중이면 실시간 reflow 스케줄
+        // 드래그/리사이즈 중이면 실시간 reflow 스케줄
         if (isDraggingRef.current) {
+          // 최신 요소 상태를 ref에 캐싱 — 쓰로틀 콜백에서 사용
+          latestElementsRef.current = nextElements;
+
           const { insertedComponents } = useWorksheetElementStore.getState();
           if (insertedComponents.length >= 2 && reflowThrottleRef.current === null) {
             reflowThrottleRef.current = window.setTimeout(() => {
               reflowThrottleRef.current = null;
 
-              setPages((pages) => {
-                const page = pages.find((p) => p.id === selectedPageId);
-                if (!page) return pages;
+              const currentElements = latestElementsRef.current;
+              if (!currentElements) return;
 
-                const comps = useWorksheetElementStore.getState().insertedComponents;
-                if (comps.length < 2) return pages;
+              const comps = useWorksheetElementStore.getState().insertedComponents;
+              if (comps.length < 2) return;
 
-                // 조작 중인 컴포넌트 감지 (Y좌표 또는 높이가 바뀐 요소)
-                if (!draggingCompIdRef.current) {
-                  for (const comp of comps) {
-                    const idSet = new Set(comp.elementIds);
-                    for (const el of nextElements) {
-                      if (idSet.has(el.id) && el.worksheetMeta) {
-                        const prevEl = page.elements.find((pe) => pe.id === el.id);
-                        if (prevEl) {
-                          const yChanged = "y" in prevEl && "y" in el && (el as {y:number}).y !== (prevEl as {y:number}).y;
-                          const hChanged = "h" in prevEl && "h" in el && (el as {h:number}).h !== (prevEl as {h:number}).h;
-                          if (yChanged || hChanged) {
-                            draggingCompIdRef.current = comp.id;
-                            useWorksheetElementStore.getState().setDraggingWorksheet(true);
-                            break;
-                          }
-                        }
-                      }
+              // 조작 중인 컴포넌트 감지
+              if (!draggingCompIdRef.current) {
+                for (const comp of comps) {
+                  const idSet = new Set(comp.elementIds);
+                  for (const el of currentElements) {
+                    if (idSet.has(el.id) && el.worksheetMeta) {
+                      draggingCompIdRef.current = comp.id;
+                      useWorksheetElementStore.getState().setDraggingWorksheet(true);
+                      break;
                     }
-                    if (draggingCompIdRef.current) break;
                   }
+                  if (draggingCompIdRef.current) break;
                 }
+              }
 
-                // 현재 Y순서 계산
-                const compYs = comps.map((c) => ({
-                  id: c.id,
-                  minY: getCompMinY(page.elements, c.elementIds),
-                }));
-                compYs.sort((a, b) => a.minY - b.minY);
-                const newOrder = compYs.map((c) => c.id);
+              // 최신 요소 상태 기준으로 Y순서 계산 + reflow
+              const compYs = comps.map((c) => ({
+                id: c.id,
+                minY: getCompMinY(currentElements, c.elementIds),
+              }));
+              compYs.sort((a, b) => a.minY - b.minY);
+              const newOrder = compYs.map((c) => c.id);
+              lastOrderRef.current = newOrder;
 
-                // 순서 변화 없어도 reflow 실행 (리사이즈로 높이가 바뀔 수 있음)
-                lastOrderRef.current = newOrder;
+              const reordered = newOrder.map((id) => comps.find((c) => c.id === id)!);
+              useWorksheetElementStore.setState({ insertedComponents: reordered });
 
-                // 스토어 배열 재정렬
-                const reordered = newOrder.map((id) => comps.find((c) => c.id === id)!);
-                useWorksheetElementStore.setState({ insertedComponents: reordered });
+              // 최신 요소 상태로 reflow — 리사이즈 크기 변화가 즉시 반영됨
+              const { elements: reflowedElements, updatedElementIds } =
+                reflowWorksheetComponents(
+                  currentElements,
+                  reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+                );
 
-                // reflow — 전체 컴포넌트 재배치 (리사이즈 시 skip하면 크기 변화가 반영 안 됨)
-                const { elements: reflowedElements, updatedElementIds } =
-                  reflowWorksheetComponents(
-                    page.elements,
-                    reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
-                  );
+              for (const [compId, newIds] of updatedElementIds) {
+                useWorksheetElementStore.getState().updateElementIds(compId, newIds);
+              }
 
-                for (const [compId, newIds] of updatedElementIds) {
-                  useWorksheetElementStore.getState().updateElementIds(compId, newIds);
-                }
-
-                return updatePageById(pages, selectedPageId, (p) => ({
+              setPages((pages) =>
+                updatePageById(pages, selectedPageId, (p) => ({
                   ...p,
                   elements: reflowedElements,
-                }));
-              });
-            }, 200); // 200ms — CSS transition과 동기화
+                })),
+              );
+            }, 100); // 100ms — 리사이즈에도 빠르게 반응
           }
         }
 
