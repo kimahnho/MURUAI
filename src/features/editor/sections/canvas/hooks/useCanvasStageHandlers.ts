@@ -66,17 +66,21 @@ export const useCanvasStageHandlers = ({
                 const comps = useWorksheetElementStore.getState().insertedComponents;
                 if (comps.length < 2) return pages;
 
-                // 드래그 중인 컴포넌트 감지 (Y좌표가 이전과 달라진 요소)
+                // 조작 중인 컴포넌트 감지 (Y좌표 또는 높이가 바뀐 요소)
                 if (!draggingCompIdRef.current) {
                   for (const comp of comps) {
                     const idSet = new Set(comp.elementIds);
                     for (const el of nextElements) {
                       if (idSet.has(el.id) && el.worksheetMeta) {
                         const prevEl = page.elements.find((pe) => pe.id === el.id);
-                        if (prevEl && "y" in prevEl && "y" in el && (el as {y:number}).y !== (prevEl as {y:number}).y) {
-                          draggingCompIdRef.current = comp.id;
-                          useWorksheetElementStore.getState().setDraggingWorksheet(true);
-                          break;
+                        if (prevEl) {
+                          const yChanged = "y" in prevEl && "y" in el && (el as {y:number}).y !== (prevEl as {y:number}).y;
+                          const hChanged = "h" in prevEl && "h" in el && (el as {h:number}).h !== (prevEl as {h:number}).h;
+                          if (yChanged || hChanged) {
+                            draggingCompIdRef.current = comp.id;
+                            useWorksheetElementStore.getState().setDraggingWorksheet(true);
+                            break;
+                          }
                         }
                       }
                     }
@@ -99,12 +103,11 @@ export const useCanvasStageHandlers = ({
                 const reordered = newOrder.map((id) => comps.find((c) => c.id === id)!);
                 useWorksheetElementStore.setState({ insertedComponents: reordered });
 
-                // reflow — 드래그 중인 컴포넌트는 제외 (사용자가 자유롭게 이동 중)
+                // reflow — 전체 컴포넌트 재배치 (리사이즈 시 skip하면 크기 변화가 반영 안 됨)
                 const { elements: reflowedElements, updatedElementIds } =
                   reflowWorksheetComponents(
                     page.elements,
                     reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
-                    draggingCompIdRef.current ?? undefined,
                   );
 
                 for (const [compId, newIds] of updatedElementIds) {
