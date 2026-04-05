@@ -586,20 +586,30 @@ export const reflowWorksheetComponents = (
       continue;
     }
 
-    // 이 컴포넌트의 기존 최소 Y
+    // 이 컴포넌트의 기존 최소 Y, X
     let minY = Infinity;
+    let minX = Infinity;
     for (const el of compElements) {
       if ("y" in el) {
         const y = (el as { y: number }).y;
         if (y < minY) minY = y;
       }
+      if ("x" in el) {
+        const x = (el as { x: number }).x;
+        if (x < minX) minX = x;
+      }
     }
     if (minY === Infinity) minY = curY;
+    if (minX === Infinity) minX = MARGIN;
 
-    // delta 계산 — 내부 상대 위치 유지하면서 전체를 curY 위치로 이동
+    // delta 계산 — Y는 curY로 이동, X는 MARGIN(중앙정렬 기준)으로 복원
     const deltaY = curY - minY;
+    const deltaX = MARGIN - minX;
 
     const shifted = compElements.map((el) => {
+      if ("y" in el && "x" in el) {
+        return { ...el, y: (el as { y: number }).y + deltaY, x: (el as { x: number }).x + deltaX };
+      }
       if ("y" in el) {
         return { ...el, y: (el as { y: number }).y + deltaY };
       }

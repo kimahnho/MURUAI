@@ -112,7 +112,7 @@ const WorksheetRightPanel = () => {
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
   const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
   const reorderInsertedComponent = useWorksheetElementStore((s) => s.reorderInsertedComponent);
-  const removeInsertedComponent = useWorksheetElementStore((s) => s.removeInsertedComponent);
+  const requestDeleteWithElements = useWorksheetElementStore((s) => s.requestDeleteWithElements);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(insertedComponents.length);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -244,7 +244,7 @@ const WorksheetRightPanel = () => {
                 <button
                   type="button"
                   className="w-6 h-6 rounded-md text-black-45 hover:text-error-700 hover:bg-error-50 flex items-center justify-center transition shrink-0"
-                  onClick={() => removeInsertedComponent(comp.id)}
+                  onClick={() => requestDeleteWithElements(comp.id)}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

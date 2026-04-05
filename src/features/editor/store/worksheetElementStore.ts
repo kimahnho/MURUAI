@@ -34,6 +34,11 @@ interface WorksheetElementStore {
   reorderInsertedComponent: (fromIndex: number, toIndex: number) => void;
   removeInsertedComponent: (id: string) => void;
 
+  // 편집 패널에서 삭제 시 캔버스 요소도 함께 제거 요청
+  deleteWithElementsId: number;
+  pendingDeleteCompId: string | null;
+  requestDeleteWithElements: (compId: string) => void;
+
   // config 변경 트리거 (구독용)
   configChangeId: number;
   lastChangedComponentId: string | null;
@@ -120,6 +125,15 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
       return { insertedComponents: next, configChangeId: state.configChangeId + 1, lastChangedComponentId: "__reorder__" };
     });
   },
+  deleteWithElementsId: 0,
+  pendingDeleteCompId: null,
+  requestDeleteWithElements: (compId) => {
+    set((state) => ({
+      deleteWithElementsId: state.deleteWithElementsId + 1,
+      pendingDeleteCompId: compId,
+    }));
+  },
+
   reorderInsertedComponent: (fromIndex, toIndex) => {
     set((state) => {
       if (fromIndex === toIndex) return state;
