@@ -60,7 +60,7 @@ export const useCanvasStageHandlers = ({
 
           const { insertedComponents } = useWorksheetElementStore.getState();
           if (insertedComponents.length >= 2 && reflowThrottleRef.current === null) {
-            reflowThrottleRef.current = window.setTimeout(() => {
+            reflowThrottleRef.current = requestAnimationFrame(() => {
               reflowThrottleRef.current = null;
 
               const currentElements = latestElementsRef.current;
@@ -113,7 +113,7 @@ export const useCanvasStageHandlers = ({
                   elements: reflowedElements,
                 })),
               );
-            }, 100); // 100ms — 리사이즈에도 빠르게 반응
+            });
           }
         }
 
@@ -138,9 +138,9 @@ export const useCanvasStageHandlers = ({
         draggingCompIdRef.current = null;
         useWorksheetElementStore.getState().setDraggingWorksheet(false);
 
-        // 쓰로틀 타이머 정리
+        // rAF 정리
         if (reflowThrottleRef.current !== null) {
-          clearTimeout(reflowThrottleRef.current);
+          cancelAnimationFrame(reflowThrottleRef.current);
           reflowThrottleRef.current = null;
         }
 
