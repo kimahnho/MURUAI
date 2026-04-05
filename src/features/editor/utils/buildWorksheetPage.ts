@@ -547,8 +547,6 @@ export const reflowWorksheetComponents = (
   insertedComponents: { id: string; elementIds: string[] }[],
   /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
   skipComponentId?: string,
-  /** X좌표를 MARGIN으로 리셋할지 여부 (기본 false — 드롭 후에만 true) */
-  resetX?: boolean,
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
@@ -588,35 +586,27 @@ export const reflowWorksheetComponents = (
       continue;
     }
 
-    // 이 컴포넌트의 기존 최소 Y, X
+    // 이 컴포넌트의 기존 최소 Y
     let minY = Infinity;
-    let minX = Infinity;
     for (const el of compElements) {
       if ("y" in el) {
         const y = (el as { y: number }).y;
         if (y < minY) minY = y;
       }
-      if ("x" in el) {
-        const x = (el as { x: number }).x;
-        if (x < minX) minX = x;
-      }
     }
     if (minY === Infinity) minY = curY;
-    if (minX === Infinity) minX = MARGIN;
 
-    // delta 계산 — Y는 curY로 이동, X는 resetX=true일 때만 MARGIN으로 복원
+    // delta 계산 — Y만 curY로 이동 (X는 건드리지 않음 — 빌드 시 중앙배치 유지)
     const deltaY = curY - minY;
-    const deltaX = resetX ? MARGIN - minX : 0;
 
-    const shifted = compElements.map((el) => {
-      if ("y" in el && "x" in el && (deltaY !== 0 || deltaX !== 0)) {
-        return { ...el, y: (el as { y: number }).y + deltaY, x: (el as { x: number }).x + deltaX };
-      }
-      if ("y" in el && deltaY !== 0) {
-        return { ...el, y: (el as { y: number }).y + deltaY };
-      }
-      return el;
-    });
+    const shifted = deltaY !== 0
+      ? compElements.map((el) => {
+          if ("y" in el) {
+            return { ...el, y: (el as { y: number }).y + deltaY };
+          }
+          return el;
+        })
+      : compElements;
 
     allReflowed.push(...shifted);
     updatedElementIds.set(comp.id, shifted.map((el) => el.id));

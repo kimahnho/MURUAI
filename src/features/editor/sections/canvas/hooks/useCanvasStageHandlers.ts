@@ -169,8 +169,6 @@ export const useCanvasStageHandlers = ({
               reflowWorksheetComponents(
                 page.elements,
                 insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
-                undefined,
-                true, // resetX — 드롭 후 중앙정렬
               );
             for (const [compId, newIds] of updatedElementIds) {
               useWorksheetElementStore.getState().updateElementIds(compId, newIds);
@@ -192,8 +190,6 @@ export const useCanvasStageHandlers = ({
             reflowWorksheetComponents(
               page.elements,
               reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
-              undefined,
-              true, // resetX — 드롭 후 중앙정렬
             );
           for (const [compId, newIds] of updatedElementIds) {
             useWorksheetElementStore.getState().updateElementIds(compId, newIds);
