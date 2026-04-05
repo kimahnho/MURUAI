@@ -74,6 +74,12 @@ export type TextElement = ElementBase & {
     lineHeight?: number;
     letterSpacing?: number;
     wordBreak?: "normal" | "break-all" | "keep-all";
+    /** 텍스트 외곽선 (-webkit-text-stroke) */
+    textStroke?: {
+      enabled: boolean;
+      width: number;    // px
+      color: string;
+    };
   };
 };
 

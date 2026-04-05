@@ -208,6 +208,10 @@ export const useDesignPaperElementRenderer = ({
           lineHeight,
           letterSpacing,
           wordBreak: element.style.wordBreak,
+          ...(element.style.textStroke?.enabled ? {
+            WebkitTextStroke: `${element.style.textStroke.width}px ${element.style.textStroke.color}`,
+            paintOrder: "stroke fill",
+          } : {}),
         }}
         textAlign={element.style.alignX}
         textAlignY={element.style.alignY}

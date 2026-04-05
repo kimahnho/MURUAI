@@ -514,28 +514,15 @@ export const OutlineTitleForm = ({ config, onUpdate }: FormProps<OutlineTitleCon
       />
     </div>
     <div className="mb-3">
-      <label className={labelCls}>스타일</label>
-      <div className={chipGroupCls}>
-        {(["outline_only", "outline_shadow", "outline_double"] as const).map((s) => (
-          <Chip
-            key={s}
-            label={
-              { outline_only: "테두리만", outline_shadow: "테두리+그림자", outline_double: "이중 테두리" }[s]
-            }
-            isActive={config.outline_style === s}
-            onClick={() => onUpdate((c) => ({ ...c, outline_style: s }))}
-          />
-        ))}
-      </div>
-    </div>
-    <div className="mb-3">
-      <label className={labelCls}>테두리 색상</label>
+      <label className={labelCls}>외곽선 색상</label>
       <input
         type="text"
         className={`${inputCls} w-25`}
         value={config.outline_color}
         onChange={(e) => onUpdate((c) => ({ ...c, outline_color: e.target.value }))}
+        placeholder="#333333"
       />
+      <div className="text-[10px] text-black-45 mt-1">내부 흰색 + 외곽선 색상</div>
     </div>
     <div>
       <label className={labelCls}>지시문 (선택)</label>

@@ -365,7 +365,19 @@ const buildOutlineTitle = (config: OutlineTitleConfig, x: number, y: number): { 
   els.push(textEl({
     x, y: curY, w: CONTENT_W, h: mmToPx(18),
     text: config.text,
-    style: { fontSize: 48, fontWeight: "bold", color: config.outline_color || "#333333", underline: false, alignX: "center", alignY: "middle" },
+    style: {
+      fontSize: 48,
+      fontWeight: "bold",
+      color: "#ffffff",
+      underline: false,
+      alignX: "center",
+      alignY: "middle",
+      textStroke: {
+        enabled: true,
+        width: 2,
+        color: config.outline_color || "#333333",
+      },
+    },
   }));
   curY += mmToPx(18);
 
