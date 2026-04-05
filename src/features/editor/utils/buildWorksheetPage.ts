@@ -326,9 +326,9 @@ const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number): { elemen
   // Background
   els.push(shapeEl({ type: "roundRect", x, y, w: CONTENT_W, h: boxH, fill: "#f9f9ff", radius: 8, border: { enabled: true, color: "#e8e8f0", width: 1, style: "solid" } }));
 
-  // Character circle
+  // Character circle — 항상 표시 (이모지 비어있어도 회색 원)
+  els.push(shapeEl({ type: "ellipse", x: x + mmToPx(3), y: y + mmToPx(3), w: mmToPx(16), h: mmToPx(16), fill: "#eeeeee" }));
   if (config.character_emoji) {
-    els.push(shapeEl({ type: "ellipse", x: x + mmToPx(3), y: y + mmToPx(3), w: mmToPx(16), h: mmToPx(16), fill: "#eeeeee" }));
     els.push(textEl({
       x: x + mmToPx(3), y: y + mmToPx(3), w: mmToPx(16), h: mmToPx(16),
       text: config.character_emoji,
@@ -336,8 +336,8 @@ const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number): { elemen
     }));
   }
 
-  const textX = config.character_emoji ? x + mmToPx(22) : x + mmToPx(4);
-  const textW = config.character_emoji ? CONTENT_W - mmToPx(26) : CONTENT_W - mmToPx(8);
+  const textX = x + mmToPx(22);
+  const textW = CONTENT_W - mmToPx(26);
 
   if (config.speech) {
     els.push(textEl({

@@ -589,7 +589,8 @@ const TemplateContent = () => {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"templates" | "builder">("templates");
+  const activeTab = useWorksheetElementStore((s) => s.templateActiveTab);
+  const setActiveTab = useWorksheetElementStore((s) => s.setTemplateActiveTab);
 
   return (
     <>
@@ -604,7 +605,6 @@ const TemplateContent = () => {
           }`}
           onClick={() => {
             setActiveTab("templates");
-            useWorksheetElementStore.getState().hidePanel();
           }}
         >
           미리 만든 템플릿

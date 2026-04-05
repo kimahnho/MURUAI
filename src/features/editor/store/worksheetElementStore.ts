@@ -53,6 +53,10 @@ interface WorksheetElementStore {
   hoveredComponentId: string | null;
   setHoveredComponentId: (id: string | null) => void;
 
+  // 템플릿 탭 상태 (TemplateContent 리마운트 시 유지)
+  templateActiveTab: "templates" | "builder";
+  setTemplateActiveTab: (tab: "templates" | "builder") => void;
+
   // 패널 가시성
   isPanelVisible: boolean;
   showPanel: () => void;
@@ -147,6 +151,9 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
 
   hoveredComponentId: null,
   setHoveredComponentId: (id) => { set({ hoveredComponentId: id }); },
+
+  templateActiveTab: "templates",
+  setTemplateActiveTab: (tab) => { set({ templateActiveTab: tab }); },
 
   isPanelVisible: false,
   showPanel: () => { set({ isPanelVisible: true }); },
