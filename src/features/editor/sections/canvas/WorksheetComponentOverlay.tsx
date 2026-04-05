@@ -1,9 +1,8 @@
 /**
- * 워크시트 컴포넌트 hover 바운딩 박스 오버레이.
- * hover 감지 + 시각적 바운딩 박스 표시.
- * 클릭/더블클릭은 아래 요소로 통과시킴.
+ * 워크시트 컴포넌트 바운딩 박스 오버레이.
+ * pointerEvents: none — 클릭을 가로채지 않음.
+ * hover 감지는 DesignPaper의 onPointerMoveCapture에서 좌표 기반으로 처리.
  */
-import { useCallback } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import { useWorksheetElementStore } from "../../store/worksheetElementStore";
 
@@ -32,33 +31,14 @@ const getComponentBounds = (
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 };
 
+export { getComponentBounds };
+
 const PADDING = 4;
 
 const WorksheetComponentOverlay = ({ elements, selectedIds }: WorksheetComponentOverlayProps) => {
   const insertedComponents = useWorksheetElementStore((s) => s.insertedComponents);
   const hoveredComponentId = useWorksheetElementStore((s) => s.hoveredComponentId);
-  const setHoveredComponentId = useWorksheetElementStore((s) => s.setHoveredComponentId);
   const isDragging = useWorksheetElementStore((s) => s.isDraggingWorksheet);
-
-  // 클릭/포인터다운 시 오버레이를 잠시 숨기고 아래 요소로 이벤트를 다시 보냄
-  const passThrough = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    target.style.pointerEvents = "none";
-    // 같은 좌표에서 아래 요소에 이벤트 재전달
-    const below = document.elementFromPoint(e.clientX, e.clientY);
-    if (below && below !== target) {
-      below.dispatchEvent(new PointerEvent(e.type, {
-        bubbles: true, cancelable: true,
-        clientX: e.clientX, clientY: e.clientY,
-        pointerId: e.pointerId, pointerType: e.pointerType,
-        button: e.button, buttons: e.buttons,
-      }));
-    }
-    // 다음 프레임에서 pointerEvents 복원 (hover 계속 감지)
-    requestAnimationFrame(() => {
-      target.style.pointerEvents = "auto";
-    });
-  }, []);
 
   if (insertedComponents.length === 0 || isDragging) return null;
 
@@ -81,27 +61,6 @@ const WorksheetComponentOverlay = ({ elements, selectedIds }: WorksheetComponent
         const isHovered = hoveredComponentId === comp.id;
         const isSelected = selectedCompId === comp.id;
 
-        // 선택된 컴포넌트는 오버레이를 숨김 (개별 요소 조작 허용)
-        if (isSelected) {
-          return (
-            <div
-              key={comp.id}
-              style={{
-                position: "absolute",
-                left: bounds.x - PADDING,
-                top: bounds.y - PADDING,
-                width: bounds.w + PADDING * 2,
-                height: bounds.h + PADDING * 2,
-                pointerEvents: "none",
-                zIndex: 1,
-                borderRadius: 6,
-                border: "2px solid var(--primary)",
-                background: "rgba(124, 58, 237, 0.04)",
-              }}
-            />
-          );
-        }
-
         return (
           <div
             key={comp.id}
@@ -111,23 +70,21 @@ const WorksheetComponentOverlay = ({ elements, selectedIds }: WorksheetComponent
               top: bounds.y - PADDING,
               width: bounds.w + PADDING * 2,
               height: bounds.h + PADDING * 2,
-              pointerEvents: "auto",
+              pointerEvents: "none",
               zIndex: 1,
               borderRadius: 6,
-              border: isHovered
-                ? "2px dashed var(--primary-300)"
-                : "2px solid transparent",
-              background: isHovered
-                ? "rgba(124, 58, 237, 0.02)"
-                : "transparent",
+              border: isSelected
+                ? "2px solid var(--primary)"
+                : isHovered
+                  ? "2px dashed var(--primary-300)"
+                  : "2px solid transparent",
+              background: isSelected
+                ? "rgba(124, 58, 237, 0.04)"
+                : isHovered
+                  ? "rgba(124, 58, 237, 0.02)"
+                  : "transparent",
               transition: "border-color 0.15s, background 0.15s",
-              cursor: "pointer",
             }}
-            onPointerEnter={() => setHoveredComponentId(comp.id)}
-            onPointerLeave={() => {
-              if (hoveredComponentId === comp.id) setHoveredComponentId(null);
-            }}
-            onPointerDown={passThrough}
           />
         );
       })}

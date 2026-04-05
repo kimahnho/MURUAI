@@ -12,7 +12,7 @@ import {
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
-import WorksheetComponentOverlay from "./WorksheetComponentOverlay";
+import WorksheetComponentOverlay, { getComponentBounds } from "./WorksheetComponentOverlay";
 import { useWorksheetElementStore } from "../../store/worksheetElementStore";
 import {
   DesignPaperContextMenu,
@@ -548,9 +548,31 @@ const DesignPaper = ({
         lastPointerRef.current = getPointerPosition(event);
       }}
       onPointerMoveCapture={(event) => {
-        // 붙여넣기/컨텍스트 메뉴가 마지막 포인터 위치를 참조하므로
-        // 스테이지 상대 좌표 캐시를 이동 중에도 계속 최신화한다.
         lastPointerRef.current = getPointerPosition(event);
+
+        // 워크시트 컴포넌트 hover 감지 (좌표 기반)
+        if (!readOnly) {
+          const pos = getPointerPosition(event);
+          const wsStore = useWorksheetElementStore.getState();
+          const comps = wsStore.insertedComponents;
+          let foundId: string | null = null;
+          for (const comp of comps) {
+            const bounds = getComponentBounds(elements, comp.elementIds);
+            if (bounds && pos.x >= bounds.x - 4 && pos.x <= bounds.x + bounds.w + 4 && pos.y >= bounds.y - 4 && pos.y <= bounds.y + bounds.h + 4) {
+              foundId = comp.id;
+              break;
+            }
+          }
+          if (foundId !== wsStore.hoveredComponentId) {
+            wsStore.setHoveredComponentId(foundId);
+          }
+        }
+      }}
+      onPointerLeave={() => {
+        const wsStore = useWorksheetElementStore.getState();
+        if (wsStore.hoveredComponentId) {
+          wsStore.setHoveredComponentId(null);
+        }
       }}
       onDragOver={(event) => {
         if (readOnly) return;
