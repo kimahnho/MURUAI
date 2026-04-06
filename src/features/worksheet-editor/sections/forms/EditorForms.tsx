@@ -665,16 +665,6 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
         ✨ 색칠공부 그림 생성
       </button>
     </div>
-    <div className="mb-3">
-      <label className={labelCls}>이미지 설명</label>
-      <input
-        type="text"
-        className={inputCls}
-        value={config.image_description || ""}
-        onChange={(e) => onUpdate((c) => ({ ...c, image_description: e.target.value }))}
-        placeholder="색칠공부 이미지를 삽입해보세요"
-      />
-    </div>
     <div>
       <label className={labelCls}>영역 비율</label>
       <input
