@@ -229,11 +229,14 @@ export const useImageFillSubscription = ({
               ((element as { subType?: string }).subType === "imageSlot" &&
                 typeof element.text === "string" &&
                 element.text.trim().length > 0);
+            const isImageSlot = (element as { subType?: string }).subType === "imageSlot";
             return {
               ...element,
               fill: normalizedUrl,
               imageBox: nextImageBox,
               text: shouldClearPlaceholder ? "" : element.text,
+              // imageSlot: 이미지 삽입 시 점선 테두리 제거
+              ...(isImageSlot && element.border ? { border: { ...element.border, enabled: false } } : {}),
             };
           });
           if (labelUpdates.size === 0) {
