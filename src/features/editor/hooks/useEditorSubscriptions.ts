@@ -542,24 +542,23 @@ export const useEditorSubscriptions = ({
       }));
 
       // 기존 imageSlot의 이미지 상태 복원
+      // config.items[idx].text가 빈 문자열이면 해당 슬롯은 이미지도 제거 (빈 카드로)
+      const gridConfig = comp.type === "grid_NxM" ? comp.config as { items?: { text: string }[] } : null;
       let newSlotIdx = 0;
       for (let i = 0; i < newElements.length; i++) {
         const el = newElements[i];
         if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
           const saved = oldImageSlots.find((s) => s.index === newSlotIdx);
-          if (saved) {
+          const configItem = gridConfig?.items?.[newSlotIdx];
+          const isCleared = configItem && configItem.text.trim() === "";
+
+          if (saved && !isCleared) {
+            // 이미지 복원 (셀 내용이 있는 경우만)
             (newElements[i] as import("../model/canvasTypes").ShapeElement).fill = saved.fill;
             if (saved.imageBox) {
               (newElements[i] as import("../model/canvasTypes").ShapeElement).imageBox = saved.imageBox as import("../model/canvasTypes").ShapeElement["imageBox"];
             }
-            // 복원된 이미지의 라벨 텍스트도 복원
-            if (saved.labelText && (el as import("../model/canvasTypes").ShapeElement).labelId) {
-              const labelId = (el as import("../model/canvasTypes").ShapeElement).labelId;
-              const labelEl = newElements.find((e) => e.id === labelId);
-              if (labelEl && "text" in labelEl) {
-                (labelEl as import("../model/canvasTypes").TextElement).text = saved.labelText;
-              }
-            }
+            // 라벨은 config.items의 최신 값을 사용 (사용자가 편집한 값 우선)
           }
           newSlotIdx++;
         }
