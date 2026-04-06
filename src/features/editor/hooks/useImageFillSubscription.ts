@@ -139,16 +139,16 @@ export const useImageFillSubscription = ({
           let hasChanges = false;
           const selectedIdSet = new Set(activeSelectedIds);
           const labelUpdates = new Map<string, string>();
-          // imageSlot의 labelId로 연결된 가이드 텍스트 클리어 (라벨 텍스트가 없어도)
+          // imageSlot의 labelId로 연결된 가이드 텍스트를 이미지 삽입 시 클리어
+          // (라벨 텍스트가 있으면 그 값으로, 없으면 빈 문자열로 교체)
           page.elements.forEach((element) => {
             if (
               (element.type === "rect" || element.type === "roundRect" || element.type === "ellipse" || element.type === "mosaic" || element.type === "circleMosaic") &&
               selectedIdSet.has(element.id) &&
               (element as { subType?: string }).subType === "imageSlot" &&
-              element.labelId &&
-              !labelText
+              element.labelId
             ) {
-              labelUpdates.set(element.labelId, "");
+              labelUpdates.set(element.labelId, labelText || "");
             }
           });
 
