@@ -115,7 +115,6 @@ ${JSON.stringify(scenes)}`;
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
-const RATE_LIMIT_DELAY_MS = 15000; // 429 에러 시 15초 대기
 
 // 캐릭터 레퍼런스만 있을 때 (sceneGroup 첫 페이지)
 const CHARACTER_ONLY_SUFFIX = `The attached image is the character reference for this story.
