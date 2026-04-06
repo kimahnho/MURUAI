@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import {
+  ArrowDownUp,
   ChevronDown,
   ChevronLeft,
   Copy,
@@ -69,6 +70,21 @@ const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
 const PREVIEW_SCALE = 0.18;
 const PAGE_SIZE = 20;
+
+type SortOption = "updated" | "created";
+const SORT_LABELS: Record<SortOption, string> = {
+  updated: "최근 수정순",
+  created: "최근 생성순",
+};
+const SORT_STORAGE_KEY = "mydoc-sort";
+
+const getSortField = (sort: SortOption) =>
+  sort === "created" ? "created_at" : "updated_at";
+
+const readSavedSort = (): SortOption => {
+  const saved = localStorage.getItem(SORT_STORAGE_KEY);
+  return saved === "created" || saved === "updated" ? saved : "updated";
+};
 
 // ─── 유틸 ───
 
@@ -158,7 +174,19 @@ const MyDocPage = () => {
   const [pendingDeleteDocId, setPendingDeleteDocId] = useState<string | null>(null);
   const [isStudentsOpen, setIsStudentsOpen] = useState(true);
   const [isGroupsOpen, setIsGroupsOpen] = useState(true);
+  const [sortOption, setSortOption] = useState<SortOption>(readSavedSort);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const { isCreatingDoc, createAndOpenDocument } = useCreateDocumentNavigation();
+
+  const handleSortChange = (next: SortOption) => {
+    if (next === sortOption) {
+      setIsSortOpen(false);
+      return;
+    }
+    setSortOption(next);
+    localStorage.setItem(SORT_STORAGE_KEY, next);
+    setIsSortOpen(false);
+  };
 
   // 인증 체크
   useEffect(() => {
@@ -254,12 +282,13 @@ const MyDocPage = () => {
         return;
       }
 
+      const field = getSortField(sortOption);
       const { data, error } = await supabase
         .from("user_made_n")
         .select("id,name,created_at,updated_at,canvas_data")
         .eq("user_id", user.id)
         .is("deleted_at", null)
-        .order("updated_at", { ascending: false })
+        .order(field, { ascending: false })
         .limit(PAGE_SIZE + 1);
 
       if (cancelled) return;
@@ -311,7 +340,7 @@ const MyDocPage = () => {
 
     void loadDocs();
     return () => { cancelled = true; };
-  }, [isAuthenticated, isAuthLoading]);
+  }, [isAuthenticated, isAuthLoading, sortOption]);
 
   // 더 불러오기
   const loadMore = async () => {
@@ -327,13 +356,15 @@ const MyDocPage = () => {
       return;
     }
 
+    const field = getSortField(sortOption);
+    const cursorValue = sortOption === "created" ? lastDoc.created_at! : lastDoc.updated_at!;
     const { data, error } = await supabase
       .from("user_made_n")
       .select("id,name,created_at,updated_at,canvas_data")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .order("updated_at", { ascending: false })
-      .lt("updated_at", lastDoc.updated_at!)
+      .order(field, { ascending: false })
+      .lt(field, cursorValue)
       .limit(PAGE_SIZE + 1);
 
     if (error) {
@@ -667,15 +698,51 @@ const MyDocPage = () => {
               </div>
             )}
 
-            {/* 검색 바 */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="학습자료 이름 또는 아동 이름으로 검색..."
-                className="w-full rounded-xl border border-black-25 bg-white-100 py-3 pl-11 pr-4 text-14-regular text-black-90 placeholder:text-black-50 transition focus:border-primary focus:outline-none"
-              />
+            {/* 검색 바 + 정렬 */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="학습자료 이름 또는 아동 이름으로 검색..."
+                  className="w-full rounded-xl border border-black-25 bg-white-100 py-3 pl-11 pr-4 text-14-regular text-black-90 placeholder:text-black-50 transition focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              {/* 정렬 드롭다운 */}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsSortOpen((v) => !v)}
+                  className="flex items-center gap-1.5 rounded-xl border border-black-25 bg-white-100 px-3 py-3 text-13-bold text-black-70 transition hover:bg-black-5 cursor-pointer whitespace-nowrap"
+                >
+                  <ArrowDownUp className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{SORT_LABELS[sortOption]}</span>
+                </button>
+
+                {isSortOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-xl border border-black-20 bg-white-100 py-1 shadow-lg">
+                      {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleSortChange(key)}
+                          className={`flex w-full items-center px-4 py-2.5 text-left text-13-bold transition cursor-pointer ${
+                            sortOption === key
+                              ? "text-primary bg-primary-50"
+                              : "text-black-70 hover:bg-black-5"
+                          }`}
+                        >
+                          {SORT_LABELS[key]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {errorMessage && (
