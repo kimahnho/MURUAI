@@ -80,4 +80,4 @@ buildCorrectionKey(elementId, field, correctionIdx)
 | 텍스트 추출 | `src/features/editor/utils/spellCheckTextExtractor.ts` |
 | UI 패널 | `src/features/editor/shared/SpellCheckPanel.tsx` |
 | 토스트 | `src/features/editor/shared/SpellCheckToast.tsx` |
-| 진입점 | `src/features/editor/shared/ExportModal.tsx` |
+| 진입점 | `src/app/layout/DesignLayout.tsx` (`runSpellCheck` — `checkSpelling`/`extractTextsFromPages` dynamic import) |

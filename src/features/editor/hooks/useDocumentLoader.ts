@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 import { mp } from "@/shared/utils/mixpanel";
 import { useOrientationStore } from "../store/orientationStore";
 import { useToastStore } from "../store/toastStore";
@@ -42,8 +43,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
     if (docId === loadedDocumentId) return;
     let isMounted = true;
     const loadUserMade = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      const user = useAuthStore.getState().user;
       if (!user) {
         showToast("로그인이 필요해요.");
         return;

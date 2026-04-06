@@ -534,7 +534,7 @@ const DesignPaper = ({
     <div
       ref={containerRef}
       tabIndex={readOnly ? undefined : 0}
-      className={`relative bg-white shrink-0 outline-none transition-all ${
+      className={`relative bg-white shrink-0 outline-none transition-shadow ${
         readOnly ? "overflow-hidden" : "overflow-visible"
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""

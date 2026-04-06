@@ -15,6 +15,8 @@ type CanvasStageProps = {
   padding: number;
   paperWidth: number;
   paperHeight: number;
+  canvasWidth: number;
+  canvasHeight: number;
   scale: number;
   selectedPage: Page | undefined;
   activeOrientation: "horizontal" | "vertical";
@@ -35,6 +37,8 @@ const CanvasStage = ({
   padding,
   paperWidth,
   paperHeight,
+  canvasWidth,
+  canvasHeight,
   scale,
   selectedPage,
   activeOrientation,
@@ -102,6 +106,10 @@ const CanvasStage = ({
               // 배경 격자 캔버스는 벡터 오버레이와 분리해 확대 시 픽셀 렌더링 품질을 유지한다.
               display: "block",
               imageRendering: "crisp-edges",
+              // useCanvasZoom의 useEffect가 실행되기 전 첫 프레임에서도 올바른 크기를 유지해
+              // inline-flex center 래퍼에 의한 페이퍼 중앙 배치를 방지한다.
+              width: `${canvasWidth}px`,
+              height: `${canvasHeight}px`,
             }}
           />
           <div
@@ -149,32 +157,40 @@ const CanvasStage = ({
 export default CanvasStage;
 
 const AiTip = ({ padding }: { padding: number }) => {
-  const [visible, setVisible] = useState(true);
+  const [phase, setPhase] = useState<"hidden" | "visible" | "fading">("hidden");
 
   useEffect(() => {
-    // 진입 가이드 문구는 초기 주의 환기 용도라 짧게 노출 후 자동 종료한다.
-    const timer = window.setTimeout(() => {
-      setVisible(false);
-    }, 1500);
+    // 레이아웃 안정화 후 등장 → 잠시 유지 → 페이드아웃
+    const showTimer = window.setTimeout(() => {
+      setPhase("visible");
+    }, 500);
+    const fadeTimer = window.setTimeout(() => {
+      setPhase("fading");
+    }, 3000);
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(showTimer);
+      window.clearTimeout(fadeTimer);
     };
   }, []);
 
-  if (!visible) return null;
+  if (phase === "hidden") return null;
 
   const offset = -50;
 
   return (
     <div
-      className="absolute z-30 pointer-events-none"
+      className="absolute z-30 pointer-events-none transition-opacity duration-500"
       style={{
         left: `${padding + offset}px`,
         top: `${padding + offset}px`,
+        opacity: phase === "visible" ? 1 : 0,
+      }}
+      onTransitionEnd={() => {
+        if (phase === "fading") setPhase("hidden");
       }}
     >
       <div className="relative rounded-2xl bg-primary px-4 py-3 text-14-medium text-white-100 shadow-lg">
-        Ai로 맞춤형 이미지를 만들어보세요.
+        AI로 맞춤형 이미지를 만들어보세요.
         <span
           className="absolute right-4 -bottom-2.5 h-0 w-0 border-l-10 border-l-transparent border-t-10 border-t-[#7C3AED]"
           aria-hidden

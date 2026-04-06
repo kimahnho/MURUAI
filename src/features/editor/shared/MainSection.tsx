@@ -433,7 +433,7 @@ const MainSection = () => {
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { canvasRef, scale, padding, paperWidth, paperHeight } = useCanvasViewport({
+  const { canvasRef, scale, padding, paperWidth, paperHeight, canvasWidth, canvasHeight } = useCanvasViewport({
     zoom,
     setZoom,
     selectedPageId,
@@ -897,6 +897,8 @@ const MainSection = () => {
           padding={padding}
           paperWidth={paperWidth}
           paperHeight={paperHeight}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
           scale={scale}
           selectedPage={selectedPage}
           activeOrientation={activeOrientation}

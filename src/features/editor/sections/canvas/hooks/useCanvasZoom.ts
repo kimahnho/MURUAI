@@ -96,11 +96,17 @@ export const useCanvasZoom = ({ zoom, pageId, containerRef, orientation = "verti
   const paperWidth = orientation === "horizontal" ? A4_HEIGHT : A4_WIDTH;
   const paperHeight = orientation === "horizontal" ? A4_WIDTH : A4_HEIGHT;
 
+  const scale = zoom / 100;
+  const canvasWidth = paperWidth * scale + PADDING * 2;
+  const canvasHeight = paperHeight * scale + PADDING * 2;
+
   return {
     canvasRef,
-    scale: zoom / 100,
+    scale,
     padding: PADDING,
     paperWidth,
     paperHeight,
+    canvasWidth,
+    canvasHeight,
   };
 };
