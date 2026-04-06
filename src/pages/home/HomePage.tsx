@@ -17,6 +17,7 @@ import { withLogoCanvasElements } from "@/features/editor/utils/logoElement";
 import type { Page } from "@/features/editor/model/pageTypes";
 
 const PENDING_IMAGE_KEY = "pendingLandingImage";
+const PENDING_START_KEY = "pendingStartClick";
 
 // 이미지 1장이 포함된 빈 문서 페이지를 생성한다.
 const buildImagePage = (imageUrl: string): Page[] => {
@@ -65,13 +66,20 @@ const HomePage = () => {
     }
   }, [isAuthenticated, role, navigate]);
 
-  // 비인증 → 로그인 완료 후 대기 중인 이미지 클릭 자동 실행
+  // 비인증 → 로그인 완료 후 대기 중인 이미지 클릭 또는 시작 버튼 자동 실행
   useEffect(() => {
     if (!isAuthenticated) return;
     const pendingUrl = sessionStorage.getItem(PENDING_IMAGE_KEY);
-    if (!pendingUrl) return;
-    sessionStorage.removeItem(PENDING_IMAGE_KEY);
-    void openDocumentWithImage(pendingUrl);
+    if (pendingUrl) {
+      sessionStorage.removeItem(PENDING_IMAGE_KEY);
+      void openDocumentWithImage(pendingUrl);
+      return;
+    }
+    const pendingStart = sessionStorage.getItem(PENDING_START_KEY);
+    if (pendingStart) {
+      sessionStorage.removeItem(PENDING_START_KEY);
+      void openBlankDocument();
+    }
   }, [isAuthenticated]);
 
   const openDocumentWithImage = async (imageUrl: string) => {
@@ -91,6 +99,37 @@ const HomePage = () => {
     }
   };
 
+  const openBlankDocument = async () => {
+    if (executingRef.current) return;
+    executingRef.current = true;
+    try {
+      const page: Page = {
+        id: crypto.randomUUID(),
+        pageNumber: 1,
+        templateId: null,
+        orientation: "vertical",
+        elements: withLogoCanvasElements([]),
+      };
+      await createAndOpenDocument({ replace: false, pages: [page] });
+    } catch (error) {
+      captureSentryError(error, "랜딩 바로시작 캔버스 이동");
+      useToastStore
+        .getState()
+        .showToast("문서를 생성하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      executingRef.current = false;
+    }
+  };
+
+  const handleStartClick = () => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem(PENDING_START_KEY, "1");
+      openAuthModal();
+      return;
+    }
+    void openBlankDocument();
+  };
+
   const handleImageClick = (imageUrl: string) => {
     if (!isAuthenticated) {
       sessionStorage.setItem(PENDING_IMAGE_KEY, imageUrl);
@@ -100,7 +139,7 @@ const HomePage = () => {
     void openDocumentWithImage(imageUrl);
   };
 
-  return <NewLandingPage onImageClick={handleImageClick} />;
+  return <NewLandingPage onImageClick={handleImageClick} onStartClick={handleStartClick} />;
 };
 
 export default HomePage;
