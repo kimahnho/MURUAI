@@ -582,6 +582,7 @@ export const useDesignPaperElementRenderer = ({
         onRotateCCW={handleRotateCCW}
         onRotationChange={undefined}
         showInlineMetrics={false}
+        enableCrop={isImageFill}
       />
     );
   };

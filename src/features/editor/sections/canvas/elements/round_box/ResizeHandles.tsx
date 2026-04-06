@@ -206,3 +206,55 @@ export const ImageHandles = ({
     ))}
   </>
 );
+
+// ─── 크롭 핸들 (요소 외곽 기준, 채움 스타일) ───
+
+const CropHandleItem = ({
+  handle,
+  cursor,
+  selectionColor,
+  onPointerDown,
+}: HandleProps) => (
+  <div
+    key={`crop-${handle}`}
+    onPointerDown={(event) => {
+      event.stopPropagation();
+      onPointerDown(event, "cropResize" as "resize", handle);
+    }}
+    data-capture-handle="true"
+    className="absolute rounded-sm"
+    style={{
+      width: HANDLE_SIZE,
+      height: HANDLE_SIZE,
+      cursor,
+      backgroundColor: selectionColor,
+      ...getResizeHandlePosition(handle),
+    }}
+  />
+);
+
+interface CropHandlesProps {
+  selectionColor: string;
+  onPointerDown: (
+    event: ReactPointerEvent<HTMLDivElement>,
+    type: "resize" | "imageBoxResize",
+    handle: ResizeHandle,
+  ) => void;
+}
+
+export const CropHandles = ({
+  selectionColor,
+  onPointerDown,
+}: CropHandlesProps) => (
+  <>
+    {HANDLES.map(({ handle, cursor }) => (
+      <CropHandleItem
+        key={handle}
+        handle={handle}
+        cursor={cursor}
+        selectionColor={selectionColor}
+        onPointerDown={onPointerDown}
+      />
+    ))}
+  </>
+);
