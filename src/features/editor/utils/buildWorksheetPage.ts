@@ -233,10 +233,12 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
         border: borderEnabled ? { enabled: true, color: "#e0e0e0", width: 1, style: borderStyle } : undefined,
       }));
 
+      // 하단 텍스트 라벨 ID (imageSlot의 labelId로 연결)
+      const labelTextId = uid();
+
       if (isImageMode) {
         // 이미지 삽입 프레임 (imageSlot) — 1:1 정사각형
-        // text/textStyle로 가이드 텍스트를 도형 내부에 직접 표시
-        // 이미지 삽입 시 이미지가 도형을 덮어씌워 텍스트가 자동으로 안 보임
+        // labelId → 하단 텍스트 라벨과 연결 → 이미지 삽입 시 라벨 텍스트 자동 업데이트
         els.push(shapeEl({
           type: "roundRect",
           x: cx + 4, y: cy + 4, w: imgSize, h: imgSize,
@@ -245,12 +247,14 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
           subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
           text: "그림을 삽입해보세요",
           textStyle: { fontSize: 10, fontWeight: "normal", color: "#bbbbbb" },
+          labelId: labelTextId,
         }));
       }
 
-      // 텍스트 라벨 (하단)
+      // 텍스트 라벨 (하단) — imageSlot의 labelId와 연결
       const textY = isImageMode ? cy + 4 + imgSize : cy;
       els.push(textEl({
+        id: labelTextId,
         x: cx + 2, y: textY, w: cellW - 4, h: textH,
         text: item?.text || "",
         style: { fontSize: 14, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
