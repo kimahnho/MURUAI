@@ -246,32 +246,72 @@ export const useImageFillSubscription = ({
         }),
       );
 
-      // 워크시트 단어 카드 config 역동기화 — 이미지 라벨이 바뀌면 config.items도 업데이트
-      if (labelText) {
+      // 워크시트 단어 카드 config 역동기화 — 이미지+라벨을 config.items에 저장
+      {
         try {
           const { insertedComponents } = useWorksheetElementStore.getState();
           const pageNow = pagesRef.current.find((p) => p.id === activePageId);
           if (pageNow) {
             for (const comp of insertedComponents) {
               if (comp.type !== "grid_NxM") continue;
-              const config = comp.config as { items?: { text: string; text_highlight: string }[] };
+              const config = comp.config as { items?: { text: string; text_highlight: string; imageUrl?: string; imageBox?: { x: number; y: number; w: number; h: number } }[] };
               if (!config.items) continue;
               const compElementIds = new Set(comp.elementIds);
               const compElements = pageNow.elements.filter((el) => compElementIds.has(el.id));
-              // 선택된 imageSlot의 인덱스를 찾아 해당 config.items 업데이트
               let slotIndex = 0;
+              let changed = false;
               for (const el of compElements) {
                 if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
                   if (activeSelectedIds.includes(el.id) && config.items[slotIndex]) {
-                    config.items[slotIndex] = { ...config.items[slotIndex], text: labelText };
-                    useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, { ...comp.config });
+                    // 이미지 URL + imageBox + 라벨 텍스트 모두 config에 저장
+                    config.items[slotIndex] = {
+                      ...config.items[slotIndex],
+                      ...(labelText ? { text: labelText } : {}),
+                      imageUrl: normalizedUrl,
+                      imageBox: (el as import("../model/canvasTypes").ShapeElement).imageBox
+                        ? undefined // 아직 삽입 전이므로 calculateCoverImageBox 결과를 사용
+                        : undefined,
+                    };
+                    // setPages 완료 후 imageBox를 다시 읽어야 하므로 setTimeout으로 지연
+                    const capturedSlotIndex = slotIndex;
+                    const capturedCompId = comp.id;
+                    setTimeout(() => {
+                      const latestPage = pagesRef.current.find((p) => p.id === activePageId);
+                      if (!latestPage) return;
+                      const latestComps = useWorksheetElementStore.getState().insertedComponents;
+                      const latestComp = latestComps.find((c) => c.id === capturedCompId);
+                      if (!latestComp) return;
+                      const latestConfig = latestComp.config as typeof config;
+                      if (!latestConfig.items?.[capturedSlotIndex]) return;
+                      const latestCompElements = latestPage.elements.filter((e) => new Set(latestComp.elementIds).has(e.id));
+                      let si = 0;
+                      for (const e of latestCompElements) {
+                        if ("subType" in e && (e as { subType?: string }).subType === "imageSlot") {
+                          if (si === capturedSlotIndex) {
+                            const shape = e as import("../model/canvasTypes").ShapeElement;
+                            latestConfig.items[capturedSlotIndex] = {
+                              ...latestConfig.items[capturedSlotIndex],
+                              imageUrl: shape.fill,
+                              imageBox: shape.imageBox,
+                            };
+                            useWorksheetElementStore.getState().updateComponentConfigSilent(capturedCompId, { ...latestComp.config });
+                            break;
+                          }
+                          si++;
+                        }
+                      }
+                    }, 200);
+                    changed = true;
                   }
                   slotIndex++;
                 }
               }
+              if (changed) {
+                useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, { ...comp.config });
+              }
             }
           }
-        } catch { /* 테스트 단계 — 실패해도 무시 */ }
+        } catch { /* 테스트 단계 */ }
       }
 
       if (activeSelectedIds.length === 1) {

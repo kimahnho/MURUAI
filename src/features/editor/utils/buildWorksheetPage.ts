@@ -237,17 +237,19 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
       const labelTextId = uid();
 
       if (isImageMode) {
-        // 이미지 삽입 프레임 (imageSlot) — 1:1 정사각형
-        // labelId → 하단 텍스트 라벨과 연결 → 이미지 삽입 시 라벨 텍스트 자동 업데이트
+        // 이미지 삽입 프레임 (imageSlot)
+        const hasImage = item?.imageUrl && (item.imageUrl.startsWith("url(") || item.imageUrl.startsWith("data:"));
         els.push(shapeEl({
           type: "roundRect",
           x: cx + 4, y: cy + 4, w: imgSize, h: imgSize,
-          fill: "#f5f5f5", radius: 4,
-          border: { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },
+          fill: hasImage ? item.imageUrl! : "#f5f5f5",
+          radius: 4,
+          border: hasImage ? undefined : { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },
           subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
-          text: "두 번 클릭해서 이미지 삽입",
-          textStyle: { fontSize: 10, fontWeight: "normal", color: "#bbbbbb" },
+          text: hasImage ? "" : "두 번 클릭해서 이미지 삽입",
+          textStyle: hasImage ? undefined : { fontSize: 10, fontWeight: "normal", color: "#bbbbbb" },
           labelId: labelTextId,
+          ...(hasImage && item.imageBox ? { imageBox: item.imageBox } : {}),
         }));
       }
 

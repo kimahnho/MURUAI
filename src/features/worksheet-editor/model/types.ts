@@ -39,6 +39,9 @@ export interface SelectionSentenceConfig {
 export interface GridItem {
   text: string;
   text_highlight: string;
+  /** imageSlot에 삽입된 이미지 URL (config에 영속화) */
+  imageUrl?: string;
+  imageBox?: { x: number; y: number; w: number; h: number };
 }
 
 export interface GridConfig {

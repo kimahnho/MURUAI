@@ -511,27 +511,8 @@ export const useEditorSubscriptions = ({
         }
       }
 
-      // 기존 imageSlot의 이미지 상태를 수집 (재빌드 후 복원용)
-      const oldImageSlots: { index: number; fill: string; imageBox?: unknown; labelText?: string }[] = [];
-      let slotIdx = 0;
-      const oldElements = page.elements.filter((el) => oldElementIdSet.has(el.id));
-      for (const el of oldElements) {
-        if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
-          const shape = el as import("../model/canvasTypes").ShapeElement;
-          if (shape.fill && (shape.fill.startsWith("url(") || shape.fill.startsWith("data:"))) {
-            // labelId로 연결된 텍스트의 현재 값도 수집
-            let labelText: string | undefined;
-            if (shape.labelId) {
-              const labelEl = oldElements.find((e) => e.id === shape.labelId);
-              if (labelEl && "text" in labelEl) labelText = (labelEl as { text: string }).text;
-            }
-            oldImageSlots.push({ index: slotIdx, fill: shape.fill, imageBox: shape.imageBox, labelText });
-          }
-          slotIdx++;
-        }
-      }
-
       // config로 새 요소 빌드 + worksheetMeta 스탬프
+      // (이미지 상태는 config.items.imageUrl에 저장되어 있으므로 buildGrid에서 직접 복원)
       const newElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
@@ -540,23 +521,6 @@ export const useEditorSubscriptions = ({
         ...el,
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
       }));
-
-      // 기존 imageSlot의 이미지 상태를 항상 복원
-      // 이미지 제거는 셀 X버튼 삭제 시에만 (인덱스 불일치로 자연 처리)
-      let newSlotIdx = 0;
-      for (let i = 0; i < newElements.length; i++) {
-        const el = newElements[i];
-        if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
-          const saved = oldImageSlots.find((s) => s.index === newSlotIdx);
-          if (saved) {
-            (newElements[i] as import("../model/canvasTypes").ShapeElement).fill = saved.fill;
-            if (saved.imageBox) {
-              (newElements[i] as import("../model/canvasTypes").ShapeElement).imageBox = saved.imageBox as import("../model/canvasTypes").ShapeElement["imageBox"];
-            }
-          }
-          newSlotIdx++;
-        }
-      }
 
       // 기존 요소 제거 + 새 요소 삽입
       const updatedElements = page.elements
