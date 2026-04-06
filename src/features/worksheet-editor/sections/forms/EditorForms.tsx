@@ -655,6 +655,9 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
         onClick={async () => {
           const { useWorksheetElementStore } = await import("@/features/editor/store/worksheetElementStore");
           const { useSideBarStore } = await import("@/features/editor/store/sideBarStore");
+          const { useElementPanelStore } = await import("@/features/editor/store/elementPanelStore");
+          // props 오버레이(도형/텍스트 편집 패널)를 닫아야 AI 이미지 탭이 보임
+          useElementPanelStore.setState({ panelData: null });
           useWorksheetElementStore.getState().requestColoringAi();
           useSideBarStore.getState().setSelectedMenu("design");
         }}
