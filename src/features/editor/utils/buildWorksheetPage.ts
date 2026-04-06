@@ -89,7 +89,7 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
     const textPadding = mmToPx(4); // 좌우 패딩
     const estimatedTextW = config.rule_note.length * charWidth + textPadding * 2;
     const ruleW = Math.min(Math.max(estimatedTextW, mmToPx(30)), CONTENT_W); // 최소 30mm, 최대 전체
-    const ruleX = x + (CONTENT_W - ruleW) / 2; // 중앙 정렬
+    const ruleX = x; // 좌측 정렬
 
     els.push(shapeEl({
       type: "roundRect", x: ruleX, y: curY, w: ruleW, h: mmToPx(6),
