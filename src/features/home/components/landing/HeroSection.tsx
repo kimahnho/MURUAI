@@ -1,15 +1,19 @@
 /**
- * 히어로 섹션 — 메인 카피 + 서브 카피.
+ * 히어로 섹션 — 메인 카피 + 서브 카피 + 시작 버튼.
  */
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
-const HeroSection = () => (
+interface HeroSectionProps {
+  onStartClick?: () => void;
+}
+
+const HeroSection = ({ onStartClick }: HeroSectionProps) => (
   <section className="flex w-full flex-col items-center bg-linear-to-b from-[#FDFCFF] to-[#f5f3ff] px-4 pb-10 pt-16 md:px-10 md:pb-16 md:pt-28">
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       className="flex max-w-3xl flex-col items-center gap-5 text-center md:gap-6"
     >
       {/* 뱃지 */}
@@ -29,6 +33,16 @@ const HeroSection = () => (
       <p className="text-14-regular text-black-70 md:text-title-18-bold">
         3,000+ 이상의 고퀄리티 이미지를 지금 사용해보세요.
       </p>
+
+      {/* 시작 버튼 */}
+      <button
+        type="button"
+        onClick={onStartClick}
+        className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-title-16-semibold text-white-100 transition hover:bg-primary-700"
+      >
+        바로 시작해보기
+        <ArrowRight className="h-4.5 w-4.5" />
+      </button>
     </motion.div>
   </section>
 );
