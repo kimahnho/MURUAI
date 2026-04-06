@@ -105,6 +105,7 @@ export const useDesignPaperInteraction = ({
     startFontSize?: number;
     handle?: ResizeHandle;
     startImageBox?: { x: number; y: number; w: number; h: number };
+    isCrop?: boolean;
   } | null>(null);
   const groupResizeRef = useRef<GroupResizeSnapshot | null>(null);
   const { startPointerDragSession } = usePointerDragSession();
