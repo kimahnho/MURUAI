@@ -94,6 +94,7 @@ interface RoundBoxProps {
   showInlineMetrics?: boolean;
   backgroundColor?: string;
   enableCrop?: boolean;
+  cropKeepFrame?: boolean;
 }
 
 const RoundBox = ({
@@ -137,6 +138,7 @@ const RoundBox = ({
   showInlineMetrics = true,
   backgroundColor,
   enableCrop = false,
+  cropKeepFrame = false,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
@@ -223,6 +225,7 @@ const RoundBox = ({
     onImageOffsetChange,
     onImageBoxChange,
     onSelectChange,
+    cropKeepFrame,
   });
 
   useEffect(() => {
