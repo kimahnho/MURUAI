@@ -464,15 +464,21 @@ const buildColoringArea = (config: ColoringAreaConfig, x: number, y: number): { 
   const h = mmToPx((config.size_ratio || 0.6) * 200);
   const els: CanvasElement[] = [];
 
+  // 이미지 삽입 프레임 (imageSlot) — 클릭 시 이미지 삽입 유도
+  const labelId = uid();
   els.push(shapeEl({
     type: "roundRect", x, y, w: CONTENT_W, h,
-    fill: "#ffffff", radius: 8,
-    border: { enabled: true, color: "#dddddd", width: 2, style: "dashed" },
+    fill: "#f5f5f5", radius: 8,
+    border: { enabled: true, color: "#e0e0e0", width: 1.5, style: "dashed" },
+    subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
+    labelId,
   }));
+  // 가이드 텍스트 (이미지 삽입 시 자동 클리어됨)
   els.push(textEl({
+    id: labelId,
     x, y: y + h / 2 - mmToPx(5), w: CONTENT_W, h: mmToPx(10),
-    text: `🎨 ${config.image_description || "이미지 영역"}`,
-    style: { fontSize: 14, fontWeight: "normal", color: "#cccccc", underline: false, alignX: "center", alignY: "middle" },
+    text: config.image_description || "색칠공부 이미지를 삽입해보세요",
+    style: { fontSize: 14, fontWeight: "normal", color: "#bbbbbb", underline: false, alignX: "center", alignY: "middle" },
   }));
 
   return { elements: els, height: h + mmToPx(2) };
