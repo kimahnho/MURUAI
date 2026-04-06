@@ -12,7 +12,8 @@ type ActionType =
   | "imageScale"
   | "imageMove"
   | "imageBoxResize"
-  | "imageBoxMove";
+  | "imageBoxMove"
+  | "cropResize";
 
 interface ImageBox {
   x: number;
@@ -40,7 +41,7 @@ interface UseRoundBoxInteractionParams {
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize"; handle?: ResizeHandle },
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle; isCrop?: boolean },
   ) => void;
   onImageScaleChange?: (value: number) => void;
   onImageOffsetChange?: (value: { x: number; y: number }) => void;
@@ -107,8 +108,8 @@ export const useRoundBoxInteraction = ({
         };
       },
       onStart: () => {
-        if (type === "drag" || type === "resize") {
-          onDragStateChange?.(true, rectRef.current, { type, handle });
+        if (type === "drag" || type === "resize" || type === "cropResize") {
+          onDragStateChange?.(true, rectRef.current, { type: type === "cropResize" ? "resize" : type, handle, isCrop: type === "cropResize" });
         }
       },
       onMove: ({ moveEvent, dx, dy }) => {
@@ -226,6 +227,48 @@ export const useRoundBoxInteraction = ({
           return;
         }
 
+        if (type === "cropResize") {
+          if (!onRectChange || !onImageBoxChange || !handle) return;
+          const minSize = 20;
+          const box = startImageBox;
+
+          let nx = startRect.x;
+          let ny = startRect.y;
+          let nw = startRect.width;
+          let nh = startRect.height;
+          let bx = box.x;
+          let by = box.y;
+
+          // west/north 핸들: element 원점이 이동하므로 imageBox를 반대로 보상
+          // → 이미지가 캔버스 위에서 제자리에 머무름
+          if (handle.includes("w")) {
+            const d = Math.min(dx, nw - minSize);
+            nx += d;
+            nw -= d;
+            bx -= d; // element가 오른쪽으로 이동한 만큼 imageBox를 왼쪽으로
+          }
+          if (handle.includes("e")) {
+            nw = Math.max(minSize, startRect.width + dx);
+          }
+          if (handle.includes("n")) {
+            const d = Math.min(dy, nh - minSize);
+            ny += d;
+            nh -= d;
+            by -= d; // element가 아래로 이동한 만큼 imageBox를 위로
+          }
+          if (handle.includes("s")) {
+            nh = Math.max(minSize, startRect.height + dy);
+          }
+
+          const nextRect = { x: nx, y: ny, width: nw, height: nh };
+          const nextBox = { x: bx, y: by, w: box.w, h: box.h };
+          rectRef.current = nextRect;
+          imageBoxRef.current = nextBox;
+          onRectChange(nextRect);
+          onImageBoxChange(nextBox);
+          return;
+        }
+
         if (!handle) return;
 
         let nextX = startRect.x;
@@ -332,8 +375,8 @@ export const useRoundBoxInteraction = ({
         if (!moved && shouldSelectOnClickOnly && reason === "pointerup") {
           onSelectChange?.(true);
         }
-        if (moved && (type === "drag" || type === "resize")) {
-          onDragStateChange?.(false, rectRef.current, { type });
+        if (moved && (type === "drag" || type === "resize" || type === "cropResize")) {
+          onDragStateChange?.(false, rectRef.current, { type: type === "cropResize" ? "resize" : type, isCrop: type === "cropResize" });
         }
       },
     });

@@ -64,7 +64,7 @@ interface UseDesignPaperInteractionParams {
   onElementsChange?: (elements: CanvasElement[]) => void;
   onInteractionChange?: (
     isActive: boolean,
-    context?: { type: "drag" | "resize" },
+    context?: { type: "drag" | "resize"; isCrop?: boolean },
   ) => void;
   updateElement: (id: string, patch: ElementPatch) => void;
   smartGuides: SmartGuides;
@@ -346,6 +346,18 @@ export const useDesignPaperInteraction = ({
       targetElement &&
       isImageFillElement(targetElement)
     ) {
+      // 크롭 모드에서는 imageBox를 useRoundBoxInteraction이 직접 관리하므로
+      // 여기서 imageBox를 리셋/스케일하지 않는다.
+      if (activeInteraction.isCrop) {
+        updateElement(elementId, {
+          x: nextRect.x,
+          y: nextRect.y,
+          w: nextRect.width,
+          h: nextRect.height,
+        });
+        setActivePreview({ id: elementId, rect: nextRect });
+        return;
+      }
       const isEdgeHandle =
         activeInteraction.handle != null &&
         activeInteraction.handle.length === 1;
@@ -387,7 +399,7 @@ export const useDesignPaperInteraction = ({
     elementId: string,
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize"; handle?: ResizeHandle },
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle; isCrop?: boolean },
   ) => {
     if (isDragging) {
       const targetElement = getElementById(elementId);
@@ -416,6 +428,7 @@ export const useDesignPaperInteraction = ({
       activeInteractionRef.current = {
         id: elementId,
         type: context?.type ?? "drag",
+        isCrop: context?.isCrop ?? false,
         startRect,
         startFontSize:
           targetElement && targetElement.type === "text"
@@ -504,7 +517,8 @@ export const useDesignPaperInteraction = ({
         if (
           targetElement &&
           isImageFillElement(targetElement) &&
-          isResize
+          isResize &&
+          !activeInteraction?.isCrop
         ) {
           const isEdgeHandle =
             activeInteraction?.handle != null &&

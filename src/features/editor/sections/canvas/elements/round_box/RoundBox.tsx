@@ -13,7 +13,7 @@ import {
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import TransformToolbar from "../TransformToolbar";
 import { useRoundBoxInteraction } from "./useRoundBoxInteraction";
-import { ResizeHandles, ImageHandles } from "./ResizeHandles";
+import { ResizeHandles, ImageHandles, CropHandles } from "./ResizeHandles";
 import { usePointerDragSession } from "../../hooks/usePointerDragSession";
 
 interface RoundBoxProps {
@@ -93,6 +93,7 @@ interface RoundBoxProps {
   onRotationChange?: (angle: number) => void;
   showInlineMetrics?: boolean;
   backgroundColor?: string;
+  enableCrop?: boolean;
 }
 
 const RoundBox = ({
@@ -135,6 +136,7 @@ const RoundBox = ({
   onRotationChange,
   showInlineMetrics = true,
   backgroundColor,
+  enableCrop = false,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
@@ -615,7 +617,13 @@ const RoundBox = ({
           onPointerDown={handleResizePointerDown}
         />
       )}
-      {showImageHandles && (
+      {showImageHandles && enableCrop && (
+        <CropHandles
+          selectionColor={selectionColor}
+          onPointerDown={handleResizePointerDown}
+        />
+      )}
+      {showImageHandles && !enableCrop && (
         <ImageHandles
           selectionColor={selectionColor}
           box={renderImageBox}
