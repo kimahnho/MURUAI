@@ -50,6 +50,10 @@ interface WorksheetElementStore {
   // 페이지 전환 시 해당 페이지의 컴포넌트로 복원
   loadFromPage: (components: InsertedWorksheetComponent[]) => void;
 
+  // AI 색칠공부 생성 요청 (사이드바 전환 + 스타일 자동 선택)
+  coloringAiRequestId: number;
+  requestColoringAi: () => void;
+
   // 드래그 상태
   isDraggingWorksheet: boolean;
   setDraggingWorksheet: (v: boolean) => void;
@@ -159,6 +163,9 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
   loadFromPage: (components) => {
     set({ insertedComponents: components, selectedComponentId: null });
   },
+
+  coloringAiRequestId: 0,
+  requestColoringAi: () => { set((s) => ({ coloringAiRequestId: s.coloringAiRequestId + 1 })); },
 
   isDraggingWorksheet: false,
   setDraggingWorksheet: (v) => { set({ isDraggingWorksheet: v }); },

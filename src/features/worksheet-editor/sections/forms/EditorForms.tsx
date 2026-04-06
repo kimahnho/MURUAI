@@ -649,6 +649,18 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
       <p className="text-[10px] text-black-45 mt-1.5">
         또는 캔버스에서 프레임을 클릭 후 왼쪽 이미지 탭에서 삽입
       </p>
+      <button
+        type="button"
+        className={`${addBtnCls} mt-2 flex items-center justify-center gap-1.5`}
+        onClick={async () => {
+          const { useWorksheetElementStore } = await import("@/features/editor/store/worksheetElementStore");
+          const { useSideBarStore } = await import("@/features/editor/store/sideBarStore");
+          useWorksheetElementStore.getState().requestColoringAi();
+          useSideBarStore.getState().setSelectedMenu("design");
+        }}
+      >
+        ✨ 색칠공부 그림 생성
+      </button>
     </div>
     <div className="mb-3">
       <label className={labelCls}>이미지 설명</label>
