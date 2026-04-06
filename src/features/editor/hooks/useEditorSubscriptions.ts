@@ -541,24 +541,18 @@ export const useEditorSubscriptions = ({
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
       }));
 
-      // 기존 imageSlot의 이미지 상태 복원
-      // config.items[idx].text가 빈 문자열이면 해당 슬롯은 이미지도 제거 (빈 카드로)
-      const gridConfig = comp.type === "grid_NxM" ? comp.config as { items?: { text: string }[] } : null;
+      // 기존 imageSlot의 이미지 상태를 항상 복원
+      // 이미지 제거는 셀 X버튼 삭제 시에만 (인덱스 불일치로 자연 처리)
       let newSlotIdx = 0;
       for (let i = 0; i < newElements.length; i++) {
         const el = newElements[i];
         if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
           const saved = oldImageSlots.find((s) => s.index === newSlotIdx);
-          const configItem = gridConfig?.items?.[newSlotIdx];
-          const isCleared = configItem && configItem.text.trim() === "";
-
-          if (saved && !isCleared) {
-            // 이미지 복원 (셀 내용이 있는 경우만)
+          if (saved) {
             (newElements[i] as import("../model/canvasTypes").ShapeElement).fill = saved.fill;
             if (saved.imageBox) {
               (newElements[i] as import("../model/canvasTypes").ShapeElement).imageBox = saved.imageBox as import("../model/canvasTypes").ShapeElement["imageBox"];
             }
-            // 라벨은 config.items의 최신 값을 사용 (사용자가 편집한 값 우선)
           }
           newSlotIdx++;
         }
