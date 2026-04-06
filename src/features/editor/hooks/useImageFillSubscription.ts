@@ -7,6 +7,7 @@ import type { Page } from "../model/pageTypes";
 import type { ShapeElement } from "../model/canvasTypes";
 import type { ReadonlyRef } from "../model/refTypes";
 import { bumpPageRevision } from "../utils/pageRevision";
+import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import {
   calculateCoverImageBox,
   findLabelElementId,
@@ -245,6 +246,34 @@ export const useImageFillSubscription = ({
         }),
       );
 
+      // 워크시트 단어 카드 config 역동기화 — 이미지 라벨이 바뀌면 config.items도 업데이트
+      if (labelText) {
+        try {
+          const { insertedComponents } = useWorksheetElementStore.getState();
+          const pageNow = pagesRef.current.find((p) => p.id === activePageId);
+          if (pageNow) {
+            for (const comp of insertedComponents) {
+              if (comp.type !== "grid_NxM") continue;
+              const config = comp.config as { items?: { text: string; text_highlight: string }[] };
+              if (!config.items) continue;
+              const compElementIds = new Set(comp.elementIds);
+              const compElements = pageNow.elements.filter((el) => compElementIds.has(el.id));
+              // 선택된 imageSlot의 인덱스를 찾아 해당 config.items 업데이트
+              let slotIndex = 0;
+              for (const el of compElements) {
+                if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
+                  if (activeSelectedIds.includes(el.id) && config.items[slotIndex]) {
+                    config.items[slotIndex] = { ...config.items[slotIndex], text: labelText };
+                    useWorksheetElementStore.getState().updateComponentConfig(comp.id, { ...comp.config });
+                  }
+                  slotIndex++;
+                }
+              }
+            }
+          }
+        } catch { /* 테스트 단계 — 실패해도 무시 */ }
+      }
+
       if (activeSelectedIds.length === 1) {
         const activePage = pagesRef.current.find(
           (page) => page.id === activePageId
@@ -292,6 +321,40 @@ export const useImageFillSubscription = ({
             );
             if (nextAacId) {
               setSelectedIds([nextAacId]);
+              setEditingTextId(null);
+            }
+          } else if (
+            (selectedElement as { subType?: string }).subType === "imageSlot" &&
+            selectedElement.worksheetMeta
+          ) {
+            // 워크시트 단어 카드: 다음 imageSlot으로 자동 이동
+            const compId = selectedElement.worksheetMeta.componentId;
+            const slots = activePage.elements.filter(
+              (el) => el.worksheetMeta?.componentId === compId &&
+                (el as { subType?: string }).subType === "imageSlot" &&
+                el.id !== selectedId
+            );
+            // X→Y 순서 정렬 (열 우선)
+            const tolerance = 8;
+            slots.sort((a, b) => {
+              const ay = (a as { y: number }).y, by = (b as { y: number }).y;
+              const ax = (a as { x: number }).x, bx = (b as { x: number }).x;
+              if (Math.abs(ay - by) > tolerance) return ay - by;
+              return ax - bx;
+            });
+            // 현재 슬롯의 다음 슬롯 찾기
+            const allSlots = activePage.elements.filter(
+              (el) => el.worksheetMeta?.componentId === compId &&
+                (el as { subType?: string }).subType === "imageSlot"
+            ).sort((a, b) => {
+              const ay = (a as { y: number }).y, by = (b as { y: number }).y;
+              const ax = (a as { x: number }).x, bx = (b as { x: number }).x;
+              if (Math.abs(ay - by) > tolerance) return ay - by;
+              return ax - bx;
+            });
+            const currentIdx = allSlots.findIndex((el) => el.id === selectedId);
+            if (currentIdx >= 0 && currentIdx < allSlots.length - 1) {
+              setSelectedIds([allSlots[currentIdx + 1].id]);
               setEditingTextId(null);
             }
           }

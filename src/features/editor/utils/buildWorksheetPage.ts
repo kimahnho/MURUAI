@@ -245,7 +245,7 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
           fill: "#f5f5f5", radius: 4,
           border: { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },
           subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
-          text: "그림을 삽입해보세요",
+          text: "두 번 클릭해서 이미지 삽입",
           textStyle: { fontSize: 10, fontWeight: "normal", color: "#bbbbbb" },
           labelId: labelTextId,
         }));
