@@ -205,8 +205,11 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
 
 const buildGrid = (config: GridConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
+  const isImageMode = config.cell_content_type === "image_and_text";
   const cellW = CONTENT_W / config.cols;
-  const cellH = config.cell_content_type === "image_and_text" ? mmToPx(30) : mmToPx(12);
+  const textH = mmToPx(8);
+  const imgSize = cellW - 8; // 정사각형, 좌우 4px 패딩
+  const cellH = isImageMode ? imgSize + textH + 4 : mmToPx(12);
   let curY = y;
 
   for (let r = 0; r < config.rows; r++) {
@@ -220,6 +223,7 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
       const borderEnabled = config.cell_border !== "none";
       const radius = config.cell_border === "rounded" ? 6 : 0;
 
+      // 카드 배경
       els.push(shapeEl({
         type: radius > 0 ? "roundRect" : "rect",
         x: cx + 2, y: cy + 2, w: cellW - 4, h: cellH - 4,
@@ -227,14 +231,33 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
         border: borderEnabled ? { enabled: true, color: "#e0e0e0", width: 1, style: borderStyle } : undefined,
       }));
 
-      if (item?.text) {
+      if (isImageMode) {
+        // 이미지 삽입 프레임 (imageSlot) — 1:1 정사각형
+        const labelId = uid();
+        els.push(shapeEl({
+          type: "roundRect",
+          x: cx + 4, y: cy + 4, w: imgSize, h: imgSize,
+          fill: "#f5f5f5", radius: 4,
+          border: { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },
+          subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
+          labelId,
+        }));
+        // 이미지 삽입 가이드 텍스트
         els.push(textEl({
-          x: cx + 2, y: cy + (config.cell_content_type === "image_and_text" ? cellH - mmToPx(8) : 0),
-          w: cellW - 4, h: mmToPx(8),
-          text: item.text,
-          style: { fontSize: 14, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+          id: labelId,
+          x: cx + 4, y: cy + 4 + imgSize / 2 - 8, w: imgSize, h: 16,
+          text: "🖼",
+          style: { fontSize: 14, fontWeight: "normal", color: "#cccccc", underline: false, alignX: "center", alignY: "middle" },
         }));
       }
+
+      // 텍스트 라벨 (하단)
+      const textY = isImageMode ? cy + 4 + imgSize : cy;
+      els.push(textEl({
+        x: cx + 2, y: textY, w: cellW - 4, h: textH,
+        text: item?.text || "",
+        style: { fontSize: 14, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+      }));
     }
     curY += cellH;
   }

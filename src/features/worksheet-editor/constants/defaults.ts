@@ -110,7 +110,7 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   arrow_transform: { icon: "🔄", name: "변환 쌍" },
   sequential_repeat: { icon: "🔁", name: "반복 연습" },
   selection_sentence: { icon: "✋", name: "문장 선택" },
-  grid_NxM: { icon: "⊞", name: "그리드" },
+  grid_NxM: { icon: "⊞", name: "단어 카드" },
   reward_tracker: { icon: "⭐", name: "칭찬 스탬프" },
   checklist_table: { icon: "📊", name: "체크리스트" },
   info_guide: { icon: "💬", name: "안내 가이드" },

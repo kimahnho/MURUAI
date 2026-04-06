@@ -31,7 +31,7 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
       { type: "arrow_transform", icon: "🔄", name: "변환 쌍", desc: "간→갈 발음 변화", badge: "text" },
       { type: "sequential_repeat", icon: "🔁", name: "반복 연습", desc: "바바바 교대운동", badge: "text" },
       { type: "selection_sentence", icon: "✋", name: "문장 선택", desc: "[A / B] 골라 읽기", badge: "text" },
-      { type: "grid_NxM", icon: "⊞", name: "그리드", desc: "단어카드/이미지 배열" },
+      { type: "grid_NxM", icon: "⊞", name: "단어 카드", desc: "이미지+텍스트 카드 배열" },
     ],
   },
   {
