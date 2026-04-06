@@ -617,8 +617,39 @@ export const WritingPracticeForm = ({ config, onUpdate }: FormProps<WritingPract
 };
 
 // --- Coloring Area ---
-export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaConfig>) => (
+export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaConfig>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/svg+xml"].includes(file.type)) {
+      return;
+    }
+    // imageFillStore를 동적 import (테스트 단계 — 의존성 규칙 예외)
+    const { useImageFillStore } = await import("@/features/editor/store/imageFillStore");
+    const localUrl = URL.createObjectURL(file);
+    useImageFillStore.getState().requestImageFill(localUrl, undefined, undefined, { forceInsert: false });
+  };
+
+  return (
   <>
+    <div className="mb-3">
+      <label className={labelCls}>이미지 삽입</label>
+      <p className="text-[10px] text-black-45 mb-2">JPG, PNG, SVG 지원</p>
+      <label
+        className={`${addBtnCls} flex items-center justify-center gap-1.5 cursor-pointer`}
+      >
+        🖼 이미지 선택
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/svg+xml"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+      </label>
+      <p className="text-[10px] text-black-45 mt-1.5">
+        또는 캔버스에서 프레임을 클릭 후 왼쪽 이미지 탭에서 삽입
+      </p>
+    </div>
     <div className="mb-3">
       <label className={labelCls}>이미지 설명</label>
       <input
@@ -645,4 +676,5 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
       <div className="text-[10px] text-black-45 mt-1">0.6 = 페이지의 60%</div>
     </div>
   </>
-);
+  );
+};
