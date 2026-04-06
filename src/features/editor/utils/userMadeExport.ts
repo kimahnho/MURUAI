@@ -83,6 +83,7 @@ export const updateUserMadeVersion = async ({
   const payload = {
     name,
     canvas_data: canvasData,
+    updated_at: new Date().toISOString(),
   };
 
   const { error } = await supabase
