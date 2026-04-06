@@ -19,7 +19,6 @@ import {
 } from "./DesignPaperContextMenu";
 import { extractImageSrc, removeImageBackground } from "../../utils/removeBackground";
 import { useToastStore } from "../../store/toastStore";
-import { bumpPageRevision } from "../../utils/pageRevision";
 import { useTableStore } from "../../store/tableStore";
 import {
   insertRowAt,
@@ -251,7 +250,7 @@ const DesignPaper = ({
     if (!imageSrc) return;
 
     setIsRemovingBackground(true);
-    useToastStore.getState().showToast("배경을 제거하고 있어요...", "info");
+    useToastStore.getState().showToast("배경을 제거하고 있어요...", "primary");
 
     try {
       const newFill = await removeImageBackground(imageSrc);
@@ -264,8 +263,9 @@ const DesignPaper = ({
         onElementsChange(nextElements);
       }
       useToastStore.getState().showToast("배경이 제거되었어요!", "success");
-    } catch {
-      useToastStore.getState().showToast("배경 제거에 실패했어요.", "error");
+    } catch (err) {
+      console.error("[배경제거 실패]", err);
+      useToastStore.getState().showToast("배경 제거에 실패했어요.");
     } finally {
       setIsRemovingBackground(false);
       setContextMenu(null);

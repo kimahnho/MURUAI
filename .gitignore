@@ -25,7 +25,9 @@ dist-ssr
 *.sw?
 
 .vite
+.env
 .env.local
+.env*.local
 .tsbuildinfo
 
 batch
