@@ -29,6 +29,8 @@ interface WorksheetElementStore {
   insertedComponents: InsertedWorksheetComponent[];
   addInsertedComponent: (comp: InsertedWorksheetComponent) => void;
   updateComponentConfig: (id: string, config: WorksheetConfig) => void;
+  /** config만 업데이트 (재빌드 트리거 안 함) */
+  updateComponentConfigSilent: (id: string, config: WorksheetConfig) => void;
   updateElementIds: (id: string, elementIds: string[]) => void;
   moveInsertedComponent: (id: string, direction: -1 | 1) => void;
   reorderInsertedComponent: (fromIndex: number, toIndex: number) => void;
@@ -110,6 +112,14 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
       ),
       configChangeId: state.configChangeId + 1,
       lastChangedComponentId: id,
+    }));
+  },
+  /** config만 업데이트 (재빌드 트리거 안 함) — 캔버스에서 직접 변경된 값을 역동기화할 때 사용 */
+  updateComponentConfigSilent: (id: string, config: WorksheetConfig) => {
+    set((state) => ({
+      insertedComponents: state.insertedComponents.map((c) =>
+        c.id === id ? { ...c, config } : c,
+      ),
     }));
   },
   updateElementIds: (id, elementIds) => {

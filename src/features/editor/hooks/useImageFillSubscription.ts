@@ -264,7 +264,7 @@ export const useImageFillSubscription = ({
                 if ("subType" in el && (el as { subType?: string }).subType === "imageSlot") {
                   if (activeSelectedIds.includes(el.id) && config.items[slotIndex]) {
                     config.items[slotIndex] = { ...config.items[slotIndex], text: labelText };
-                    useWorksheetElementStore.getState().updateComponentConfig(comp.id, { ...comp.config });
+                    useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, { ...comp.config });
                   }
                   slotIndex++;
                 }
