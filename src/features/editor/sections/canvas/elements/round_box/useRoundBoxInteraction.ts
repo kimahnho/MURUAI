@@ -50,6 +50,7 @@ interface UseRoundBoxInteractionParams {
     isSelected: boolean,
     options?: { additive?: boolean },
   ) => void;
+  cropKeepFrame?: boolean;
 }
 
 const clampImageScale = (value: number) => Math.min(3, Math.max(0.5, value));
@@ -72,6 +73,7 @@ export const useRoundBoxInteraction = ({
   onImageOffsetChange,
   onImageBoxChange,
   onSelectChange,
+  cropKeepFrame = false,
 }: UseRoundBoxInteractionParams) => {
   const { startPointerDragSession, cleanup } = usePointerDragSession();
 
@@ -228,7 +230,42 @@ export const useRoundBoxInteraction = ({
         }
 
         if (type === "cropResize") {
-          if (!onRectChange || !onImageBoxChange || !handle) return;
+          if (!onImageBoxChange || !handle) return;
+
+          if (cropKeepFrame) {
+            // 감정카드/AAC카드: 프레임 고정, imageBox만 축소/확대
+            const minSize = 20;
+            const box = startImageBox;
+            let nextX = box.x;
+            let nextY = box.y;
+            let nextW = box.w;
+            let nextH = box.h;
+
+            if (handle.includes("e")) {
+              nextW = Math.max(minSize, box.w + dx);
+            }
+            if (handle.includes("s")) {
+              nextH = Math.max(minSize, box.h + dy);
+            }
+            if (handle.includes("w")) {
+              const d = Math.min(-dx, nextW - minSize);
+              nextW -= d;
+              nextX = box.x - d;
+            }
+            if (handle.includes("n")) {
+              const d = Math.min(-dy, nextH - minSize);
+              nextH -= d;
+              nextY = box.y - d;
+            }
+
+            const nextBox = { x: nextX, y: nextY, w: nextW, h: nextH };
+            imageBoxRef.current = nextBox;
+            onImageBoxChange(nextBox);
+            return;
+          }
+
+          // 순수 이미지: rect 축소 + imageBox 보상
+          if (!onRectChange) return;
           const minSize = 20;
           const box = startImageBox;
 
@@ -239,13 +276,11 @@ export const useRoundBoxInteraction = ({
           let bx = box.x;
           let by = box.y;
 
-          // west/north 핸들: element 원점이 이동하므로 imageBox를 반대로 보상
-          // → 이미지가 캔버스 위에서 제자리에 머무름
           if (handle.includes("w")) {
             const d = Math.min(dx, nw - minSize);
             nx += d;
             nw -= d;
-            bx -= d; // element가 오른쪽으로 이동한 만큼 imageBox를 왼쪽으로
+            bx -= d;
           }
           if (handle.includes("e")) {
             nw = Math.max(minSize, startRect.width + dx);
@@ -254,7 +289,7 @@ export const useRoundBoxInteraction = ({
             const d = Math.min(dy, nh - minSize);
             ny += d;
             nh -= d;
-            by -= d; // element가 아래로 이동한 만큼 imageBox를 위로
+            by -= d;
           }
           if (handle.includes("s")) {
             nh = Math.max(minSize, startRect.height + dy);
