@@ -106,12 +106,12 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
-  header_instruction: { icon: "📝", name: "지시문" },
+  header_instruction: { icon: "📝", name: "제목" },
   arrow_transform: { icon: "🔄", name: "변환 쌍" },
   sequential_repeat: { icon: "🔁", name: "반복 연습" },
   selection_sentence: { icon: "✋", name: "문장 선택" },
   grid_NxM: { icon: "⊞", name: "그리드" },
-  reward_tracker: { icon: "⭐", name: "보상 트래커" },
+  reward_tracker: { icon: "⭐", name: "칭찬 스탬프" },
   checklist_table: { icon: "📊", name: "체크리스트" },
   info_guide: { icon: "💬", name: "안내 가이드" },
   outline_title: { icon: "🅰️", name: "아웃라인 제목" },

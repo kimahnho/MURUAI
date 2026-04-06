@@ -83,17 +83,23 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
     curY += mmToPx(6);
   }
 
-  // Rule note
+  // Rule note — 배경 도형 폭을 텍스트 길이에 맞춤 (중앙 정렬)
   if (config.rule_note) {
+    const charWidth = 7; // fontSize 11 기준 한글 약 7px/자
+    const textPadding = mmToPx(4); // 좌우 패딩
+    const estimatedTextW = config.rule_note.length * charWidth + textPadding * 2;
+    const ruleW = Math.min(Math.max(estimatedTextW, mmToPx(30)), CONTENT_W); // 최소 30mm, 최대 전체
+    const ruleX = x + (CONTENT_W - ruleW) / 2; // 중앙 정렬
+
     els.push(shapeEl({
-      type: "roundRect", x, y: curY, w: CONTENT_W, h: mmToPx(6),
+      type: "roundRect", x: ruleX, y: curY, w: ruleW, h: mmToPx(6),
       fill: "#f0f7ff", radius: 4,
       border: { enabled: true, color: "#d0e3ff", width: 1, style: "solid" },
     }));
     els.push(textEl({
-      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: mmToPx(6),
+      x: ruleX + mmToPx(1), y: curY, w: ruleW - mmToPx(2), h: mmToPx(6),
       text: config.rule_note,
-      style: { fontSize: 11, fontWeight: "normal", color: "#2e6da4", underline: false, alignX: "left", alignY: "middle" },
+      style: { fontSize: 11, fontWeight: "normal", color: "#2e6da4", underline: false, alignX: "center", alignY: "middle" },
     }));
     curY += mmToPx(6);
   }
@@ -189,7 +195,7 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
     els.push(textEl({
       x, y: curY, w: CONTENT_W, h: mmToPx(5),
       text: `정답: ${answers}`,
-      style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "left", alignY: "middle" },
+      style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
     }));
     curY += mmToPx(6);
   }

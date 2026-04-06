@@ -20,8 +20,8 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
   {
     title: "기본 컴포넌트",
     items: [
-      { type: "header_instruction", icon: "📝", name: "지시문", desc: "제목 + 활동 안내", badge: "text" },
-      { type: "reward_tracker", icon: "⭐", name: "보상 트래커", desc: "스티커/별 칸", badge: "text" },
+      { type: "header_instruction", icon: "📝", name: "제목", desc: "제목 + 활동 안내", badge: "text" },
+      { type: "reward_tracker", icon: "⭐", name: "칭찬 스탬프", desc: "스티커/별 칸", badge: "text" },
       { type: "info_guide", icon: "💬", name: "안내 가이드", desc: "캐릭터 + 설명" },
     ],
   },

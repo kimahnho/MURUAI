@@ -156,9 +156,9 @@ export const SequentialRepeatForm = ({ config, onUpdate }: FormProps<SequentialR
         <div key={j} className={itemRowCls}>
           <input
             type="text"
-            className={`${inputCls} flex-1`}
+            className={`${inputCls} flex-1 min-w-16`}
             value={r.syllable}
-            placeholder="음절"
+            placeholder="바"
             onChange={(e) =>
               onUpdate((c) => ({
                 ...c,
@@ -168,7 +168,7 @@ export const SequentialRepeatForm = ({ config, onUpdate }: FormProps<SequentialR
           />
           <input
             type="number"
-            className={`${inputCls} w-14`}
+            className={`${inputCls} w-11`}
             value={r.repeat}
             min={3}
             max={10}
