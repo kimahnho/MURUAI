@@ -139,6 +139,19 @@ export const useImageFillSubscription = ({
           let hasChanges = false;
           const selectedIdSet = new Set(activeSelectedIds);
           const labelUpdates = new Map<string, string>();
+          // imageSlot의 labelId로 연결된 가이드 텍스트 클리어 (라벨 텍스트가 없어도)
+          page.elements.forEach((element) => {
+            if (
+              (element.type === "rect" || element.type === "roundRect" || element.type === "ellipse" || element.type === "mosaic" || element.type === "circleMosaic") &&
+              selectedIdSet.has(element.id) &&
+              (element as { subType?: string }).subType === "imageSlot" &&
+              element.labelId &&
+              !labelText
+            ) {
+              labelUpdates.set(element.labelId, "");
+            }
+          });
+
           if (labelText) {
             page.elements.forEach((element) => {
               if (

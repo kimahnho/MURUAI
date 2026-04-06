@@ -32,8 +32,8 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
   {
     title: "어휘 · 읽기 · 한글",
     items: [
-      { type: "outline_title", icon: "🅰️", iconBg: "bg-indigo-50", name: "아웃라인 제목", desc: "속 빈 큰 글씨 + 색칠", badge: "new" },
-      { type: "writing_practice", icon: "✏️", iconBg: "bg-lime-50", name: "쓰기 연습", desc: "음절 격자 따라쓰기", badge: "new" },
+      { type: "outline_title", icon: "🅰️", iconBg: "bg-indigo-50", name: "글자 색칠하기", desc: "속 빈 큰 글씨 + 색칠", badge: "new" },
+      { type: "writing_practice", icon: "✏️", iconBg: "bg-lime-50", name: "쓰기 칸 노트", desc: "음절 격자 따라쓰기", badge: "new" },
       { type: "coloring_area", icon: "🎨", iconBg: "bg-rose-50", name: "색칠공부", desc: "이미지 삽입 색칠 활동", badge: "new" },
     ],
   },

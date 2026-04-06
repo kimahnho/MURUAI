@@ -114,8 +114,8 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   reward_tracker: { icon: "⭐", name: "칭찬 스탬프" },
   checklist_table: { icon: "📊", name: "체크리스트" },
   info_guide: { icon: "💬", name: "안내 가이드" },
-  outline_title: { icon: "🅰️", name: "아웃라인 제목" },
-  writing_practice: { icon: "✏️", name: "쓰기 연습" },
+  outline_title: { icon: "🅰️", name: "글자 색칠하기" },
+  writing_practice: { icon: "✏️", name: "쓰기 칸 노트" },
   coloring_area: { icon: "🎨", name: "색칠공부" },
 };
 
