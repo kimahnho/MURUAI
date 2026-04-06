@@ -626,6 +626,7 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
         className={inputCls}
         value={config.image_description || ""}
         onChange={(e) => onUpdate((c) => ({ ...c, image_description: e.target.value }))}
+        placeholder="색칠공부 이미지를 삽입해보세요"
       />
     </div>
     <div>

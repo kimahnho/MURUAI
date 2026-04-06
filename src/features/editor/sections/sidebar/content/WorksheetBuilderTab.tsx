@@ -39,7 +39,7 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     items: [
       { type: "outline_title", icon: "🅰️", name: "아웃라인 제목", desc: "속 빈 큰 글씨", badge: "new" },
       { type: "writing_practice", icon: "✏️", name: "쓰기 연습", desc: "음절 격자 따라쓰기", badge: "new" },
-      { type: "coloring_area", icon: "🎨", name: "색칠 영역", desc: "라인아트 색칠 활동", badge: "new" },
+      { type: "coloring_area", icon: "🎨", name: "색칠공부", desc: "이미지 삽입 색칠 활동", badge: "new" },
     ],
   },
   {

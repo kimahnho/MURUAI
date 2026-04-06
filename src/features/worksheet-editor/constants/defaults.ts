@@ -100,7 +100,7 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
   } satisfies WritingPracticeConfig,
 
   coloring_area: {
-    image_description: "카네이션 꽃 라인아트",
+    image_description: "",
     size_ratio: 0.6,
   } satisfies ColoringAreaConfig,
 };
@@ -116,7 +116,7 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   info_guide: { icon: "💬", name: "안내 가이드" },
   outline_title: { icon: "🅰️", name: "아웃라인 제목" },
   writing_practice: { icon: "✏️", name: "쓰기 연습" },
-  coloring_area: { icon: "🎨", name: "색칠 영역" },
+  coloring_area: { icon: "🎨", name: "색칠공부" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {
