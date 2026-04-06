@@ -24,25 +24,36 @@ const buildCharacterPrompt = (
 ): string => {
   const gender = childInfo.gender === "male" ? "boy" : "girl";
   const age = childInfo.age;
+  const isCustomStyle = customPrompt && !stylePrompt;
 
-  // 유저 입력이 있으면 최우선 배치
+  if (isCustomStyle) {
+    return `${customPrompt}
+
+If the user did not describe a specific character, draw an 8-year-old child.
+
+Rules:
+- Single character, facing the viewer, friendly smile
+- Pure white (#FFFFFF) background
+- Empty hands — no objects, no props, no accessories unless the user described them
+- No extra decorations, patterns, or elements unless the user described them`;
+  }
+
+  // 프리셋 모드: 프리셋 그림체 + 선택적 유저 커스텀
   const userSection = customPrompt
-    ? `\nIMPORTANT — The user specifically requested the following character traits. These take top priority:\n${customPrompt}\n`
+    ? `\nThe user requested these specific traits (top priority):\n${customPrompt}\n`
     : "";
 
   return `Create a single full-body character design of a ${age}-year-old Korean ${gender}.
 ${userSection}
 Art style: ${stylePrompt}
 
-The character MUST:
+The character should:
 - Face the viewer in a friendly, neutral standing pose
 - Show the full body from head to feet
 - Have a warm, gentle smile
 
-Background MUST be:
-- Pure solid white (#FFFFFF), no gradients, no shadows, no scenery
-
-This is a character reference sheet — only one character, no background scene, no text or labels.`;
+Background: pure white (#FFFFFF), no scenery.
+This is a character reference sheet — one character only, no text or labels.`;
 };
 
 /**
@@ -59,13 +70,15 @@ export const generateCharacterReference = async (
   // }
 
   const preset = ART_STYLE_PRESETS.find((p) => p.id === artStyleId);
-  if (!preset) {
+  if (!preset && !customPrompt) {
     throw new Error(`Unknown art style: ${artStyleId}`);
   }
 
   // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
-  const prompt = buildCharacterPrompt(childInfo, preset.promptTemplate, customPrompt);
+  // custom이면 유저 입력이 곧 그림체 — 프리셋 프롬프트 사용 안 함
+  const stylePrompt = preset?.promptTemplate ?? "";
+  const prompt = buildCharacterPrompt(childInfo, stylePrompt, customPrompt);
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {

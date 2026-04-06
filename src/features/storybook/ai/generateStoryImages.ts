@@ -79,7 +79,14 @@ const translateScenesToEnglish = async (
   ai: GenAIClient,
   scenes: string[],
 ): Promise<string[]> => {
-  const prompt = `Translate each Korean scene description to concise English for an image generation prompt. Return a JSON array of strings only, no explanation.
+  const prompt = `Translate each Korean scene description to English optimized for image generation.
+
+Rules:
+- Preserve all visual details: background, character action, facial expression, props, atmosphere/color
+- Use vivid, specific English (not "a boy is happy" but "a boy with a wide grin and squinted eyes")
+- Keep each translation under 200 words
+- Do NOT add details not in the Korean original
+- Return a JSON array of strings only, no explanation.
 
 Input:
 ${JSON.stringify(scenes)}`;
@@ -106,8 +113,9 @@ ${JSON.stringify(scenes)}`;
 
 // ─── 단일 페이지 이미지 생성 (듀얼 레퍼런스) ───
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
+const RATE_LIMIT_DELAY_MS = 15000; // 429 에러 시 15초 대기
 
 // 캐릭터 레퍼런스만 있을 때 (sceneGroup 첫 페이지)
 const CHARACTER_ONLY_SUFFIX = `The attached image is the character reference for this story.
