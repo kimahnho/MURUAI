@@ -65,13 +65,15 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
   const els: CanvasElement[] = [];
   let curY = y;
 
+  const INNER_GAP = mmToPx(2); // 요소 사이 간격
+
   // Title
   els.push(textEl({
     x, y: curY, w: CONTENT_W, h: mmToPx(10),
     text: config.title,
     style: { fontSize: 28, fontWeight: "bold", color: "#2c2c2c", underline: false, alignX: "left", alignY: "middle" },
   }));
-  curY += mmToPx(10);
+  curY += mmToPx(10) + INNER_GAP;
 
   // Instruction
   if (config.instruction) {
@@ -80,10 +82,10 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
       text: config.instruction,
       style: { fontSize: 14, fontWeight: "normal", color: "#888888", underline: false, alignX: "left", alignY: "top" },
     }));
-    curY += mmToPx(6);
+    curY += mmToPx(6) + INNER_GAP;
   }
 
-  // Rule note — 배경 도형 폭을 텍스트 길이에 맞춤 (중앙 정렬)
+  // Rule note
   if (config.rule_note) {
     const charWidth = 7; // fontSize 11 기준 한글 약 7px/자
     const textPadding = mmToPx(4); // 좌우 패딩
@@ -233,21 +235,16 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
 
       if (isImageMode) {
         // 이미지 삽입 프레임 (imageSlot) — 1:1 정사각형
-        const labelId = uid();
+        // text/textStyle로 가이드 텍스트를 도형 내부에 직접 표시
+        // 이미지 삽입 시 이미지가 도형을 덮어씌워 텍스트가 자동으로 안 보임
         els.push(shapeEl({
           type: "roundRect",
           x: cx + 4, y: cy + 4, w: imgSize, h: imgSize,
           fill: "#f5f5f5", radius: 4,
           border: { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },
           subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
-          labelId,
-        }));
-        // 이미지 삽입 가이드 텍스트
-        els.push(textEl({
-          id: labelId,
-          x: cx + 4, y: cy + 4 + imgSize / 2 - 8, w: imgSize, h: 16,
-          text: "🖼",
-          style: { fontSize: 14, fontWeight: "normal", color: "#cccccc", underline: false, alignX: "center", alignY: "middle" },
+          text: "그림을 삽입해보세요",
+          textStyle: { fontSize: 10, fontWeight: "normal", color: "#bbbbbb" },
         }));
       }
 
