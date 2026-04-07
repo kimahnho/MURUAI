@@ -42,6 +42,7 @@ import {
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
+import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
 
 type TextPreset = {
   text: string;
@@ -166,6 +167,9 @@ export const useEditorSubscriptions = ({
 }: EditorSubscriptionsParams) => {
   const { docId } = useParams<{ docId: string }>();
   const { showEmotionInferenceToast } = useTemplateNotifications();
+
+  // 워크시트 컴포넌트 사용 분석 (독립 훅 — 추적 실패가 에디터에 영향 없음)
+  useWorksheetAnalytics(docId ?? null, selectedPageId);
 
   // imageFillStore에 현재 문서 ID를 동기화하여 이미지 사용 추적 시 문서 ID를 포함한다.
   useEffect(() => {
@@ -484,6 +488,8 @@ export const useEditorSubscriptions = ({
         const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
           page.elements,
           insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+          undefined,
+          true,
         );
         setPages((prev) =>
           prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
@@ -536,6 +542,8 @@ export const useEditorSubscriptions = ({
       const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
         updatedElements,
         latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        undefined,
+        true,
       );
 
       // reflow 후 elementIds 동기화

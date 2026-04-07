@@ -13,6 +13,10 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  SentenceCompletionConfig,
+  SentenceFillConfig,
+  PassageQuestionConfig,
+  MatchingConnectConfig,
 } from "../model/types";
 
 export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = {
@@ -103,6 +107,62 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
     image_description: "",
     size_ratio: 0.6,
   } satisfies ColoringAreaConfig,
+
+  sentence_completion: {
+    word_bank: ["가", "이", "는", "에", "를"],
+    word_bank_label: "보기",
+    sentences: [
+      { template: "할머니___ 거실___ 신문___ 읽는다." },
+      { template: "엄마___ 부엌___ 접시___ 닦았다." },
+    ],
+    font_size: 18,
+  } satisfies SentenceCompletionConfig,
+
+  sentence_fill: {
+    mode: "blank",
+    word_bank: null,
+    sentences: [
+      { template: "___가 밥을 먹어요.", correct_answer: null },
+      { template: "엄마가 아기에게 밥을 ___.", correct_answer: null },
+    ],
+    blank_style: "underline",
+    font_size: 18,
+    line_spacing: "normal",
+    show_correction_line: false,
+    show_answer_key: false,
+    numbering: true,
+  } satisfies SentenceFillConfig,
+
+  passage_question: {
+    instruction: "",
+    passage: "오늘 아침, 예진이는 스키장에 갔어요. 친구랑 부딪혀서 넘어졌어요. 그래서 병원에 가서 다리에 약을 발랐어요. 다쳐서 속상했어요.",
+    passage_background: "#FFF9E6",
+    questions: [
+      { question_text: "누가 넘어졌어요?", answer_type: "subjective", answer_space: "line", choices: [] },
+      { question_text: "어디에서 넘어졌어요?", answer_type: "subjective", answer_space: "line", choices: [] },
+      { question_text: "왜 넘어졌어요?", answer_type: "subjective", answer_space: "line", choices: [] },
+    ],
+    answer_line_length: "medium",
+  } satisfies PassageQuestionConfig,
+
+  matching_connect: {
+    pairs: [
+      { left: "허둥지둥", right: "매우 급하게 서두르는 모양" },
+      { left: "오손도손", right: "사이좋게 정답게 지내는 모양" },
+      { left: "두리번두리번", right: "이리저리 자꾸 살피는 모양" },
+    ],
+    left_header: null,
+    right_header: null,
+    item_style: {
+      shape: "rounded_rect",
+      left_background: "#FFF9E6",
+      right_background: "#E6F3FF",
+      font_size: 16,
+    },
+    numbering: true,
+    show_answer_key: false,
+    answer_key_text: "",
+  } satisfies MatchingConnectConfig,
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
@@ -117,6 +177,10 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   outline_title: { icon: "🅰️", name: "글자 색칠하기" },
   writing_practice: { icon: "✏️", name: "쓰기 칸 노트" },
   coloring_area: { icon: "🎨", name: "색칠공부" },
+  sentence_completion: { icon: "📝", name: "빈칸 완성" },
+  sentence_fill: { icon: "✍️", name: "빈칸 문장" },
+  passage_question: { icon: "📖", name: "지문+질문" },
+  matching_connect: { icon: "🔗", name: "의미 연결하기" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {

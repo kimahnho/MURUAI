@@ -1,4 +1,5 @@
 /** 컴포넌트별 속성 편집 폼 */
+import { useState, useRef } from "react";
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
@@ -11,6 +12,10 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  SentenceCompletionConfig,
+  SentenceFillConfig,
+  PassageQuestionConfig,
+  MatchingConnectConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
 
@@ -683,3 +688,462 @@ export const ColoringAreaForm = ({ config, onUpdate }: FormProps<ColoringAreaCon
   </>
   );
 };
+
+// --- Sentence Completion ---
+export const SentenceCompletionForm = ({ config, onUpdate }: FormProps<SentenceCompletionConfig>) => {
+  // 보기: 로컬 raw 문자열 유지 (쉼표 보존) + 매 입력마다 config 즉시 반영
+  const [wordBankRaw, setWordBankRaw] = useState((config.word_bank || []).join(", "));
+  const wordBankRef = useRef(config.word_bank);
+  // 외부에서 config가 바뀌면 (undo 등) 로컬 동기화
+  if (config.word_bank !== wordBankRef.current) {
+    wordBankRef.current = config.word_bank;
+    setWordBankRaw((config.word_bank || []).join(", "));
+  }
+
+  const handleWordBankChange = (raw: string) => {
+    setWordBankRaw(raw);
+    // 매 입력마다 즉시 파싱 → config 반영 (캔버스 실시간 업데이트)
+    if (raw.trim() === "") {
+      wordBankRef.current = null;
+      onUpdate((c) => ({ ...c, word_bank: null }));
+    } else {
+      const words = raw.split(",").map((w) => w.trim()).filter(Boolean);
+      const next = words.length > 0 ? words : null;
+      wordBankRef.current = next;
+      onUpdate((c) => ({ ...c, word_bank: next }));
+    }
+  };
+
+  return (
+    <>
+      {/* 보기 (word bank) — 쉼표 구분 단일 입력, 실시간 반영 */}
+      <div className="mb-3">
+        <label className={labelCls}>보기 (word bank)</label>
+        <p className="text-[10px] text-black-45 mb-1.5">쉼표(,)로 구분하여 입력 · 비우면 보기 없음</p>
+        <input
+          type="text"
+          className={inputCls}
+          value={wordBankRaw}
+          placeholder="가, 이, 는, 에, 를"
+          onChange={(e) => handleWordBankChange(e.target.value)}
+        />
+      </div>
+
+      {/* 문장 목록 */}
+      <div className="mb-3">
+        <label className={labelCls}>문장 (빈칸은 ___ 로 입력)</label>
+        {config.sentences.map((s, i) => (
+          <div key={i} className={itemRowCls}>
+            <input
+              type="text"
+              className={`${inputCls} flex-1`}
+              value={s.template}
+              placeholder="할머니___ 거실___ 신문___ 읽는다."
+              onChange={(e) =>
+                onUpdate((c) => ({
+                  ...c,
+                  sentences: c.sentences.map((ss, j) =>
+                    j === i ? { ...ss, template: e.target.value } : ss,
+                  ),
+                }))
+              }
+            />
+            <button
+              type="button"
+              className={removeBtnCls}
+              onClick={() =>
+                onUpdate((c) => ({
+                  ...c,
+                  sentences: c.sentences.filter((_, j) => j !== i),
+                }))
+              }
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className={addBtnCls}
+          onClick={() =>
+            onUpdate((c) => ({
+              ...c,
+              sentences: [...c.sentences, { template: "" }],
+            }))
+          }
+        >
+          + 문장 추가
+        </button>
+      </div>
+
+      {/* 글꼴 크기 */}
+      <div className="mb-3">
+        <label className={labelCls}>글꼴 크기</label>
+        <input
+          type="number"
+          className={inputCls}
+          value={config.font_size}
+          min={14}
+          max={24}
+          onChange={(e) =>
+            onUpdate((c) => ({ ...c, font_size: Number(e.target.value) }))
+          }
+        />
+      </div>
+    </>
+  );
+};
+
+// --- Sentence Fill ---
+export const SentenceFillForm = ({ config, onUpdate }: FormProps<SentenceFillConfig>) => {
+  // 보기 쉼표 구분 로컬 state
+  const [wbRaw, setWbRaw] = useState((config.word_bank || []).join(", "));
+  const wbRef = useRef(config.word_bank);
+  if (config.word_bank !== wbRef.current) {
+    wbRef.current = config.word_bank;
+    setWbRaw((config.word_bank || []).join(", "));
+  }
+  const handleWbChange = (raw: string) => {
+    setWbRaw(raw);
+    if (raw.trim() === "") {
+      wbRef.current = null;
+      onUpdate((c) => ({ ...c, word_bank: null }));
+    } else {
+      const words = raw.split(",").map((w) => w.trim()).filter(Boolean);
+      const next = words.length > 0 ? words : null;
+      wbRef.current = next;
+      onUpdate((c) => ({ ...c, word_bank: next }));
+    }
+  };
+
+  return (
+    <>
+      {/* 모드 선택 */}
+      <div className="mb-3">
+        <label className={labelCls}>모드</label>
+        <div className={chipGroupCls}>
+          {(["blank", "word_bank", "judge"] as const).map((m) => (
+            <Chip
+              key={m}
+              label={m === "blank" ? "빈칸" : m === "word_bank" ? "보기 제공" : "O/X 판단"}
+              isActive={config.mode === m}
+              onClick={() => {
+                const updates: Partial<SentenceFillConfig> = { mode: m };
+                if (m === "word_bank" && !config.word_bank) updates.word_bank = [""];
+                if (m === "judge") updates.show_correction_line = true;
+                onUpdate((c) => ({ ...c, ...updates }));
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 보기 (word_bank 모드) */}
+      {config.mode === "word_bank" && (
+        <div className="mb-3">
+          <label className={labelCls}>보기 단어</label>
+          <p className="text-[10px] text-black-45 mb-1.5">쉼표(,)로 구분하여 입력</p>
+          <input
+            type="text"
+            className={inputCls}
+            value={wbRaw}
+            placeholder="먹었어요, 먹어요, 먹을 거예요"
+            onChange={(e) => handleWbChange(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* 문장 목록 */}
+      <div className="mb-3">
+        <label className={labelCls}>
+          문장 {config.mode === "judge" ? "(앞에 ( ) 입력)" : "(빈칸은 ___ 로 입력)"}
+        </label>
+        {config.sentences.map((s, i) => (
+          <div key={i} className={`${itemRowCls} flex-col items-stretch`}>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                className={`${inputCls} flex-1`}
+                value={s.template}
+                placeholder={config.mode === "judge" ? "( ) 어제 마트에 갈 거예요" : "___가 밥을 먹어요."}
+                onChange={(e) =>
+                  onUpdate((c) => ({
+                    ...c,
+                    sentences: c.sentences.map((ss, j) => (j === i ? { ...ss, template: e.target.value } : ss)),
+                  }))
+                }
+              />
+              <button type="button" className={removeBtnCls} onClick={() => onUpdate((c) => ({ ...c, sentences: c.sentences.filter((_, j) => j !== i) }))}>×</button>
+            </div>
+          </div>
+        ))}
+        <button type="button" className={addBtnCls} onClick={() => onUpdate((c) => ({ ...c, sentences: [...c.sentences, { template: "", correct_answer: null }] }))}>+ 문장 추가</button>
+      </div>
+
+      {/* 간격 */}
+      <div className="mb-3">
+        <label className={labelCls}>문장 간격</label>
+        <div className={chipGroupCls}>
+          {(["compact", "normal", "wide"] as const).map((v) => (
+            <Chip
+              key={v}
+              label={v === "compact" ? "좁게" : v === "normal" ? "보통" : "넓게"}
+              isActive={config.line_spacing === v}
+              onClick={() => onUpdate((c) => ({ ...c, line_spacing: v }))}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* judge 모드 전용 */}
+      {config.mode === "judge" && (
+        <div className="mb-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={config.show_correction_line} onChange={(e) => onUpdate((c) => ({ ...c, show_correction_line: e.target.checked }))} className="w-4 h-4" />
+            <span className="text-[12px] text-black-70">수정 쓰기 라인 표시</span>
+          </label>
+        </div>
+      )}
+
+      {/* 글꼴 크기 */}
+      <div className="mb-3">
+        <label className={labelCls}>글꼴 크기</label>
+        <input type="number" className={inputCls} value={config.font_size} min={14} max={24} onChange={(e) => onUpdate((c) => ({ ...c, font_size: Number(e.target.value) }))} />
+      </div>
+    </>
+  );
+};
+
+// --- Passage Question ---
+// --- Passage Question ---
+const DEFAULT_CHOICES = ["", "", ""];
+
+export const PassageQuestionForm = ({ config, onUpdate }: FormProps<PassageQuestionConfig>) => {
+  // 질문별 선택지 펼침 상태
+  const [expandedChoices, setExpandedChoices] = useState<Set<number>>(new Set());
+  const toggleChoices = (idx: number) =>
+    setExpandedChoices((prev) => { const next = new Set(prev); next.has(idx) ? next.delete(idx) : next.add(idx); return next; });
+
+  const updateQ = (i: number, patch: Partial<PassageQuestionConfig["questions"][number]>) =>
+    onUpdate((c) => ({ ...c, questions: c.questions.map((qq, j) => (j === i ? { ...qq, ...patch } : qq)) }));
+
+  return (
+    <>
+      {/* 지시문 (선택) */}
+      <div className="mb-3">
+        <label className={labelCls}>지시문 (선택)</label>
+        <input
+          type="text"
+          className={inputCls}
+          value={config.instruction}
+          placeholder="예: 이야기를 읽고 질문에 답해 보세요."
+          onChange={(e) => onUpdate((c) => ({ ...c, instruction: e.target.value }))}
+        />
+      </div>
+
+      {/* 지문 */}
+      <div className="mb-3">
+        <label className={labelCls}>지문 (이야기)</label>
+        <textarea
+          className={textareaCls}
+          rows={4}
+          value={config.passage || ""}
+          placeholder="2~5문장의 짧은 이야기를 입력하세요. 비우면 질문만 표시됩니다."
+          onChange={(e) => onUpdate((c) => ({ ...c, passage: e.target.value || null }))}
+        />
+      </div>
+
+      {/* 지문 배경색 */}
+      <div className="mb-3">
+        <label className={labelCls}>지문 배경색</label>
+        <div className={chipGroupCls}>
+          {[
+            { value: "#FFF9E6", label: "노란" },
+            { value: "#E8F4FD", label: "파란" },
+            { value: "#F3E8FF", label: "보라" },
+            { value: "#E8F5E9", label: "초록" },
+            { value: "#FFFFFF", label: "없음" },
+          ].map((c) => (
+            <Chip key={c.value} label={c.label} isActive={config.passage_background === c.value} onClick={() => onUpdate((prev) => ({ ...prev, passage_background: c.value }))} />
+          ))}
+        </div>
+      </div>
+
+      {/* 답변 밑줄 길이 (주관식용) */}
+      <div className="mb-3">
+        <label className={labelCls}>주관식 답변 밑줄 길이</label>
+        <div className={chipGroupCls}>
+          {(["short", "medium", "full"] as const).map((v) => (
+            <Chip key={v} label={v === "short" ? "짧게" : v === "medium" ? "보통" : "전체폭"} isActive={config.answer_line_length === v} onClick={() => onUpdate((c) => ({ ...c, answer_line_length: v }))} />
+          ))}
+        </div>
+      </div>
+
+      {/* 질문 목록 */}
+      <div className="mb-3">
+        <label className={labelCls}>질문 목록</label>
+        {config.questions.map((q, i) => (
+          <div key={i} className="mb-2 p-2 bg-black-5 rounded-lg">
+            {/* 질문 입력 + 삭제 */}
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[11px] font-bold text-black-50 shrink-0">{i + 1}.</span>
+              <input
+                type="text"
+                className={`${inputCls} flex-1`}
+                value={q.question_text}
+                placeholder="질문을 입력하세요"
+                onChange={(e) => updateQ(i, { question_text: e.target.value })}
+              />
+              <button type="button" className={removeBtnCls} onClick={() => onUpdate((c) => ({ ...c, questions: c.questions.filter((_, j) => j !== i) }))}>×</button>
+            </div>
+
+            {/* 주관식 / 객관식 전환 */}
+            <div className="flex gap-1 mb-1.5">
+              <Chip label="주관식" isActive={q.answer_type === "subjective"} onClick={() => updateQ(i, { answer_type: "subjective" })} />
+              <Chip label="객관식" isActive={q.answer_type === "multiple_choice"} onClick={() => updateQ(i, { answer_type: "multiple_choice", choices: q.choices.length >= 2 ? q.choices : [...DEFAULT_CHOICES] })} />
+            </div>
+
+            {/* 객관식 선택지 */}
+            {q.answer_type === "multiple_choice" && (
+              <div className="ml-3">
+                <button
+                  type="button"
+                  className="text-[11px] text-primary font-semibold mb-1 cursor-pointer hover:underline"
+                  onClick={() => toggleChoices(i)}
+                >
+                  {expandedChoices.has(i) ? "▾ 선택지 접기" : "▸ 선택지 입력하기"} ({q.choices.length}개)
+                </button>
+                {expandedChoices.has(i) && (
+                  <div className="flex flex-col gap-1">
+                    {q.choices.map((ch, ci) => (
+                      <div key={ci} className="flex items-center gap-1">
+                        <span className="text-[10px] text-black-50 shrink-0 w-4">{"①②③④⑤"[ci]}</span>
+                        <input
+                          type="text"
+                          className={`${inputCls} flex-1 !py-1 !text-[12px]`}
+                          value={ch}
+                          placeholder={`선택지 ${ci + 1}`}
+                          onChange={(e) =>
+                            updateQ(i, { choices: q.choices.map((c, cj) => (cj === ci ? e.target.value : c)) })
+                          }
+                        />
+                        {q.choices.length > 2 && (
+                          <button type="button" className={`${removeBtnCls} !w-5 !h-5 !text-[11px]`} onClick={() => updateQ(i, { choices: q.choices.filter((_, cj) => cj !== ci) })}>×</button>
+                        )}
+                      </div>
+                    ))}
+                    {q.choices.length < 5 && (
+                      <button
+                        type="button"
+                        className="text-[11px] text-primary hover:underline cursor-pointer mt-0.5"
+                        onClick={() => updateQ(i, { choices: [...q.choices, ""] })}
+                      >
+                        + 선택지 추가 (최대 5개)
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          className={addBtnCls}
+          onClick={() => onUpdate((c) => ({
+            ...c,
+            questions: [...c.questions, { question_text: "", answer_type: "subjective" as const, answer_space: "line" as const, choices: [] }],
+          }))}
+        >
+          + 질문 추가
+        </button>
+      </div>
+    </>
+  );
+};
+
+// --- Matching Connect ---
+export const MatchingConnectForm = ({ config, onUpdate }: FormProps<MatchingConnectConfig>) => (
+  <>
+    {/* 헤더 라벨 */}
+    <div className="mb-3 flex gap-2">
+      <div className="flex-1">
+        <label className={labelCls}>좌측 헤더</label>
+        <input type="text" className={inputCls} value={config.left_header || ""} placeholder="어휘나 표현" onChange={(e) => onUpdate((c) => ({ ...c, left_header: e.target.value || null }))} />
+      </div>
+      <div className="flex-1">
+        <label className={labelCls}>우측 헤더</label>
+        <input type="text" className={inputCls} value={config.right_header || ""} placeholder="뜻" onChange={(e) => onUpdate((c) => ({ ...c, right_header: e.target.value || null }))} />
+      </div>
+    </div>
+
+    {/* 매칭 쌍 */}
+    <div className="mb-3">
+      <label className={labelCls}>매칭 쌍 (입력 순서 = 정답)</label>
+      <p className="text-[10px] text-black-45 mb-1.5">우측 항목은 캔버스에서 자동 셔플됩니다</p>
+      {config.pairs.map((p, i) => (
+        <div key={i} className="mb-1.5 p-2 bg-black-5 rounded-lg">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[11px] font-bold text-black-50 shrink-0 w-4">{"①②③④⑤⑥⑦⑧"[i]}</span>
+            <input
+              type="text" className={`${inputCls} flex-1`} value={p.left} placeholder="좌측 항목"
+              onChange={(e) => onUpdate((c) => ({ ...c, pairs: c.pairs.map((pp, j) => (j === i ? { ...pp, left: e.target.value } : pp)) }))}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-black-40 shrink-0 w-4">↔</span>
+            <input
+              type="text" className={`${inputCls} flex-1`} value={p.right} placeholder="우측 항목"
+              onChange={(e) => onUpdate((c) => ({ ...c, pairs: c.pairs.map((pp, j) => (j === i ? { ...pp, right: e.target.value } : pp)) }))}
+            />
+            {config.pairs.length > 3 && (
+              <button type="button" className={removeBtnCls} onClick={() => onUpdate((c) => ({ ...c, pairs: c.pairs.filter((_, j) => j !== i) }))}>×</button>
+            )}
+          </div>
+        </div>
+      ))}
+      {config.pairs.length < 8 && (
+        <button type="button" className={addBtnCls} onClick={() => onUpdate((c) => ({ ...c, pairs: [...c.pairs, { left: "", right: "" }] }))}>+ 쌍 추가 (최대 8개)</button>
+      )}
+    </div>
+
+    {/* 항목 모양 */}
+    <div className="mb-3">
+      <label className={labelCls}>항목 모양</label>
+      <div className={chipGroupCls}>
+        {(["rounded_rect", "pill"] as const).map((v) => (
+          <Chip key={v} label={v === "rounded_rect" ? "둥근사각형" : "알약형"}
+            isActive={config.item_style.shape === v}
+            onClick={() => onUpdate((c) => ({ ...c, item_style: { ...c.item_style, shape: v } }))} />
+        ))}
+      </div>
+    </div>
+
+    {/* 글자 크기 */}
+    <div className="mb-3">
+      <label className={labelCls}>글꼴 크기</label>
+      <input type="number" className={inputCls} value={config.item_style.font_size} min={14} max={22}
+        onChange={(e) => onUpdate((c) => ({ ...c, item_style: { ...c.item_style, font_size: Number(e.target.value) } }))} />
+    </div>
+
+    {/* 정답 표시 (교사용) */}
+    <div className="mb-3">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={config.show_answer_key} onChange={(e) => onUpdate((c) => ({ ...c, show_answer_key: e.target.checked }))} className="w-4 h-4" />
+        <span className="text-[12px] text-black-70">정답 표시 (교사용)</span>
+      </label>
+      {config.show_answer_key && (
+        <div className="mt-1.5">
+          <input
+            type="text"
+            className={inputCls}
+            value={config.answer_key_text}
+            placeholder="예: ①-다, ②-가, ③-나"
+            onChange={(e) => onUpdate((c) => ({ ...c, answer_key_text: e.target.value }))}
+          />
+          <p className="text-[10px] text-black-45 mt-1">캔버스 하단에 표시됩니다</p>
+        </div>
+      )}
+    </div>
+  </>
+);

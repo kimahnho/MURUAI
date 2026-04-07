@@ -11,7 +11,11 @@ export type WorksheetComponentType =
   | "info_guide"
   | "outline_title"
   | "writing_practice"
-  | "coloring_area";
+  | "coloring_area"
+  | "sentence_completion"
+  | "sentence_fill"
+  | "passage_question"
+  | "matching_connect";
 
 // --- Config types ---
 
@@ -87,6 +91,63 @@ export interface ColoringAreaConfig {
   size_ratio: number;
 }
 
+export interface SentenceCompletionConfig {
+  word_bank: string[] | null;
+  word_bank_label: string;
+  sentences: { template: string }[];
+  font_size: number;
+}
+
+export interface SentenceFillConfig {
+  mode: "blank" | "word_bank" | "judge";
+  word_bank: string[] | null;
+  sentences: { template: string; correct_answer: string | null }[];
+  blank_style: "underline" | "box" | "dotted";
+  font_size: number;
+  line_spacing: "compact" | "normal" | "wide";
+  show_correction_line: boolean;
+  show_answer_key: boolean;
+  numbering: boolean;
+}
+
+export interface PassageQuestionItem {
+  question_text: string;
+  answer_type: "subjective" | "multiple_choice";
+  /** 주관식 답변 공간 */
+  answer_space: "line" | "box" | "none";
+  /** 객관식 선택지 (최소 2, 최대 5) */
+  choices: string[];
+}
+
+export interface PassageQuestionConfig {
+  instruction: string;
+  passage: string | null;
+  passage_background: string;
+  questions: PassageQuestionItem[];
+  answer_line_length: "short" | "medium" | "full";
+}
+
+export interface MatchingConnectPair {
+  left: string;
+  right: string;
+}
+
+export interface MatchingConnectConfig {
+  pairs: MatchingConnectPair[];
+  left_header: string | null;
+  right_header: string | null;
+  item_style: {
+    shape: "rounded_rect" | "pill";
+    left_background: string;
+    right_background: string;
+    font_size: number;
+  };
+  numbering: boolean;
+  show_answer_key: boolean;
+  /** 교사용 정답 텍스트 (show_answer_key=true일 때 표시) */
+  answer_key_text: string;
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -98,7 +159,11 @@ export type WorksheetConfig =
   | InfoGuideConfig
   | OutlineTitleConfig
   | WritingPracticeConfig
-  | ColoringAreaConfig;
+  | ColoringAreaConfig
+  | SentenceCompletionConfig
+  | SentenceFillConfig
+  | PassageQuestionConfig
+  | MatchingConnectConfig;
 
 export interface WorksheetComponent {
   id: string;

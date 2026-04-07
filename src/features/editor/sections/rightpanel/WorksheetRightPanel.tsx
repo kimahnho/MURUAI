@@ -21,6 +21,10 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  SentenceCompletionConfig,
+  SentenceFillConfig,
+  PassageQuestionConfig,
+  MatchingConnectConfig,
 } from "@/features/worksheet-editor/model/types";
 import {
   HeaderInstructionForm,
@@ -34,6 +38,10 @@ import {
   OutlineTitleForm,
   WritingPracticeForm,
   ColoringAreaForm,
+  SentenceCompletionForm,
+  SentenceFillForm,
+  PassageQuestionForm,
+  MatchingConnectForm,
 } from "@/features/worksheet-editor/sections/forms/EditorForms";
 import type { InsertedWorksheetComponent } from "@/features/editor/store/worksheetElementStore";
 
@@ -100,6 +108,14 @@ const renderForm = (
       return <WritingPracticeForm config={comp.config as WritingPracticeConfig} onUpdate={onUpdate} />;
     case "coloring_area":
       return <ColoringAreaForm config={comp.config as ColoringAreaConfig} onUpdate={onUpdate} />;
+    case "sentence_completion":
+      return <SentenceCompletionForm config={comp.config as SentenceCompletionConfig} onUpdate={onUpdate} />;
+    case "sentence_fill":
+      return <SentenceFillForm config={comp.config as SentenceFillConfig} onUpdate={onUpdate} />;
+    case "passage_question":
+      return <PassageQuestionForm config={comp.config as PassageQuestionConfig} onUpdate={onUpdate} />;
+    case "matching_connect":
+      return <MatchingConnectForm config={comp.config as MatchingConnectConfig} onUpdate={onUpdate} />;
     default:
       return null;
   }

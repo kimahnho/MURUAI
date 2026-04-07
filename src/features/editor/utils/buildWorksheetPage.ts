@@ -18,6 +18,10 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  SentenceCompletionConfig,
+  SentenceFillConfig,
+  PassageQuestionConfig,
+  MatchingConnectConfig,
 } from "@/features/worksheet-editor/model/types";
 import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
@@ -197,6 +201,424 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
     els.push(textEl({
       x, y: curY, w: CONTENT_W, h: mmToPx(5),
       text: `정답: ${answers}`,
+      style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
+    }));
+    curY += mmToPx(6);
+  }
+
+  return { elements: els, height: curY - y };
+};
+
+const BLANK_MM_PER_UNDERSCORE = 5; // 밑줄 1개당 5mm, ___ = 15mm, ______ = 30mm
+
+const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const els: CanvasElement[] = [];
+  let curY = y;
+
+  // Word bank 칩 영역 — 칩 너비가 단어 길이에 따라 동적, 배경도 자동 늘어남
+  if (config.word_bank && config.word_bank.length > 0) {
+    const label = config.word_bank_label || "보기";
+    const chipH = mmToPx(6);
+    const chipGap = mmToPx(2);
+    const labelW = mmToPx(12);
+    const padX = mmToPx(2);
+    const padY = mmToPx(2);
+
+    // 칩 배치 계산 (줄 넘김 포함)
+    const chipRows: { word: string; cx: number; cy: number; w: number }[] = [];
+    let rowX = labelW + padX;
+    let rowY = 0;
+    let rowCount = 1;
+    for (const word of config.word_bank) {
+      // 글자 수에 비례한 너비 (최소 10mm)
+      const chipW = Math.max(mmToPx(10), mmToPx(4) + word.length * mmToPx(3.5));
+      // 줄 넘김
+      if (rowX + chipW > CONTENT_W - padX && rowX > labelW + padX) {
+        rowX = labelW + padX;
+        rowY += chipH + chipGap;
+        rowCount++;
+      }
+      chipRows.push({ word, cx: rowX, cy: rowY, w: chipW });
+      rowX += chipW + chipGap;
+    }
+
+    // 배경 높이: 칩 줄 수에 따라 동적
+    const bgH = padY * 2 + rowCount * chipH + (rowCount - 1) * chipGap;
+    els.push(shapeEl({
+      type: "roundRect", x, y: curY, w: CONTENT_W, h: bgH,
+      fill: "#fafafa", radius: 4,
+      border: { enabled: true, color: "#e0e0e0", width: 1, style: "solid" },
+    }));
+    // 라벨
+    els.push(textEl({
+      x: x + padX, y: curY, w: labelW, h: bgH,
+      text: `${label}:`,
+      style: { fontSize: 12, fontWeight: "bold", color: "#999999", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    // 칩 렌더
+    for (const chip of chipRows) {
+      const chipY = curY + padY + chip.cy;
+      els.push(shapeEl({
+        type: "roundRect", x: x + chip.cx, y: chipY, w: chip.w, h: chipH,
+        fill: "#ffffff", radius: 12,
+        border: { enabled: true, color: "#dddddd", width: 1, style: "solid" },
+      }));
+      els.push(textEl({
+        x: x + chip.cx, y: chipY, w: chip.w, h: chipH,
+        text: chip.word,
+        style: { fontSize: 14, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+      }));
+    }
+    curY += bgH + mmToPx(3);
+  }
+
+  // 문장 렌더링 — 항상 단일 칼럼, 번호는 텍스트에 직접 포함, ___를 밑줄 도형으로 치환
+  const lineH = mmToPx(10);
+  for (let i = 0; i < config.sentences.length; i++) {
+    const s = config.sentences[i];
+    const num = `${i + 1}. `;
+
+    // ___ 패턴을 분리해서 텍스트 + 밑줄 도형으로 교차 배치
+    const parts = s.template.split(/(_{3,})/);
+    let partX = x + mmToPx(2);
+    const fullText = `${num}${s.template}`;
+
+    // 밑줄이 없으면 텍스트만
+    if (parts.length <= 1) {
+      els.push(textEl({
+        x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: lineH,
+        text: fullText,
+        style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+      }));
+    } else {
+      // 밑줄이 있으면 분할 렌더
+      let isFirst = true;
+      for (const part of parts) {
+        if (part.match(/^_{3,}$/)) {
+          // 밑줄 도형 — 밑줄 개수에 비례 (최소 15mm)
+          const blankW = mmToPx(Math.max(15, part.length * BLANK_MM_PER_UNDERSCORE));
+          els.push(shapeEl({
+            type: "rect", x: partX, y: curY + lineH - mmToPx(1.5), w: blankW, h: 1.5,
+            fill: "#999999",
+          }));
+          partX += blankW + mmToPx(1);
+        } else if (part) {
+          // 텍스트 조각 (첫 조각에만 번호 붙임)
+          const txt = isFirst ? `${num}${part}` : part;
+          isFirst = false;
+          // 글자 수 기반 대략적 너비
+          const approxW = Math.max(mmToPx(5), txt.length * config.font_size * 0.6);
+          els.push(textEl({
+            x: partX, y: curY, w: approxW, h: lineH,
+            text: txt,
+            style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+          }));
+          partX += approxW;
+        }
+      }
+    }
+    curY += lineH;
+  }
+
+  return { elements: els, height: curY - y };
+};
+
+const LINE_SPACING_MM: Record<string, number> = { compact: 6, normal: 10, wide: 14 };
+
+const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const els: CanvasElement[] = [];
+  let curY = y;
+  const spacingMm = LINE_SPACING_MM[config.line_spacing] || 10;
+  const lineH = mmToPx(spacingMm);
+  const isJudge = config.mode === "judge";
+
+  // Word bank (word_bank 모드)
+  if (config.mode === "word_bank" && config.word_bank && config.word_bank.length > 0) {
+    const words = config.word_bank.filter(Boolean).join(" / ");
+    const bgH = mmToPx(10);
+    els.push(shapeEl({
+      type: "roundRect", x, y: curY, w: CONTENT_W, h: bgH,
+      fill: "#EEF4FF", radius: 6,
+      border: { enabled: true, color: "#C8D8EF", width: 1, style: "solid" },
+    }));
+    els.push(textEl({
+      x: x + mmToPx(2), y: curY, w: mmToPx(10), h: bgH,
+      text: "보기",
+      style: { fontSize: 12, fontWeight: "bold", color: "#888888", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    els.push(textEl({
+      x: x + mmToPx(13), y: curY, w: CONTENT_W - mmToPx(15), h: bgH,
+      text: words,
+      style: { fontSize: 16, fontWeight: "bold", color: "#2E5A8E", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    curY += bgH + mmToPx(3);
+  }
+
+  // 문장 렌더링
+  for (let i = 0; i < config.sentences.length; i++) {
+    const s = config.sentences[i];
+    const num = config.numbering ? `${i + 1}. ` : "";
+    const text = `${num}${s.template}`;
+
+    els.push(textEl({
+      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: lineH,
+      text,
+      style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    curY += lineH;
+
+    // judge 모드 수정 쓰기 라인
+    if (isJudge && config.show_correction_line) {
+      els.push(textEl({
+        x: x + mmToPx(6), y: curY, w: mmToPx(4), h: mmToPx(5),
+        text: "→",
+        style: { fontSize: 12, fontWeight: "normal", color: "#cccccc", underline: false, alignX: "left", alignY: "middle" },
+      }));
+      els.push(shapeEl({
+        type: "rect", x: x + mmToPx(10), y: curY + mmToPx(4), w: CONTENT_W - mmToPx(14), h: 1.5,
+        fill: "#cccccc",
+      }));
+      curY += mmToPx(6);
+    }
+  }
+
+  // 정답지
+  if (config.show_answer_key) {
+    curY += mmToPx(3);
+    const answers = config.sentences.map((s, i) => `${i + 1}.${s.correct_answer || "?"}`).join("  ");
+    els.push(textEl({
+      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      text: `정답: ${answers}`,
+      style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
+    }));
+    curY += mmToPx(6);
+  }
+
+  return { elements: els, height: curY - y };
+};
+
+const ANSWER_LENGTH_RATIO: Record<string, number> = { short: 0.4, medium: 0.7, full: 1.0 };
+const MC_LABELS = ["①", "②", "③", "④", "⑤"];
+
+const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const els: CanvasElement[] = [];
+  let curY = y;
+
+  // 지시문 (선택)
+  if (config.instruction) {
+    els.push(textEl({
+      x, y: curY, w: CONTENT_W, h: mmToPx(8),
+      text: config.instruction,
+      widthMode: "fixed",
+      style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    curY += mmToPx(11);
+  }
+
+  // 지문 영역
+  if (config.passage) {
+    const passageFontSize = 15;
+    const padX = mmToPx(4);
+    const padY = mmToPx(3);
+    const textW = CONTENT_W - padX * 2;
+    const charsPerLine = Math.floor(textW / (passageFontSize * 0.65));
+    const lineCount = Math.max(1, Math.ceil(config.passage.length / Math.max(1, charsPerLine)));
+    const passageH = padY * 2 + lineCount * passageFontSize * 1.8;
+    const bg = config.passage_background || "#FFF9E6";
+    els.push(shapeEl({
+      type: "roundRect", x, y: curY, w: CONTENT_W, h: passageH,
+      fill: bg, radius: 8,
+      border: { enabled: true, color: "#E8E0C8", width: 1, style: "solid" },
+    }));
+    els.push(textEl({
+      x: x + padX, y: curY + padY, w: textW, h: passageH - padY * 2,
+      text: config.passage,
+      widthMode: "fixed",
+      style: { fontSize: passageFontSize, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "top" },
+    }));
+    curY += passageH + mmToPx(4);
+  }
+
+  // 질문 목록
+  const qGap = mmToPx(10);
+  const answerRatio = ANSWER_LENGTH_RATIO[config.answer_line_length] || 0.7;
+
+  for (let i = 0; i < config.questions.length; i++) {
+    const q = config.questions[i];
+    const numText = `${i + 1}. `;
+
+    // 질문 텍스트
+    els.push(textEl({
+      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: mmToPx(7),
+      text: `${numText}${q.question_text}`,
+      widthMode: "fixed",
+      style: { fontSize: 16, fontWeight: "bold", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
+    curY += mmToPx(7);
+
+    if (q.answer_type === "multiple_choice") {
+      // 객관식 선택지
+      const choiceH = mmToPx(6);
+      const choiceIndent = x + mmToPx(8);
+      for (let ci = 0; ci < q.choices.length; ci++) {
+        const label = MC_LABELS[ci] || `${ci + 1}`;
+        els.push(textEl({
+          x: choiceIndent, y: curY, w: CONTENT_W - mmToPx(12), h: choiceH,
+          text: `${label} ${q.choices[ci] || ""}`,
+          widthMode: "fixed",
+          style: { fontSize: 14, fontWeight: "normal", color: "#555555", underline: false, alignX: "left", alignY: "middle" },
+        }));
+        curY += choiceH;
+      }
+    } else {
+      // 주관식 답변 공간 — 질문과 밑줄 사이 여백 확보
+      curY += mmToPx(3);
+      if (q.answer_space === "line") {
+        const lineW = (CONTENT_W - mmToPx(12)) * answerRatio;
+        els.push(shapeEl({
+          type: "rect", x: x + mmToPx(8), y: curY + mmToPx(5), w: lineW, h: 1.5,
+          fill: "#cccccc",
+        }));
+        curY += mmToPx(7);
+      } else if (q.answer_space === "box") {
+        const boxW = (CONTENT_W - mmToPx(12)) * answerRatio;
+        els.push(shapeEl({
+          type: "roundRect", x: x + mmToPx(8), y: curY + mmToPx(1), w: boxW, h: mmToPx(12),
+          fill: "#ffffff", radius: 4,
+          border: { enabled: true, color: "#dddddd", width: 1, style: "solid" },
+        }));
+        curY += mmToPx(14);
+      }
+    }
+
+    curY += qGap - mmToPx(7);
+  }
+
+  return { elements: els, height: curY - y };
+};
+
+// 결정적 셔플 (seed 기반 Fisher-Yates)
+const shuffleWithSeed = <T>(arr: T[], seed: number): T[] => {
+  const result = [...arr];
+  let s = seed;
+  const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
+
+const CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
+
+const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const els: CanvasElement[] = [];
+  let curY = y;
+  const pairCount = config.pairs.length;
+  const connectRatio = 0.25;
+  const sideW = (CONTENT_W * (1 - connectRatio)) / 2;
+  const connectW = CONTENT_W * connectRatio;
+  const leftX = x;
+  const rightX = x + sideW + connectW;
+  const fs = config.item_style.font_size;
+  const shape = config.item_style.shape;
+  const radius = shape === "pill" ? 999 : 8;
+  const leftBg = config.item_style.left_background;
+  const rightBg = config.item_style.right_background;
+
+  // 헤더
+  if (config.left_header || config.right_header) {
+    if (config.left_header) {
+      els.push(textEl({
+        x: leftX, y: curY, w: sideW, h: mmToPx(6),
+        text: config.left_header,
+        widthMode: "fixed",
+        style: { fontSize: 12, fontWeight: "bold", color: "#888888", underline: false, alignX: "center", alignY: "middle" },
+      }));
+    }
+    if (config.right_header) {
+      els.push(textEl({
+        x: rightX, y: curY, w: sideW, h: mmToPx(6),
+        text: config.right_header,
+        widthMode: "fixed",
+        style: { fontSize: 12, fontWeight: "bold", color: "#888888", underline: false, alignX: "center", alignY: "middle" },
+      }));
+    }
+    curY += mmToPx(8);
+  }
+
+  // 항목 높이/간격
+  const itemH = pairCount <= 5 ? mmToPx(14) : mmToPx(11);
+  const gap = pairCount <= 5 ? mmToPx(10) : mmToPx(6);
+  const dotR = mmToPx(1.5);
+
+  // 우측 셔플 (seed=42 고정 — 프리뷰/빌드 일관성)
+  const rightIndices = Array.from({ length: pairCount }, (_, i) => i);
+  let shuffled = shuffleWithSeed(rightIndices, 42);
+  // 원래 순서와 같으면 재셔플
+  if (shuffled.every((v, i) => v === i)) shuffled = shuffleWithSeed(rightIndices, 43);
+
+  for (let i = 0; i < pairCount; i++) {
+    const leftPair = config.pairs[i];
+    const rightPair = config.pairs[shuffled[i]];
+    const rowY = curY + i * (itemH + gap);
+
+    // 좌측 항목 박스
+    const leftNum = config.numbering ? `${CIRCLED_NUMS[i] || `${i + 1}.`} ` : "";
+    const boxW = sideW - mmToPx(4);
+    const textPad = mmToPx(3);
+    els.push(shapeEl({
+      type: "roundRect",
+      x: leftX, y: rowY, w: boxW, h: itemH,
+      fill: leftBg, radius,
+      border: { enabled: true, color: "#ddd", width: 1, style: "solid" },
+    }));
+    els.push(textEl({
+      x: leftX + textPad, y: rowY, w: boxW - textPad * 2, h: itemH,
+      text: `${leftNum}${leftPair.left}`,
+      widthMode: "fixed",
+      style: { fontSize: fs, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
+
+    // 좌측 dot
+    els.push(shapeEl({
+      type: "ellipse",
+      x: leftX + boxW + mmToPx(0.5), y: rowY + itemH / 2 - dotR, w: dotR * 2, h: dotR * 2,
+      fill: "#999999",
+    }));
+
+    // 우측 항목 박스
+    const rBoxX = rightX + mmToPx(4);
+    els.push(shapeEl({
+      type: "roundRect",
+      x: rBoxX, y: rowY, w: boxW, h: itemH,
+      fill: rightBg, radius,
+      border: { enabled: true, color: "#ddd", width: 1, style: "solid" },
+    }));
+    els.push(textEl({
+      x: rBoxX + textPad, y: rowY, w: boxW - textPad * 2, h: itemH,
+      text: rightPair.right,
+      widthMode: "fixed",
+      style: { fontSize: fs, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
+
+    // 우측 dot
+    els.push(shapeEl({
+      type: "ellipse",
+      x: rBoxX - dotR * 2 - mmToPx(0.5), y: rowY + itemH / 2 - dotR, w: dotR * 2, h: dotR * 2,
+      fill: "#999999",
+    }));
+  }
+
+  curY += pairCount * (itemH + gap) - gap;
+
+  // 정답 표시 (교사용)
+  if (config.show_answer_key && config.answer_key_text) {
+    curY += mmToPx(2);
+    els.push(textEl({
+      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      text: `정답: ${config.answer_key_text}`,
+      widthMode: "fixed",
       style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
     }));
     curY += mmToPx(6);
@@ -540,6 +962,14 @@ const buildComponentElements = (
       return buildWritingPractice(comp.config as WritingPracticeConfig, x, y);
     case "coloring_area":
       return buildColoringArea(comp.config as ColoringAreaConfig, x, y);
+    case "sentence_completion":
+      return buildSentenceCompletion(comp.config as SentenceCompletionConfig, x, y);
+    case "sentence_fill":
+      return buildSentenceFill(comp.config as SentenceFillConfig, x, y);
+    case "passage_question":
+      return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
+    case "matching_connect":
+      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
     default:
       return { elements: [], height: 0 };
   }
@@ -591,6 +1021,8 @@ export const reflowWorksheetComponents = (
   insertedComponents: { id: string; elementIds: string[] }[],
   /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
   skipComponentId?: string,
+  /** true면 드롭 시 X를 MARGIN으로 리셋 (기본 false — 드래그 중에는 X 건드리지 않음) */
+  resetX = false,
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
@@ -630,7 +1062,7 @@ export const reflowWorksheetComponents = (
       continue;
     }
 
-    // 이 컴포넌트의 기존 최소 Y
+    // 이 컴포넌트의 기존 최소 Y (+ resetX일 때 최소 X)
     let minY = Infinity;
     for (const el of compElements) {
       if ("y" in el) {
@@ -640,14 +1072,40 @@ export const reflowWorksheetComponents = (
     }
     if (minY === Infinity) minY = curY;
 
-    // delta 계산 — Y만 curY로 이동 (X는 건드리지 않음 — 빌드 시 중앙배치 유지)
     const deltaY = curY - minY;
 
-    const shifted = deltaY !== 0
+    // X 중앙 정렬: 드롭 시에만 적용 (드래그 중에는 X를 건드리지 않음)
+    // 컴포넌트 바운딩 박스의 중심을 페이지 중심(PAGE_W/2)에 맞춤
+    let deltaX = 0;
+    if (resetX) {
+      let minX = Infinity;
+      let maxRight = -Infinity;
+      for (const el of compElements) {
+        if ("x" in el) {
+          const x = (el as { x: number }).x;
+          if (x < minX) minX = x;
+        }
+        if ("x" in el && "w" in el) {
+          const right = (el as { x: number; w: number }).x + (el as { x: number; w: number }).w;
+          if (right > maxRight) maxRight = right;
+        }
+      }
+      if (minX !== Infinity && maxRight !== -Infinity) {
+        const compWidth = maxRight - minX;
+        const targetMinX = (PAGE_W - compWidth) / 2;
+        deltaX = targetMinX - minX;
+      }
+    }
+
+    const shifted = (deltaY !== 0 || deltaX !== 0)
       ? compElements.map((el) => {
-          if ("y" in el) {
-            return { ...el, y: (el as { y: number }).y + deltaY };
+          const hasX = "x" in el;
+          const hasY = "y" in el;
+          if (hasX && hasY) {
+            return { ...el, x: (el as { x: number }).x + deltaX, y: (el as { y: number }).y + deltaY };
           }
+          if (hasY) return { ...el, y: (el as { y: number }).y + deltaY };
+          if (hasX) return { ...el, x: (el as { x: number }).x + deltaX };
           return el;
         })
       : compElements;
