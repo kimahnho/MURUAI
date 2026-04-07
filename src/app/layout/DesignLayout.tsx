@@ -28,24 +28,11 @@ import {
   usePageSwapStore,
   waitForForceHydrate,
 } from "@/features/editor/store/pageSwapStore";
-import {
-  getAdaptiveCaptureScale,
-  waitForPdfFonts,
-  waitForPdfImages,
-  waitForNextFrame,
-  doubleRaf,
-  resolvePageOrientation,
-  assemblePdf,
-  isLikelyBlankCapture,
-} from "@/features/editor/utils/userMadeExport";
 import type { PdfPageCapture } from "@/features/editor/utils/userMadeExport";
-import { measurePerf } from "@/features/editor/utils/perfLogger";
 import { useDocumentLoader } from "@/features/editor/hooks/useDocumentLoader";
 import { useDocumentSave } from "@/features/editor/hooks/useDocumentSave";
 import { useExportModal } from "@/features/editor/hooks/useExportModal";
 import { useOrientationControl } from "@/features/editor/hooks/useOrientationControl";
-import { extractTextsFromPages } from "@/features/editor/utils/spellCheckTextExtractor";
-import { checkSpelling } from "@/features/editor/ai/checkSpelling";
 import type { Page } from "@/features/editor/model/pageTypes";
 import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 import { mp } from "@/shared/utils/mixpanel";
@@ -174,6 +161,11 @@ const DesignLayout = () => {
     openSpellCheckPanel();
     mp.track("맞춤법 검사 시작");
     try {
+      const [{ extractTextsFromPages }, { checkSpelling }] = await Promise.all([
+        import("@/features/editor/utils/spellCheckTextExtractor"),
+        import("@/features/editor/ai/checkSpelling"),
+      ]);
+
       const data = getCanvasData() as { pages?: Page[] } | null;
       const pages = Array.isArray(data?.pages) ? data.pages : [];
       const textItems = extractTextsFromPages(pages);
@@ -238,6 +230,21 @@ const DesignLayout = () => {
     onProgress?: (progress: { current: number; total: number }) => void;
     signal?: AbortSignal;
   }): Promise<Blob> => {
+    const [{ measurePerf }, pdfUtils] = await Promise.all([
+      import("@/features/editor/utils/perfLogger"),
+      import("@/features/editor/utils/userMadeExport"),
+    ]);
+    const {
+      getAdaptiveCaptureScale,
+      waitForPdfFonts,
+      waitForPdfImages,
+      waitForNextFrame,
+      doubleRaf,
+      resolvePageOrientation,
+      assemblePdf,
+      isLikelyBlankCapture,
+    } = pdfUtils;
+
     return measurePerf("pdf.generate.total", async () => {
       // Phase 1: 전체 페이지 하이드레이션 (스왑된 페이지를 IndexedDB에서 복원)
       usePageSwapStore.getState().setPdfPreviewActive(true);

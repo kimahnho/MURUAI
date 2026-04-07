@@ -13,6 +13,7 @@ paths:
 ```
 src/pages/editor/
   DesignPage.tsx                    # 메인 페이지 (pages와 features 1:1 대응)
+  StudioRecordingSection.tsx        # Studio 녹화 평가 (tester/admin 전용, lazy import)
 
 src/features/editor/
   sections/                         # 섹션별 분리

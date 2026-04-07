@@ -51,6 +51,17 @@ export interface StoryBook {
   createdAt: string;
 }
 
+export interface SavedCharacter {
+  id: string;
+  userId: string;
+  name: string;
+  imageUrl: string;
+  artStyleId: ArtStyleId | null;
+  promptTemplate: string | null;
+  childInfoSnapshot: ChildInfo | null;
+  createdAt: string;
+}
+
 // ─── 그림체 ───
 
 export type ArtStyleId =
@@ -58,7 +69,8 @@ export type ArtStyleId =
   | "pixar-style"
   | "cozy-sketch"
   | "crayon-sketch"
-  | "minimal-illustration";
+  | "minimal-illustration"
+  | "custom";
 
 export interface ArtStylePreset {
   id: ArtStyleId;
@@ -94,6 +106,8 @@ export interface WizardFormData {
   editedProposal: StoryProposal | null;
   referenceImageBase64?: string;
   characterPrompt?: string;
+  customPromptTemplate?: string;
+  selectedCharacterId?: string;
 }
 
 // ─── 상수 ───
@@ -104,11 +118,11 @@ export const DEFAULT_FONT_FAMILY = "Pretendard";
 
 export const TOPIC_PRESETS = [
   "실수를 두려워하지 않는 마음",
-  "학교는 무서운 곳이 아니야",
   "처음 만난 친구와 인사하는 법",
   "내 감정을 말로 표현하기",
-  "순서를 기다리는 연습",
-  "다른 사람의 마음 이해하기",
+  "비 오는 날 우산을 잃어버린 아이 이야기",
+  "학교에서 발표하기가 무서운 아이 이야기",
+  "토끼와 거북이",
 ] as const;
 
 export const TOPIC_MIN_LENGTH = 2;
@@ -158,4 +172,6 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   editedProposal: null,
   referenceImageBase64: undefined,
   characterPrompt: undefined,
+  customPromptTemplate: undefined,
+  selectedCharacterId: undefined,
 };

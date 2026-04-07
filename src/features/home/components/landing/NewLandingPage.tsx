@@ -9,11 +9,12 @@ import CtaSection from "./CtaSection";
 
 interface NewLandingPageProps {
   onImageClick: (imageUrl: string) => void;
+  onStartClick: () => void;
 }
 
-const NewLandingPage = ({ onImageClick }: NewLandingPageProps) => (
+const NewLandingPage = ({ onImageClick, onStartClick }: NewLandingPageProps) => (
   <>
-    <HeroSection />
+    <HeroSection onStartClick={onStartClick} />
     <ImageGallerySection onImageClick={onImageClick} />
     <EditorIntroSection />
     <ReasonsSection />

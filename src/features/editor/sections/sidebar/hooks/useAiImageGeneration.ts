@@ -162,9 +162,16 @@ const uploadToCloudinary = async (
  * - 일일 생성 횟수 제한 (20회/일) - 실제 생성 결과물 기준
  * - store 구독은 selector 기반
  */
+// 탭 전환 시에도 프롬프트와 스타일 선택을 유지하기 위한 모듈 레벨 변수
+let _persistedStyle: ImageStyle = "photo";
+let _persistedPrompt = "";
+
 export const useAiImageGeneration = () => {
-  const [selectedStyle, setSelectedStyle] = useState<ImageStyle>("photo");
-  const [prompt, setPrompt] = useState("");
+  const [selectedStyle, setSelectedStyleState] = useState<ImageStyle>(_persistedStyle);
+  const [prompt, setPromptState] = useState(_persistedPrompt);
+
+  const setSelectedStyle = (style: ImageStyle) => { _persistedStyle = style; setSelectedStyleState(style); };
+  const setPrompt = (value: string) => { _persistedPrompt = value; setPromptState(value); };
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);

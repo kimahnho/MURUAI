@@ -19,6 +19,8 @@ import {
   type ContextMenuState,
   type TableContextMenuActions,
 } from "./DesignPaperContextMenu";
+import { extractImageSrc, removeImageBackground } from "../../utils/removeBackground";
+import { useToastStore } from "../../store/toastStore";
 import { useTableStore } from "../../store/tableStore";
 import {
   insertRowAt,
@@ -157,8 +159,8 @@ const DesignPaper = ({
         ? {
             backgroundColor: "#ffffff",
             backgroundImage: `url(${resolvedBackground.imageUrl})`,
-            backgroundSize: "100% 100%",
-            backgroundPosition: "center",
+            backgroundSize: `${(resolvedBackground.scale ?? 1) * 100}%`,
+            backgroundPosition: `calc(50% + ${resolvedBackground.offsetX ?? 0}px) calc(50% + ${resolvedBackground.offsetY ?? 0}px)`,
             backgroundRepeat: "no-repeat",
           }
         : { backgroundColor: "#ffffff" };
@@ -240,6 +242,38 @@ const DesignPaper = ({
     readOnly,
     onElementsChange,
   });
+
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+
+  const handleRemoveBackground = async (elementId: string) => {
+    const element = elements.find((el) => el.id === elementId);
+    if (!element || !("fill" in element) || typeof element.fill !== "string") return;
+
+    const imageSrc = extractImageSrc(element.fill);
+    if (!imageSrc) return;
+
+    setIsRemovingBackground(true);
+    useToastStore.getState().showToast("배경을 제거하고 있어요...", "primary");
+
+    try {
+      const newFill = await removeImageBackground(imageSrc);
+      if (onElementsChange) {
+        const nextElements = elements.map((el) =>
+          el.id === elementId && "fill" in el
+            ? { ...el, fill: newFill }
+            : el,
+        );
+        onElementsChange(nextElements);
+      }
+      useToastStore.getState().showToast("배경이 제거되었어요!", "success");
+    } catch (err) {
+      console.error("[배경제거 실패]", err);
+      useToastStore.getState().showToast("배경 제거에 실패했어요.");
+    } finally {
+      setIsRemovingBackground(false);
+      setContextMenu(null);
+    }
+  };
 
   const {
     emotionSlotTextIds,
@@ -503,7 +537,7 @@ const DesignPaper = ({
     <div
       ref={containerRef}
       tabIndex={readOnly ? undefined : 0}
-      className={`relative bg-white shrink-0 outline-none transition-all ${
+      className={`relative bg-white shrink-0 outline-none transition-shadow ${
         readOnly ? "overflow-hidden" : "overflow-visible"
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
@@ -701,6 +735,8 @@ const DesignPaper = ({
         onUngroup={ungroupSelectedElements}
         onDelete={deleteSelectedElements}
         onMoveLayer={moveElement}
+        onRemoveBackground={(id) => { void handleRemoveBackground(id); }}
+        isRemovingBackground={isRemovingBackground}
         setContextMenu={setContextMenu}
       />
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>

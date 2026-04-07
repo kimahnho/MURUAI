@@ -6,7 +6,7 @@
 
 ```
 NewLandingPage
-  ├─ HeroSection           — 메인/서브 카피 + 뱃지
+  ├─ HeroSection           — 메인/서브 카피 + 뱃지 + "바로 시작해보기" 버튼
   ├─ ImageGallerySection   — 6열×4행 이미지 24개 그리드
   ├─ EditorIntroSection    — 캔버스 에디터 미리보기
   ├─ ReasonsSection        — 선택 이유 카드 3개
@@ -14,6 +14,20 @@ NewLandingPage
 ```
 
 **AuthModal**은 `MainLayout`에서 전역 렌더링 — 개별 페이지에서 import 불필요.
+
+## "바로 시작해보기" 버튼 흐름 (HomePage.tsx)
+
+### 인증 사용자
+
+1. HeroSection "바로 시작해보기" 클릭
+2. `openBlankDocument()` — 빈 A4 페이지(로고만) 생성
+3. `createAndOpenDocument({ pages })` → 에디터 이동
+
+### 비인증 사용자
+
+1. "바로 시작해보기" 클릭
+2. `sessionStorage("pendingStartClick")` 저장 → `openAuthModal()`
+3. 로그인 완료 → `useEffect`가 pendingStartClick 감지 → 자동 `openBlankDocument()`
 
 ## 이미지 클릭 흐름 (HomePage.tsx)
 
@@ -34,6 +48,7 @@ NewLandingPage
 | 키 | 용도 | 소비 위치 |
 |----|------|-----------|
 | `pendingLandingImage` | 비인증 시 클릭한 이미지 URL 보관 | `HomePage useEffect` |
+| `pendingStartClick` | 비인증 시 시작 버튼 클릭 보관 | `HomePage useEffect` |
 
 ## 이미지 갤러리
 
@@ -55,8 +70,8 @@ NewLandingPage
 
 ## 애니메이션 (framer-motion)
 
-- **HeroSection**: `initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}` 페이드인
-- **ImageGallerySection**: `whileInView` 스크롤 트리거 (`y: 30 → 0`, `once: true`)
+- **HeroSection**: `y: 20 → 0`, `duration: 0.5` — 즉시 시작, 가볍게 등장
+- **ImageGallerySection**: `whileInView`, `y: 36 → 0`, `duration: 0.7`, `delay: 0.15` — 히어로 뒤에 살짝 늦게 등장
 - **EditorIntroSection / ReasonsSection**: `whileInView` 스크롤 트리거 (`y: 40 → 0`, `once: true`)
 
 ## 관련 파일

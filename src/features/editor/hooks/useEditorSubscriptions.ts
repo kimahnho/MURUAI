@@ -36,7 +36,7 @@ import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { patchHeroImagesOnPages } from "../utils/buildEmotionStoryPages";
 import {
-  extractVocabLabels,
+  extractVocabData,
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
@@ -836,8 +836,8 @@ export const useEditorSubscriptions = ({
       }
 
       const sourcePage = currentPages[sourcePageIndex];
-      const words = extractVocabLabels(sourcePage.elements);
-      if (words.length === 0) {
+      const vocabItems = extractVocabData(sourcePage.elements);
+      if (vocabItems.length === 0) {
         useToastStore
           .getState()
           .showToast("어휘 카드에 목표 어휘를 입력해주세요.");
@@ -846,7 +846,8 @@ export const useEditorSubscriptions = ({
       }
 
       const orientation = sourcePage.orientation ?? "vertical";
-      const tracingPages = buildVocabTracingPages(words, orientation);
+      const { cellSize } = useVocabTracingStore.getState();
+      const tracingPages = buildVocabTracingPages(vocabItems, orientation, cellSize);
       const firstTracingPageId = tracingPages[0].id;
 
       setPages((prev) => {

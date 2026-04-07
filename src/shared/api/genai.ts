@@ -43,6 +43,33 @@ const createDirectClient = (apiKey: string): GenAIClient => {
   };
 };
 
+// Vertex AI 로컬 프록시 클라이언트 (개발 전용 — GCP 크레딧 사용)
+const createVertexProxyClient = (proxyUrl: string): GenAIClient => ({
+  models: {
+    generateContent: async (params) => {
+      const response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: params.model,
+          contents: params.contents,
+          config: params.config,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const message =
+          (errorBody as { error?: string }).error ??
+          `Vertex proxy error: ${response.status}`;
+        throw new Error(message);
+      }
+
+      return response.json() as Promise<GenAIResponse>;
+    },
+  },
+});
+
 // 프록시 클라이언트 (프로덕션)
 const createProxyClient = (): GenAIClient => ({
   models: {
@@ -86,11 +113,19 @@ let instance: GenAIClient | null = null;
 
 export const getGenAI = (): GenAIClient => {
   if (!instance) {
+    const vertexProxy = import.meta.env.VITE_VERTEX_PROXY_URL as string | undefined;
     const apiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
-    instance =
-      apiKey && import.meta.env.DEV
-        ? createDirectClient(apiKey)
-        : createProxyClient();
+
+    if (vertexProxy && import.meta.env.DEV) {
+      // Vertex AI 로컬 프록시 (GCP 크레딧 사용)
+      instance = createVertexProxyClient(vertexProxy);
+    } else if (apiKey && import.meta.env.DEV) {
+      // AI Studio 직접 호출
+      instance = createDirectClient(apiKey);
+    } else {
+      // 프로덕션 프록시
+      instance = createProxyClient();
+    }
   }
   return instance;
 };

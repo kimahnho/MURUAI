@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "vite-dev",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [".yarn/releases/yarn-4.12.0.cjs", "dev", "--port", "5173"],
+      "name": "muruai-dev",
+      "runtimeExecutable": "/opt/homebrew/bin/yarn",
+      "runtimeArgs": ["dev"],
       "port": 5173
     }
   ]

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clipboard,
   Copy,
+  Eraser,
   Group,
   Layers,
   Table,
@@ -57,6 +58,8 @@ type DesignPaperContextMenuProps = {
   onUngroup: () => void;
   onDelete: () => void;
   onMoveLayer: (id: string, direction: LayerDirection) => void;
+  onRemoveBackground?: (elementId: string) => void;
+  isRemovingBackground?: boolean;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
 };
 
@@ -87,7 +90,7 @@ const Submenu = ({
 
   return (
     <div
-      className={`absolute top-0 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg ${
+      className={`absolute bottom-0 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg ${
         openLeft ? "right-full" : "left-full"
       }`}
     >
@@ -128,6 +131,8 @@ export const DesignPaperContextMenu = ({
   onUngroup,
   onDelete,
   onMoveLayer,
+  onRemoveBackground,
+  isRemovingBackground,
   setContextMenu,
 }: DesignPaperContextMenuProps) => {
   const mainMenuRef = useRef<HTMLDivElement>(null);
@@ -140,6 +145,10 @@ export const DesignPaperContextMenu = ({
   const index = isElementMenu
     ? elements.findIndex((element) => element.id === elementId)
     : -1;
+  const targetElement = index >= 0 ? elements[index] : null;
+  const hasImageFill = targetElement && "fill" in targetElement &&
+    typeof targetElement.fill === "string" &&
+    (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"));
   const canForward = isElementMenu && index < elements.length - 1;
   const canBackward = isElementMenu && index > 0;
 
@@ -307,6 +316,26 @@ export const DesignPaperContextMenu = ({
             </span>
           </button>
         )}
+        {isElementMenu && hasImageFill && onRemoveBackground && elementId && (
+          <button
+            type="button"
+            onClick={() => { onRemoveBackground(elementId); }}
+            disabled={isRemovingBackground}
+            className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
+              isRemovingBackground ? "text-black-40" : "text-black-90 hover:bg-black-5 active:bg-black-10"
+            }`}
+          >
+            <span className="flex flex-col">
+              <span className="flex items-center gap-2">
+                <Eraser className="h-4 w-4" />
+                {isRemovingBackground ? "배경 제거 중..." : "배경 제거하기"}
+              </span>
+              {!isRemovingBackground && (
+                <span className="text-10-regular text-primary ml-6">단색 배경만 제거됩니다</span>
+              )}
+            </span>
+          </button>
+        )}
         {isElementMenu && (
           <button
             type="button"
@@ -337,29 +366,31 @@ export const DesignPaperContextMenu = ({
           </button>
         )}
         {isElementMenu && (
-          <button
-            type="button"
-            onMouseEnter={() => {
-              setContextMenu((prev) =>
-                prev ? { ...prev, activeSubmenu: "layer" } : prev,
-              );
-            }}
-            className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
-          >
-            <span className="flex items-center gap-2">
-              <Layers className="h-4 w-4" />
-              레이어
-            </span>
-            <ChevronRight className="h-4 w-4 text-black-50" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onMouseEnter={() => {
+                setContextMenu((prev) =>
+                  prev ? { ...prev, activeSubmenu: "layer" } : prev,
+                );
+              }}
+              className="flex w-full min-h-10 items-center justify-between px-3 py-2.5 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
+            >
+              <span className="flex items-center gap-2">
+                <Layers className="h-4 w-4" />
+                레이어
+              </span>
+              <ChevronRight className="h-4 w-4 text-black-50" />
+            </button>
+            {contextMenu.activeSubmenu === "layer" && (
+              <Submenu
+                items={layerItems}
+                mainMenuRef={mainMenuRef}
+              />
+            )}
+          </div>
         )}
       </div>
-      {isElementMenu && contextMenu.activeSubmenu === "layer" && (
-        <Submenu
-          items={layerItems}
-          mainMenuRef={mainMenuRef}
-        />
-      )}
       {showTableSubmenu && contextMenu.activeSubmenu === "table" && (
         <Submenu
           items={tableItems}

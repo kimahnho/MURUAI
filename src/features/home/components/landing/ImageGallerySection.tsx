@@ -40,10 +40,10 @@ const ImageGallerySection = ({ onImageClick }: ImageGallerySectionProps) => (
   <section className="flex w-full flex-col items-center px-4 py-14 md:px-10 md:py-20">
     <div className="flex w-full max-w-6xl flex-col items-center gap-8 md:gap-10">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 36 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-60px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
         className="grid w-full grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 md:gap-4"
       >
         {GALLERY_IMAGES.map((imageUrl, index) => (

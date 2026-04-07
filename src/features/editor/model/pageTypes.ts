@@ -13,7 +13,7 @@ export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 export type PageBackground =
   | { type: "none" }
   | { type: "color"; color: string }
-  | { type: "image"; imageUrl: string };
+  | { type: "image"; imageUrl: string; scale?: number; offsetX?: number; offsetY?: number };
 
 export type PageNumberFormat = "number" | "dash" | "korean" | "english";
 export type PageNumberPosition =

@@ -13,6 +13,7 @@ import type {
   PageLayout,
   WizardStep,
   WizardFormData,
+  SavedCharacter,
 } from "../model/storybookTypes";
 import { INITIAL_FORM_DATA } from "../model/storybookTypes";
 import { canAdvance } from "../model/storybookValidation";
@@ -64,6 +65,9 @@ interface StorybookWizardState {
   setArtStyle: (style: ArtStyleId) => void;
   setReferenceImageBase64: (base64: string) => void;
   setCharacterPrompt: (prompt: string) => void;
+  setCustomPromptTemplate: (prompt: string) => void;
+  selectSavedCharacter: (character: SavedCharacter) => void;
+  clearSavedCharacter: () => void;
   selectProposal: (id: string) => void;
   updateProposalPage: (
     proposalId: string,
@@ -119,7 +123,14 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         }
       }
 
-      set({ currentStep: next, error: null });
+      // 저장된 캐릭터가 선택된 경우 Step 4.5(참고 이미지)를 스킵
+      const shouldSkip45 = next === 45 && formData.selectedCharacterId && formData.referenceImageBase64;
+      set({ currentStep: shouldSkip45 ? 5 : next, error: null });
+
+      // Step 4.5를 스킵하고 5로 가면 바로 생성 시작
+      if (shouldSkip45) {
+        void get().generateBook();
+      }
     },
 
     goBack: () => {
@@ -161,6 +172,49 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
     setCharacterPrompt: (prompt) => {
       set((s) => ({ formData: { ...s.formData, characterPrompt: prompt } }));
+    },
+
+    setCustomPromptTemplate: (prompt) => {
+      set((s) => ({ formData: { ...s.formData, customPromptTemplate: prompt } }));
+    },
+
+    selectSavedCharacter: (character) => {
+      // 저장된 캐릭터 선택 시: 그림체 + 캐릭터 레퍼런스 동시 설정
+      set((s) => ({
+        formData: {
+          ...s.formData,
+          artStyle: character.artStyleId ?? "custom",
+          customPromptTemplate: character.promptTemplate ?? undefined,
+          selectedCharacterId: character.id,
+        },
+      }));
+      // Cloudinary URL에서 base64로 변환하여 referenceImageBase64 설정
+      void fetch(character.imageUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(",")[1];
+            set((s) => ({
+              formData: { ...s.formData, referenceImageBase64: base64 },
+            }));
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch(() => {
+          // 이미지 로드 실패 시 캐릭터 선택만 유지
+        });
+    },
+
+    clearSavedCharacter: () => {
+      set((s) => ({
+        formData: {
+          ...s.formData,
+          selectedCharacterId: undefined,
+          referenceImageBase64: undefined,
+        },
+      }));
     },
 
     selectProposal: (id) => {
@@ -231,14 +285,19 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
     generateCharacterRef: async () => {
       const { formData } = get();
-      if (!formData.artStyle || !formData.childInfo) return;
+      if (!formData.childInfo) return;
+
+      // custom이면 "custom" 그대로 전달 — generateCharacterReference에서 프리셋 없이 유저 입력만 사용
+      const effectiveArtStyle = formData.artStyle ?? "watercolor-fairytale";
 
       set({ isLoading: true, error: null });
       try {
         const base64 = await generateCharacterReference(
-          formData.artStyle,
+          effectiveArtStyle,
           formData.childInfo,
-          formData.characterPrompt,
+          formData.artStyle === "custom"
+            ? (formData.customPromptTemplate ?? formData.characterPrompt)
+            : formData.characterPrompt,
         );
         set((s) => ({
           formData: { ...s.formData, referenceImageBase64: base64 },
@@ -259,6 +318,10 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const proposal = formData.editedProposal;
       if (!proposal || !formData.artStyle || !formData.childInfo) return;
       const artStyle = formData.artStyle;
+      // custom 그림체인 경우 customPromptTemplate을 사용
+      const effectivePromptTemplate = artStyle === "custom"
+        ? formData.customPromptTemplate
+        : undefined;
 
       // 이미지 크레딧 체크 (스토리북은 부분 생성 미지원 — 전체 또는 차단)
       const imageCount = proposal.pages.length;
@@ -282,6 +345,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           formData.childInfo,
           formData.referenceImageBase64,
           (current, total) => { set({ imageProgress: { current, total } }); },
+          effectivePromptTemplate,
+          formData.topic,
         );
         set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
         mp.track("AI 스토리북 생성 완료", { art_style: artStyle, layout: formData.layout });

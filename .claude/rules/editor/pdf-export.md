@@ -16,8 +16,10 @@ paths:
 ## 1. 파이프라인 개요
 
 `DesignLayout.tsx`의 `generatePdf` 함수가 전체 흐름을 관장한다.
+PDF 유틸(`userMadeExport.ts`)과 `perfLogger`는 `generatePdf` 내부에서 **dynamic import**로 로딩한다 — 에디터 초기 로딩 시 PDF 코드를 포함시키지 않기 위함.
 
 ```
+Phase 0: PDF 유틸 + perfLogger dynamic import
 Phase 1: 전체 페이지 하이드레이션 (IndexedDB 복원)
 Phase 2: 하이드레이션 후 최신 페이지 읽기 + 필터
 Phase 3: html-to-image + jsPDF 라이브러리 동적 로드
