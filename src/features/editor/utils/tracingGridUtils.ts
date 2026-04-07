@@ -9,14 +9,40 @@ import { withLogoCanvasElements } from "./logoElement";
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
-// PRD 기술 상수
+// ────────────────────────────────────────────
+// 타입
+// ────────────────────────────────────────────
+
+export type VocabCellSize = "small" | "medium" | "large";
+
+export type VocabItem = {
+  label: string;
+  imageUrl: string;
+};
+
+// ────────────────────────────────────────────
+// 상수
+// ────────────────────────────────────────────
+
 const TRACING_FONT_FAMILY = "Hakgyoansim Badasseugi";
-const VOCAB_CELL_SIZE_MM = 13;
-const REPEAT_COUNT = 3;
+
+/** 셀 크기 프리셋 */
+export const CELL_SIZE_PRESETS: Record<
+  VocabCellSize,
+  { cellMm: number; guideFontSize: number; label: string }
+> = {
+  small: { cellMm: 13, guideFontSize: 32, label: "작게" },
+  medium: { cellMm: 16, guideFontSize: 40, label: "중간" },
+  large: { cellMm: 20, guideFontSize: 48, label: "크게" },
+};
+
+const MAX_REPEAT_COUNT = 3;
+const ROW_GAP_MM = 2;
 const REP_GAP_MM = 3;
-const WORD_LABEL_HEIGHT_MM = 8;
-const LABEL_TO_GRID_GAP_MM = 2;
+const IMAGE_TO_GRID_GAP_MM = 3;
+const IMAGE_SIZE_MM = 48;
 const SECTION_GAP_MM = 5;
+const SIDE_MARGIN_MM = 10;
 const PAGE_TOP_MARGIN_MM = 16;
 const PAGE_BOTTOM_MARGIN_MM = 16;
 const DYNAMIC_GAP_MAX_MM = 20;
@@ -28,12 +54,13 @@ const CELL_BORDER_COLOR = "#9CA3AF";
 const CELL_BORDER_WIDTH = 1.2;
 const CELL_FILL = "#FFFFFF";
 const GUIDE_TEXT_COLOR = "#D1D5DB";
-const LABEL_FONT_SIZE = 18;
-const GUIDE_FONT_SIZE = 32;
 
 const DEFAULT_LABEL_TEXT = "목표 어휘";
 
-// imageSlot ShapeElement 타입 가드
+// ────────────────────────────────────────────
+// 타입 가드
+// ────────────────────────────────────────────
+
 const isImageSlotWithLabel = (
   el: CanvasElement,
 ): el is ShapeElement & { labelId: string } =>
@@ -45,6 +72,10 @@ const isImageSlotWithLabel = (
   (el as ShapeElement).subType === "imageSlot" &&
   typeof (el as ShapeElement).labelId === "string" &&
   (el as ShapeElement).labelId!.length > 0;
+
+// ────────────────────────────────────────────
+// 데이터 추출
+// ────────────────────────────────────────────
 
 /**
  * 어휘 학습 카드 페이지에서 목표 어휘 텍스트를 추출한다.
@@ -68,14 +99,51 @@ export const extractVocabLabels = (elements: CanvasElement[]): string[] => {
     }
   }
 
-  // 중복 제거
   return [...new Set(labels)];
 };
 
 /**
- * 모든 imageSlot에 이미지가 삽입되고, 연결된 라벨 텍스트가 기본값에서 변경되었는지 확인한다.
- * 버튼 활성화 조건 판별용.
+ * 어휘 학습 카드 페이지에서 단어 + 이미지 URL을 함께 추출한다.
+ * 따라쓰기 그리드에 이미지를 표시하기 위해 사용.
  */
+export const extractVocabData = (elements: CanvasElement[]): VocabItem[] => {
+  const imageSlots = elements.filter(isImageSlotWithLabel);
+  const seen = new Set<string>();
+  const items: VocabItem[] = [];
+
+  for (const slot of imageSlots) {
+    const textEl = elements.find(
+      (el) => el.type === "text" && el.id === slot.labelId,
+    );
+    if (
+      !textEl ||
+      textEl.type !== "text" ||
+      textEl.text.trim() === "" ||
+      textEl.text === DEFAULT_LABEL_TEXT
+    ) {
+      continue;
+    }
+
+    const label = textEl.text.trim();
+    if (seen.has(label)) continue;
+    seen.add(label);
+
+    // fill은 "url(...)" 또는 "data:..." 형식 — 그대로 사용
+    const imageUrl =
+      slot.fill.startsWith("url(") || slot.fill.startsWith("data:")
+        ? slot.fill
+        : "";
+
+    items.push({ label, imageUrl });
+  }
+
+  return items;
+};
+
+// ────────────────────────────────────────────
+// 버튼 활성화 검증 (기존 유지)
+// ────────────────────────────────────────────
+
 export const isAllVocabFilled = (elements: CanvasElement[]): boolean => {
   const imageSlots = elements.filter(isImageSlotWithLabel);
   if (imageSlots.length === 0) return false;
@@ -97,10 +165,6 @@ export const isAllVocabFilled = (elements: CanvasElement[]): boolean => {
   });
 };
 
-/**
- * 어휘 카드 미충족 사유를 반환한다.
- * 배너 안내 문구 분기용.
- */
 export const getVocabUnfilledReason = (
   elements: CanvasElement[],
 ): "filled" | "missing-image" | "missing-label" => {
@@ -129,29 +193,66 @@ export const getVocabUnfilledReason = (
   return "filled";
 };
 
-// 단어 하나의 섹션 높이(mm)
-const SECTION_HEIGHT_MM =
-  WORD_LABEL_HEIGHT_MM + LABEL_TO_GRID_GAP_MM + VOCAB_CELL_SIZE_MM;
+// ────────────────────────────────────────────
+// A4 폭 적합성 검증
+// ────────────────────────────────────────────
+
+/** 그리드에 사용할 수 있는 가용 폭(mm) */
+const availableGridWidthMm = () =>
+  PAGE_WIDTH_MM - SIDE_MARGIN_MM - IMAGE_SIZE_MM - IMAGE_TO_GRID_GAP_MM - SIDE_MARGIN_MM;
 
 /**
- * 단어 목록을 페이지별로 분할한다 (그리디 채우기).
+ * 주어진 글자 수와 셀 크기에서 가능한 반복 횟수를 계산한다.
+ * 글자 수가 적으면 반복 횟수가 많고, 글자 수가 많으면 줄어든다. 최소 1회 보장.
  */
-const splitWordsIntoPages = (words: string[]): string[][] => {
+export const calcRepeatCount = (
+  charCount: number,
+  cellMm: number,
+): number => {
+  const oneRepMm = charCount * cellMm;
+  const available = availableGridWidthMm();
+  // (N × oneRep) + (N-1) × gap ≤ available → N ≤ (available + gap) / (oneRep + gap)
+  const maxReps = Math.floor((available + REP_GAP_MM) / (oneRepMm + REP_GAP_MM));
+  return Math.min(Math.max(maxReps, 1), MAX_REPEAT_COUNT);
+};
+
+/** 주어진 글자 수와 셀 크기가 A4 폭에 최소 1회라도 들어가는지 검증 */
+export const canFitInPage = (
+  maxCharCount: number,
+  cellSize: VocabCellSize,
+): boolean => {
+  const { cellMm } = CELL_SIZE_PRESETS[cellSize];
+  return calcRepeatCount(maxCharCount, cellMm) >= 1;
+};
+
+// ────────────────────────────────────────────
+// 그리드 레이아웃 생성
+// ────────────────────────────────────────────
+
+/** 단어 하나의 섹션 높이(mm) — 이미지와 그리드 중 큰 쪽 */
+const sectionHeightMm = (cellMm: number) =>
+  Math.max(IMAGE_SIZE_MM, 2 * cellMm + ROW_GAP_MM);
+
+/** 단어 목록을 페이지별로 분할 (그리디 채우기) */
+const splitItemsIntoPages = (
+  items: VocabItem[],
+  cellMm: number,
+): VocabItem[][] => {
   const availableHeight =
     PAGE_HEIGHT_MM - PAGE_TOP_MARGIN_MM - PAGE_BOTTOM_MARGIN_MM;
-  const pageGroups: string[][] = [];
-  let currentGroup: string[] = [];
+  const secHeight = sectionHeightMm(cellMm);
+  const pageGroups: VocabItem[][] = [];
+  let currentGroup: VocabItem[] = [];
   let currentHeight = 0;
 
-  for (const word of words) {
-    const needed =
-      SECTION_HEIGHT_MM + (currentGroup.length > 0 ? SECTION_GAP_MM : 0);
+  for (const item of items) {
+    const needed = secHeight + (currentGroup.length > 0 ? SECTION_GAP_MM : 0);
     if (currentHeight + needed > availableHeight && currentGroup.length > 0) {
       pageGroups.push(currentGroup);
-      currentGroup = [word];
-      currentHeight = SECTION_HEIGHT_MM;
+      currentGroup = [item];
+      currentHeight = secHeight;
     } else {
-      currentGroup.push(word);
+      currentGroup.push(item);
       currentHeight += needed;
     }
   }
@@ -165,92 +266,113 @@ const splitWordsIntoPages = (words: string[]): string[][] => {
 
 /**
  * 단어 하나에 대한 따라쓰기 섹션 요소들을 생성한다.
- * 가이드 1묶음 + 빈 칸 2묶음 = 3회 반복.
+ * 왼쪽: 이미지 (정사각형, 고정 크기)
+ * 오른쪽: N열 × 2행 (1행: 가이드 글자, 2행: 빈칸)
+ * 반복 횟수는 글자 수에 따라 동적으로 결정된다.
  */
 const buildWordSection = (
-  word: string,
+  item: VocabItem,
   sectionY: number,
+  cellMm: number,
+  guideFontSize: number,
 ): CanvasElement[] => {
-  const chars = [...word];
+  const chars = [...item.label];
   const charCount = chars.length;
-  const cellSizePx = mmToPx(VOCAB_CELL_SIZE_MM);
+  const cellSizePx = mmToPx(cellMm);
   const repGapPx = mmToPx(REP_GAP_MM);
+  const rowGapPx = mmToPx(ROW_GAP_MM);
+  const imageToGridGapPx = mmToPx(IMAGE_TO_GRID_GAP_MM);
 
-  // 가로 폭 계산: 3 × (글자수 × 셀크기) + 2 × 묶음간격
-  const repWidthPx = charCount * cellSizePx;
-  const totalWidthPx = REPEAT_COUNT * repWidthPx + (REPEAT_COUNT - 1) * repGapPx;
-  const startXPx = (mmToPx(PAGE_WIDTH_MM) - totalWidthPx) / 2;
+  const imageSizePx = mmToPx(IMAGE_SIZE_MM);
+  const gridHeightPx = 2 * cellSizePx + rowGapPx;
+
+  // 섹션 높이는 이미지와 그리드 중 큰 쪽
+  const sectionHeightPx = Math.max(imageSizePx, gridHeightPx);
+
+  // 글자 수에 따른 동적 반복 횟수
+  const repeatCount = calcRepeatCount(charCount, cellMm);
+
+  // 좌측 정렬
+  const startXPx = mmToPx(SIDE_MARGIN_MM);
+  const sectionYPx = mmToPx(sectionY);
+
+  // 그리드를 이미지 높이 기준으로 세로 중앙 정렬
+  const gridYOffset = (sectionHeightPx - gridHeightPx) / 2;
 
   const elements: CanvasElement[] = [];
 
-  // 단어 라벨 텍스트
-  const labelYPx = mmToPx(sectionY);
+  // ── 이미지 요소 (테두리 없음) ──
+  const hasImage = item.imageUrl.length > 0;
   elements.push({
     id: crypto.randomUUID(),
-    type: "text",
+    type: "roundRect" as const,
     x: startXPx,
-    y: labelYPx,
-    w: totalWidthPx,
-    h: mmToPx(WORD_LABEL_HEIGHT_MM),
-    text: word,
-    style: {
-      fontSize: LABEL_FONT_SIZE,
-      fontWeight: "bold",
-      fontFamily: TRACING_FONT_FAMILY,
-      color: "#111827",
-      underline: false,
-      alignX: "left",
-      alignY: "middle",
-    },
+    y: sectionYPx,
+    w: imageSizePx,
+    h: imageSizePx,
+    fill: hasImage ? item.imageUrl : "#F3F4F6",
+    radius: mmToPx(1.5),
+    ...(hasImage
+      ? {
+          imageBox: { x: 0, y: 0, w: imageSizePx, h: imageSizePx },
+          isStandaloneImage: true as const,
+        }
+      : {}),
   });
 
-  // 셀 그리드 시작 Y
-  const gridYPx = mmToPx(sectionY + WORD_LABEL_HEIGHT_MM + LABEL_TO_GRID_GAP_MM);
+  // ── 그리드 시작 X ──
+  const repWidthPx = charCount * cellSizePx;
+  const gridStartX = startXPx + imageSizePx + imageToGridGapPx;
 
-  for (let rep = 0; rep < REPEAT_COUNT; rep++) {
-    const repStartX = startXPx + rep * (repWidthPx + repGapPx);
+  // ── 2행 × N묶음 셀 (N = 글자 수에 따른 동적 반복 횟수) ──
+  for (let row = 0; row < 2; row++) {
+    const rowY = sectionYPx + gridYOffset + row * (cellSizePx + rowGapPx);
 
-    for (let ci = 0; ci < charCount; ci++) {
-      const cellX = repStartX + ci * cellSizePx;
+    for (let rep = 0; rep < repeatCount; rep++) {
+      const repStartX = gridStartX + rep * (repWidthPx + repGapPx);
 
-      // 셀 배경 (roundRect)
-      elements.push({
-        id: crypto.randomUUID(),
-        type: "roundRect",
-        x: cellX,
-        y: gridYPx,
-        w: cellSizePx,
-        h: cellSizePx,
-        fill: CELL_FILL,
-        radius: mmToPx(1),
-        border: {
-          enabled: true,
-          color: CELL_BORDER_COLOR,
-          width: CELL_BORDER_WIDTH,
-          style: "solid",
-        },
-      });
+      for (let ci = 0; ci < charCount; ci++) {
+        const cellX = repStartX + ci * cellSizePx;
 
-      // 가이드 글자 (첫 번째 묶음에만)
-      if (rep === 0) {
+        // 셀 배경
         elements.push({
           id: crypto.randomUUID(),
-          type: "text",
+          type: "roundRect" as const,
           x: cellX,
-          y: gridYPx,
+          y: rowY,
           w: cellSizePx,
           h: cellSizePx,
-          text: chars[ci],
-          style: {
-            fontSize: GUIDE_FONT_SIZE,
-            fontWeight: 700,
-            fontFamily: TRACING_FONT_FAMILY,
-            color: GUIDE_TEXT_COLOR,
-            underline: false,
-            alignX: "center",
-            alignY: "middle",
+          fill: CELL_FILL,
+          radius: mmToPx(1),
+          border: {
+            enabled: true,
+            color: CELL_BORDER_COLOR,
+            width: CELL_BORDER_WIDTH,
+            style: "solid" as const,
           },
         });
+
+        // 가이드 글자 (1행에만)
+        if (row === 0) {
+          elements.push({
+            id: crypto.randomUUID(),
+            type: "text" as const,
+            x: cellX,
+            y: rowY,
+            w: cellSizePx,
+            h: cellSizePx,
+            text: chars[ci],
+            style: {
+              fontSize: guideFontSize,
+              fontWeight: 700,
+              fontFamily: TRACING_FONT_FAMILY,
+              color: GUIDE_TEXT_COLOR,
+              underline: false as const,
+              alignX: "center" as const,
+              alignY: "middle" as const,
+            },
+          });
+        }
       }
     }
   }
@@ -259,20 +381,23 @@ const buildWordSection = (
 };
 
 /**
- * 단어 목록으로부터 따라쓰기 그리드 페이지 배열을 생성한다.
+ * 단어+이미지 목록으로부터 따라쓰기 그리드 페이지 배열을 생성한다.
  */
 export const buildVocabTracingPages = (
-  words: string[],
+  vocabItems: VocabItem[],
   orientation: "horizontal" | "vertical" = "vertical",
+  cellSize: VocabCellSize = "medium",
 ): Page[] => {
-  if (words.length === 0) return [];
+  if (vocabItems.length === 0) return [];
 
-  const pageGroups = splitWordsIntoPages(words);
+  const { cellMm, guideFontSize } = CELL_SIZE_PRESETS[cellSize];
+  const secHeight = sectionHeightMm(cellMm);
+  const pageGroups = splitItemsIntoPages(vocabItems, cellMm);
 
   return pageGroups.map((group) => {
     const availableHeight =
       PAGE_HEIGHT_MM - PAGE_TOP_MARGIN_MM - PAGE_BOTTOM_MARGIN_MM;
-    const totalContentHeight = group.length * SECTION_HEIGHT_MM;
+    const totalContentHeight = group.length * secHeight;
     const remainingSpace = availableHeight - totalContentHeight;
 
     // 동적 간격 계산
@@ -281,22 +406,23 @@ export const buildVocabTracingPages = (
         ? Math.min(remainingSpace / (group.length - 1), DYNAMIC_GAP_MAX_MM)
         : 0;
 
-    // 콘텐츠 블록을 세로 중앙에 배치
-    const totalWithGaps =
-      totalContentHeight + dynamicGap * (group.length - 1);
+    // 세로 중앙 배치
+    const totalWithGaps = totalContentHeight + dynamicGap * (group.length - 1);
     const startY =
       PAGE_TOP_MARGIN_MM + (availableHeight - totalWithGaps) / 2;
 
     const pageElements: CanvasElement[] = [];
 
-    group.forEach((word, index) => {
-      const sectionY = startY + index * (SECTION_HEIGHT_MM + dynamicGap);
-      pageElements.push(...buildWordSection(word, sectionY));
+    group.forEach((item, index) => {
+      const sectionY = startY + index * (secHeight + dynamicGap);
+      pageElements.push(
+        ...buildWordSection(item, sectionY, cellMm, guideFontSize),
+      );
     });
 
     return {
       id: crypto.randomUUID(),
-      pageNumber: 0, // 삽입 시 재부여됨
+      pageNumber: 0,
       templateId: null,
       orientation,
       elements: withLogoCanvasElements(pageElements),

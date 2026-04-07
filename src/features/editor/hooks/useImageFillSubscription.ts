@@ -149,7 +149,16 @@ export const useImageFillSubscription = ({
                 selectedIdSet.has(element.id)
               ) {
                 if (element.labelId) {
-                  labelUpdates.set(element.labelId, labelText);
+                  // 사용자가 직접 입력한 라벨은 보존 — 디폴트 텍스트일 때만 덮어쓴다
+                  const linkedLabel = page.elements.find(
+                    (el) => el.id === element.labelId
+                  );
+                  const currentText = linkedLabel && "text" in linkedLabel ? (linkedLabel as { text: string }).text : "";
+                  const DEFAULT_LABELS = ["목표 어휘", "단어", "(감정)"];
+                  const isDefaultLabel = !currentText || currentText.trim() === "" || DEFAULT_LABELS.includes(currentText.trim());
+                  if (isDefaultLabel) {
+                    labelUpdates.set(element.labelId, labelText);
+                  }
                 } else {
                   const aacLabelId = findLabelElementId(
                     page.elements,
