@@ -595,10 +595,10 @@ const TemplateContent = () => {
   return (
     <>
       {/* 탭 토글 */}
-      <div className="flex gap-1 mb-4 p-1 bg-black-20 rounded-lg">
+      <div className="flex gap-1.5 mb-4 p-1.5 bg-black-20 rounded-xl">
         <button
           type="button"
-          className={`flex-1 px-3 py-1.5 rounded-md text-12-semibold transition ${
+          className={`flex-1 px-4 py-2.5 rounded-xl text-14-semibold transition ${
             activeTab === "templates"
               ? "bg-white-100 text-black-90 shadow-sm"
               : "text-black-55 hover:text-black-70"
@@ -611,7 +611,7 @@ const TemplateContent = () => {
         </button>
         <button
           type="button"
-          className={`flex-1 px-3 py-1.5 rounded-md text-12-semibold transition ${
+          className={`flex-1 px-4 py-2.5 rounded-xl text-14-semibold transition ${
             activeTab === "builder"
               ? "bg-white-100 text-black-90 shadow-sm"
               : "text-black-55 hover:text-black-70"
