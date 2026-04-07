@@ -29,6 +29,12 @@ export type ElementType =
   | "aacCard"
   | "emotionCard";
 
+/** 워크시트 컴포넌트 소속 마커 — 요소가 어떤 워크시트 컴포넌트에 속하는지 식별 */
+export type WorksheetMeta = {
+  componentId: string;   // InsertedWorksheetComponent.id
+  componentType: string; // WorksheetComponentType
+};
+
 export type ElementBase = {
   id: string;
   type: ElementType;
@@ -36,6 +42,8 @@ export type ElementBase = {
   locked?: boolean;
   selectable?: boolean;
   groupId?: string;
+  /** 워크시트 컴포넌트 소속 마커 — 존재하면 이 요소는 워크시트 컴포넌트의 일부 */
+  worksheetMeta?: WorksheetMeta;
 };
 
 export type TextElement = ElementBase & {
@@ -66,6 +74,12 @@ export type TextElement = ElementBase & {
     lineHeight?: number;
     letterSpacing?: number;
     wordBreak?: "normal" | "break-all" | "keep-all";
+    /** 텍스트 외곽선 (-webkit-text-stroke) */
+    textStroke?: {
+      enabled: boolean;
+      width: number;    // px
+      color: string;
+    };
   };
 };
 

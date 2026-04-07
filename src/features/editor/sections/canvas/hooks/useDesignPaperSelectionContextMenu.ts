@@ -13,6 +13,7 @@ import { isEmotionSlotShape } from "../../../utils/designPaperUtils";
 import { isAacCardElement, isEmotionInferenceCard } from "../../../utils/imageFillUtils";
 import type { ContextMenuState } from "../DesignPaperContextMenu";
 import type { SideBarMenu } from "../../../store/sideBarStore";
+import { useWorksheetElementStore } from "../../../store/worksheetElementStore";
 
 interface UseDesignPaperSelectionContextMenuParams {
   readOnly: boolean;
@@ -70,26 +71,60 @@ export const useDesignPaperSelectionContextMenu = ({
       ) {
         return;
       }
-      // groupId가 있으면 같은 그룹의 모든 요소를 함께 선택한다.
-      const groupId = selectedElement.groupId;
-      const groupIds = groupId
-        ? elements
-            .filter(
-              (el) =>
-                el.groupId === groupId &&
-                !el.locked &&
-                el.selectable !== false,
-            )
-            .map((el) => el.id)
-        : [elementId];
-      const groupIdSet = new Set(groupIds);
-      const baseIds = options?.additive ? currentSelectedIds : [];
-      const nextSelectedIds = [
-        ...groupIds,
-        ...baseIds.filter((id) => !groupIdSet.has(id)),
-      ];
+      // worksheetMeta: 1-click = 컴포넌트 전체 선택, 전체 선택 상태에서 재클릭 = 개별 선택
+      // 개별 선택 후 더블클릭 → 기존 텍스트 편집/도형 편집이 자연스럽게 동작
+      const wsMeta = selectedElement.worksheetMeta;
+      let nextSelectedIds: string[];
+
+      if (wsMeta && !options?.additive) {
+        const compElementIds = elements
+          .filter((el) => el.worksheetMeta?.componentId === wsMeta.componentId && !el.locked && el.selectable !== false)
+          .map((el) => el.id);
+
+        // 이미 이 컴포넌트가 전체 선택된 상태에서 클릭 → 개별 요소 선택
+        const isAlreadyComponentSelected =
+          currentSelectedIds.length > 1 &&
+          compElementIds.length > 0 &&
+          compElementIds.every((id) => currentSelectedIds.includes(id));
+
+        if (isAlreadyComponentSelected) {
+          nextSelectedIds = [elementId];
+        } else {
+          nextSelectedIds = compElementIds;
+        }
+      } else {
+        // 기존 groupId 로직
+        const groupId = selectedElement.groupId;
+        const groupIds = groupId
+          ? elements
+              .filter(
+                (el) =>
+                  el.groupId === groupId &&
+                  !el.locked &&
+                  el.selectable !== false,
+              )
+              .map((el) => el.id)
+          : [elementId];
+        const groupIdSet = new Set(groupIds);
+        const baseIds = options?.additive ? currentSelectedIds : [];
+        nextSelectedIds = [
+          ...groupIds,
+          ...baseIds.filter((id) => !groupIdSet.has(id)),
+        ];
+      }
+
       selectedIdsRef.current = nextSelectedIds;
       onSelectedIdsChange?.(nextSelectedIds);
+
+      // 우측 워크시트 편집 패널 연동 — 클릭한 요소의 컴포넌트를 자동 선택/펼침
+      if (wsMeta) {
+        const { insertedComponents, setSelectedComponentId, showPanel } = useWorksheetElementStore.getState();
+        const matchedComp = insertedComponents.find((c) => c.id === wsMeta.componentId);
+        if (matchedComp) {
+          setSelectedComponentId(matchedComp.id);
+          showPanel();
+        }
+      }
       if (
         isEmotionSlotShape(selectedElement) ||
         isEmotionInferenceCard(selectedElement)

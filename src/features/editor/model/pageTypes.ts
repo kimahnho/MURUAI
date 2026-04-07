@@ -6,6 +6,7 @@ import type { TemplateId } from "../templates/templateRegistry";
 import type { StoryItem } from "../ai/generateEmotionStory";
 import type { BannerPhase } from "../store/emotionSceneStore";
 import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
+import type { WorksheetComponentType, WorksheetConfig } from "@/features/worksheet-editor/model/types";
 
 export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 
@@ -28,6 +29,14 @@ export interface PageNumbering {
   startPage: number;
 }
 
+/** 페이지에 삽입된 워크시트 컴포넌트 메타 — canvas_data에 영속화 */
+export interface PageWorksheetComponent {
+  id: string;
+  type: WorksheetComponentType;
+  config: WorksheetConfig;
+  elementIds: string[];
+}
+
 export interface Page {
   id: string;
   pageNumber: number;
@@ -38,6 +47,8 @@ export interface Page {
   orientation?: "horizontal" | "vertical";
   rev?: number;
   isSwapped?: boolean;
+  /** 이 페이지에 삽입된 워크시트 컴포넌트 목록 — 기존 문서에 없으면 undefined */
+  worksheetComponents?: PageWorksheetComponent[];
 }
 
 export type EmotionSceneMeta = {

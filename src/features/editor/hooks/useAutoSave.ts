@@ -154,6 +154,21 @@ export const useAutoSave = ({
 
         mp.track("문서 저장", { mode: isManual ? "manual" : "auto", page_count: lastPagesRef.current.length });
 
+        // 워크시트 분석 snapshot (try-catch 격리 — 실패해도 저장에 영향 없음)
+        try {
+          const { trackWorksheetSnapshot, shouldEmitSnapshot } = await import("@/shared/utils/trackWorksheetAnalytics");
+          for (const p of pagesToPersist) {
+            const wsComps = p.worksheetComponents;
+            if (!wsComps || wsComps.length === 0) continue;
+            const snapshotData = wsComps.map((c) => ({ id: c.id, type: c.type, config: c.config, element_count: c.elementIds.length }));
+            if (shouldEmitSnapshot(p.id, snapshotData)) {
+              trackWorksheetSnapshot(docId, p.id, { components: snapshotData, total: wsComps.length });
+            }
+          }
+        } catch {
+          // 워크시트 분석 snapshot 실패 무시
+        }
+
         // 자동 저장은 조용히 처리하고, 수동 저장만 사용자 피드백을 노출한다.
         if (isManual) {
           setSaveState("saved");

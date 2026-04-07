@@ -39,6 +39,10 @@ import {
   extractVocabData,
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
+import { useWorksheetElementStore } from "../store/worksheetElementStore";
+import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
+import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
+import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
 
 type TextPreset = {
   text: string;
@@ -163,6 +167,9 @@ export const useEditorSubscriptions = ({
 }: EditorSubscriptionsParams) => {
   const { docId } = useParams<{ docId: string }>();
   const { showEmotionInferenceToast } = useTemplateNotifications();
+
+  // 워크시트 컴포넌트 사용 분석 (독립 훅 — 추적 실패가 에디터에 영향 없음)
+  useWorksheetAnalytics(docId ?? null, selectedPageId);
 
   // imageFillStore에 현재 문서 ID를 동기화하여 이미지 사용 추적 시 문서 ID를 포함한다.
   useEffect(() => {
@@ -320,6 +327,436 @@ export const useEditorSubscriptions = ({
     addLineElement,
     addTableElement,
   });
+
+  // 학습자료 컴포넌트 삽입 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.requestId !== prevState.requestId && Boolean(state.requestedComponent),
+    onChange: (state) => {
+      if (!state.requestedComponent) return;
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      // 현재 페이지 최하단 Y좌표 계산
+      let maxY = 56.7; // mmToPx(15) ≈ 기본 마진
+      for (const el of page.elements) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > maxY) maxY = bottom;
+        }
+      }
+      const insertY = maxY + 38; // ~10mm 간격
+
+      const compType = state.requestedComponent;
+      const newElements = buildWorksheetComponentElements(compType, insertY);
+      if (newElements.length === 0) return;
+
+      // 컴포넌트 ID 생성
+      const wsCompId = crypto.randomUUID();
+
+      // worksheetMeta 스탬프 (groupId 없음 → 개별 요소 클릭/편집 가능)
+      const stampedElements = newElements.map((el) => ({
+        ...el,
+        worksheetMeta: { componentId: wsCompId, componentType: compType },
+      }));
+
+      const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+        id: wsCompId,
+        type: compType,
+        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        elementIds: stampedElements.map((el) => el.id),
+      };
+
+      // 캔버스 + 페이지 worksheetComponents에 동시 저장
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? {
+                ...p,
+                elements: [...p.elements, ...stampedElements],
+                worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+              }
+            : p,
+        ),
+      );
+      setSelectedIds(stampedElements.map((el) => el.id));
+      setEditingTextId(null);
+
+      // 인메모리 스토어에도 추가 (편집 패널용)
+      useWorksheetElementStore.getState().addInsertedComponent({
+        id: wsCompId,
+        type: compType,
+        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        elementIds: stampedElements.map((el) => el.id),
+      });
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
+  });
+
+  // 학습자료 예제 일괄 삽입 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.batchRequestId !== prevState.batchRequestId && Boolean(state.requestedBatch),
+    onChange: (state) => {
+      if (!state.requestedBatch || state.requestedBatch.length === 0) return;
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      let maxY = 56.7;
+      for (const el of page.elements) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > maxY) maxY = bottom;
+        }
+      }
+
+      const allNewElements: import("../model/canvasTypes").CanvasElement[] = [];
+      const batchWsComps: import("../model/pageTypes").PageWorksheetComponent[] = [];
+      let curY = maxY + 38;
+      const GAP = 38;
+
+      for (const comp of state.requestedBatch) {
+        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
+
+        const wsCompId = crypto.randomUUID();
+        const stampedElements = elements.map((el) => ({
+          ...el,
+          worksheetMeta: { componentId: wsCompId, componentType: comp.type },
+        }));
+        allNewElements.push(...stampedElements);
+
+        let compMaxY = curY;
+        for (const el of stampedElements) {
+          if ("y" in el && "h" in el) {
+            const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+            if (bottom > compMaxY) compMaxY = bottom;
+          }
+        }
+        curY = compMaxY + GAP;
+
+        const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+          id: wsCompId,
+          type: comp.type,
+          config: structuredClone(comp.config),
+          elementIds: stampedElements.map((el) => el.id),
+        };
+        batchWsComps.push(wsComp);
+
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId,
+          type: comp.type,
+          config: structuredClone(comp.config),
+          elementIds: stampedElements.map((el) => el.id),
+        });
+      }
+
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? {
+                ...p,
+                elements: [...p.elements, ...allNewElements],
+                worksheetComponents: [...(p.worksheetComponents ?? []), ...batchWsComps],
+              }
+            : p,
+        ),
+      );
+      setSelectedIds([]);
+      setEditingTextId(null);
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages, setSelectedIds, setEditingTextId],
+  });
+
+  // 학습자료 컴포넌트 config 변경 → 캔버스 요소 재빌드 구독
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.configChangeId !== prevState.configChangeId,
+    onChange: () => {
+      const { insertedComponents, lastChangedComponentId } = useWorksheetElementStore.getState();
+
+      // 순서 변경 → 전체 reflow만 수행 (재빌드 불필요)
+      if (lastChangedComponentId === "__reorder__") {
+        const activePageId = selectedPageIdRef.current;
+        const page = pagesRef.current.find((p) => p.id === activePageId);
+        if (!page) return;
+
+        const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
+          page.elements,
+          insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+          undefined,
+          true,
+        );
+        setPages((prev) =>
+          prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
+        );
+        for (const [compId, newIds] of updatedElementIds) {
+          useWorksheetElementStore.getState().updateElementIds(compId, newIds);
+        }
+        return;
+      }
+
+      const comp = insertedComponents.find((c) => c.id === lastChangedComponentId);
+      if (!comp) return;
+
+      const activePageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === activePageId);
+      if (!page) return;
+
+      // 기존 요소의 Y좌표 찾기
+      const oldElementIdSet = new Set(comp.elementIds);
+      let insertY = 56.7;
+      for (const el of page.elements) {
+        if (oldElementIdSet.has(el.id)) {
+          if ("y" in el) insertY = (el as { y: number }).y;
+          break;
+        }
+      }
+
+      // config로 새 요소 빌드 + worksheetMeta 스탬프
+      // (이미지 상태는 config.items.imageUrl에 저장되어 있으므로 buildGrid에서 직접 복원)
+      const newElements = buildWorksheetComponentElementsFromConfig(
+        comp.type,
+        comp.config,
+        insertY,
+      ).map((el) => ({
+        ...el,
+        worksheetMeta: { componentId: comp.id, componentType: comp.type },
+      }));
+
+      // 기존 요소 제거 + 새 요소 삽입
+      const updatedElements = page.elements
+        .filter((el) => !oldElementIdSet.has(el.id))
+        .concat(newElements);
+
+      // 변경된 elementIds를 먼저 업데이트 (reflow에서 참조)
+      const store = useWorksheetElementStore.getState();
+      store.updateElementIds(comp.id, newElements.map((el) => el.id));
+
+      // 전체 워크시트 컴포넌트 자동 레이아웃 (겹침 방지 + 간격 유지)
+      const latestComps = useWorksheetElementStore.getState().insertedComponents;
+      const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
+        updatedElements,
+        latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        undefined,
+        true,
+      );
+
+      // reflow 후 elementIds 동기화
+      for (const [compId, newIds] of updatedElementIds) {
+        useWorksheetElementStore.getState().updateElementIds(compId, newIds);
+      }
+
+      // 페이지에 반영 (elements + worksheetComponents 둘 다)
+      const finalComps = useWorksheetElementStore.getState().insertedComponents;
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? {
+                ...p,
+                elements: reflowedElements,
+                worksheetComponents: finalComps.map((c) => ({
+                  id: c.id,
+                  type: c.type,
+                  config: c.config,
+                  elementIds: c.elementIds,
+                })),
+              }
+            : p,
+        ),
+      );
+    },
+    deps: [pagesRef, selectedPageIdRef, setPages],
+  });
+
+  // 편집 패널에서 컴포넌트 삭제 → 캔버스 요소도 함께 제거
+  useStoreSubscription({
+    subscribe: useWorksheetElementStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.deleteWithElementsId !== prevState.deleteWithElementsId && Boolean(state.pendingDeleteCompId),
+    onChange: () => {
+      const { pendingDeleteCompId, insertedComponents } = useWorksheetElementStore.getState();
+      if (!pendingDeleteCompId) return;
+
+      const comp = insertedComponents.find((c) => c.id === pendingDeleteCompId);
+      if (!comp) return;
+
+      const elementIdsToRemove = new Set(comp.elementIds);
+      const activePageId = selectedPageIdRef.current;
+
+      useWorksheetElementStore.getState().removeInsertedComponent(pendingDeleteCompId);
+
+      const finalComps = useWorksheetElementStore.getState().insertedComponents;
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === activePageId
+            ? {
+                ...p,
+                elements: p.elements.filter((el) => !elementIdsToRemove.has(el.id)),
+                worksheetComponents: finalComps.map((c) => ({
+                  id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+                })),
+              }
+            : p,
+        ),
+      );
+    },
+    deps: [selectedPageIdRef, setPages],
+  });
+
+  // 초기 로드 시 현재 페이지의 worksheetComponents 복원 + groupId 마이그레이션
+  useEffect(() => {
+    const currentPageId = selectedPageIdRef.current;
+    const page = pagesRef.current.find((p) => p.id === currentPageId);
+    if (page) {
+      // groupId 마이그레이션
+      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+      if (needsMigration) {
+        setPages((prev) =>
+          prev.map((p) =>
+            p.id === currentPageId
+              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+              : p,
+          ),
+        );
+      }
+      // worksheetComponents 복원
+      const pageComps = page.worksheetComponents ?? [];
+      if (pageComps.length > 0) {
+        useWorksheetElementStore.getState().loadFromPage(
+          pageComps.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })),
+        );
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 즉시 동기화: 페이지 전환 + undo/redo + 삭제 감지
+  // pagesRef를 100ms 간격으로 체크 — 변화가 있으면 즉시 반영
+  useEffect(() => {
+    let lastPageId = selectedPageIdRef.current;
+    let lastElementCount = -1;
+
+    const sync = () => {
+      const currentPageId = selectedPageIdRef.current;
+      const page = pagesRef.current.find((p) => p.id === currentPageId);
+      if (!page) return;
+
+      const currentElementCount = page.elements.length;
+
+      // 페이지 전환 감지
+      if (currentPageId !== lastPageId) {
+        lastPageId = currentPageId;
+        lastElementCount = currentElementCount;
+
+        // groupId 마이그레이션
+        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+        if (needsMigration) {
+          setPages((prev) =>
+            prev.map((p) =>
+              p.id === currentPageId
+                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+                : p,
+            ),
+          );
+        }
+
+        // worksheetComponents에서 편집 패널 복원
+        const pageComps = page.worksheetComponents ?? [];
+        useWorksheetElementStore.getState().loadFromPage(
+          pageComps.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })),
+        );
+        return;
+      }
+
+      // 요소 수 변화 감지 (undo/redo/삭제) → 즉시 동기화
+      if (currentElementCount !== lastElementCount) {
+        lastElementCount = currentElementCount;
+
+        // 방법: page.worksheetComponents + 실제 존재하는 요소 ID로 편집 패널 재구성
+        const pageComps = page.worksheetComponents ?? [];
+        const pageElementIds = new Set(page.elements.map((el) => el.id));
+        const storeComps = useWorksheetElementStore.getState().insertedComponents;
+
+        // worksheetMeta에서 컴포넌트 재구성 (undo로 요소가 복원된 경우)
+        const wsMetaMap = new Map<string, { type: string; elementIds: string[] }>();
+        for (const el of page.elements) {
+          if (el.worksheetMeta) {
+            const { componentId, componentType } = el.worksheetMeta;
+            const existing = wsMetaMap.get(componentId);
+            if (existing) {
+              existing.elementIds.push(el.id);
+            } else {
+              wsMetaMap.set(componentId, { type: componentType, elementIds: [el.id] });
+            }
+          }
+        }
+
+        // 스토어에 없지만 캔버스에 있는 컴포넌트 복원
+        let needsUpdate = false;
+        const storeCompIds = new Set(storeComps.map((c) => c.id));
+
+        for (const [compId, meta] of wsMetaMap) {
+          if (!storeCompIds.has(compId)) {
+            // pageComps에서 config 복원
+            const pageComp = pageComps.find((c) => c.id === compId);
+            if (pageComp) {
+              useWorksheetElementStore.getState().addInsertedComponent({
+                id: compId,
+                type: pageComp.type,
+                config: pageComp.config,
+                elementIds: meta.elementIds,
+              });
+              needsUpdate = true;
+            }
+          }
+        }
+
+        // 스토어에 있지만 캔버스에 없는 컴포넌트 제거
+        for (const comp of storeComps) {
+          const hasAnyElement = comp.elementIds.some((id) => pageElementIds.has(id));
+          if (!hasAnyElement && !wsMetaMap.has(comp.id)) {
+            useWorksheetElementStore.getState().removeInsertedComponent(comp.id);
+            needsUpdate = true;
+          }
+        }
+
+        // 편집 패널 순서를 캔버스 Y좌표 순으로 정렬 + page.worksheetComponents 동기화
+        if (needsUpdate) {
+          const allComps = useWorksheetElementStore.getState().insertedComponents;
+          const getMinY = (elementIds: string[]) => {
+            const idSet = new Set(elementIds);
+            let minY = Infinity;
+            for (const el of page.elements) {
+              if (idSet.has(el.id) && "y" in el) {
+                const y = (el as { y: number }).y;
+                if (y < minY) minY = y;
+              }
+            }
+            return minY === Infinity ? 0 : minY;
+          };
+          const sorted = [...allComps].sort((a, b) => getMinY(a.elementIds) - getMinY(b.elementIds));
+          useWorksheetElementStore.setState({ insertedComponents: sorted });
+
+          setPages((prev) =>
+            prev.map((p) =>
+              p.id === currentPageId
+                ? { ...p, worksheetComponents: sorted.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })) }
+                : p,
+            ),
+          );
+        }
+      }
+    };
+
+    // 100ms 간격 — undo/redo 직후 빠르게 감지
+    const timer = setInterval(sync, 100);
+    return () => clearInterval(timer);
+  }, [pagesRef, selectedPageIdRef, setPages]);
 
   useOrientationSubscription({
     selectedPageIdRef,

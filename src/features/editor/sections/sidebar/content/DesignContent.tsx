@@ -156,7 +156,9 @@ const DesignContentView = ({
           onChange={(e) => {
             onPromptChange(e.target.value);
           }}
-          placeholder="생성하고 싶은 이미지를 설명해주세요.&#10;예: 웃고 있는 아이가 공원에서 놀고 있는 모습"
+          placeholder={selectedStyle === "lineart"
+            ? "생성하고 싶은 색칠공부 이미지를 자유롭게 입력해보세요.\n예: 꽃밭에서 나비를 잡는 아이"
+            : "생성하고 싶은 이미지를 설명해주세요.\n예: 웃고 있는 아이가 공원에서 놀고 있는 모습"}
           className="w-full h-32 px-4 py-3 border border-black-25 rounded-xl text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors resize-none"
         />
       </div>

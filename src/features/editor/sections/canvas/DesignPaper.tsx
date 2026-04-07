@@ -12,6 +12,8 @@ import {
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
+import WorksheetComponentOverlay, { getComponentBounds } from "./WorksheetComponentOverlay";
+import { useWorksheetElementStore } from "../../store/worksheetElementStore";
 import {
   DesignPaperContextMenu,
   type ContextMenuState,
@@ -131,6 +133,7 @@ const DesignPaper = ({
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
+  const isDraggingWorksheet = useWorksheetElementStore((s) => s.isDraggingWorksheet);
   const [activePreview, setActivePreview] = useState<{
     id: string;
     rect: Rect;
@@ -579,9 +582,31 @@ const DesignPaper = ({
         lastPointerRef.current = getPointerPosition(event);
       }}
       onPointerMoveCapture={(event) => {
-        // 붙여넣기/컨텍스트 메뉴가 마지막 포인터 위치를 참조하므로
-        // 스테이지 상대 좌표 캐시를 이동 중에도 계속 최신화한다.
         lastPointerRef.current = getPointerPosition(event);
+
+        // 워크시트 컴포넌트 hover 감지 (좌표 기반)
+        if (!readOnly) {
+          const pos = getPointerPosition(event);
+          const wsStore = useWorksheetElementStore.getState();
+          const comps = wsStore.insertedComponents;
+          let foundId: string | null = null;
+          for (const comp of comps) {
+            const bounds = getComponentBounds(elements, comp.elementIds);
+            if (bounds && pos.x >= bounds.x - 4 && pos.x <= bounds.x + bounds.w + 4 && pos.y >= bounds.y - 4 && pos.y <= bounds.y + bounds.h + 4) {
+              foundId = comp.id;
+              break;
+            }
+          }
+          if (foundId !== wsStore.hoveredComponentId) {
+            wsStore.setHoveredComponentId(foundId);
+          }
+        }
+      }}
+      onPointerLeave={() => {
+        const wsStore = useWorksheetElementStore.getState();
+        if (wsStore.hoveredComponentId) {
+          wsStore.setHoveredComponentId(null);
+        }
       }}
       onDragOver={(event) => {
         if (readOnly) return;
@@ -633,6 +658,9 @@ const DesignPaper = ({
       }}
       onContextMenu={openCanvasContextMenu}
     >
+      {!readOnly && (
+        <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
+      )}
       {elements.map((element) => renderElement(element))}
       {/* 페이지 영역 바깥의 요소 부분을 반투명 화이트 오버레이로 덮어 경계 밖임을 시각적으로 표현한다. */}
       {!readOnly && (
@@ -712,7 +740,7 @@ const DesignPaper = ({
         setContextMenu={setContextMenu}
       />
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
-        <SmartGuideOverlay guides={smartGuides.guides} />
+        <SmartGuideOverlay guides={isDraggingWorksheet ? [] : smartGuides.guides} />
       </div>
       {isRotating && rotationBadge && (
         <RotationBadge

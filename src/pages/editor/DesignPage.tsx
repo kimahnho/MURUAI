@@ -8,6 +8,9 @@ const MainSection = lazy(
   () => import("@/features/editor/shared/MainSection"),
 );
 const SideBar = lazy(() => import("@/features/editor/sections/sidebar/SideBar"));
+const WorksheetRightPanel = lazy(
+  () => import("@/features/editor/sections/rightpanel/WorksheetRightPanel"),
+);
 const StudioRecordingSection = lazy(
   () => import("./StudioRecordingSection"),
 );
@@ -25,6 +28,11 @@ const DesignPage = () => {
       </Suspense>
       <Suspense fallback={<div className="flex-1" />}>
         <MainSection key={loadedDocumentId ?? "new"} />
+      </Suspense>
+
+      {/* 학습자료 컴포넌트 편집 오른쪽 패널 */}
+      <Suspense fallback={null}>
+        <WorksheetRightPanel />
       </Suspense>
 
       {/* tester 녹화 종료 후 평가 패널 — 캔버스 우측 하단 */}

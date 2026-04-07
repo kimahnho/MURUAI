@@ -36,6 +36,8 @@ import {
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 import AacBoardModal from "./AacBoardModal";
 import StorySequenceModal from "./StorySequenceModal";
+import WorksheetBuilderTab from "./WorksheetBuilderTab";
+import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import { getPreviewMetrics } from "./previewMetrics";
 import fiveSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/five-space-writing-note/preview.png";
 import tenSpaceWritingNoteBg from "@/features/editor/templates/template_pdf/ten-space-writing-note/preview.png";
@@ -587,8 +589,42 @@ const TemplateContent = () => {
     }
   };
 
+  const activeTab = useWorksheetElementStore((s) => s.templateActiveTab);
+  const setActiveTab = useWorksheetElementStore((s) => s.setTemplateActiveTab);
+
   return (
     <>
+      {/* 탭 토글 */}
+      <div className="flex gap-1.5 mb-4 p-1.5 bg-black-20 rounded-xl">
+        <button
+          type="button"
+          className={`flex-1 px-4 py-2.5 rounded-xl text-14-semibold transition ${
+            activeTab === "templates"
+              ? "bg-white-100 text-black-90 shadow-sm"
+              : "text-black-55 hover:text-black-70"
+          }`}
+          onClick={() => {
+            setActiveTab("templates");
+          }}
+        >
+          미리 만든 템플릿
+        </button>
+        <button
+          type="button"
+          className={`flex-1 px-4 py-2.5 rounded-xl text-14-semibold transition ${
+            activeTab === "builder"
+              ? "bg-white-100 text-black-90 shadow-sm"
+              : "text-black-55 hover:text-black-70"
+          }`}
+          onClick={() => setActiveTab("builder")}
+        >
+          직접 만들기
+        </button>
+      </div>
+
+      {activeTab === "builder" ? (
+        <WorksheetBuilderTab />
+      ) : (
       <div className="flex flex-col w-full gap-6">
         <div className="flex flex-col w-full gap-3">
           <SectionHeader icon={Grid3x3} title="AAC 의사소통 판" />
@@ -639,6 +675,7 @@ const TemplateContent = () => {
           templates={BASIC_TEMPLATES}
         />
       </div>
+      )}
 
       <AacBoardModal
         isOpen={isAacModalOpen}

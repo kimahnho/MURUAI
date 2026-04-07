@@ -14,6 +14,9 @@ const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const StudioRoute = lazy(() => import("@/pages/studio/StudioRoute"));
 const ImageGenRoute = lazy(() => import("@/pages/image-gen/ImageGenRoute"));
 const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
+const WorksheetEditorPage = lazy(
+  () => import("@/pages/worksheet-editor/WorksheetEditorPage"),
+);
 
 const withSuspense = (element: React.ReactElement) => (
   <Suspense fallback={null}>{element}</Suspense>
@@ -47,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: "image-gen/:sessionId?",
         element: withSuspense(<ImageGenRoute />),
+      },
+      {
+        path: "worksheet-editor",
+        element: withSuspense(<WorksheetEditorPage />),
       },
       {
         path: "admin",

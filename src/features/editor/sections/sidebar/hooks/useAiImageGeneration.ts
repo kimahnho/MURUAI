@@ -15,6 +15,7 @@ import {
   STYLE_OPTIONS,
   buildPromptWithStyle,
 } from "@/features/editor/constants/aiImageStylePrompts";
+import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 
 export type { ImageStyle, StyleOption };
 export { STYLE_OPTIONS };
@@ -180,6 +181,15 @@ export const useAiImageGeneration = () => {
     remaining: DAILY_LIMIT,
     canGenerate: true,
   });
+
+  // 색칠공부 AI 생성 요청 감지 → lineart 스타일 자동 선택 + 프롬프트 힌트
+  const coloringAiRequestId = useWorksheetElementStore((s) => s.coloringAiRequestId);
+  useEffect(() => {
+    if (coloringAiRequestId > 0) {
+      setSelectedStyle("lineart");
+      setPrompt("");
+    }
+  }, [coloringAiRequestId]);
 
   // 선택자 단위 구독으로 불필요한 리렌더를 줄인다.
   const showToast = useToastStore((s) => s.showToast);
