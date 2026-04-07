@@ -8,11 +8,11 @@ import { env } from "process";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   cacheDir: ".vite",
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
   build: {
-    sourcemap: true,
-    esbuild: {
-      drop: mode === "production" ? ["console", "debugger"] : [],
-    },
+    sourcemap: "hidden",
     rollupOptions: {
       output: {
         manualChunks: {
