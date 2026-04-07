@@ -40,6 +40,20 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
       { type: "outline_title", icon: "🅰️", name: "글자 색칠하기", desc: "속 빈 큰 글씨", badge: "new" },
       { type: "writing_practice", icon: "✏️", name: "쓰기 칸 노트", desc: "음절 격자 따라쓰기", badge: "new" },
       { type: "coloring_area", icon: "🎨", name: "색칠공부", desc: "이미지 삽입 색칠 활동", badge: "new" },
+      { type: "matching_connect", icon: "🔗", name: "의미 연결하기", desc: "좌↔우 선으로 연결", badge: "new" },
+    ],
+  },
+  {
+    title: "구문 · 문법",
+    items: [
+      { type: "sentence_completion", icon: "📝", name: "빈칸 완성", desc: "조사/접속사 빈칸 채우기", badge: "new" },
+    ],
+  },
+  {
+    title: "언어발달",
+    items: [
+      { type: "sentence_fill", icon: "✍️", name: "빈칸 문장", desc: "빈칸 써넣기·O/X 판단", badge: "new" },
+      { type: "passage_question", icon: "📖", name: "지문+질문", desc: "이야기 읽고 질문 답하기", badge: "new" },
     ],
   },
   {
