@@ -43,6 +43,12 @@ export const useImageUploadToCloudinary = () => {
         return null;
       }
 
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        showToast("파일 크기는 10MB 이하만 업로드할 수 있어요.");
+        return null;
+      }
+
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       if (!user) {
