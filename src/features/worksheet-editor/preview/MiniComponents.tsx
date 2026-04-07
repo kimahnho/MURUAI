@@ -15,12 +15,16 @@ import type {
 import { NOTEBOOK_SPECS } from "../constants/defaults";
 import "../styles/worksheet-preview.css";
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 // --- Header Instruction ---
 export const MiniHeader = ({ config }: { config: HeaderInstructionConfig }) => {
   const renderTitle = () => {
-    let html = config.title;
+    let html = escapeHtml(config.title);
     config.title_highlights.forEach((h) => {
-      html = html.replace(h, `<span class="ws-hl">${h}</span>`);
+      const escaped = escapeHtml(h);
+      html = html.replace(escaped, `<span class="ws-hl">${escaped}</span>`);
     });
     return html;
   };
@@ -65,9 +69,9 @@ export const MiniSequentialRepeat = ({ config }: { config: SequentialRepeatConfi
 export const MiniSelectionSentence = ({ config }: { config: SelectionSentenceConfig }) => (
   <div>
     {config.sentences.map((s, i) => {
-      const rendered = s.template.replace(
+      const rendered = escapeHtml(s.template).replace(
         /\{([^}]+)\}/g,
-        (_, ch: string) => `<span class="ws-ch">[ ${ch.split("/").join(" / ")} ]</span>`,
+        (_, ch: string) => `<span class="ws-ch">[ ${escapeHtml(ch).split("/").join(" / ")} ]</span>`,
       );
       return (
         <div key={i} className="ws-select-item">
@@ -153,7 +157,7 @@ export const MiniInfoGuide = ({ config }: { config: InfoGuideConfig }) => (
     {config.character_emoji && <div className="ws-info-char">{config.character_emoji}</div>}
     <div className="ws-info-blocks">
       {config.speech && (
-        <div className="ws-info-bubble" dangerouslySetInnerHTML={{ __html: config.speech.replace(/\n/g, "<br>") }} />
+        <div className="ws-info-bubble" dangerouslySetInnerHTML={{ __html: escapeHtml(config.speech).replace(/\n/g, "<br>") }} />
       )}
       {config.tip && <div className="ws-info-tip">{config.tip}</div>}
     </div>
