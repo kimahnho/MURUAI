@@ -73,6 +73,7 @@ import {
 } from "../../utils/pagePresentation";
 import RotationBadge from "./RotationBadge";
 import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
+import { useImageFillStore } from "../../store/imageFillStore";
 
 interface DesignPaperProps {
   pageId: string;
@@ -583,43 +584,78 @@ const DesignPaper = ({
         if (readOnly || !onElementsChange) return;
         event.preventDefault();
         event.stopPropagation();
-        // 하위 요소(RoundBox 등)가 이미 드롭을 처리했으면 중복 삽입하지 않는다.
+
+        // 드롭 좌표 계산 (imageSlot 히트테스트 + 요소 삽입 공용)
+        const scale = getContainerScale();
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const dropX = (event.clientX - rect.left) / scale;
+        const dropY = (event.clientY - rect.top) / scale;
+
+        // imageSlot/aacCard/emotionCard 히트테스트 (자식 요소 위 드롭도 허용)
+        const hitSlot = elements.find((el) => {
+          const isSlot =
+            ((el.type === "rect" ||
+              el.type === "roundRect" ||
+              el.type === "ellipse" ||
+              el.type === "mosaic" ||
+              el.type === "circleMosaic") &&
+              (el as { subType?: string }).subType === "imageSlot") ||
+            el.type === "aacCard" ||
+            el.type === "emotionCard";
+          return (
+            isSlot &&
+            dropX >= el.x &&
+            dropX <= el.x + el.w &&
+            dropY >= el.y &&
+            dropY <= el.y + el.h
+          );
+        });
+
+        // 1. 앱 내부 사이드바 드래그 (전용 MIME으로 구분)
+        const muruImage = event.dataTransfer.getData("application/x-muru-image");
+        if (muruImage && hitSlot) {
+          onSelectedIdsChange?.([hitSlot.id]);
+          useImageFillStore
+            .getState()
+            .requestImageFill(muruImage, undefined, undefined, {
+              forceInsert: true,
+              source: "library",
+            });
+          return;
+        }
+
+        // 2. 파일 드롭 우선 (브라우저 이미지 드래그 / OS 파일 드롭 모두 해당)
+        const file = event.dataTransfer.files?.[0];
+        if (file && file.type.startsWith("image/")) {
+          if (hitSlot && onFileDropOnCanvas) {
+            onFileDropOnCanvas(file, dropX, dropY);
+            return;
+          }
+          // 빈 영역에 새 요소 생성
+          if (event.target === event.currentTarget && onFileDropOnCanvas) {
+            onFileDropOnCanvas(file, dropX, dropY);
+            return;
+          }
+        }
+
+        // 하위 요소(RoundBox 등) 위 드롭 시 imageSlot이 아니면 무시
         if (event.target !== event.currentTarget) return;
 
-        // 1. 사이드바 이미지 드래그 경로
-        const imageUrl =
-          event.dataTransfer.getData("application/x-muru-image") ||
-          event.dataTransfer.getData("text/plain");
-        if (imageUrl) {
-          const scale = getContainerScale();
-          const rect = containerRef.current?.getBoundingClientRect();
-          if (!rect) return;
+        // 3. 사이드바 이미지 드래그 → 빈 영역에 새 요소 생성
+        if (muruImage) {
           const DEFAULT_SIZE = 200;
-          const dropX = (event.clientX - rect.left) / scale;
-          const dropY = (event.clientY - rect.top) / scale;
           const newElement: CanvasElement = {
-            id: `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            id: crypto.randomUUID(),
             type: "rect",
             x: Math.round(dropX - DEFAULT_SIZE / 2),
             y: Math.round(dropY - DEFAULT_SIZE / 2),
             w: DEFAULT_SIZE,
             h: DEFAULT_SIZE,
-            fill: imageUrl.startsWith("url(") ? imageUrl : `url(${imageUrl})`,
+            fill: `url(${muruImage})`,
             imageBox: { x: 0, y: 0, w: DEFAULT_SIZE, h: DEFAULT_SIZE },
           };
           onElementsChange([...elements, newElement]);
-          return;
-        }
-
-        // 2. OS 파일 드롭 경로
-        const file = event.dataTransfer.files?.[0];
-        if (file && onFileDropOnCanvas) {
-          const scale = getContainerScale();
-          const rect = containerRef.current?.getBoundingClientRect();
-          if (!rect) return;
-          const dropX = (event.clientX - rect.left) / scale;
-          const dropY = (event.clientY - rect.top) / scale;
-          onFileDropOnCanvas(file, dropX, dropY);
         }
       }}
       onContextMenu={openCanvasContextMenu}

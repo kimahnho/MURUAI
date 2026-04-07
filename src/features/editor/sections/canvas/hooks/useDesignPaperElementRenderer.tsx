@@ -37,6 +37,11 @@ import AacCardBox from "../elements/aac_card/AacCardBox";
 import EmotionCardBox from "../elements/emotion_card/EmotionCardBox";
 import { buildTextToolbarConfig } from "../utils/textToolbarConfig";
 import { useTableStore } from "../../../store/tableStore";
+import { useImageUploadToCloudinary } from "../../../sections/sidebar/hooks/useImageUploadToCloudinary";
+import { useUploadListStore } from "../../../store/useUploadListStore";
+import { useToastStore } from "../../../store/toastStore";
+import { trackImageUsageEvent } from "@/shared/utils/trackEvents";
+import { mp } from "@/shared/utils/mixpanel";
 
 type TextStylePatch = Partial<TextElement["style"]>;
 type TextElementPatch = Omit<Partial<TextElement>, "style"> & {
@@ -135,6 +140,9 @@ export const useDesignPaperElementRenderer = ({
 }: UseDesignPaperElementRendererParams) => {
   const setSelectedTable = useTableStore((s) => s.setSelectedTable);
   const setSelectedCells = useTableStore((s) => s.setSelectedCells);
+  const { uploadImage } = useImageUploadToCloudinary();
+  const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
+  const showToast = useToastStore((s) => s.showToast);
 
   // 선택된 표 요소를 tableStore와 사이드바에 동기화한다.
   // selectedIds 또는 elements가 바뀔 때만 실행해 렌더 중 상태 업데이트를 방지한다.
@@ -328,6 +336,22 @@ export const useDesignPaperElementRenderer = ({
                 });
               }
         }
+        onFileDrop={
+          readOnly || element.locked
+            ? undefined
+            : (file) => {
+                void (async () => {
+                  const url = await uploadImage(file);
+                  if (!url) { showToast("이미지 업로드에 실패했어요."); return; }
+                  triggerRefetch();
+                  void trackImageUsageEvent(url, "upload");
+                  updateElement(element.id, {
+                    fill: `url(${url})`,
+                    imageBox: { x: 0, y: 0, w: rect.width, h: rect.height },
+                  });
+                })();
+              }
+        }
         isImageEditing={isImageEditing}
         onImageEditingChange={(isEditing: boolean) => {
           setEditingImageId(isEditing ? element.id : null);
@@ -419,6 +443,22 @@ export const useDesignPaperElementRenderer = ({
                     h: rect.height,
                   },
                 });
+              }
+        }
+        onFileDrop={
+          readOnly || element.locked
+            ? undefined
+            : (file) => {
+                void (async () => {
+                  const url = await uploadImage(file);
+                  if (!url) { showToast("이미지 업로드에 실패했어요."); return; }
+                  triggerRefetch();
+                  void trackImageUsageEvent(url, "upload");
+                  updateElement(element.id, {
+                    fill: `url(${url})`,
+                    imageBox: { x: 0, y: 0, w: rect.width, h: rect.height },
+                  });
+                })();
               }
         }
         isImageEditing={isImageEditing}
@@ -551,7 +591,7 @@ export const useDesignPaperElementRenderer = ({
           readOnly || element.locked
             ? undefined
             : (imageUrl) => {
-                updateElement(element.id, {
+                const patch: Record<string, unknown> = {
                   fill: imageUrl.startsWith("url(")
                     ? imageUrl
                     : `url(${imageUrl})`,
@@ -561,7 +601,53 @@ export const useDesignPaperElementRenderer = ({
                     w: rect.width,
                     h: rect.height,
                   },
-                });
+                };
+                // imageSlot 가이드 텍스트 제거
+                if (
+                  "subType" in element &&
+                  element.subType === "imageSlot" &&
+                  "text" in element &&
+                  element.text
+                ) {
+                  patch.text = "";
+                }
+                updateElement(element.id, patch);
+              }
+        }
+        onFileDrop={
+          readOnly || element.locked
+            ? undefined
+            : (file) => {
+                // OS 파일 드롭 → Cloudinary 업로드 → imageFillStore로 채우기
+                void (async () => {
+                  const cloudinaryUrl = await uploadImage(file);
+                  if (!cloudinaryUrl) {
+                    showToast("이미지 업로드에 실패했어요.");
+                    return;
+                  }
+                  triggerRefetch();
+                  mp.track("이미지 파일 드롭", { target: "imageSlot" });
+                  void trackImageUsageEvent(cloudinaryUrl, "upload");
+                  // 가이드 텍스트 제거 + 이미지 채우기
+                  const patch: Record<string, unknown> = {
+                    fill: `url(${cloudinaryUrl})`,
+                    imageBox: {
+                      x: 0,
+                      y: 0,
+                      w: rect.width,
+                      h: rect.height,
+                    },
+                  };
+                  if (
+                    "subType" in element &&
+                    element.subType === "imageSlot" &&
+                    "text" in element &&
+                    element.text
+                  ) {
+                    patch.text = "";
+                  }
+                  updateElement(element.id, patch);
+                })();
               }
         }
         onRectChange={(nextRect) => {

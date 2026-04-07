@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import type { CanvasElement } from "../model/canvasTypes";
 import { useImageUploadToCloudinary } from "../sections/sidebar/hooks/useImageUploadToCloudinary";
+import { useImageFillStore } from "../store/imageFillStore";
 import { useToastStore } from "../store/toastStore";
 import { useUploadListStore } from "../store/useUploadListStore";
 import { mp } from "@/shared/utils/mixpanel";
@@ -24,9 +25,47 @@ const scaleToMax = (
   return { w: Math.round((w / h) * maxSize), h: maxSize };
 };
 
+// 드롭 좌표가 imageSlot 영역 내에 있는지 히트테스트
+const findImageSlotAtPoint = (
+  elements: CanvasElement[],
+  x: number,
+  y: number,
+): CanvasElement | null => {
+  // 역순 탐색 (위에 그려진 요소 우선)
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const el = elements[i];
+    if (
+      (el.type === "rect" ||
+        el.type === "roundRect" ||
+        el.type === "ellipse" ||
+        el.type === "mosaic" ||
+        el.type === "circleMosaic") &&
+      (el as { subType?: string }).subType === "imageSlot" &&
+      x >= el.x &&
+      x <= el.x + el.w &&
+      y >= el.y &&
+      y <= el.y + el.h
+    ) {
+      return el;
+    }
+    // aacCard / emotionCard 히트테스트
+    if (
+      (el.type === "aacCard" || el.type === "emotionCard") &&
+      x >= el.x &&
+      x <= el.x + el.w &&
+      y >= el.y &&
+      y <= el.y + el.h
+    ) {
+      return el;
+    }
+  }
+  return null;
+};
+
 export const useCanvasFileDrop = (
   onElementsChange: (elements: CanvasElement[]) => void,
   getElements: () => CanvasElement[],
+  setSelectedIds?: (ids: string[]) => void,
 ) => {
   const { uploadImage } = useImageUploadToCloudinary();
   const showToast = useToastStore((s) => s.showToast);
@@ -42,6 +81,34 @@ export const useCanvasFileDrop = (
   const handleFileDrop = async (file: File, dropX: number, dropY: number) => {
     if (!ACCEPTED_TYPES.includes(file.type)) {
       showToast("JPG, PNG, SVG 파일만 추가할 수 있어요.");
+      return;
+    }
+
+    // 드롭 위치에 imageSlot/aacCard/emotionCard가 있으면 해당 슬롯에 이미지 채우기
+    const hitSlot = findImageSlotAtPoint(getElements(), dropX, dropY);
+    if (hitSlot) {
+      // 슬롯을 선택 상태로 설정한 후 업로드 → requestImageFill 호출
+      setSelectedIds?.([hitSlot.id]);
+
+      const cloudinaryUrl = await uploadImage(file);
+      if (!mountedRef.current) return;
+
+      if (!cloudinaryUrl) {
+        showToast("이미지 업로드에 실패했어요.");
+        return;
+      }
+
+      triggerRefetch();
+      mp.track("이미지 파일 드롭", { target: "imageSlot" });
+      void trackImageUsageEvent(cloudinaryUrl, "upload");
+
+      // imageFillStore를 통해 기존 이미지 채우기 파이프라인 활용
+      useImageFillStore
+        .getState()
+        .requestImageFill(cloudinaryUrl, undefined, undefined, {
+          forceInsert: true,
+          source: "upload",
+        });
       return;
     }
 

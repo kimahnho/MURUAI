@@ -465,6 +465,57 @@ export const useDesignPaperInteraction = ({
     if (finalRect && !hadGroupDrag) {
       const targetElement = getElementById(elementId);
       const activeInteraction = activeInteractionRef.current;
+
+      // 이미지 요소를 imageSlot 위에 드래그했으면 슬롯에 이미지 흡수
+      if (
+        context?.type === "drag" &&
+        targetElement &&
+        isImageFillElement(targetElement) &&
+        (targetElement as ShapeElement).isStandaloneImage &&
+        onElementsChange
+      ) {
+        const dragCenterX = finalRect.x + finalRect.width / 2;
+        const dragCenterY = finalRect.y + finalRect.height / 2;
+        const imageSlot = elements.find((el) => {
+          if (el.id === elementId) return false;
+          const isSlot =
+            (el.type === "rect" ||
+              el.type === "roundRect" ||
+              el.type === "ellipse" ||
+              el.type === "mosaic" ||
+              el.type === "circleMosaic") &&
+            (el as ShapeElement).subType === "imageSlot";
+          if (!isSlot) return false;
+          return (
+            dragCenterX >= el.x &&
+            dragCenterX <= el.x + el.w &&
+            dragCenterY >= el.y &&
+            dragCenterY <= el.y + el.h
+          );
+        });
+        if (imageSlot) {
+          const imgFill = (targetElement as ShapeElement).fill ?? "";
+          const nextElements = elements
+            .filter((el) => el.id !== elementId)
+            .map((el) => {
+              if (el.id !== imageSlot.id) return el;
+              const slot = el as ShapeElement;
+              return {
+                ...slot,
+                fill: imgFill,
+                imageBox: { x: 0, y: 0, w: slot.w, h: slot.h },
+                text: "",
+              };
+            });
+          onElementsChange(nextElements);
+          activeInteractionRef.current = null;
+          setActivePreview(null);
+          smartGuides.clear();
+          onInteractionChange?.(false, context);
+          return;
+        }
+      }
+
       if (
         targetElement &&
         isEmotionSlotShape(targetElement) &&

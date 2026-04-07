@@ -230,13 +230,20 @@ export const useImageFillSubscription = ({
                 typeof element.text === "string" &&
                 element.text.trim().length > 0);
             const isImageSlot = (element as { subType?: string }).subType === "imageSlot";
+            // imageSlot 중 가이드 테두리(회색 #e0e0e0)만 이미지 삽입 시 제거
+            // 어휘 학습 카드 등 의미 있는 테두리(#111827 등)는 유지
+            const shouldHideBorder =
+              isImageSlot &&
+              element.border?.enabled &&
+              element.border.color === "#e0e0e0";
             return {
               ...element,
               fill: normalizedUrl,
               imageBox: nextImageBox,
               text: shouldClearPlaceholder ? "" : element.text,
-              // imageSlot: 이미지 삽입 시 점선 테두리 제거
-              ...(isImageSlot && element.border ? { border: { ...element.border, enabled: false } } : {}),
+              ...(shouldHideBorder && element.border
+                ? { border: { color: element.border.color, width: element.border.width, style: element.border.style, enabled: false } }
+                : {}),
             };
           });
           if (labelUpdates.size === 0) {

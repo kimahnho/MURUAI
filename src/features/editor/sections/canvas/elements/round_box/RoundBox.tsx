@@ -81,6 +81,7 @@ interface RoundBoxProps {
   onTextChange?: (text: string) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onImageDrop?: (imageUrl: string) => void;
+  onFileDrop?: (file: File) => void;
   transform?: {
     flipX?: boolean;
     flipY?: boolean;
@@ -127,6 +128,7 @@ const RoundBox = ({
   onTextChange,
   onContextMenu,
   onImageDrop,
+  onFileDrop,
   transform,
   onFlipX,
   onFlipY,
@@ -380,19 +382,27 @@ const RoundBox = ({
       }}
       onContextMenu={onContextMenu}
       onDragOver={(event: ReactDragEvent<HTMLDivElement>) => {
-        if (locked || !onImageDrop) return;
+        if (locked || (!onImageDrop && !onFileDrop)) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
       }}
       onDrop={(event: ReactDragEvent<HTMLDivElement>) => {
-        if (locked || !onImageDrop) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const imageUrl =
-          event.dataTransfer.getData("application/x-muru-image") ||
-          event.dataTransfer.getData("text/plain");
-        if (!imageUrl) return;
-        onImageDrop(imageUrl);
+        if (locked) return;
+        // 1. 앱 내부 사이드바 드래그 (전용 MIME으로 구분)
+        const muruImage = event.dataTransfer.getData("application/x-muru-image");
+        if (muruImage && onImageDrop) {
+          event.preventDefault();
+          event.stopPropagation();
+          onImageDrop(muruImage);
+          return;
+        }
+        // 2. 파일 드롭 우선 (브라우저 이미지 드래그 / OS 파일 드롭 모두 해당)
+        const file = event.dataTransfer.files?.[0];
+        if (file && file.type.startsWith("image/") && onFileDrop) {
+          event.preventDefault();
+          event.stopPropagation();
+          onFileDrop(file);
+        }
       }}
       onMouseEnter={() => {
         setIsHovered(true);

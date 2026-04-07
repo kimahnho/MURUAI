@@ -53,6 +53,7 @@ const CanvasStage = ({
   const { handleFileDrop } = useCanvasFileDrop(
     onElementsChange,
     () => selectedPage?.elements ?? [],
+    onSelectedIdsChange,
   );
 
   const {
