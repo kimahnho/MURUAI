@@ -38,7 +38,8 @@ const EmotionAACContent = () => {
   }
   const userId = useAuthStore((s) => s.user?.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchQuery = useSideBarStore((s) => s.imageSearchQuery);
+  const setSearchQuery = useSideBarStore((s) => s.setImageSearchQuery);
 
   return (
     <div className="flex flex-col h-full">
