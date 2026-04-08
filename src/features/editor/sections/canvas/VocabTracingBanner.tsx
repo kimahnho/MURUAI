@@ -39,7 +39,7 @@ const VocabTracingBanner = ({
   const isFilled = reason === "filled";
   const guideText =
     reason === "missing-image"
-      ? "모든 카드에 이미지를 삽입해주세요"
+      ? "클릭하거나 드래그해서 이미지 삽입"
       : "모든 카드에 목표 어휘를 입력해주세요";
 
   // 최대 글자 수 계산 (크기 적합성 검증용)
