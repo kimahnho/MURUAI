@@ -15,6 +15,7 @@ import { useEmotionPhotos } from "../hooks/useEmotionPhotos";
 import { useEmotionEmojis, type EmotionEmoji } from "../hooks/useEmotionEmojis";
 import { useEmotionStickers } from "../hooks/useEmotionStickers";
 import { useEmotionContentState } from "../hooks/useEmotionContentState";
+import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 
 const normalizeQuery = (value: string) => value.trim().toLowerCase();
 const matchesQuery = (label: string, query: string) =>
@@ -233,9 +234,8 @@ const EmotionContentArea = ({
   onSelectEmoji: (url: string, label: string) => void;
   externalSearch?: string;
 }) => {
-  const [selectedType, setSelectedType] = useState<
-    "photo" | "drawing" | "line" | "lineEmoji"
-  >("photo");
+  const selectedType = useSideBarStore((s) => s.emotionType);
+  const setSelectedType = useSideBarStore((s) => s.setEmotionType);
 
   return (
     <div className="flex flex-col w-full h-full gap-4">
@@ -292,7 +292,8 @@ const PhotoEmotionContent = ({
   externalSearch?: string;
 }) => {
   const hasExternalSearch = externalSearch != null;
-  const [gender, setGender] = useState<"boy" | "girl">("boy");
+  const gender = useSideBarStore((s) => s.emotionGender);
+  const setGender = useSideBarStore((s) => s.setEmotionGender);
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionPhotos, isLoading } = useEmotionPhotos();
 

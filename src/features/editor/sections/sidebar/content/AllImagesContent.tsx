@@ -1,10 +1,11 @@
 /**
  * "전체" 탭 — 최근 사용한 이미지 + 모든 소스의 이미지를 통합 그리드로 표시하는 컴포넌트.
  */
-import { useMemo, useRef, useState, type DragEvent as ReactDragEvent } from "react";
+import { useMemo, useRef, type DragEvent as ReactDragEvent } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
+import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import {
   useRecentImageUsageStore,
   type RecentImage,
@@ -45,7 +46,8 @@ const AllImagesContent = ({
 }) => {
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
   const recentImages = useRecentImageUsageStore((s) => s.recentImages);
-  const [isRecentExpanded, setIsRecentExpanded] = useState(false);
+  const isRecentExpanded = useSideBarStore((s) => s.recentImagesExpanded);
+  const setIsRecentExpanded = useSideBarStore((s) => s.setRecentImagesExpanded);
 
   // 모든 소스에서 이미지 fetch
   const { data: emotionPhotos } = useEmotionPhotos();
@@ -175,7 +177,7 @@ const AllImagesContent = ({
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => { setIsRecentExpanded((prev) => !prev); }}
+            onClick={() => { setIsRecentExpanded(!isRecentExpanded); }}
             className="flex items-center justify-between w-full"
           >
             <span className="text-13-bold text-black-80">최근 사용한 이미지</span>
