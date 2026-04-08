@@ -8,6 +8,7 @@ import {
   useElementPanelStore,
   type AacPanelData,
 } from "@/features/editor/store/elementPanelStore";
+import { useSideBarStore, type EmotionAacTab } from "@/features/editor/store/sideBarStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 
 import EmotionContent from "./EmotionContent";
@@ -17,9 +18,7 @@ import ImageLibraryContent from "./ImageLibraryContent";
 import AllImagesContent from "./AllImagesContent";
 import ImageRequestModal from "./ImageRequestModal";
 
-type Tab = "all" | "emotion" | "aac" | "image";
-
-const TAB_ITEMS: Array<{ id: Tab; label: string }> = [
+const TAB_ITEMS: Array<{ id: EmotionAacTab; label: string }> = [
   { id: "all", label: "전체" },
   { id: "emotion", label: "감정" },
   { id: "aac", label: "AAC" },
@@ -30,7 +29,8 @@ const EmotionAACContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
   const isAacSelected = panelData?.type === "aac";
   const aacHasImage = isAacSelected && (panelData as AacPanelData).hasImage;
-  const [activeTab, setActiveTab] = useState<Tab>(isAacSelected ? "aac" : "all");
+  const activeTab = useSideBarStore((s) => s.emotionAacTab);
+  const setActiveTab = useSideBarStore((s) => s.setEmotionAacTab);
   const [prevAacSelected, setPrevAacSelected] = useState(isAacSelected);
   if (isAacSelected !== prevAacSelected) {
     setPrevAacSelected(isAacSelected);

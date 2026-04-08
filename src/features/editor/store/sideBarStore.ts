@@ -27,10 +27,26 @@ export type SideBarMenu =
   | "therapy"
   | null;
 
+export type EmotionAacTab = "all" | "emotion" | "aac" | "image";
+export type EmotionType = "photo" | "drawing" | "lineEmoji";
+export type EmotionGender = "boy" | "girl";
+
 interface SideBarStore {
   selectedMenu: SideBarMenu;
   setSelectedMenu: (menu: SideBarMenu) => void;
   toggleMenu: (menu: Exclude<SideBarMenu, null | "font">) => void;
+
+  // 사이드바 콘텐츠 내부 탭/뷰 상태 — 요소 선택 overlay로 언마운트되어도 유지
+  emotionAacTab: EmotionAacTab;
+  setEmotionAacTab: (tab: EmotionAacTab) => void;
+  emotionType: EmotionType;
+  setEmotionType: (type: EmotionType) => void;
+  emotionGender: EmotionGender;
+  setEmotionGender: (gender: EmotionGender) => void;
+  templateCarouselPages: Record<string, number>;
+  setTemplateCarouselPage: (key: string, page: number) => void;
+  recentImagesExpanded: boolean;
+  setRecentImagesExpanded: (expanded: boolean) => void;
 }
 
 export const useSideBarStore = create<SideBarStore>((set) => ({
@@ -42,4 +58,15 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
       mp.track("사이드바 열기", { panel: menu });
       return { selectedMenu: menu };
     }); },
+
+  emotionAacTab: "all",
+  setEmotionAacTab: (tab) => { set({ emotionAacTab: tab }); },
+  emotionType: "photo",
+  setEmotionType: (type) => { set({ emotionType: type }); },
+  emotionGender: "boy",
+  setEmotionGender: (gender) => { set({ emotionGender: gender }); },
+  templateCarouselPages: {},
+  setTemplateCarouselPage: (key, page) => { set((s) => ({ templateCarouselPages: { ...s.templateCarouselPages, [key]: page } })); },
+  recentImagesExpanded: false,
+  setRecentImagesExpanded: (expanded) => { set({ recentImagesExpanded: expanded }); },
 }));

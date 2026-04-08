@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useTemplateContentState } from "../hooks/useTemplateContentState";
+import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,
@@ -339,7 +340,9 @@ const TemplateCarousel = ({
   templates: { id: string; title: string }[];
 }) => {
   const { handleTemplateClick: onTemplateClick } = useTemplateContentState();
-  const [pageIndex, setPageIndex] = useState(0);
+  const pageIndex = useSideBarStore((s) => s.templateCarouselPages[title] ?? 0);
+  const setCarouselPage = useSideBarStore((s) => s.setTemplateCarouselPage);
+  const setPageIndex = (page: number) => { setCarouselPage(title, page); };
   const itemsPerPage = 4;
   const totalPages = Math.max(1, Math.ceil(templates.length / itemsPerPage));
   const currentPage = Math.min(pageIndex, totalPages - 1);
@@ -364,7 +367,7 @@ const TemplateCarousel = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => canPrev && setPageIndex((prev) => prev - 1)}
+            onClick={() => canPrev && setPageIndex(currentPage - 1)}
             disabled={!canPrev}
             className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
               canPrev
@@ -377,7 +380,7 @@ const TemplateCarousel = ({
           </button>
           <button
             type="button"
-            onClick={() => canNext && setPageIndex((prev) => prev + 1)}
+            onClick={() => canNext && setPageIndex(currentPage + 1)}
             disabled={!canNext}
             className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
               canNext
