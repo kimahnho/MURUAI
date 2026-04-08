@@ -224,11 +224,21 @@ export const useImageFillSubscription = ({
               ((element as { subType?: string }).subType === "imageSlot" &&
                 typeof element.text === "string" &&
                 element.text.trim().length > 0);
+            // imageSlot 중 가이드 테두리(회색 #e0e0e0)만 이미지 삽입 시 제거
+            // 어휘 학습 카드 등 의미 있는 테두리는 유지
+            const isImageSlotEl = (element as { subType?: string }).subType === "imageSlot";
+            const shouldHideBorder =
+              isImageSlotEl &&
+              element.border?.enabled &&
+              element.border.color === "#e0e0e0";
             return {
               ...element,
               fill: normalizedUrl,
               imageBox: nextImageBox,
               text: shouldClearPlaceholder ? "" : element.text,
+              ...(shouldHideBorder && element.border
+                ? { border: { color: element.border.color, width: element.border.width, style: element.border.style, enabled: false } }
+                : {}),
             };
           });
           if (labelUpdates.size === 0) {
