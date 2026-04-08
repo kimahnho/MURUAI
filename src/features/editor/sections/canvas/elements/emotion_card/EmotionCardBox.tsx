@@ -54,6 +54,7 @@ interface EmotionCardBoxProps {
   ) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onImageDrop?: (imageUrl: string) => void;
+  onFileDrop?: (file: File) => void;
   onLabelChange?: (text: string) => void;
   isImageEditing?: boolean;
   onImageEditingChange?: (isEditing: boolean) => void;
@@ -87,6 +88,7 @@ const EmotionCardBox = ({
   onSelectChange,
   onContextMenu,
   onImageDrop,
+  onFileDrop,
   onLabelChange,
   isImageEditing,
   onImageEditingChange,
@@ -207,6 +209,7 @@ const EmotionCardBox = ({
         onSelectChange={onSelectChange}
         onContextMenu={onContextMenu}
         onImageDrop={onImageDrop}
+        onFileDrop={onFileDrop}
         transform={transform}
         onFlipX={onFlipX}
         onFlipY={onFlipY}
