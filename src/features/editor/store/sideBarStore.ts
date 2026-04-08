@@ -47,6 +47,8 @@ interface SideBarStore {
   setTemplateCarouselPage: (key: string, page: number) => void;
   recentImagesExpanded: boolean;
   setRecentImagesExpanded: (expanded: boolean) => void;
+  imageSearchQuery: string;
+  setImageSearchQuery: (query: string) => void;
 }
 
 export const useSideBarStore = create<SideBarStore>((set) => ({
@@ -69,4 +71,6 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
   setTemplateCarouselPage: (key, page) => { set((s) => ({ templateCarouselPages: { ...s.templateCarouselPages, [key]: page } })); },
   recentImagesExpanded: false,
   setRecentImagesExpanded: (expanded) => { set({ recentImagesExpanded: expanded }); },
+  imageSearchQuery: "",
+  setImageSearchQuery: (query) => { set({ imageSearchQuery: query }); },
 }));
