@@ -47,7 +47,7 @@ export default async function handler(
     const response = await ai.models.generateContent({
       model,
       contents,
-      config: genConfig,
+      ...(genConfig && Object.keys(genConfig).length > 0 ? { config: genConfig } : {}),
     });
     return res.status(200).json(response);
   } catch (err) {

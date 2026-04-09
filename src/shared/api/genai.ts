@@ -9,6 +9,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 
+/** 텍스트 모델: 우선 3.1 flash lite, 503 시 2.5 flash 폴백 */
+export const TEXT_MODEL_PRIMARY = "gemini-3.1-flash-lite-preview";
+export const TEXT_MODEL_FALLBACK = "gemini-2.5-flash";
+
 /** 기존 GoogleGenAI와 호환되는 프록시 타입 */
 export type GenAIClient = {
   models: {
@@ -109,6 +113,29 @@ const createProxyClient = (): GenAIClient => ({
   },
 });
 
+/** 503/429 에러 시 폴백 모델로 자동 재시도하는 래퍼 */
+const withTextModelFallback = (client: GenAIClient): GenAIClient => {
+  const original = client.models.generateContent.bind(client.models);
+  return {
+    models: {
+      generateContent: async (params) => {
+        try {
+          return await original(params);
+        } catch (error) {
+          const isTextModel = params.model === TEXT_MODEL_PRIMARY;
+          const isServerError = error instanceof Error &&
+            (error.message.includes("503") || error.message.includes("429") || error.message.includes("UNAVAILABLE"));
+          if (isTextModel && isServerError) {
+            console.warn(`${TEXT_MODEL_PRIMARY} 실패, ${TEXT_MODEL_FALLBACK}으로 폴백`);
+            return original({ ...params, model: TEXT_MODEL_FALLBACK });
+          }
+          throw error;
+        }
+      },
+    },
+  };
+};
+
 let instance: GenAIClient | null = null;
 
 export const getGenAI = (): GenAIClient => {
@@ -116,16 +143,15 @@ export const getGenAI = (): GenAIClient => {
     const vertexProxy = import.meta.env.VITE_VERTEX_PROXY_URL as string | undefined;
     const apiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
 
+    let base: GenAIClient;
     if (vertexProxy && import.meta.env.DEV) {
-      // Vertex AI 로컬 프록시 (GCP 크레딧 사용)
-      instance = createVertexProxyClient(vertexProxy);
+      base = createVertexProxyClient(vertexProxy);
     } else if (apiKey && import.meta.env.DEV) {
-      // AI Studio 직접 호출
-      instance = createDirectClient(apiKey);
+      base = createDirectClient(apiKey);
     } else {
-      // 프로덕션 프록시
-      instance = createProxyClient();
+      base = createProxyClient();
     }
+    instance = withTextModelFallback(base);
   }
   return instance;
 };

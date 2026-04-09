@@ -151,9 +151,6 @@ export const generateStorybook = async (
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite-preview",
     contents: buildStorybookPrompt(proposal, childInfo, topic),
-    config: {
-      responseModalities: ["Text"],
-    },
   });
 
   const parts = response.candidates?.[0]?.content?.parts;
