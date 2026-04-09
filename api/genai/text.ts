@@ -7,7 +7,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { AuthError, verifyAuth } from "../_lib/auth.js";
 import { getServerGenAI } from "../_lib/genai.js";
 
-const ALLOWED_MODELS = ["gemini-2.5-flash"];
+const ALLOWED_MODELS = ["gemini-2.5-flash", "gemini-3.1-flash-lite-preview"];
 
 export const config = {
   maxDuration: 30,
