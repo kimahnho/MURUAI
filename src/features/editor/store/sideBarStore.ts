@@ -49,6 +49,12 @@ interface SideBarStore {
   setRecentImagesExpanded: (expanded: boolean) => void;
   imageSearchQuery: string;
   setImageSearchQuery: (query: string) => void;
+
+  // AI 템플릿 모달 열림 상태 — 컴포넌트 언마운트 시에도 유지
+  isStorybookModalOpen: boolean;
+  setIsStorybookModalOpen: (open: boolean) => void;
+  isEmotionChoiceModalOpen: boolean;
+  setIsEmotionChoiceModalOpen: (open: boolean) => void;
 }
 
 export const useSideBarStore = create<SideBarStore>((set) => ({
@@ -73,4 +79,9 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
   setRecentImagesExpanded: (expanded) => { set({ recentImagesExpanded: expanded }); },
   imageSearchQuery: "",
   setImageSearchQuery: (query) => { set({ imageSearchQuery: query }); },
+
+  isStorybookModalOpen: false,
+  setIsStorybookModalOpen: (open) => { set({ isStorybookModalOpen: open }); },
+  isEmotionChoiceModalOpen: false,
+  setIsEmotionChoiceModalOpen: (open) => { set({ isEmotionChoiceModalOpen: open }); },
 }));

@@ -106,6 +106,9 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
         useAiGenerationModeStore.getState().exitFocusedMode();
         useSideBarStore.getState().setSelectedMenu("template");
       }
+      // 이전 문서에서 열려 있던 AI 모달을 닫아 문서 전환 시 잔류 방지
+      useSideBarStore.getState().setIsStorybookModalOpen(false);
+      useSideBarStore.getState().setIsEmotionChoiceModalOpen(false);
 
       mp.track("문서 열기", { page_count: (canvasData as CanvasDocument).pages?.length ?? 0 });
       const initialOrientation = (canvasData as CanvasDocument).pages[0]

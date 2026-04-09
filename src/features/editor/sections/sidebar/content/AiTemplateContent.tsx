@@ -15,6 +15,7 @@ import { fetchEmotionImageMap } from "@/features/editor/utils/fetchEmotionImageM
 import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { useToastStore as useEditorToastStore } from "@/features/editor/store/toastStore";
 import { useEmotionSceneStore } from "@/features/editor/store/emotionSceneStore";
+import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import {
   TEMPLATE_REGISTRY,
 } from "@/features/editor/templates/templateRegistry";
@@ -30,8 +31,10 @@ import EmotionInferenceChoiceModal from "./EmotionInferenceChoiceModal";
 import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 
 const AiTemplateContent = () => {
-  const [isStorybookModalOpen, setIsStorybookModalOpen] = useState(false);
-  const [isEmotionChoiceModalOpen, setIsEmotionChoiceModalOpen] = useState(false);
+  const isStorybookModalOpen = useSideBarStore((s) => s.isStorybookModalOpen);
+  const setIsStorybookModalOpen = useSideBarStore((s) => s.setIsStorybookModalOpen);
+  const isEmotionChoiceModalOpen = useSideBarStore((s) => s.isEmotionChoiceModalOpen);
+  const setIsEmotionChoiceModalOpen = useSideBarStore((s) => s.setIsEmotionChoiceModalOpen);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [hasRequested, setHasRequested] = useState(false);
