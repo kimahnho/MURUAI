@@ -2,6 +2,7 @@
  * 저장된 캐릭터 CRUD — Cloudinary 업로드 + Supabase 저장/조회/삭제.
  */
 import { supabase } from "@/shared/api/supabase";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 import type { SavedCharacter, ChildInfo, ArtStyleId } from "../model/storybookTypes";
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
@@ -24,7 +25,8 @@ const uploadCharacterToCloudinary = async (
   }
   const formData = new FormData();
   const publicId = crypto.randomUUID();
-  formData.append("file", `data:image/png;base64,${base64Data}`);
+  const { data: webpData, mimeType } = await convertToWebP(base64Data);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", `muru-saved-characters/${userId}`);
   formData.append("public_id", publicId);

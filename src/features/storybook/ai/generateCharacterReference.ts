@@ -145,7 +145,7 @@ Rules:
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
       contents: [
-        { inlineData: { mimeType: "image/png" as const, data: mainCharacterBase64 } },
+        { inlineData: { mimeType: "image/webp" as const, data: mainCharacterBase64 } },
         { text: prompt },
       ],
       config: {
