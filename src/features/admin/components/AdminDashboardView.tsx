@@ -99,6 +99,10 @@ const AdminDashboardView = ({
               ? `다운로드 유저 비율 ${(downloadUserRatio * 100).toFixed(1)}%`
               : metrics.availability.downloads,
         },
+        {
+          title: "자료마켓 클릭",
+          value: `${formatNumber(metrics.linkClicks.total)}회`,
+        },
       ]
     : [];
 
@@ -263,6 +267,31 @@ const AdminDashboardView = ({
             templates={metrics?.templates.topTemplates ?? []}
             isLoading={isLoading}
           />
+
+          {/* 자료마켓 클릭 일별 추이 */}
+          {metrics && metrics.linkClicks.dailyTrend.some((d) => d.count > 0) && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5">
+              <span className="text-14-semibold text-black-90">자료마켓 클릭 추이</span>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="border-b border-slate-200 bg-black-5">
+                    <tr>
+                      <th className="whitespace-nowrap px-3 py-2 text-12-semibold text-black-70">날짜</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right text-12-semibold text-black-70">클릭 수</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {metrics.linkClicks.dailyTrend.filter((d) => d.count > 0).map((d) => (
+                      <tr key={d.date}>
+                        <td className="whitespace-nowrap px-3 py-2 text-13-regular text-black-70">{d.date}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right text-13-bold text-black-90">{d.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* 유저별 자료 */}
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5">

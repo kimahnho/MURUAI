@@ -81,3 +81,21 @@ export const trackImageUsageEvent = async (
     console.warn("image_usage_events insert failed", error);
   }
 };
+
+/** 외부 링크 클릭 이벤트를 기록한다. 비차단. */
+export const trackLinkClickEvent = async (
+  linkName: string,
+  userId?: string | null,
+) => {
+  const resolvedUserId = userId ?? (await supabase.auth.getUser()).data.user?.id;
+  if (!resolvedUserId) return;
+
+  const { error } = await supabase.from("link_click_events").insert({
+    user_id: resolvedUserId,
+    link_name: linkName,
+  });
+
+  if (error) {
+    console.warn("link_click_events insert failed", error);
+  }
+};
