@@ -5,10 +5,22 @@
       "maxDuration": 60
     }
   },
+  "headers": [
+    {
+      "source": "/(.*)\\.map",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)\\.map",
+      "destination": "/404"
     },
     {
       "source": "/(.*)",
