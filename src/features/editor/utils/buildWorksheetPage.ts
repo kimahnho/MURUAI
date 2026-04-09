@@ -632,7 +632,7 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
   const isImageMode = config.cell_content_type === "image_and_text";
   const cellW = CONTENT_W / config.cols;
   const textH = mmToPx(8);
-  const imgSize = cellW - 8; // 정사각형, 좌우 4px 패딩
+  const imgSize = Math.min(cellW - 8, mmToPx(40)); // 정사각형, 좌우 4px 패딩, 최대 40mm
   const cellH = isImageMode ? imgSize + textH + 4 : mmToPx(12);
   let curY = y;
 
@@ -659,11 +659,12 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
       const labelTextId = uid();
 
       if (isImageMode) {
-        // 이미지 삽입 프레임 (imageSlot)
+        // 이미지 삽입 프레임 (imageSlot) — 셀 중앙 정렬
         const hasImage = item?.imageUrl && (item.imageUrl.startsWith("url(") || item.imageUrl.startsWith("data:"));
+        const imgOffsetX = (cellW - imgSize) / 2;
         els.push(shapeEl({
           type: "roundRect",
-          x: cx + 4, y: cy + 4, w: imgSize, h: imgSize,
+          x: cx + imgOffsetX, y: cy + 4, w: imgSize, h: imgSize,
           fill: hasImage ? item.imageUrl! : "#f5f5f5",
           radius: 4,
           border: hasImage ? undefined : { enabled: true, color: "#e8e8e8", width: 1, style: "dashed" as "solid" | "dashed" | "dotted" | "double" },

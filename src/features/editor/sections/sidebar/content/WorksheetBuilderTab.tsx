@@ -2,10 +2,14 @@
  * 템플릿 탭의 "직접 만들기" 서브탭 내용.
  * 컴포넌트 클릭 시 현재 페이지에 바로 CanvasElement로 삽입.
  */
-import { useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
+import type { CanvasElement } from "@/features/editor/model/canvasTypes";
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
-import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
+import { buildWorksheetPage } from "@/features/editor/utils/buildWorksheetPage";
+import type { WorksheetComponentType, WorksheetComponent } from "@/features/worksheet-editor/model/types";
 import { EXAMPLE_1_EUUMHWA, EXAMPLE_2_PARENTS_DAY, EXAMPLE_3_VOCABULARY } from "@/features/worksheet-editor/utils/examples";
 
 interface PaletteItem {
@@ -63,16 +67,150 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
   },
 ];
 
-const EXAMPLES = [
-  { label: "예제1: 유음화", data: EXAMPLE_1_EUUMHWA },
-  { label: "예제2: 어버이날", data: EXAMPLE_2_PARENTS_DAY },
-  { label: "예제3: 단어학습", data: EXAMPLE_3_VOCABULARY },
+const PAGE_WIDTH_PX = 210 * 3.7795;
+const PAGE_HEIGHT_PX = 297 * 3.7795;
+const CARD_WIDTH = 120;
+const PREVIEW_SCALE = CARD_WIDTH / PAGE_WIDTH_PX;
+
+interface ExampleDef {
+  label: string;
+  data: WorksheetComponent[];
+}
+
+interface ExampleWithPreview extends ExampleDef {
+  elements: CanvasElement[];
+}
+
+const EXAMPLE_DEFS: ExampleDef[] = [
+  { label: "유음화", data: EXAMPLE_1_EUUMHWA },
+  { label: "어버이날", data: EXAMPLE_2_PARENTS_DAY },
+  { label: "단어학습", data: EXAMPLE_3_VOCABULARY },
 ];
+
+/** 컴포넌트 마운트 시 한 번만 빌드하는 lazy 초기화 */
+const useLazyExamples = (): ExampleWithPreview[] => {
+  const ref = useRef<ExampleWithPreview[] | null>(null);
+  if (!ref.current) {
+    ref.current = EXAMPLE_DEFS.map((ex) => {
+      const page = buildWorksheetPage(ex.data);
+      return { ...ex, elements: page.elements };
+    });
+  }
+  return ref.current;
+};
+
+const SCROLL_STEP = CARD_WIDTH + 12; // 카드 너비 + gap
+
+/** 예제 썸네일 가로 스크롤 + 좌우 플로팅 화살표 */
+const ExampleCarousel = ({
+  examples,
+  onSelect,
+}: {
+  examples: ExampleWithPreview[];
+  onSelect: (ex: ExampleWithPreview) => void;
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    return () => el.removeEventListener("scroll", updateArrows);
+  });
+
+  const scroll = (direction: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: direction === "left" ? -SCROLL_STEP : SCROLL_STEP,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {examples.map((ex) => (
+          <div
+            key={ex.label}
+            className="flex flex-col gap-1.5 cursor-pointer shrink-0"
+            style={{ width: CARD_WIDTH }}
+            onClick={() => onSelect(ex)}
+          >
+            <div className="aspect-[1/1.414] bg-white-100 border border-black-25 rounded-lg shadow-sm hover:shadow-md hover:border-primary-300 transition overflow-hidden relative">
+              <div className="absolute inset-0 pointer-events-none">
+                <div
+                  style={{
+                    width: `${PAGE_WIDTH_PX}px`,
+                    height: `${PAGE_HEIGHT_PX}px`,
+                    transform: `scale(${PREVIEW_SCALE})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  <DesignPaper
+                    pageId={`example-preview-${ex.label}`}
+                    orientation="vertical"
+                    elements={ex.elements}
+                    selectedIds={[]}
+                    editingTextId={null}
+                    readOnly
+                  />
+                </div>
+              </div>
+            </div>
+            <span className="text-12-semibold text-black-80 text-center truncate">
+              {ex.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 좌측 화살표 — 썸네일 이미지 영역 세로 중앙 */}
+      {canScrollLeft && (
+        <button
+          type="button"
+          className="absolute left-0 flex items-center justify-center w-7 h-7 rounded-full bg-white-100 border border-black-25 shadow-md hover:bg-black-5 transition z-10"
+          style={{ top: `${(CARD_WIDTH * 1.414) / 2}px`, transform: "translateY(-50%)" }}
+          onClick={() => scroll("left")}
+          aria-label="이전 예제"
+        >
+          <ChevronLeft className="w-4 h-4 text-black-70" />
+        </button>
+      )}
+
+      {/* 우측 화살표 — 썸네일 이미지 영역 세로 중앙 */}
+      {canScrollRight && (
+        <button
+          type="button"
+          className="absolute right-0 flex items-center justify-center w-7 h-7 rounded-full bg-white-100 border border-black-25 shadow-md hover:bg-black-5 transition z-10"
+          style={{ top: `${(CARD_WIDTH * 1.414) / 2}px`, transform: "translateY(-50%)" }}
+          onClick={() => scroll("right")}
+          aria-label="다음 예제"
+        >
+          <ChevronRight className="w-4 h-4 text-black-70" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 const WorksheetBuilderTab = () => {
   const requestInsert = useWorksheetElementStore((s) => s.requestInsert);
   const requestBatchInsert = useWorksheetElementStore((s) => s.requestBatchInsert);
   const showPanel = useWorksheetElementStore((s) => s.showPanel);
+  const examples = useLazyExamples();
 
   // 직접 만들기 탭이 활성화되면 패널 표시
   useEffect(() => {
@@ -81,26 +219,12 @@ const WorksheetBuilderTab = () => {
 
   return (
     <div className="flex flex-col gap-5 py-2">
-      {/* 예제 — 클릭하면 바로 적용 */}
+      {/* 예제 3종 — A4 썸네일 미리보기 */}
       <div>
         <p className="text-13-bold text-black-60 px-1 pb-2 mb-2 border-b border-black-15">
           예제 템플릿
         </p>
-        <p className="text-12-regular text-black-40 px-1 mb-2">
-          클릭하면 학습지에 바로 적용돼요
-        </p>
-        <div className="flex flex-col gap-2">
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex.label}
-              type="button"
-              className="w-full px-4 py-3 rounded-xl text-left text-14-semibold bg-primary-50 text-primary border border-primary-200 hover:bg-primary-100 active:bg-primary-100 active:scale-[0.98] transition"
-              onClick={() => requestBatchInsert(ex.data)}
-            >
-              📋 {ex.label}
-            </button>
-          ))}
-        </div>
+        <ExampleCarousel examples={examples} onSelect={(ex) => requestBatchInsert(ex.data)} />
       </div>
 
       {/* 컴포넌트 팔레트 */}
