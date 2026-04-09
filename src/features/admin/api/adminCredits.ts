@@ -57,3 +57,17 @@ export const manageCreditRequest = async (
   });
   if (error) throw error;
 };
+
+// ─── 수동 크레딧 충전 ───
+
+/** 관리자가 특정 유저의 크레딧을 수동으로 충전한다. */
+export const adminAdjustUserCredits = async (
+  userId: string,
+  amount: number,
+): Promise<void> => {
+  const { error } = await supabase.rpc("admin_adjust_user_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+  });
+  if (error) throw error;
+};
