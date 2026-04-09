@@ -277,13 +277,20 @@ export const generateStoryImages = async (
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
   // ── Phase 1: 멀티 레퍼런스 기반 base64 수집 ──
-  // 주인공 + 서브캐릭터 레퍼런스 + sceneGroup 장면 앵커
+  // 레퍼런스 이미지를 WebP로 압축하여 API 전송 크기 줄이기 (413 방지)
+  const compressedMainRef = referenceImageBase64
+    ? (await convertToWebP(referenceImageBase64)).data
+    : undefined;
+
   const base64Images: string[] = new Array(pages.length);
   const sceneGroupAnchors = new Map<number, string>();
   const castCharacters = subCharacters ?? [];
   const subCharRefs = new Map<string, string>();
   for (const sc of castCharacters) {
-    if (sc.imageBase64) subCharRefs.set(sc.role, sc.imageBase64);
+    if (sc.imageBase64) {
+      const { data } = await convertToWebP(sc.imageBase64);
+      subCharRefs.set(sc.role, data);
+    }
   }
 
   for (let i = 0; i < pages.length; i++) {
@@ -302,7 +309,7 @@ export const generateStoryImages = async (
       ai,
       imagePrompt,
       aspectRatio,
-      referenceImageBase64,
+      compressedMainRef,
       subCharRefs,
       pageCharacterRoles,
       castCharacters,
@@ -310,7 +317,8 @@ export const generateStoryImages = async (
     );
 
     if (!sceneAnchor) {
-      sceneGroupAnchors.set(group, base64);
+      const { data: compressedAnchor } = await convertToWebP(base64);
+      sceneGroupAnchors.set(group, compressedAnchor);
     }
 
     base64Images[i] = base64;
