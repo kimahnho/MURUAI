@@ -11,11 +11,8 @@ import type {
 import { TOPIC_MIN_LENGTH, TOPIC_MAX_LENGTH } from "./storybookTypes";
 
 export const validateChildInfo = (info: ChildInfo | null): string | null => {
-  if (!info) return "아동 정보를 입력해 주세요.";
-  if (!info.name.trim()) return "이름을 입력해 주세요.";
+  if (!info) return "나이를 입력해 주세요.";
   if (info.age < 1 || info.age > 19) return "나이는 1~19세 범위로 입력해 주세요.";
-  if (info.gender !== "male" && info.gender !== "female")
-    return "성별을 선택해 주세요.";
   return null;
 };
 

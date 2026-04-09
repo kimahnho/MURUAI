@@ -22,8 +22,8 @@ const buildCharacterPrompt = (
   stylePrompt: string,
   customPrompt?: string,
 ): string => {
-  const gender = childInfo.gender === "male" ? "boy" : "girl";
   const age = childInfo.age;
+  const genderStr = childInfo.gender === "male" ? "boy" : childInfo.gender === "female" ? "girl" : "child";
   const isCustomStyle = customPrompt && !stylePrompt;
 
   if (isCustomStyle) {
@@ -38,13 +38,17 @@ Rules:
 - No extra decorations, patterns, or elements unless the user described them`;
   }
 
-  // 프리셋 모드: 프리셋 그림체 + 선택적 유저 커스텀
-  const userSection = customPrompt
-    ? `\nThe user requested these specific traits (top priority):\n${customPrompt}\n`
-    : "";
+  // 유저가 캐릭터를 직접 묘사한 경우: 유저 입력이 곧 캐릭터
+  if (customPrompt) {
+    return `${customPrompt}
 
-  return `Create a single full-body character design of a ${age}-year-old Korean ${gender}.
-${userSection}
+Art style: ${stylePrompt}
+
+Full body, front-facing, white background. One character only.`;
+  }
+
+  return `Create a single full-body character design of a ${age}-year-old Korean ${genderStr}.
+
 Art style: ${stylePrompt}
 
 The character should:
@@ -102,4 +106,58 @@ export const generateCharacterReference = async (
   }
 
   throw new Error("캐릭터 이미지 생성에 실패했습니다.");
+};
+
+/**
+ * 주인공 레퍼런스를 앵커로 동일 그림체의 서브캐릭터 이미지를 생성한다.
+ * @param mainCharacterBase64 주인공 레퍼런스 이미지 (base64)
+ * @param appearance 서브캐릭터 외형 묘사
+ * @param personality 서브캐릭터 성격 한 줄
+ * @returns base64 인코딩된 서브캐릭터 이미지
+ */
+export const generateSubCharacterReference = async (
+  mainCharacterBase64: string,
+  appearance: string,
+  personality: string,
+): Promise<string> => {
+  const ai = getGenAI();
+
+  const prompt = `Draw a NEW character in the EXACT SAME art style as the reference image above.
+
+This is a DIFFERENT character from the one in the reference. Do NOT copy the reference character.
+
+Character description:
+- Appearance: ${appearance}
+- Personality: ${personality}
+
+Rules:
+- Match the exact same art style, line weight, color palette, and rendering technique as the reference image.
+- Single character, full body from head to feet, facing the viewer.
+- Friendly, natural pose that reflects the character's personality.
+- Pure white (#FFFFFF) background, no scenery, no text, no labels.
+- Do NOT draw the character from the reference image. Draw only the NEW character described above.`;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: [
+        { inlineData: { mimeType: "image/png" as const, data: mainCharacterBase64 } },
+        { text: prompt },
+      ],
+      config: {
+        responseModalities: ["Text", "Image"],
+        imageConfig: { aspectRatio: "1:1" },
+      },
+    });
+
+    const parts = response.candidates?.[0]?.content?.parts;
+    const imagePart = parts?.find((part) => part.inlineData);
+    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+  }
+
+  throw new Error("서브캐릭터 이미지 생성에 실패했습니다.");
 };

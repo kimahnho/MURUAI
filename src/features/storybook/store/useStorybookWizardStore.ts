@@ -23,16 +23,14 @@ import { useTemplateStore } from "@/features/editor/store/templateStore";
 import { generateStoryProposals } from "../ai/generateStoryProposals";
 import { generateCharacterReference } from "../ai/generateCharacterReference";
 import { generateStorybook } from "../ai/generateStorybook";
+import { extractCastFromStory } from "../ai/extractCastFromStory";
 import { buildStoryPages } from "../utils/buildStoryPages";
 import {
   checkAiCredits,
   recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
 import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
-import {
-  updateStudentGender,
-  createStudentFromWizard,
-} from "../data/studentService";
+// studentService import 제거 — Step 1에서 DB 동기화 불필요
 
 const STEP_ORDER: WizardStep[] = [1, 2, 3, 4, 45, 5, 6];
 const nextStep = (current: WizardStep): WizardStep | null => {
@@ -50,6 +48,7 @@ interface StorybookWizardState {
   generatedBook: StoryBook | null;
   isLoading: boolean;
   imageProgress: { current: number; total: number } | null;
+  subCharProgress: { current: number; total: number } | null;
   error: string | null;
 
   // 네비게이션
@@ -92,6 +91,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     generatedBook: null,
     isLoading: false,
     imageProgress: null,
+    subCharProgress: null,
     error: null,
 
     // ─── 네비게이션 ───
@@ -101,27 +101,6 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const next = nextStep(currentStep);
       if (!next) return;
       if (!canAdvance(currentStep, formData)) return;
-
-      // Step 1→2: 아동 정보 DB 동기화 (비차단)
-      if (currentStep === 1 && formData.childInfo) {
-        const info = formData.childInfo;
-        if (info.studentId) {
-          void updateStudentGender(info.studentId, info.gender);
-        } else {
-          void createStudentFromWizard(info).then((newId) => {
-            if (newId) {
-              set((s) => ({
-                formData: {
-                  ...s.formData,
-                  childInfo: s.formData.childInfo
-                    ? { ...s.formData.childInfo, studentId: newId }
-                    : null,
-                },
-              }));
-            }
-          });
-        }
-      }
 
       // 저장된 캐릭터가 선택된 경우 Step 4.5(참고 이미지)를 스킵
       const shouldSkip45 = next === 45 && formData.selectedCharacterId && formData.referenceImageBase64;
@@ -230,6 +209,21 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         },
       }));
       mp.track("AI 스토리북 기획서 선택");
+
+      // 백그라운드 캐스팅 분석 — Step 4에서 스타일 고르는 동안 준비됨
+      if (proposal && formData.childInfo) {
+        void extractCastFromStory(proposal.pages, formData.childInfo.name ?? "주인공").then((castingNote) => {
+          set((s) => ({
+            formData: { ...s.formData, castingNote },
+          }));
+          if (castingNote.characters.length > 0) {
+            mp.track("AI 스토리북 캐스팅 분석", {
+              sub_character_count: castingNote.characters.length,
+              sub_character_roles: castingNote.characters.map((c) => c.role).join(", "),
+            });
+          }
+        });
+      }
     },
 
     updateProposalPage: (proposalId, pageNumber, text) => {
@@ -335,7 +329,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         return;
       }
 
-      set({ isLoading: true, error: null, currentStep: 5, imageProgress: null });
+      set({ isLoading: true, error: null, currentStep: 5, imageProgress: null, subCharProgress: null });
       try {
         const book = await generateStorybook(
           proposal,
@@ -347,9 +341,16 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           (current, total) => { set({ imageProgress: { current, total } }); },
           effectivePromptTemplate,
           formData.topic,
+          formData.castingNote,
+          (current, total) => { set({ subCharProgress: { current, total } }); },
         );
-        set({ generatedBook: book, isLoading: false, imageProgress: null, currentStep: 6 });
-        mp.track("AI 스토리북 생성 완료", { art_style: artStyle, layout: formData.layout });
+        set({ generatedBook: book, isLoading: false, imageProgress: null, subCharProgress: null, currentStep: 6 });
+        const subCount = formData.castingNote?.characters.length ?? 0;
+        mp.track("AI 스토리북 생성 완료", {
+          art_style: artStyle,
+          layout: formData.layout,
+          sub_character_count: subCount,
+        });
 
         // 이미지 크레딧 차감 (성공 후)
         void recordAiCreditUsage("storybook", book.pages.length);
@@ -378,6 +379,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         generatedBook: null,
         isLoading: false,
         imageProgress: null,
+        subCharProgress: null,
         error: null,
       });
     },
