@@ -46,6 +46,8 @@ interface RoundBoxProps {
     fontWeight?: "normal" | "bold";
     fontFamily?: string;
     color?: string;
+    italic?: boolean;
+    underline?: boolean;
   };
   children?: React.ReactNode;
   isSelected?: boolean;
@@ -578,6 +580,8 @@ const RoundBox = ({
                 fontWeight: textStyle?.fontWeight ?? "normal",
                 fontFamily: textStyle?.fontFamily,
                 color: textStyle?.color ?? "#000000",
+                fontStyle: textStyle?.italic ? "italic" : "normal",
+                textDecoration: textStyle?.underline ? "underline" : "none",
                 wordBreak: "break-word",
               }}
             >
@@ -612,6 +616,8 @@ const RoundBox = ({
               fontWeight: textStyle?.fontWeight ?? "normal",
               fontFamily: textStyle?.fontFamily,
               color: textStyle?.color ?? "#000000",
+              fontStyle: textStyle?.italic ? "italic" : "normal",
+              textDecoration: textStyle?.underline ? "underline" : "none",
               caretColor: textStyle?.color ?? "#000000",
             }}
             onClick={(e) => {

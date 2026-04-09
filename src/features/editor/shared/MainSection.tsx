@@ -647,6 +647,18 @@ const MainSection = () => {
                 },
               };
             }
+            // Shape textStyle deep merge — shallow merge로 textStyle 속성이 유실되는 것을 방지
+            if (
+              (el.type === "rect" || el.type === "roundRect" || el.type === "ellipse" ||
+                el.type === "mosaic" || el.type === "circleMosaic") &&
+              patch.textStyle && typeof patch.textStyle === "object"
+            ) {
+              return {
+                ...el,
+                ...patch,
+                textStyle: { ...el.textStyle, ...(patch.textStyle as object) },
+              };
+            }
             return { ...el, ...patch };
           }),
         ),
@@ -669,12 +681,21 @@ const MainSection = () => {
       if (elementPanelData.type === "aac") {
         setSideBarMenu("emotion-aac");
       }
+      // 도형 선택 시 fontStore.panelFontWeight를 도형의 현재 값으로 동기화
+      // — InlineFontPicker가 stale한 panelFontWeight로 폰트 변경하는 것을 방지
+      if (elementPanelData.type === "shape") {
+        const ts = elementPanelData.element.textStyle;
+        setFontPanel({
+          fontFamily: ts?.fontFamily ?? "Pretendard",
+          fontWeight: ts?.fontWeight === "bold" ? 700 : 400,
+        });
+      }
       const updateFn = elementPanelData.type === "aac" ? updateElementForAac : updateElementForPanel;
       setPanelData(elementPanelData, updateFn, updateLinesForPanel);
     } else {
       setPanelData(null, null, null);
     }
-  }, [elementPanelData, setPanelData, setSideBarMenu, updateElementForPanel, updateElementForAac, updateLinesForPanel]);
+  }, [elementPanelData, setPanelData, setSideBarMenu, setFontPanel, updateElementForPanel, updateElementForAac, updateLinesForPanel]);
 
   // multiCallbacks 동기화: 다중 선택 시 사이드바에 필요한 콜백과 데이터를 전달한다
   const setMultiCallbacks = useElementPanelStore((s) => s.setMultiCallbacks);
