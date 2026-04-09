@@ -29,6 +29,8 @@ import {
   checkAiCredits,
   recordAiCreditUsage,
 } from "@/features/editor/utils/aiTemplateUsage";
+import { createAiGenerationLog, confirmAiGeneration } from "@/shared/utils/trackAiGeneration";
+import { supabase } from "@/shared/api/supabase";
 import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
 // studentService import 제거 — Step 1에서 DB 동기화 불필요
 
@@ -354,6 +356,22 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
         // 이미지 크레딧 차감 (성공 후)
         void recordAiCreditUsage("storybook", book.pages.length);
+
+        // DB 로그 기록 (비차단)
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData.user) {
+          void createAiGenerationLog(authData.user.id, "storybook", formData.topic, "editor").then((logId) => {
+            if (logId) {
+              void confirmAiGeneration(
+                logId,
+                book.pages.map((p) => ({ title: book.title, sentence: p.text })),
+                book.pages.map((p) => p.imageUrl).filter(Boolean),
+                artStyle,
+                formData.layout,
+              );
+            }
+          });
+        }
 
         // 에디터 캔버스에 10페이지 삽입
         const pages = buildStoryPages(book);
