@@ -74,6 +74,14 @@ const Header = () => {
                 </button>
               </>
             )}
+            <a
+              href="https://smartstore.naver.com/muruai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+            >
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">자료마켓</span>
+            </a>
             <button
               type="button"
               onClick={() => navigate("/about")}
@@ -100,6 +108,14 @@ const Header = () => {
           </>
         ) : (
           <>
+            <a
+              href="https://smartstore.naver.com/muruai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center px-2 py-2 md:px-4 cursor-pointer"
+            >
+              <span className="text-13-bold md:text-14-semibold text-black-70 hover:text-black-100 transition whitespace-nowrap">자료마켓</span>
+            </a>
             <button
               type="button"
               onClick={() => navigate("/about")}
