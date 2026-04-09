@@ -339,15 +339,18 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
-      // 현재 페이지 최하단 Y좌표 계산
-      let maxY = 56.7; // mmToPx(15) ≈ 기본 마진
+      // 로고 요소를 제외한 현재 페이지 최하단 Y좌표 계산
+      const SINGLE_MARGIN_PX = 56.7; // mmToPx(15) ≈ 기본 마진
+      let maxY = SINGLE_MARGIN_PX;
       for (const el of page.elements) {
+        if ("locked" in el && (el as { locked?: boolean }).locked) continue;
         if ("y" in el && "h" in el) {
           const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
           if (bottom > maxY) maxY = bottom;
         }
       }
-      const insertY = maxY + 38; // ~10mm 간격
+      // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
+      const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
 
       const compType = state.requestedComponent;
       const newElements = buildWorksheetComponentElements(compType, insertY);
@@ -406,8 +409,11 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
-      let maxY = 56.7;
+      // 로고 요소를 제외한 기존 요소의 최대 바닥 Y 좌표 계산
+      const MARGIN_PX = 56.7;
+      let maxY = MARGIN_PX;
       for (const el of page.elements) {
+        if ("locked" in el && (el as { locked?: boolean }).locked) continue;
         if ("y" in el && "h" in el) {
           const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
           if (bottom > maxY) maxY = bottom;
@@ -416,8 +422,9 @@ export const useEditorSubscriptions = ({
 
       const allNewElements: import("../model/canvasTypes").CanvasElement[] = [];
       const batchWsComps: import("../model/pageTypes").PageWorksheetComponent[] = [];
-      let curY = maxY + 38;
       const GAP = 38;
+      // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
+      let curY = maxY > MARGIN_PX ? maxY + GAP : MARGIN_PX;
 
       for (const comp of state.requestedBatch) {
         const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
