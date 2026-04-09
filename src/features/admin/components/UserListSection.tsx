@@ -1,11 +1,16 @@
 /**
- * 관리자 유저 목록 섹션 — 검색, 유저 정보 표시.
+ * 관리자 유저 목록 섹션 — 검색, 유저 정보 표시, 크레딧 수동 충전.
  */
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import Badge from "@/shared/ui/Badge";
+import Button from "@/shared/ui/Button";
 import Spinner from "@/shared/ui/Spinner";
+import BaseModal from "@/shared/ui/BaseModal";
+import Input from "@/shared/ui/Input";
+import useToastStore from "@/shared/store/useToastStore";
 import { useAdminUsers } from "../hooks/useAdminUsers";
+import { adminAdjustUserCredits } from "../api/adminCredits";
 import { EXCLUDED_USER_IDS } from "../constants/excludedUsers";
 
 const formatDate = (iso: string | null) => {
@@ -27,8 +32,29 @@ const providerLabel = (provider: string) => {
 };
 
 const UserListSection = () => {
-  const { users, isLoading } = useAdminUsers();
+  const { users, isLoading, refetch } = useAdminUsers();
   const [search, setSearch] = useState("");
+  const [chargeTarget, setChargeTarget] = useState<{ id: string; email: string } | null>(null);
+  const [chargeAmount, setChargeAmount] = useState("30");
+  const [isCharging, setIsCharging] = useState(false);
+
+  const handleCharge = async () => {
+    if (!chargeTarget) return;
+    const amount = Number(chargeAmount);
+    if (!amount || amount <= 0) return;
+    setIsCharging(true);
+    try {
+      await adminAdjustUserCredits(chargeTarget.id, amount);
+      useToastStore.getState().showToast(`${amount} 크레딧 충전 완료`, "primary");
+      setChargeTarget(null);
+      setChargeAmount("30");
+      refetch();
+    } catch {
+      useToastStore.getState().showToast("충전에 실패했습니다.");
+    } finally {
+      setIsCharging(false);
+    }
+  };
 
   const filteredUsers = users
     .filter((u) => !EXCLUDED_USER_IDS.has(u.id))
@@ -117,8 +143,16 @@ const UserListSection = () => {
                     <span className="text-12-regular text-black-70">유저</span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3 text-center text-13-bold text-black-70">
-                  {user.credit_balance}
+                <td className="whitespace-nowrap px-3 py-3 text-center">
+                  <span className="text-13-bold text-black-70">{user.credit_balance}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setChargeTarget({ id: user.id, email: user.email }); }}
+                    className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-primary-50 text-primary hover:bg-primary-100 transition"
+                    title="크레딧 충전"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-13-regular text-black-70">
                   {user.credit_total_used}
@@ -141,6 +175,41 @@ const UserListSection = () => {
           </tbody>
         </table>
       </div>
+      {/* 충전 모달 */}
+      <BaseModal
+        isOpen={!!chargeTarget}
+        onClose={() => { setChargeTarget(null); }}
+        title="크레딧 수동 충전"
+        size="sm"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-14-regular text-black-70">
+            <span className="text-14-semibold text-black-90">{chargeTarget?.email}</span>
+            에게 크레딧을 충전합니다.
+          </p>
+          <Input
+            label="충전 크레딧"
+            type="number"
+            value={chargeAmount}
+            onChange={(e) => { setChargeAmount(e.target.value); }}
+            placeholder="30"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setChargeTarget(null); }}>
+              취소
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCharge}
+              isLoading={isCharging}
+              disabled={!chargeAmount || Number(chargeAmount) <= 0}
+            >
+              충전하기
+            </Button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };
