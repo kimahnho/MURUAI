@@ -7,8 +7,8 @@
 export interface ChildInfo {
   id: string;
   studentId?: string;
-  name: string;
-  gender: "male" | "female";
+  name?: string;
+  gender?: "male" | "female";
   age: number;
   diagnosis?: string;
   learningGoal?: string;
@@ -91,6 +91,20 @@ export interface LayoutOption {
   description: string;
 }
 
+// ─── 캐스팅 (서브캐릭터 자동 분석) ───
+
+export interface CastCharacter {
+  role: string;
+  appearance: string;
+  personality: string;
+  pages: number[];
+  imageBase64?: string;
+}
+
+export interface CastingNote {
+  characters: CastCharacter[];
+}
+
 // ─── 위자드 ───
 
 export type WizardStep = 1 | 2 | 3 | 4 | 45 | 5 | 6;
@@ -108,6 +122,7 @@ export interface WizardFormData {
   characterPrompt?: string;
   customPromptTemplate?: string;
   selectedCharacterId?: string;
+  castingNote?: CastingNote | null;
 }
 
 // ─── 상수 ───
@@ -116,14 +131,52 @@ export const STORYBOOK_PAGE_COUNT = 10;
 
 export const DEFAULT_FONT_FAMILY = "Pretendard";
 
-export const TOPIC_PRESETS = [
-  "실수를 두려워하지 않는 마음",
-  "처음 만난 친구와 인사하는 법",
-  "내 감정을 말로 표현하기",
-  "비 오는 날 우산을 잃어버린 아이 이야기",
-  "학교에서 발표하기가 무서운 아이 이야기",
-  "토끼와 거북이",
-] as const;
+/** 나이별 주제 추천 — 발달 단계에 맞는 예시 */
+export const TOPIC_PRESETS_BY_AGE: Record<string, string[]> = {
+  "3-4": [
+    "아기 곰이 엄마를 찾아가는 이야기",
+    "달님 안녕",
+    "강아지와 산책하기",
+    "잃어버린 양말을 찾아서",
+    "비눗방울 놀이",
+    "배고픈 애벌레",
+  ],
+  "5-6": [
+    "처음 만난 친구와 인사하는 법",
+    "내 감정을 말로 표현하기",
+    "무지개 물고기",
+    "비 오는 날 우산을 잃어버린 아이",
+    "토끼와 거북이",
+    "유치원에서 처음 혼자 자는 날",
+  ],
+  "7-8": [
+    "실수를 두려워하지 않는 마음",
+    "학교에서 발표하기가 무서운 아이",
+    "전학 온 첫날 친구 사귀기",
+    "거짓말쟁이 양치기 소년",
+    "비밀 편지를 받은 날",
+    "숲속에서 길을 잃은 모험",
+  ],
+  "9+": [
+    "친구의 비밀을 지켜야 할까?",
+    "다른 사람의 입장에서 생각하기",
+    "포기하고 싶을 때 다시 일어서는 법",
+    "이상한 나라의 앨리스",
+    "새로운 동네로 이사한 날",
+    "시험에서 떨어졌지만 배운 것들",
+  ],
+};
+
+/** 나이에 맞는 주제 프리셋을 반환한다 */
+export const getTopicPresetsForAge = (age: number): string[] => {
+  if (age <= 4) return TOPIC_PRESETS_BY_AGE["3-4"];
+  if (age <= 6) return TOPIC_PRESETS_BY_AGE["5-6"];
+  if (age <= 8) return TOPIC_PRESETS_BY_AGE["7-8"];
+  return TOPIC_PRESETS_BY_AGE["9+"];
+};
+
+/** @deprecated getTopicPresetsForAge 사용 */
+export const TOPIC_PRESETS = TOPIC_PRESETS_BY_AGE["5-6"];
 
 export const TOPIC_MIN_LENGTH = 2;
 export const TOPIC_MAX_LENGTH = 500;
@@ -174,4 +227,5 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   characterPrompt: undefined,
   customPromptTemplate: undefined,
   selectedCharacterId: undefined,
+  castingNote: null,
 };

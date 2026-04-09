@@ -11,6 +11,7 @@ import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 
 const GeneratingStep = () => {
   const imageProgress = useStorybookWizardStore((s) => s.imageProgress);
+  const subCharProgress = useStorybookWizardStore((s) => s.subCharProgress);
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -37,6 +38,11 @@ const GeneratingStep = () => {
       </div>
 
       {/* 진행률 */}
+      {subCharProgress && !imageProgress && (
+        <p className="text-14-semibold text-primary">
+          캐릭터 준비 중 ({subCharProgress.current}/{subCharProgress.total})
+        </p>
+      )}
       {imageProgress && (
         <p className="text-14-semibold text-primary">
           이미지 생성 중 ({imageProgress.current}/{imageProgress.total})

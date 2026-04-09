@@ -1,340 +1,69 @@
 /**
- * 1단계: 아동 정보 — 기존 학습자 선택 또는 직접 입력.
+ * 1단계: 나이 입력 — 스토리 난이도와 어휘 수준을 결정하는 유일한 입력.
  */
-import { useState, useEffect, Fragment } from "react";
-import { Check, Loader2, User } from "lucide-react";
+import { useState } from "react";
 
-import type { ChildInfo } from "../../model/storybookTypes";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
-import {
-  fetchStudentsForWizard,
-  type StudentSummary,
-} from "../../data/studentService";
-
-type Mode = "select" | "manual";
 
 const ChildInfoStep = () => {
   const childInfo = useStorybookWizardStore((s) => s.formData.childInfo);
   const setChildInfo = useStorybookWizardStore((s) => s.setChildInfo);
 
-  // 학습자 목록
-  const [students, setStudents] = useState<StudentSummary[]>([]);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
-
-  // 모드
-  const [mode, setMode] = useState<Mode>("select");
-
-  // 직접 입력 로컬 상태
-  const [name, setName] = useState(childInfo?.name ?? "");
-  const [gender, setGender] = useState<"male" | "female">(
-    childInfo?.gender ?? "male",
-  );
-  const [age, setAge] = useState(childInfo?.age ?? 5);
-  const [diagnosis, setDiagnosis] = useState(childInfo?.diagnosis ?? "");
-  const [learningGoal, setLearningGoal] = useState(
-    childInfo?.learningGoal ?? "",
+  const [ageInput, setAgeInput] = useState(
+    childInfo?.age ? String(childInfo.age) : "",
   );
 
-  // 선택 모드 — 선택한 학습자 ID + 성별 미설정 시 보충 입력
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    childInfo?.studentId ?? null,
-  );
-  const [selectedGender, setSelectedGender] = useState<"male" | "female" | null>(
-    childInfo?.gender ?? null,
-  );
+  const handleChange = (value: string) => {
+    // 숫자만 허용
+    const cleaned = value.replace(/[^0-9]/g, "").slice(0, 2);
+    setAgeInput(cleaned);
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoadingStudents(true);
-      const result = await fetchStudentsForWizard();
-      setStudents(result);
-      setIsLoadingStudents(false);
-
-      // 학습자가 없으면 직접 입력 모드로 전환
-      if (result.length === 0) {
-        setMode("manual");
-      }
-    };
-    void load();
-  }, []);
-
-  // 직접 입력 → 스토어 동기화
-  const syncManualToStore = (
-    overrides: Partial<Pick<ChildInfo, "name" | "gender" | "age" | "diagnosis" | "learningGoal">> = {},
-  ) => {
-    const info: ChildInfo = {
-      id: childInfo?.id ?? crypto.randomUUID(),
-      name: overrides.name ?? name,
-      gender: overrides.gender ?? gender,
-      age: overrides.age ?? age,
-      diagnosis: (overrides.diagnosis ?? diagnosis) || undefined,
-      learningGoal: (overrides.learningGoal ?? learningGoal) || undefined,
-    };
-    setChildInfo(info);
-  };
-
-  // 학습자 카드 선택
-  const handleSelectStudent = (student: StudentSummary) => {
-    const currentYear = new Date().getFullYear();
-    const computedAge = Math.max(1, currentYear - parseInt(student.birth_year));
-    const studentGender =
-      student.gender === "male" || student.gender === "female"
-        ? student.gender
-        : null;
-
-    setSelectedStudentId(student.id);
-    setSelectedGender(studentGender);
-
-    // 성별이 있으면 바로 스토어에 저장
-    if (studentGender) {
+    const num = parseInt(cleaned, 10);
+    if (!isNaN(num) && num >= 1 && num <= 19) {
       setChildInfo({
         id: childInfo?.id ?? crypto.randomUUID(),
-        studentId: student.id,
-        name: student.name,
-        gender: studentGender,
-        age: computedAge,
+        age: num,
       });
     }
   };
 
-  // 성별 보충 선택 (학습자에 gender 없을 때)
-  const handleSupplementGender = (g: "male" | "female") => {
-    setSelectedGender(g);
-    const student = students.find((s) => s.id === selectedStudentId);
-    if (!student) return;
-
-    const currentYear = new Date().getFullYear();
-    const computedAge = Math.max(1, currentYear - parseInt(student.birth_year));
-
+  const handleBlur = () => {
+    const num = parseInt(ageInput, 10);
+    if (isNaN(num) || num < 1) {
+      setAgeInput("");
+      return;
+    }
+    const clamped = Math.min(19, Math.max(1, num));
+    setAgeInput(String(clamped));
     setChildInfo({
       id: childInfo?.id ?? crypto.randomUUID(),
-      studentId: student.id,
-      name: student.name,
-      gender: g,
-      age: computedAge,
+      age: clamped,
     });
   };
 
-  const isNeedsGender = selectedStudentId !== null && selectedGender === null;
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* 모드 탭 — 학습자가 있을 때만 표시 */}
-      {students.length > 0 && (
-        <div className="flex rounded-lg bg-primary-50 p-0.5">
-          {([["select", "내 학습자"], ["manual", "직접 입력"]] as const).map(
-            ([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => { setMode(value); }}
-                className={`flex-1 rounded-md py-1.5 text-13-bold transition ${
-                  mode === value
-                    ? "bg-white-100 text-primary shadow-sm"
-                    : "text-primary-300 hover:text-primary-400"
-                }`}
-              >
-                {label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
+    <div className="flex flex-col items-center gap-6 py-4">
+      <div className="flex flex-col items-center gap-2">
+        <span className="text-title-16-semibold text-black-90">
+          아이의 나이를 알려주세요
+        </span>
+        <span className="text-14-regular text-black-60 text-center">
+          나이에 따라 이야기의 문장 구성과 내용이 달라져요
+        </span>
+      </div>
 
-      {/* 모드 A: 학습자 선택 */}
-      {mode === "select" && (
-        <div className="flex flex-col gap-2">
-          {isLoadingStudents ? (
-            <div className="flex items-center justify-center py-8 text-black-40">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          ) : students.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-black-40">
-              <User className="h-8 w-8" />
-              <span className="text-13-regular">등록된 학습자가 없어요</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 p-0.5">
-              {students.map((student) => {
-                const currentYear = new Date().getFullYear();
-                const studentAge = Math.max(
-                  1,
-                  currentYear - parseInt(student.birth_year),
-                );
-                const isSelected = selectedStudentId === student.id;
-                const genderLabel =
-                  student.gender === "male"
-                    ? "남"
-                    : student.gender === "female"
-                      ? "여"
-                      : null;
-
-                return (
-                  <Fragment key={student.id}>
-                    <button
-                      type="button"
-                      onClick={() => { handleSelectStudent(student); }}
-                      className={`relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
-                        isSelected
-                          ? "border-primary bg-primary-50"
-                          : "border-transparent hover:bg-black-5"
-                      }`}
-                    >
-                      {/* 선택 체크 */}
-                      {isSelected && (
-                        <div className="absolute top-2 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                          <Check className="h-3 w-3 text-white" />
-                        </div>
-                      )}
-
-                      {/* 아바타 */}
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                        isSelected ? "bg-primary-200" : "bg-black-10"
-                      }`}>
-                        <User className={`h-4 w-4 ${isSelected ? "text-primary" : "text-black-40"}`} />
-                      </div>
-
-                      {/* 정보 */}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-14-medium text-black-90 truncate">
-                          {student.name}
-                        </span>
-                        <span className="text-12-regular text-black-40">
-                          만 {studentAge}세{genderLabel ? ` · ${genderLabel}` : ""}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* 성별 보충 입력 — 클릭한 카드 바로 아래에 표시 */}
-                    {isSelected && isNeedsGender && (
-                      <div className="ml-3 flex flex-col gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2.5">
-                        <span className="text-13-medium text-primary-700">
-                          {student.name}의 성별을 선택해 주세요
-                        </span>
-                        <div className="flex gap-2">
-                          {([["male", "남자"], ["female", "여자"]] as const).map(
-                            ([value, label]) => (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => { handleSupplementGender(value); }}
-                                className="flex-1 rounded-lg border border-primary-200 bg-white-100 py-1.5 text-13-medium text-primary transition hover:bg-primary-100"
-                              >
-                                {label}
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 모드 B: 직접 입력 */}
-      {mode === "manual" && (
-        <div className="flex flex-col gap-3.5">
-          {/* 이름 */}
-          <label className="flex flex-col gap-1">
-            <span className="text-13-bold text-black-70">
-              이름 <span className="text-error">*</span>
-            </span>
-            <input
-              type="text"
-              value={name}
-              placeholder="아동 이름"
-              onChange={(e) => {
-                setName(e.target.value);
-                syncManualToStore({ name: e.target.value });
-              }}
-              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
-            />
-          </label>
-
-          {/* 성별 */}
-          <div className="flex flex-col gap-1">
-            <span className="text-13-bold text-black-70">
-              성별 <span className="text-error">*</span>
-            </span>
-            <div className="flex gap-2">
-              {(["male", "female"] as const).map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => {
-                    setGender(g);
-                    syncManualToStore({ gender: g });
-                  }}
-                  className={`flex-1 rounded-lg border py-1.5 text-13-medium transition ${
-                    gender === g
-                      ? "border-primary bg-primary-50 text-primary"
-                      : "border-black-20 text-black-60 hover:bg-black-5"
-                  }`}
-                >
-                  {g === "male" ? "남자" : "여자"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 나이 */}
-          <label className="flex flex-col gap-1">
-            <span className="text-13-bold text-black-70">
-              나이 <span className="text-error">*</span>
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={19}
-              value={age}
-              onChange={(e) => {
-                const v = Math.min(19, Math.max(1, Number(e.target.value) || 1));
-                setAge(v);
-                syncManualToStore({ age: v });
-              }}
-              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
-            />
-          </label>
-
-          {/* 진단명 */}
-          <label className="flex flex-col gap-1">
-            <span className="text-13-bold text-black-70">
-              진단명 <span className="text-12-regular text-black-40">(선택)</span>
-            </span>
-            <input
-              type="text"
-              value={diagnosis}
-              placeholder="선택 사항"
-              onChange={(e) => {
-                setDiagnosis(e.target.value);
-                syncManualToStore({ diagnosis: e.target.value });
-              }}
-              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
-            />
-          </label>
-
-          {/* 학습 목표 */}
-          <label className="flex flex-col gap-1">
-            <span className="text-13-bold text-black-70">
-              학습 목표 <span className="text-12-regular text-black-40">(선택)</span>
-            </span>
-            <input
-              type="text"
-              value={learningGoal}
-              placeholder="선택 사항"
-              onChange={(e) => {
-                setLearningGoal(e.target.value);
-                syncManualToStore({ learningGoal: e.target.value });
-              }}
-              className="rounded-lg border border-black-20 px-3 py-2 text-14-regular focus:border-primary focus:outline-none"
-            />
-          </label>
-        </div>
-      )}
+      <div className="flex items-end gap-2">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={ageInput}
+          onChange={(e) => { handleChange(e.target.value); }}
+          onBlur={handleBlur}
+          placeholder="나이"
+          className="w-20 rounded-xl border border-black-20 px-4 py-3 text-center text-title-20-semibold text-black-90 focus:border-primary focus:outline-none"
+        />
+        <span className="text-16-semibold text-black-60 pb-3">세</span>
+      </div>
     </div>
   );
 };
