@@ -208,6 +208,7 @@ const generateSingleSceneImage = async (
 ): Promise<string> => {
   const suffix = isReset ? buildResetSuffix(gender) : buildContinuationSuffix(gender);
   const fullPrompt = `${SCENE_STYLE_PROMPT}\n\nScene: ${sceneDescription}\n\nIMPORTANT: The main character is a Korean ${gender}.\n\n${suffix}`;
+  const { data: compressedRef } = await convertToWebP(referenceBase64);
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (signal?.aborted) throw new DOMException("Image generation aborted", "AbortError");
@@ -223,7 +224,7 @@ const generateSingleSceneImage = async (
         model: "gemini-2.5-flash-image",
         contents: [
           {
-            inlineData: { mimeType: "image/webp", data: referenceBase64 },
+            inlineData: { mimeType: "image/webp", data: compressedRef },
           },
           { text: fullPrompt },
         ],
