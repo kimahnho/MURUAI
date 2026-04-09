@@ -117,6 +117,8 @@ export type ShapeElement = ElementBase & {
     fontWeight?: "normal" | "bold";
     fontFamily?: string;
     color?: string;
+    italic?: boolean;
+    underline?: boolean;
   };
   labelId?: string;
   mosaicLevel?: number;
