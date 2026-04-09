@@ -124,38 +124,67 @@ const buildMultiRefContents = (
 ): string | Array<Record<string, unknown>> => {
   if (!characterRef) return imagePrompt;
 
-  const parts: Array<Record<string, unknown>> = [];
-  const suffixLines: string[] = [];
+  // 텍스트 먼저, 이미지 뒤에 — Gemini가 역할을 이해한 후 이미지 해석
+  const textLines: string[] = [];
   let imageIdx = 1;
 
-  // 주인공 레퍼런스 (항상)
-  parts.push({ inlineData: { mimeType: "image/png" as const, data: characterRef } });
-  suffixLines.push(`Reference image ${imageIdx}: MAIN CHARACTER — preserve exact face, hair, clothing, body proportions, and overall appearance.`);
+  // 절대 규칙 (최상단)
+  textLines.push("NO TEXT in the image. No letters, words, numbers, signs, labels, captions.");
+  textLines.push("");
+
+  // 캐릭터 정의 — 태그 + 위치 + 1회만
+  textLines.push("CHARACTERS (each appears EXACTLY ONCE):");
+  textLines.push(`@maincharacter: [IMAGE ${imageIdx}] reference. Draw this character ONCE in a new pose.`);
   imageIdx++;
 
-  // 이 페이지에 등장하는 서브캐릭터 레퍼런스 (이미지가 있는 경우만)
   for (const role of pageCharacterRoles) {
     const ref = subCharRefs.get(role);
     const cast = castCharacters.find((c) => c.role === role);
     if (ref) {
-      parts.push({ inlineData: { mimeType: "image/png" as const, data: ref } });
-      suffixLines.push(`Reference image ${imageIdx}: "${role}" — ${cast?.appearance ?? role}. Preserve this character's exact appearance.`);
+      textLines.push(`@${role}: [IMAGE ${imageIdx}] reference. Draw ONCE. ${cast?.appearance ?? ""}`);
       imageIdx++;
     } else if (cast) {
-      // 레퍼런스 이미지 없이 텍스트 묘사만 전달
-      suffixLines.push(`Also in this scene: "${role}" — ${cast.appearance}. (No reference image — use this text description for consistency.)`);
+      textLines.push(`@${role}: ${cast.appearance}. Draw ONCE. (no reference image)`);
+    }
+  }
+  textLines.push("");
+
+  // 배경 (캐릭터와 분리)
+  textLines.push(`SCENE: ${imagePrompt}`);
+  textLines.push("");
+
+  // 씬앵커
+  if (sceneAnchor) {
+    textLines.push(`[IMAGE ${imageIdx}] = BACKGROUND REFERENCE ONLY.`);
+    textLines.push("- Match the walls, floor, sky, furniture, lighting, colors from this image.");
+    textLines.push("- COMPLETELY IGNORE every person, animal, or creature in this image.");
+    textLines.push("- Do NOT draw anyone from this image. Only match the environment.");
+    textLines.push("");
+  }
+
+  // 크기/물리 규칙
+  textLines.push("SIZE: A child is ~120cm. A dog is knee-height. An adult is 1.5x a child.");
+  textLines.push("PHYSICS: Objects obey gravity. Materials behave realistically.");
+  textLines.push("Fill empty space with environment elements (trees, sky, furniture), NOT with extra characters.");
+
+  // 텍스트 파트 먼저
+  const parts: Array<Record<string, unknown>> = [];
+  parts.push({ text: textLines.join("\n") });
+
+  // 이미지 파트 뒤에
+  parts.push({ inlineData: { mimeType: "image/png" as const, data: characterRef } });
+
+  for (const role of pageCharacterRoles) {
+    const ref = subCharRefs.get(role);
+    if (ref) {
+      parts.push({ inlineData: { mimeType: "image/png" as const, data: ref } });
     }
   }
 
-  // 씬 앵커 (sceneGroup 후속 페이지)
   if (sceneAnchor) {
     parts.push({ inlineData: { mimeType: "image/png" as const, data: sceneAnchor } });
-    suffixLines.push(`Reference image ${imageIdx}: SCENE ANCHOR — maintain the same background environment, lighting, color temperature, and atmosphere.`);
   }
 
-  suffixLines.push("Draw ALL characters in the exact same art style. Only change actions and expressions as the scene describes.");
-
-  parts.push({ text: `${imagePrompt}\n\n${suffixLines.join("\n")}` });
   return parts;
 };
 
