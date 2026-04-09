@@ -510,7 +510,7 @@ export const addSyllableBoxElement = ({
     y: parentY,
     w: parentW,
     h: parentH,
-    fill: "#E5FFF5",
+    fill: "#FFFFFF",
     radius: 0,
     groupId,
     border: {
@@ -528,7 +528,7 @@ export const addSyllableBoxElement = ({
     y: parentY,
     w: pinkW,
     h: pinkH,
-    fill: "#FDD8D8",
+    fill: "#FFFFFF",
     radius: 0,
     groupId,
     border: {
@@ -546,7 +546,7 @@ export const addSyllableBoxElement = ({
     y: parentY + parentH - yellowH,
     w: parentW,
     h: yellowH,
-    fill: "#FFFAE0",
+    fill: "#FFFFFF",
     radius: 0,
     groupId,
     border: {
