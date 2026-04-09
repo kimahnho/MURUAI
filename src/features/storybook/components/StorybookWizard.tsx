@@ -74,11 +74,38 @@ const StorybookWizard = ({ onClose }: StorybookWizardProps) => {
 
   const handleNext = () => {
     mp.track("AI 스토리북 스텝 이동", { from: currentStep, to: "next" });
+
+    // 단계별 상세 이벤트 수집
+    if (currentStep === 1 && formData.childInfo) {
+      mp.track("AI 스토리북 아동 선택", {
+        age: formData.childInfo.age,
+        gender: formData.childInfo.gender,
+        has_diagnosis: !!formData.childInfo.diagnosis,
+        has_learning_goal: !!formData.childInfo.learningGoal,
+        input_mode: formData.childInfo.studentId ? "학습자" : "직접입력",
+      });
+    }
     if (currentStep === 2) {
+      mp.track("AI 스토리북 주제 입력", {
+        topic_length: formData.topic.length,
+        topic_preview: formData.topic.slice(0, 20),
+      });
       void fetchProposals();
       return;
     }
+    if (currentStep === 4 && formData.artStyle) {
+      mp.track("AI 스토리북 스타일 선택", {
+        art_style: formData.artStyle,
+        layout: formData.layout,
+        font_family: formData.fontFamily,
+        used_saved_character: !!formData.selectedCharacterId,
+      });
+    }
     if (currentStep === 45) {
+      mp.track("AI 스토리북 캐릭터 확인", {
+        used_custom_prompt: !!formData.characterPrompt,
+        saved_character: !!formData.selectedCharacterId,
+      });
       void generateBook();
       return;
     }

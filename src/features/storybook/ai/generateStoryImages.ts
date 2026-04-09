@@ -9,7 +9,7 @@ import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
 
-import type { ArtStyleId, PageLayout } from "../model/storybookTypes";
+import type { ArtStyleId, CastCharacter, PageLayout } from "../model/storybookTypes";
 import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 
 // const GOOGLE_API_KEY = sanitizeEnvKey(
@@ -92,7 +92,7 @@ Input:
 ${JSON.stringify(scenes)}`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       responseModalities: ["Text"],
@@ -111,48 +111,71 @@ ${JSON.stringify(scenes)}`;
   return parsed.map((item) => (typeof item === "string" ? item : String(item)));
 };
 
-// ─── 단일 페이지 이미지 생성 (듀얼 레퍼런스) ───
+// ─── 단일 페이지 이미지 생성 (멀티 레퍼런스) ───
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
 
-// 캐릭터 레퍼런스만 있을 때 (sceneGroup 첫 페이지)
-const CHARACTER_ONLY_SUFFIX = `The attached image is the character reference for this story.
-Preserve this character's exact face, hair, clothing, body proportions, and overall appearance.
-Draw the character in the new scene described above, keeping the art style consistent.`;
+/** 페이지에 전달할 레퍼런스 이미지와 역할 설명을 동적으로 조립한다. */
+const buildMultiRefContents = (
+  imagePrompt: string,
+  characterRef: string | undefined,
+  subCharRefs: Map<string, string>,
+  pageCharacterRoles: string[],
+  castCharacters: CastCharacter[],
+  sceneAnchor: string | undefined,
+): string | Array<Record<string, unknown>> => {
+  if (!characterRef) return imagePrompt;
 
-// 캐릭터 레퍼런스 + 장면 앵커 둘 다 있을 때 (sceneGroup 후속 페이지)
-const DUAL_REF_SUFFIX = `Two reference images are attached.
-The FIRST image is the character reference — preserve this character's exact face, hair, clothing, and proportions.
-The SECOND image is a previous scene from the same location — maintain the same background environment, lighting, color temperature, and atmosphere.
-Only change the character's action and expression as the new scene describes.`;
+  const parts: Array<Record<string, unknown>> = [];
+  const suffixLines: string[] = [];
+  let imageIdx = 1;
+
+  // 주인공 레퍼런스 (항상)
+  parts.push({ inlineData: { mimeType: "image/png" as const, data: characterRef } });
+  suffixLines.push(`Reference image ${imageIdx}: MAIN CHARACTER — preserve exact face, hair, clothing, body proportions, and overall appearance.`);
+  imageIdx++;
+
+  // 이 페이지에 등장하는 서브캐릭터 레퍼런스 (이미지가 있는 경우만)
+  for (const role of pageCharacterRoles) {
+    const ref = subCharRefs.get(role);
+    const cast = castCharacters.find((c) => c.role === role);
+    if (ref) {
+      parts.push({ inlineData: { mimeType: "image/png" as const, data: ref } });
+      suffixLines.push(`Reference image ${imageIdx}: "${role}" — ${cast?.appearance ?? role}. Preserve this character's exact appearance.`);
+      imageIdx++;
+    } else if (cast) {
+      // 레퍼런스 이미지 없이 텍스트 묘사만 전달
+      suffixLines.push(`Also in this scene: "${role}" — ${cast.appearance}. (No reference image — use this text description for consistency.)`);
+    }
+  }
+
+  // 씬 앵커 (sceneGroup 후속 페이지)
+  if (sceneAnchor) {
+    parts.push({ inlineData: { mimeType: "image/png" as const, data: sceneAnchor } });
+    suffixLines.push(`Reference image ${imageIdx}: SCENE ANCHOR — maintain the same background environment, lighting, color temperature, and atmosphere.`);
+  }
+
+  suffixLines.push("Draw ALL characters in the exact same art style. Only change actions and expressions as the scene describes.");
+
+  parts.push({ text: `${imagePrompt}\n\n${suffixLines.join("\n")}` });
+  return parts;
+};
 
 const generateSingleImage = async (
   ai: GenAIClient,
   imagePrompt: string,
   aspectRatio: string,
-  characterRef?: string,
-  sceneAnchor?: string,
+  characterRef: string | undefined,
+  subCharRefs: Map<string, string>,
+  pageCharacterRoles: string[],
+  castCharacters: CastCharacter[],
+  sceneAnchor: string | undefined,
 ): Promise<string> => {
-  let contents: string | Array<Record<string, unknown>>;
-
-  if (characterRef && sceneAnchor) {
-    // 듀얼 레퍼런스: 캐릭터 고정 + 장면 연속성
-    contents = [
-      { inlineData: { mimeType: "image/png" as const, data: characterRef } },
-      { inlineData: { mimeType: "image/png" as const, data: sceneAnchor } },
-      { text: `${imagePrompt}\n\n${DUAL_REF_SUFFIX}` },
-    ];
-  } else if (characterRef) {
-    // 캐릭터 레퍼런스만 (sceneGroup 첫 페이지)
-    contents = [
-      { inlineData: { mimeType: "image/png" as const, data: characterRef } },
-      { text: `${imagePrompt}\n\n${CHARACTER_ONLY_SUFFIX}` },
-    ];
-  } else {
-    // 레퍼런스 없음 (텍스트 전용)
-    contents = imagePrompt;
-  }
+  const contents = buildMultiRefContents(
+    imagePrompt, characterRef, subCharRefs,
+    pageCharacterRoles, castCharacters, sceneAnchor,
+  );
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -163,9 +186,7 @@ const generateSingleImage = async (
       contents,
       config: {
         responseModalities: ["Text", "Image"],
-        imageConfig: {
-          aspectRatio,
-        },
+        imageConfig: { aspectRatio },
       },
     });
 
@@ -191,6 +212,7 @@ export const generateStoryImages = async (
   referenceImageBase64?: string,
   onProgress?: (current: number, total: number) => void,
   customPromptTemplate?: string,
+  subCharacters?: CastCharacter[],
 ): Promise<string[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -226,16 +248,26 @@ export const generateStoryImages = async (
   const stylePostfix = customPromptTemplate ?? preset?.promptTemplate ?? "";
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
-  // ── Phase 1: sceneGroup 기반 듀얼 레퍼런스로 base64 수집 ──
-  // 캐릭터 레퍼런스: 항상 원본 고정 (외형 일관성)
-  // 장면 앵커: sceneGroup별 첫 생성 이미지 고정 (배경/분위기 연속성, 열화 없음)
+  // ── Phase 1: 멀티 레퍼런스 기반 base64 수집 ──
+  // 주인공 + 서브캐릭터 레퍼런스 + sceneGroup 장면 앵커
   const base64Images: string[] = new Array(pages.length);
   const sceneGroupAnchors = new Map<number, string>();
+  const castCharacters = subCharacters ?? [];
+  const subCharRefs = new Map<string, string>();
+  for (const sc of castCharacters) {
+    if (sc.imageBase64) subCharRefs.set(sc.role, sc.imageBase64);
+  }
 
   for (let i = 0; i < pages.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
     const imagePrompt = `${scene}, ${stylePostfix}`;
     const group = pages[i].sceneGroup;
+    const pageNum = i + 1;
+
+    // 이 페이지에 등장하는 서브캐릭터 역할 목록
+    const pageCharacterRoles = castCharacters
+      .filter((c) => c.pages.includes(pageNum))
+      .map((c) => c.role);
 
     const sceneAnchor = sceneGroupAnchors.get(group);
     const base64 = await generateSingleImage(
@@ -243,10 +275,12 @@ export const generateStoryImages = async (
       imagePrompt,
       aspectRatio,
       referenceImageBase64,
+      subCharRefs,
+      pageCharacterRoles,
+      castCharacters,
       sceneAnchor,
     );
 
-    // sceneGroup의 첫 페이지 결과를 해당 그룹의 장면 앵커로 저장
     if (!sceneAnchor) {
       sceneGroupAnchors.set(group, base64);
     }

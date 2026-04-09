@@ -13,10 +13,13 @@ import type {
   StoryBook,
   StoryBookPage,
   ArtStyleId,
+  CastCharacter,
+  CastingNote,
   PageLayout,
 } from "../model/storybookTypes";
 import { STORYBOOK_PAGE_COUNT } from "../model/storybookTypes";
 import { generateStoryImages } from "./generateStoryImages";
+import { generateSubCharacterReference } from "./generateCharacterReference";
 
 // const GOOGLE_API_KEY = sanitizeEnvKey(
 //   import.meta.env.VITE_GOOGLE_API_KEY as string | undefined,
@@ -38,51 +41,51 @@ const buildStorybookPrompt = (
     ? `\n[원본 유저 요청]\n"${topic}"\n`
     : "";
 
-  return `당신은 아동 동화 작가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
+  const nameInfo = childInfo.name ? `${childInfo.name} (${childInfo.age}세)` : `${childInfo.age}세 아동`;
+
+  return `당신은 아동문학 작가이자 언어발달 전문가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
 ${topicSection}
 [기획서]
 제목: ${proposal.title}
 요약: ${proposal.summary}
-대상: ${childInfo.name} (${childInfo.age}세, ${childInfo.gender === "male" ? "남아" : "여아"})
+대상: ${nameInfo}
 
 [페이지별 초안]
 ${pagesBlock}
 
 ═══ 핵심 원칙: 유저 의도 보존 ═══
-- 위 "원본 유저 요청"이 이 이야기의 출발점입니다.
 - 기획서의 줄거리와 주제를 변경하지 마세요.
-- 특정 동화가 원본이라면 핵심 플롯을 훼손하지 마세요.
 - 새 등장인물이나 서브플롯을 추가하지 마세요.
 - 유저가 편집한 텍스트는 최대한 존중하되, 문법과 흐름만 다듬기.
 
-═══ 작업 지시 ═══
+═══ 텍스트(text) 다듬기 ═══
 
-1. **텍스트(text) 다듬기**
-   - 자연스럽고 읽기 쉽게, **60자 이내** (공백 포함, 엄격 준수)
-   - ${childInfo.age}세 어휘 수준에 맞추기
+- ${childInfo.age}세가 자연스럽게 이해하고 즐길 수 있는 어휘와 문장으로 다듬으세요.
+- 감정을 서술하지 말고 행동과 디테일로 보여주세요. ("슬펐다" → "눈물이 뚝 떨어졌다")
+- 의성어/의태어와 직접 인용을 적극 활용하세요.
+- 페이지 간 문장이 자연스럽게 이어지도록 전환을 신경 쓰세요.
+- 등장인물마다 말투가 달라야 합니다.
 
-2. **장면 묘사(sceneDescription) 보강** — 5요소 필수:
-   - 장소/배경 (구체적 공간 + 시간대/조명)
-   - 인물 동작
-   - 인물 표정 (얼굴 수준의 묘사)
-   - 핵심 소품 1-2개
-   - 분위기/색감 힌트
-   - 같은 장소의 장면은 배경 요소(벽 색, 가구)를 일관되게
-   - 캐릭터 복장은 장소가 바뀌지 않는 한 동일 유지
+═══ 장면 묘사(sceneDescription) 보강 ═══
 
-3. **sceneGroup 부여**
-   - 같은 물리적 장소의 연속 페이지 = 같은 번호
-   - 실내→실외 = 새 그룹 / 같은 방이지만 낮→밤 = 새 그룹
-   - ${STORYBOOK_PAGE_COUNT}페이지에 3~5개 그룹이 적절
+5요소 필수:
+- 장소/배경 (구체적 공간 + 시간대/조명)
+- 인물 동작
+- 인물 표정 (얼굴 수준)
+- 핵심 소품 1-2개
+- 분위기/색감
+- 같은 장소의 장면은 배경 요소(벽 색, 가구)를 일관되게
+- 캐릭터 복장은 장소가 바뀌지 않는 한 동일 유지
 
-4. **이야기 흐름 점검**
-   - 감정 곡선이 자연스럽게 이어지는지
-   - 결말이 열린 채로 끝나지 않는지
+═══ sceneGroup 부여 ═══
+- 같은 물리적 장소의 연속 페이지 = 같은 번호
+- 실내→실외 = 새 그룹
+- ${STORYBOOK_PAGE_COUNT}페이지에 3~5개 그룹
 
-JSON만 출력 (설명, 마크다운 없음):
+JSON만 출력:
 [
   { "pageNumber": 1, "sceneDescription": "...", "text": "...", "sceneGroup": 1 },
-  { "pageNumber": 2, "sceneDescription": "...", "text": "...", "sceneGroup": 1 }
+  ...
 ]`;
 };
 
@@ -136,6 +139,8 @@ export const generateStorybook = async (
   onImageProgress?: (current: number, total: number) => void,
   customPromptTemplate?: string,
   topic?: string,
+  castingNote?: CastingNote | null,
+  onSubCharProgress?: (current: number, total: number) => void,
 ): Promise<StoryBook> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -144,7 +149,7 @@ export const generateStorybook = async (
   const ai = getGenAI();
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite-preview",
     contents: buildStorybookPrompt(proposal, childInfo, topic),
     config: {
       responseModalities: ["Text"],
@@ -173,8 +178,30 @@ export const generateStorybook = async (
     pages = buildFallbackPages(proposal);
   }
 
+  // 서브캐릭터 레퍼런스 자동 생성 (주인공 앵커)
+  const subCharacters: CastCharacter[] = [];
+  if (castingNote?.characters.length && referenceImageBase64) {
+    const chars = castingNote.characters;
+    for (let i = 0; i < chars.length; i++) {
+      onSubCharProgress?.(i + 1, chars.length);
+      try {
+        const imageBase64 = await generateSubCharacterReference(
+          referenceImageBase64,
+          chars[i].appearance,
+          chars[i].personality,
+        );
+        subCharacters.push({ ...chars[i], imageBase64 });
+      } catch (error) {
+        // 서브캐릭터 생성 실패 시 텍스트 묘사만으로 폴백
+        console.warn(`서브캐릭터 '${chars[i].role}' 생성 실패`, error);
+        captureSentryError(error, `스토리북 서브캐릭터 생성 (${chars[i].role})`);
+        subCharacters.push({ ...chars[i] });
+      }
+    }
+  }
+
   try {
-    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress, customPromptTemplate);
+    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress, customPromptTemplate, subCharacters);
     pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
   } catch (error) {
     console.error("Story image generation failed:", error);
