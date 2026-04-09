@@ -54,10 +54,11 @@ ${topicSection}
 [페이지별 초안]
 ${pagesBlock}
 
-═══ 핵심 원칙: 유저 의도 보존 ═══
+═══ 핵심 원칙: 유저가 수정한 텍스트는 그대로 유지 ═══
+- 유저가 직접 작성하거나 수정한 textContent는 **절대 변경하지 마세요**. 맞춤법 오류가 있어도 그대로 둡니다.
+- sceneDescription만 보강하세요. textContent는 원본 그대로 복사합니다.
 - 기획서의 줄거리와 주제를 변경하지 마세요.
 - 새 등장인물이나 서브플롯을 추가하지 마세요.
-- 유저가 편집한 텍스트는 최대한 존중하되, 문법과 흐름만 다듬기.
 
 ═══ 텍스트(text) 다듬기 ═══
 
@@ -163,14 +164,18 @@ export const generateStorybook = async (
   let pages: StoryBookPage[];
   try {
     const parsed = parseStorybookResponse(textPart.text);
-    pages = parsed.map((p, i) => ({
-      id: crypto.randomUUID(),
-      pageNumber: p.pageNumber,
-      imageUrl: "",
-      text: p.text,
-      sceneDescription: p.sceneDescription,
-      sceneGroup: typeof p.sceneGroup === "number" ? p.sceneGroup : i + 1,
-    }));
+    pages = parsed.map((p, i) => {
+      // 사용자가 수정한 텍스트는 그대로 유지 — AI가 보강한 sceneDescription + sceneGroup만 사용
+      const originalText = proposal.pages[i]?.textContent ?? p.text;
+      return {
+        id: crypto.randomUUID(),
+        pageNumber: p.pageNumber,
+        imageUrl: "",
+        text: originalText,
+        sceneDescription: p.sceneDescription,
+        sceneGroup: typeof p.sceneGroup === "number" ? p.sceneGroup : i + 1,
+      };
+    });
   } catch {
     // 파싱 실패 시 원본 기획서 텍스트를 그대로 사용
     pages = buildFallbackPages(proposal);
