@@ -57,7 +57,7 @@ const UserListSection = () => {
   };
 
   const filteredUsers = users
-    .filter((u) => !EXCLUDED_USER_IDS.has(u.id))
+    .filter((u) => u.role === "admin" || !EXCLUDED_USER_IDS.has(u.id))
     .filter((u) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
