@@ -9,6 +9,7 @@
 import type { WorksheetSuggestion, TherapyDomain, DiagnosisProfile } from "../model/therapyTypes";
 import { THERAPY_DOMAIN_LABELS } from "../model/therapyTypes";
 import { getGenAI } from "@/shared/api/genai";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
@@ -235,12 +236,14 @@ async function generateSingleImage(
 // ── Cloudinary 업로드 ──
 
 async function uploadToCloudinary(base64Data: string, userId: string): Promise<string> {
+  const { data: webpData, mimeType } = await convertToWebP(base64Data);
+
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    return `data:image/png;base64,${base64Data}`;
+    return `data:${mimeType};base64,${webpData}`;
   }
 
   const formData = new FormData();
-  formData.append("file", `data:image/png;base64,${base64Data}`);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", `muru_therapy_worksheet/${userId}`);
   formData.append("public_id", crypto.randomUUID());

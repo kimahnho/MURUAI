@@ -10,6 +10,7 @@ import { supabase } from "@/shared/api/supabase";
 import { getGenAI } from "@/shared/api/genai";
 
 import type { ArtStyleId, CastCharacter, PageLayout } from "../model/storybookTypes";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 
 // const GOOGLE_API_KEY = sanitizeEnvKey(
@@ -46,7 +47,8 @@ const uploadToCloudinary = async (
   const publicId = crypto.randomUUID();
   const folder = `muru_storybook_gen/${userId}`;
 
-  formData.append("file", `data:image/png;base64,${base64Data}`);
+  const { data: webpData, mimeType } = await convertToWebP(base64Data);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", folder);
   formData.append("public_id", publicId);
@@ -172,17 +174,17 @@ const buildMultiRefContents = (
   parts.push({ text: textLines.join("\n") });
 
   // 이미지 파트 뒤에
-  parts.push({ inlineData: { mimeType: "image/png" as const, data: characterRef } });
+  parts.push({ inlineData: { mimeType: "image/webp" as const, data: characterRef } });
 
   for (const role of pageCharacterRoles) {
     const ref = subCharRefs.get(role);
     if (ref) {
-      parts.push({ inlineData: { mimeType: "image/png" as const, data: ref } });
+      parts.push({ inlineData: { mimeType: "image/webp" as const, data: ref } });
     }
   }
 
   if (sceneAnchor) {
-    parts.push({ inlineData: { mimeType: "image/png" as const, data: sceneAnchor } });
+    parts.push({ inlineData: { mimeType: "image/webp" as const, data: sceneAnchor } });
   }
 
   return parts;
