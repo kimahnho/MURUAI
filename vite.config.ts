@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
     drop: mode === "production" ? ["console", "debugger"] : [],
   },
   build: {
-    sourcemap: "hidden",
+    sourcemap: env.SENTRY_AUTH_TOKEN ? "hidden" : false,
     rollupOptions: {
       output: {
         manualChunks: {
