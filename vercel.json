@@ -2,8 +2,7 @@
   "functions": {
     "api/genai/image.ts": {
       "memory": 1024,
-      "maxDuration": 120,
-      "maxBodyLength": 20971520
+      "maxDuration": 120
     },
     "api/**/*.ts": {
       "memory": 1024,
