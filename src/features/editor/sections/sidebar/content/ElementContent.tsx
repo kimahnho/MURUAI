@@ -33,9 +33,9 @@ const SyllableBoxIcon = ({ className }: { className?: string }) => (
     width="24"
     height="28"
   >
-    <rect x="1" y="1" width="38" height="46" rx="0" fill="#E5FFF5" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
-    <rect x="1" y="1" width="20" height="19" rx="0" fill="#FDD8D8" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
-    <rect x="1" y="32" width="38" height="15" rx="0" fill="#FFFAE0" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="1" width="38" height="46" rx="0" fill="#FFFFFF" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="1" width="20" height="19" rx="0" fill="#FFFFFF" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
+    <rect x="1" y="32" width="38" height="15" rx="0" fill="#FFFFFF" stroke="#000" strokeWidth="2" strokeDasharray="4 2" />
   </svg>
 );
 
