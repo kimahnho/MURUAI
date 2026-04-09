@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 // import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { mp } from "@/shared/utils/mixpanel";
@@ -128,7 +129,8 @@ const uploadToCloudinary = async (
   const publicId = crypto.randomUUID();
   const folder = `muru_user_ai_gen/${userId}`;
 
-  formData.append("file", `data:image/png;base64,${base64Data}`);
+  const { data: webpData, mimeType } = await convertToWebP(base64Data);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", folder);
   formData.append("public_id", publicId);

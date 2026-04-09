@@ -4,6 +4,7 @@
  * Gemini 2.5 Flash로 이미지 생성 + 텍스트 응답 반환.
  */
 import { getGenAI } from "@/shared/api/genai";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 
 const IMAGE_MODEL = "gemini-2.5-flash-image";
 
@@ -27,7 +28,7 @@ export async function generateImage(
 
   const inputParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
   if (referenceImageBase64) {
-    inputParts.push({ inlineData: { mimeType: "image/png", data: referenceImageBase64 } });
+    inputParts.push({ inlineData: { mimeType: "image/webp", data: referenceImageBase64 } });
   }
   inputParts.push({ text: prompt });
 
@@ -59,15 +60,17 @@ export async function generateImage(
  * Cloudinary 미설정 시 data URL fallback
  */
 export async function uploadImage(base64: string, userId: string): Promise<string> {
+  const { data: webpData, mimeType } = await convertToWebP(base64);
+
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    return `data:image/png;base64,${base64}`;
+    return `data:${mimeType};base64,${webpData}`;
   }
 
   const formData = new FormData();
   const publicId = crypto.randomUUID();
   const folder = `muru_therapy_gen/${userId}`;
 
-  formData.append("file", `data:image/png;base64,${base64}`);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", folder);
   formData.append("public_id", publicId);
@@ -78,7 +81,7 @@ export async function uploadImage(base64: string, userId: string): Promise<strin
   );
 
   if (!response.ok) {
-    return `data:image/png;base64,${base64}`;
+    return `data:${mimeType};base64,${webpData}`;
   }
 
   const payload = (await response.json()) as { public_id: string; format?: string };

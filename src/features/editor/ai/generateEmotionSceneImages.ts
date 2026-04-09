@@ -6,6 +6,7 @@
 import type { GenAIClient } from "@/shared/api/genai";
 
 import { captureSentryError } from "@/shared/utils/sentryUtils";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
@@ -92,7 +93,8 @@ const uploadToCloudinary = async (
   const publicId = crypto.randomUUID();
   const folder = `muru_emotion_scene/${userId}`;
 
-  formData.append("file", `data:image/png;base64,${base64Data}`);
+  const { data: webpData, mimeType } = await convertToWebP(base64Data);
+  formData.append("file", `data:${mimeType};base64,${webpData}`);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", folder);
   formData.append("public_id", publicId);
@@ -221,7 +223,7 @@ const generateSingleSceneImage = async (
         model: "gemini-2.5-flash-image",
         contents: [
           {
-            inlineData: { mimeType: "image/png", data: referenceBase64 },
+            inlineData: { mimeType: "image/webp", data: referenceBase64 },
           },
           { text: fullPrompt },
         ],
