@@ -8,6 +8,7 @@
 import { getGenAI } from "@/shared/api/genai";
 
 import type { ArtStyleId, ChildInfo } from "../model/storybookTypes";
+import { convertToWebP } from "@/shared/utils/imageConvert";
 import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 
 // const GOOGLE_API_KEY = sanitizeEnvKey(
@@ -121,6 +122,8 @@ export const generateSubCharacterReference = async (
   personality: string,
 ): Promise<string> => {
   const ai = getGenAI();
+  // 레퍼런스 이미지를 WebP로 변환하여 API 전송 크기 줄이기 (413 방지)
+  const { data: compressedRef } = await convertToWebP(mainCharacterBase64);
 
   const prompt = `Draw a NEW character in the EXACT SAME art style as the reference image above.
 
@@ -145,7 +148,7 @@ Rules:
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
       contents: [
-        { inlineData: { mimeType: "image/webp" as const, data: mainCharacterBase64 } },
+        { inlineData: { mimeType: "image/webp" as const, data: compressedRef } },
         { text: prompt },
       ],
       config: {
