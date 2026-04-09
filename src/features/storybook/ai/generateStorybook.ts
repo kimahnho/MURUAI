@@ -43,7 +43,8 @@ const buildStorybookPrompt = (
 
   const nameInfo = childInfo.name ? `${childInfo.name} (${childInfo.age}세)` : `${childInfo.age}세 아동`;
 
-  return `당신은 아동문학 작가이자 언어발달 전문가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
+  return `당신은 아이의 눈높이에서 이야기하는 그림책 작가입니다. 아래 기획서를 바탕으로 최종 그림책 텍스트를 완성해주세요.
+아이가 직접 경험하며 느끼는 이야기로 다듬으세요. 어른의 훈계가 아닌, 아이의 작은 세계에서 일어나는 모험과 감정입니다.
 ${topicSection}
 [기획서]
 제목: ${proposal.title}
