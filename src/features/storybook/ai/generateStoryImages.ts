@@ -94,9 +94,6 @@ ${JSON.stringify(scenes)}`;
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
-    config: {
-      responseModalities: ["Text"],
-    },
   });
 
   const text = response.candidates?.[0]?.content?.parts?.find(

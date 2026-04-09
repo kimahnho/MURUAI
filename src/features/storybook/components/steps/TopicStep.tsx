@@ -27,7 +27,7 @@ const generateTopicSuggestions = async (age: number): Promise<string[]> => {
 
 JSON 배열만 출력:
 ["주제1", "주제2", "주제3", "주제4", "주제5", "주제6"]`,
-    config: { responseModalities: ["Text"] },
+    config: {},
   });
 
   const text = response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text;
