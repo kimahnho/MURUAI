@@ -4,6 +4,8 @@ import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { trackLinkClickEvent } from "@/shared/utils/trackEvents";
+import { mp } from "@/shared/utils/mixpanel";
 
 const SMART_STORE_URL = "https://smartstore.naver.com/muruai";
 
@@ -43,6 +45,7 @@ const Header = () => {
             href={SMART_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => { void trackLinkClickEvent("자료마켓"); mp.track("자료마켓 클릭"); }}
             className="flex items-center px-3 py-[2px] rounded-lg bg-primary-50 hover:bg-primary-100 transition cursor-pointer"
           >
             <span className="text-14-semibold text-primary whitespace-nowrap">자료마켓</span>
@@ -57,6 +60,7 @@ const Header = () => {
           href={SMART_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => { void trackLinkClickEvent("자료마켓"); mp.track("자료마켓 클릭"); }}
           className="flex md:hidden items-center px-2 py-1 cursor-pointer"
         >
           <span className="text-13-bold text-primary whitespace-nowrap">자료마켓</span>

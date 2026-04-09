@@ -90,6 +90,10 @@ export type AdminMetrics = {
     conversionRate: number | null;
     userRatio: number | null;
   };
+  linkClicks: {
+    total: number;
+    dailyTrend: Array<{ date: string; count: number }>;
+  };
   availability: {
     activity: string | null;
     weeklyVisits: string | null;
@@ -409,6 +413,26 @@ export const fetchAdminMetrics = async (
     .map(([type, stat]) => ({ type, ...stat }))
     .sort((a, b) => b.total - a.total);
 
+  // 링크 클릭 이벤트 집계
+  const linkClicksResult = await supabase
+    .from("link_click_events")
+    .select("created_at")
+    .gte("created_at", startIso)
+    .lte("created_at", endIso);
+
+  const linkClickDailyMap = new Map(dayKeys.map((key) => [key, 0]));
+  let linkClickTotal = 0;
+  if (!linkClicksResult.error && Array.isArray(linkClicksResult.data)) {
+    for (const row of linkClicksResult.data as Array<{ created_at: string }>) {
+      linkClickTotal += 1;
+      const key = toDateKey(new Date(row.created_at));
+      if (linkClickDailyMap.has(key)) {
+        linkClickDailyMap.set(key, (linkClickDailyMap.get(key) ?? 0) + 1);
+      }
+    }
+  }
+  const linkClickDailyTrend = dayKeys.map((key) => ({ date: key, count: linkClickDailyMap.get(key) ?? 0 }));
+
   const activityMetrics = rpcMetrics?.activity ?? null;
   const downloadMetrics = rpcMetrics?.downloads ?? null;
   const activityHasData = activityMetrics?.has_data ?? false;
@@ -444,6 +468,10 @@ export const fetchAdminMetrics = async (
     },
     aiUsage,
     userDocs,
+    linkClicks: {
+      total: linkClickTotal,
+      dailyTrend: linkClickDailyTrend,
+    },
     downloads: {
       total: downloadMetrics?.total ?? (hasRpc ? 0 : null),
       users: downloadMetrics?.users ?? (hasRpc ? 0 : null),
