@@ -1,14 +1,13 @@
 /**
- * AI 이미지 생성, 업로드, 사용량 제한, 생성 이력 상태를 통합 관리하는 훅.
+ * AI 이미지 생성, 업로드, 크레딧 통합 관리하는 훅.
+ * user_credits 기반 통합 크레딧 (일일 한도 제거).
  */
 import { useState, useEffect, useCallback } from "react";
-// import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 import { convertToWebP } from "@/shared/utils/imageConvert";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { mp } from "@/shared/utils/mixpanel";
-// import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
 import {
   type ImageStyle,
@@ -17,6 +16,8 @@ import {
   buildPromptWithStyle,
 } from "@/features/editor/constants/aiImageStylePrompts";
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
+import { checkAiCredits, recordAiCreditUsage, fetchCreditBalance, MONTHLY_AI_CREDIT_LIMIT } from "@/features/editor/utils/aiTemplateUsage";
+import { useCreditModalStore } from "@/features/editor/store/creditModalStore";
 
 export type { ImageStyle, StyleOption };
 export { STYLE_OPTIONS };
@@ -35,8 +36,6 @@ export type UsageStatus = {
   remaining: number;
   canGenerate: boolean;
 };
-
-const DAILY_LIMIT = 20;
 
 // const RAW_GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
 //   | string
@@ -179,8 +178,8 @@ export const useAiImageGeneration = () => {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [usageStatus, setUsageStatus] = useState<UsageStatus>({
     used: 0,
-    limit: DAILY_LIMIT,
-    remaining: DAILY_LIMIT,
+    limit: MONTHLY_AI_CREDIT_LIMIT,
+    remaining: MONTHLY_AI_CREDIT_LIMIT,
     canGenerate: true,
   });
 
@@ -197,23 +196,19 @@ export const useAiImageGeneration = () => {
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
-  // 생성 이력 테이블 기준 일일 사용량을 조회한다.
+  // user_credits 기반 통합 크레딧 잔량 조회
   const fetchUsageStatus = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc("get_ai_image_usage_status", {
-        daily_limit: DAILY_LIMIT,
+      const remaining = await fetchCreditBalance();
+      const used = MONTHLY_AI_CREDIT_LIMIT - remaining;
+      setUsageStatus({
+        used,
+        limit: MONTHLY_AI_CREDIT_LIMIT,
+        remaining,
+        canGenerate: remaining > 0,
       });
-      if (error) throw error;
-      if (data) {
-        setUsageStatus({
-          used: data.used,
-          limit: data.limit,
-          remaining: data.remaining,
-          canGenerate: data.can_generate,
-        });
-      }
     } catch (error) {
-      console.error("Failed to fetch usage status:", error);
+      console.error("Failed to fetch credit balance:", error);
     }
   }, []);
 
@@ -283,25 +278,11 @@ export const useAiImageGeneration = () => {
       //   return;
       // }
 
-      // 서버 기준 사용량 체크를 먼저 수행해 클라이언트 상태 오차를 보정한다.
-      try {
-        const { data: canGen, error: checkError } = await supabase.rpc(
-          "can_generate_ai_image",
-          { daily_limit: DAILY_LIMIT },
-        );
-        if (checkError) throw checkError;
-
-        if (!canGen) {
-          showToast(
-            `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,
-          );
-          await fetchUsageStatus();
-          setIsGenerating(false);
-          return;
-        }
-      } catch (error) {
-        console.error("Failed to check usage:", error);
-        showToast("사용량 확인에 실패했어요. 다시 시도해주세요.");
+      // 통합 크레딧 체크
+      const creditCheck = await checkAiCredits(1);
+      if (!creditCheck.canProceed) {
+        useCreditModalStore.getState().open("이미지 생성에 크레딧이 필요합니다.");
+        await fetchUsageStatus();
         setIsGenerating(false);
         return;
       }
@@ -312,14 +293,14 @@ export const useAiImageGeneration = () => {
       const imagePath = await uploadToCloudinary(base64Image, user.id);
       const imageUrl = getCloudinaryUrl(imagePath);
 
-      // 이미지 저장 원격 호출이 카운트 증가까지 함께 처리한다.
+      // 이미지 저장 (이력 기록용, daily_limit은 무시값 전달)
       const { data: savedId, error: saveError } = await supabase.rpc(
         "save_ai_generated_image",
         {
           p_image_url: imageUrl,
           p_prompt: userPrompt,
           p_style: selectedStyle,
-          daily_limit: DAILY_LIMIT,
+          daily_limit: 99999,
         },
       );
 
@@ -327,14 +308,8 @@ export const useAiImageGeneration = () => {
         console.error("Failed to save image to DB:", saveError);
       }
 
-      // 카운트 초과 시 원격 호출이 null을 반환하므로 사용자에게 즉시 안내한다.
-      if (savedId === null) {
-        showToast(
-          `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,
-        );
-        await fetchUsageStatus();
-        return;
-      }
+      // 통합 크레딧 차감 (비차단)
+      void recordAiCreditUsage("image_gen", 1);
 
       const newImage: GeneratedImage = {
         id: savedId || crypto.randomUUID(),
@@ -345,14 +320,14 @@ export const useAiImageGeneration = () => {
       };
       setGeneratedImages((prev) => [newImage, ...prev]);
 
-      // 로컬 사용량 상태를 선반영해 UI 피드백 지연을 줄인다.
+      // 로컬 크레딧 상태 즉시 반영
       setUsageStatus((prev) => {
-        const newUsed = prev.used + 1;
+        const newRemaining = Math.max(0, prev.remaining - 1);
         return {
           ...prev,
-          used: newUsed,
-          remaining: Math.max(0, DAILY_LIMIT - newUsed),
-          canGenerate: newUsed < DAILY_LIMIT,
+          used: prev.used + 1,
+          remaining: newRemaining,
+          canGenerate: newRemaining > 0,
         };
       });
 
@@ -365,9 +340,7 @@ export const useAiImageGeneration = () => {
       );
 
       mp.track("AI 이미지 생성", { style: selectedStyle, prompt_length: userPrompt.length });
-      showToast(
-        `이미지가 생성되었어요! (${usageStatus.used + 1}/${DAILY_LIMIT})`,
-      );
+      showToast("이미지가 생성되었어요!");
     } catch (error) {
       console.error("Image generation failed:", error);
       showToast(
