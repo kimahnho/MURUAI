@@ -1,20 +1,19 @@
 /**
  * 자유형 요소 속성 편집 패널.
- * 열린 경로: 선 색상/두께/스타일
- * 닫힌 경로: + 채우기 색상, 테두리
+ * 테두리 UI는 ShapePropsContent와 동일한 패턴(없음/실선/점선/이중선/점).
+ * 닫힌 경로: 채우기 색상 추가.
  */
 import { useEffect } from "react";
+import { Ban } from "lucide-react";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import type { FreeformPanelData } from "@/features/editor/store/elementPanelStore";
 import { useSideBarStore } from "@/features/editor/store/sideBarStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import LayerPanel from "./LayerPanel";
 
-const STROKE_STYLES = [
-  { value: "solid" as const, label: "실선" },
-  { value: "dashed" as const, label: "점선" },
-  { value: "dotted" as const, label: "점" },
-];
+type BorderStyle = "solid" | "dashed" | "dotted" | "double";
+
+const clampBorderWidth = (v: number) => Math.min(20, Math.max(1, v));
 
 const FreeformPropsContent = () => {
   const panelData = useElementPanelStore((s) => s.panelData);
@@ -33,51 +32,29 @@ const FreeformPropsContent = () => {
   const data = panelData as FreeformPanelData;
   const { element, closed } = data;
 
-  const handleStrokeColorChange = (color: string) => {
-    updateElement?.(element.id, {
-      stroke: { ...element.stroke, color },
-    });
-  };
+  const strokeEnabled = element.stroke.width > 0;
+  const strokeStyle = element.stroke.style ?? "solid";
+  const strokeColor = element.stroke.color;
+  const strokeWidth = element.stroke.width;
 
-  const handleStrokeWidthChange = (width: number) => {
-    updateElement?.(element.id, {
-      stroke: { ...element.stroke, width: Math.max(1, Math.min(20, width)) },
-    });
-  };
+  // 테두리(stroke) 스타일 옵션 — ShapePropsContent와 동일
+  const borderStyleOptions: Array<BorderStyle | "none"> = ["none", "solid", "dashed", "double", "dotted"];
+  const activeStyle = strokeEnabled ? strokeStyle : "none";
 
-  const handleStrokeStyleChange = (style: "solid" | "dashed" | "dotted") => {
+  const handleStrokeStyleSelect = (style: BorderStyle | "none") => {
+    if (style === "none") {
+      updateElement?.(element.id, {
+        stroke: { ...element.stroke, width: 0 },
+      });
+      return;
+    }
     updateElement?.(element.id, {
-      stroke: { ...element.stroke, style },
+      stroke: { color: strokeColor, width: strokeWidth || 2, style },
     });
   };
 
   const handleFillChange = (color: string) => {
     updateElement?.(element.id, { fill: color });
-  };
-
-  const handleBorderToggle = (enabled: boolean) => {
-    updateElement?.(element.id, {
-      border: {
-        enabled,
-        color: element.border?.color ?? "#000000",
-        width: element.border?.width ?? 2,
-        style: element.border?.style ?? "solid",
-      },
-    });
-  };
-
-  const handleBorderColorChange = (color: string) => {
-    if (!element.border) return;
-    updateElement?.(element.id, {
-      border: { ...element.border, color },
-    });
-  };
-
-  const handleBorderWidthChange = (width: number) => {
-    if (!element.border) return;
-    updateElement?.(element.id, {
-      border: { ...element.border, width: Math.max(1, Math.min(20, width)) },
-    });
   };
 
   const handleMoveLayer = moveLayer
@@ -88,105 +65,96 @@ const FreeformPropsContent = () => {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 크기 */}
-      <div className="flex flex-col gap-2">
-        <span className="text-13-bold text-black-70">크기</span>
-        <div className="flex gap-2">
-          <div className="flex items-center gap-1 flex-1">
-            <span className="text-12-semibold text-black-50">W</span>
-            <span className="text-13-regular text-black-90">{Math.round(element.w)}px</span>
-          </div>
-          <div className="flex items-center gap-1 flex-1">
-            <span className="text-12-semibold text-black-50">H</span>
-            <span className="text-13-regular text-black-90">{Math.round(element.h)}px</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 선 스타일 */}
-      <div className="flex flex-col gap-2">
-        <span className="text-13-bold text-black-70">선</span>
-        <div className="flex items-center gap-2">
-          <ColorPickerPopover
-            value={element.stroke.color}
-            onChange={handleStrokeColorChange}
+      {/* 매끈하게 토글 */}
+      <div className="flex items-center justify-between">
+        <span className="text-14-semibold text-black-90">매끈하게</span>
+        <button
+          type="button"
+          onClick={() => updateElement?.(element.id, { smooth: !element.smooth })}
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+            element.smooth ? "bg-primary" : "bg-black-25"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white-100 shadow transition-transform ${
+              element.smooth ? "translate-x-6" : "translate-x-1"
+            }`}
           />
-          <input
-            type="number"
-            value={element.stroke.width}
-            onChange={(e) => handleStrokeWidthChange(Number(e.target.value))}
-            min={1}
-            max={20}
-            className="w-14 rounded border border-black-25 px-2 py-1 text-center text-13-regular text-black-90"
-          />
-          <span className="text-12-semibold text-black-50">px</span>
-        </div>
-        <div className="flex gap-1">
-          {STROKE_STYLES.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => handleStrokeStyleChange(s.value)}
-              className={`flex-1 rounded border px-2 py-1.5 text-12-semibold transition ${
-                (element.stroke.style ?? "solid") === s.value
-                  ? "border-primary bg-primary-50 text-primary"
-                  : "border-black-25 text-black-70 hover:border-primary-300"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        </button>
       </div>
 
       {/* 채우기 (닫힌 도형만) */}
       {closed && (
         <div className="flex flex-col gap-2">
-          <span className="text-13-bold text-black-70">채우기</span>
+          <div className="text-14-semibold text-black-90">채우기</div>
           <div className="flex items-center gap-2">
             <ColorPickerPopover
               value={element.fill}
               onChange={handleFillChange}
+              allowTransparent
             />
-            <span className="text-13-regular text-black-90 min-w-0 truncate">{element.fill}</span>
+            <span className="text-14-regular text-black-70 uppercase">
+              {element.fill === "transparent" ? "투명" : element.fill}
+            </span>
           </div>
         </div>
       )}
 
-      {/* 테두리 (닫힌 도형만) */}
-      {closed && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-13-bold text-black-70">테두리</span>
-            <button
-              onClick={() => handleBorderToggle(!element.border?.enabled)}
-              className={`rounded px-2 py-0.5 text-12-semibold transition ${
-                element.border?.enabled
-                  ? "bg-primary-100 text-primary"
-                  : "bg-black-5 text-black-50"
-              }`}
-            >
-              {element.border?.enabled ? "ON" : "OFF"}
-            </button>
+      {/* 테두리 — ShapePropsContent와 동일 UI */}
+      <div className="flex flex-col gap-2">
+        <div className="text-14-semibold text-black-90">테두리</div>
+        <div className="flex flex-col gap-3 p-3 rounded-lg border border-black-25 bg-black-5">
+          <div className="flex items-center gap-2">
+            {borderStyleOptions.map((styleOption) => {
+              const isActive = activeStyle === styleOption;
+              const cls = `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${isActive ? "border-primary bg-primary-100 text-primary" : "border-black-30 text-black-70 hover:border-black-50"}`;
+              if (styleOption === "none") {
+                return <button key={styleOption} type="button" onClick={() => handleStrokeStyleSelect(styleOption)} className={cls}><Ban className="h-4 w-4" /></button>;
+              }
+              return (
+                <button key={styleOption} type="button" onClick={() => handleStrokeStyleSelect(styleOption)} className={cls}>
+                  <span className="block w-5" style={{ borderTopWidth: 2, borderTopStyle: styleOption, borderTopColor: "currentColor" }} />
+                </button>
+              );
+            })}
           </div>
-          {element.border?.enabled && (
-            <div className="flex items-center gap-2">
-              <ColorPickerPopover
-                value={element.border.color}
-                onChange={handleBorderColorChange}
-              />
-              <input
-                type="number"
-                value={element.border.width}
-                onChange={(e) => handleBorderWidthChange(Number(e.target.value))}
-                min={1}
-                max={20}
-                className="w-14 rounded border border-black-25 px-2 py-1 text-center text-13-regular text-black-90"
-              />
-              <span className="text-12-semibold text-black-50">px</span>
-            </div>
+          {strokeEnabled && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-12-regular text-black-60">굵기</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={1}
+                    max={20}
+                    value={strokeWidth}
+                    onChange={(e) => updateElement?.(element.id, { stroke: { ...element.stroke, width: clampBorderWidth(Number(e.target.value)) } })}
+                    className="flex-1"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={String(strokeWidth)}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/[^0-9]/g, "");
+                      if (d) updateElement?.(element.id, { stroke: { ...element.stroke, width: clampBorderWidth(Number(d)) } });
+                    }}
+                    className="no-spinner w-12 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-12-regular text-black-60">색상</span>
+                <ColorPickerPopover
+                  value={strokeColor}
+                  onChange={(color) => updateElement?.(element.id, { stroke: { ...element.stroke, color } })}
+                />
+              </div>
+            </>
           )}
         </div>
-      )}
+      </div>
 
       {/* 레이어 */}
       {handleMoveLayer && (

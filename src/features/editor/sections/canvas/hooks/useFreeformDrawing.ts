@@ -3,7 +3,7 @@
  * drawingModeStore.isDrawing이 true일 때 캔버스 포인터 이벤트로 경로를 수집하고,
  * pointerUp 시 FreeformElement를 생성한다.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { CanvasElement, FreeformElement } from "@/features/editor/model/canvasTypes";
 import { useDrawingModeStore } from "@/features/editor/store/drawingModeStore";
@@ -31,6 +31,13 @@ export const useFreeformDrawing = ({
   getPointerPosition,
 }: UseFreeformDrawingProps) => {
   const isDrawing = useDrawingModeStore((s) => s.isDrawing);
+
+  // 그리기 모드 진입 시 기존 선택 해제
+  useEffect(() => {
+    if (isDrawing) {
+      onSelectedIdsChange?.([]);
+    }
+  }, [isDrawing, onSelectedIdsChange]);
 
   // rAF 기반 라이브 프리뷰용 상태
   const [previewPoints, setPreviewPoints] = useState<Point[] | null>(null);
@@ -136,11 +143,16 @@ export const useFreeformDrawing = ({
       points: normalizedPoints,
       closed,
       fill: closed ? "#b7c3ff" : "transparent",
-      stroke: { color: "#000000", width: 2, style: "solid" },
+      // 닫힌 도형: 테두리 없음(채우기로 표시), 열린 경로: 선 2px(안 보이면 안 됨)
+      stroke: { color: "#000000", width: closed ? 0 : 2, style: "solid" as const },
+      border: { enabled: false, color: "#000000", width: 2, style: "solid" as const },
     };
 
     onElementsChange?.([...elementsRef.current, newElement]);
     onSelectedIdsChange?.([newId]);
+
+    // 생성 직후 "매끈하게" 팝업 표시
+    useDrawingModeStore.getState().setSmoothPromptElementId(newId);
   };
 
   return {

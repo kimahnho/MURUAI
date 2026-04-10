@@ -285,6 +285,8 @@ export type FreeformElement = ElementBase & {
   points: Array<{ x: number; y: number }>;
   /** 시작/끝점이 만나면 true — 채우기/테두리 편집 가능 */
   closed: boolean;
+  /** 매끈하게 — Catmull-Rom 스플라인으로 곡선화 */
+  smooth?: boolean;
   fill: string;
   stroke: {
     color: string;

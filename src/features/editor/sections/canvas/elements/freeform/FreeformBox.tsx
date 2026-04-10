@@ -2,13 +2,19 @@
  * 자유형 요소 렌더러.
  * 정규화된 포인트(0~1)를 SVG path로 렌더링하고, 선택/드래그/리사이즈를 지원한다.
  */
-import type { FreeformElement } from "@/features/editor/model/canvasTypes";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import type { FreeformElement, ResizeHandle } from "@/features/editor/model/canvasTypes";
 import { useFreeformInteraction } from "./useFreeformInteraction";
+import { ResizeHandles } from "../round_box/ResizeHandles";
+import { buildSmoothPathD } from "@/features/editor/utils/pathSmooth";
+
+const SELECTION_COLOR = "#7C3AED";
 
 interface FreeformBoxProps {
   element: FreeformElement;
   rect: { x: number; y: number; width: number; height: number };
   isSelected: boolean;
+  selectionCount: number;
   locked: boolean;
   onRectChange?: (id: string, rect: { x: number; y: number; width: number; height: number }) => void;
   onDragStateChange?: (id: string, isDragging: boolean, finalRect?: { x: number; y: number; width: number; height: number }, context?: { type: "drag" | "resize" }) => void;
@@ -37,6 +43,7 @@ const FreeformBox = ({
   element,
   rect,
   isSelected,
+  selectionCount,
   locked,
   onRectChange,
   onDragStateChange,
@@ -45,14 +52,16 @@ const FreeformBox = ({
 }: FreeformBoxProps) => {
   const { handlePointerDown } = useFreeformInteraction({
     element,
+    isSelected,
+    selectionCount,
     locked,
     onRectChange,
     onDragStateChange,
     onSelectChange,
   });
 
-  const { points, closed, fill, stroke, border, transform } = element;
-  const pathD = buildPathD(points, closed);
+  const { points, closed, smooth, fill, stroke, border, transform } = element;
+  const pathD = smooth ? buildSmoothPathD(points, closed) : buildPathD(points, closed);
 
   // viewBox 기준 stroke 너비 (정규화 좌표 공간에서의 비율)
   const svgStrokeWidth = rect.width > 0 ? stroke.width / rect.width : 0;
@@ -69,6 +78,19 @@ const FreeformBox = ({
     ? `${border.width}px ${border.style ?? "solid"} ${border.color}`
     : undefined;
 
+  const showOutline = isSelected && !locked;
+  const showResizeHandles = showOutline && selectionCount <= 1;
+
+  // 리사이즈 핸들 pointerDown — useDesignPaperInteraction의 handleDragStateChange로 전파
+  const handleResizePointerDown = (
+    e: ReactPointerEvent<HTMLDivElement>,
+    _type: "resize" | "imageBoxResize",
+    _handle: ResizeHandle,
+  ) => {
+    e.stopPropagation();
+    onDragStateChange?.(element.id, true, undefined, { type: "resize" });
+  };
+
   return (
     <div
       style={{
@@ -84,15 +106,24 @@ const FreeformBox = ({
       onContextMenu={onContextMenu}
     >
       {/* 선택 아웃라인 */}
-      {isSelected && (
+      {showOutline && (
         <div
           style={{
             position: "absolute",
-            inset: -1,
-            border: "2px solid var(--color-primary)",
+            inset: 0,
+            border: `2px solid ${SELECTION_COLOR}`,
             pointerEvents: "none",
-            zIndex: 1,
+            boxSizing: "border-box",
+            zIndex: 2,
           }}
+        />
+      )}
+
+      {/* 리사이즈 핸들 (8개 도트) */}
+      {showResizeHandles && (
+        <ResizeHandles
+          selectionColor={SELECTION_COLOR}
+          onPointerDown={handleResizePointerDown}
         />
       )}
 

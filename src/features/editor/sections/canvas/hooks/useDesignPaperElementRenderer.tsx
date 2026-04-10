@@ -783,6 +783,7 @@ export const useDesignPaperElementRenderer = ({
         element={element}
         rect={rect}
         isSelected={isSelected}
+        selectionCount={selectedIds.length}
         locked={locked}
         onRectChange={handleRectChange}
         onDragStateChange={handleDragStateChange}

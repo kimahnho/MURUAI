@@ -382,8 +382,8 @@ export const useDesignPaperInteraction = ({
       return;
     }
 
-    // 표처럼 x/y로 위치를 관리하는 요소는 드래그/리사이즈 중에도 실시간으로 좌표를 반영한다.
-    if (targetElement?.type === "table") {
+    // 표/자유형처럼 x/y로 위치를 관리하는 요소는 드래그/리사이즈 중에도 실시간으로 좌표를 반영한다.
+    if (targetElement?.type === "table" || targetElement?.type === "freeform") {
       updateElement(elementId, {
         x: nextRect.x,
         y: nextRect.y,
