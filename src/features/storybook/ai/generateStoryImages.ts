@@ -115,101 +115,55 @@ ${JSON.stringify(scenes)}`;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
 
-/** 페이지에 전달할 레퍼런스 이미지와 역할 설명을 동적으로 조립한다. */
-const buildMultiRefContents = (
-  imagePrompt: string,
-  characterRef: string | undefined,
-  subCharRefs: Map<string, string>,
-  pageCharacterRoles: string[],
-  castCharacters: CastCharacter[],
-  sceneAnchor: string | undefined,
-): string | Array<Record<string, unknown>> => {
-  if (!characterRef) return imagePrompt;
+// 공통 규칙 — 모든 이미지에 적용
+const COMMON_RULES = `RULES:
+- Do NOT include any text, letters, words, numbers, signs, labels in the image.
+- Korean culture: shoes removed indoors, ondol floor, low table, indoor shoes at entrance.
+- Each character appears EXACTLY ONCE. Do NOT duplicate any character.
+- Materials behave realistically: fabric drapes, stones sit on ground, wood has weight.`;
 
-  // 텍스트 먼저, 이미지 뒤에 — Gemini가 역할을 이해한 후 이미지 해석
-  const textLines: string[] = [];
-  let imageIdx = 1;
-
-  // 절대 규칙 (최상단)
-  textLines.push("NO TEXT in the image. No letters, words, numbers, signs, labels, captions.");
-  textLines.push("");
-  textLines.push("KOREAN CULTURAL RULES:");
-  textLines.push("- Shoes ALWAYS removed indoors. Socks or slippers inside homes/classrooms.");
-  textLines.push("- Korean homes: warm ondol floor, low table, cushions. Beds in bedrooms only.");
-  textLines.push("- Korean kindergarten: indoor shoes (실내화) at entrance shoe cabinet.");
-  textLines.push("- Korean meals: rice, soup, side dishes. Chopsticks and spoon.");
-  textLines.push("");
-
-  // 캐릭터 정의 — 태그 + 위치 + 1회만
-  textLines.push("CHARACTERS (each appears EXACTLY ONCE):");
-  textLines.push(`@maincharacter: [IMAGE ${imageIdx}] reference. Draw this character ONCE in a new pose.`);
-  imageIdx++;
-
-  for (const role of pageCharacterRoles) {
-    const ref = subCharRefs.get(role);
-    const cast = castCharacters.find((c) => c.role === role);
-    if (ref) {
-      textLines.push(`@${role}: [IMAGE ${imageIdx}] reference. Draw ONCE. ${cast?.appearance ?? ""}`);
-      imageIdx++;
-    } else if (cast) {
-      textLines.push(`@${role}: ${cast.appearance}. Draw ONCE. (no reference image)`);
-    }
-  }
-  textLines.push("");
-
-  // 배경 (캐릭터와 분리)
-  textLines.push(`SCENE: ${imagePrompt}`);
-  textLines.push("");
-
-  // 씬앵커
-  if (sceneAnchor) {
-    textLines.push(`[IMAGE ${imageIdx}] = BACKGROUND REFERENCE ONLY.`);
-    textLines.push("- Match the walls, floor, sky, furniture, lighting, colors from this image.");
-    textLines.push("- COMPLETELY IGNORE every person, animal, or creature in this image.");
-    textLines.push("- Do NOT draw anyone from this image. Only match the environment.");
-    textLines.push("");
-  }
-
-  // 크기/물리 규칙
-  textLines.push("SIZE: A child is ~120cm. A dog is knee-height. An adult is 1.5x a child.");
-  textLines.push("PHYSICS: Objects obey gravity. Materials behave realistically.");
-  textLines.push("Fill empty space with environment elements (trees, sky, furniture), NOT with extra characters.");
-
-  // 텍스트 파트 먼저
-  const parts: Array<Record<string, unknown>> = [];
-  parts.push({ text: textLines.join("\n") });
-
-  // 이미지 파트 뒤에
-  parts.push({ inlineData: { mimeType: "image/webp" as const, data: characterRef } });
-
-  for (const role of pageCharacterRoles) {
-    const ref = subCharRefs.get(role);
-    if (ref) {
-      parts.push({ inlineData: { mimeType: "image/webp" as const, data: ref } });
-    }
-  }
-
-  if (sceneAnchor) {
-    parts.push({ inlineData: { mimeType: "image/webp" as const, data: sceneAnchor } });
-  }
-
-  return parts;
-};
 
 const generateSingleImage = async (
   ai: GenAIClient,
   imagePrompt: string,
   aspectRatio: string,
-  characterRef: string | undefined,
-  subCharRefs: Map<string, string>,
-  pageCharacterRoles: string[],
-  castCharacters: CastCharacter[],
-  sceneAnchor: string | undefined,
+  characterRef?: string,
+  subCharRefs?: Array<{ role: string; data: string }>,
+  sceneAnchor?: string,
 ): Promise<string> => {
-  const contents = buildMultiRefContents(
-    imagePrompt, characterRef, subCharRefs,
-    pageCharacterRoles, castCharacters, sceneAnchor,
-  );
+  let contents: string | Array<Record<string, unknown>>;
+
+  if (!characterRef) {
+    contents = imagePrompt;
+  } else {
+    const parts: Array<Record<string, unknown>> = [];
+    const suffixLines: string[] = [];
+
+    // 주인공 레퍼런스 (항상 첫 번째)
+    parts.push({ inlineData: { mimeType: "image/webp" as const, data: characterRef } });
+    suffixLines.push("The FIRST image is the main character reference — preserve exact face, hair, clothing, and proportions.");
+
+    // 서브캐릭터 레퍼런스
+    if (subCharRefs && subCharRefs.length > 0) {
+      for (const sub of subCharRefs) {
+        parts.push({ inlineData: { mimeType: "image/webp" as const, data: sub.data } });
+        suffixLines.push(`The next image is the "${sub.role}" character reference — preserve this character's exact appearance.`);
+      }
+    }
+
+    // 씬앵커 (sceneGroup 후속 페이지)
+    if (sceneAnchor) {
+      parts.push({ inlineData: { mimeType: "image/webp" as const, data: sceneAnchor } });
+      suffixLines.push("The last image is a previous scene from the same location — maintain the same background, lighting, and atmosphere.");
+      suffixLines.push("Only change characters' actions and expressions as the new scene describes.");
+    }
+
+    suffixLines.push("");
+    suffixLines.push(COMMON_RULES);
+
+    parts.push({ text: `${imagePrompt}\n\n${suffixLines.join("\n")}` });
+    contents = parts;
+  }
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -282,8 +236,9 @@ export const generateStoryImages = async (
   const stylePostfix = customPromptTemplate ?? preset?.promptTemplate ?? "";
   const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
 
-  // ── Phase 1: 멀티 레퍼런스 기반 base64 수집 ──
-  // 레퍼런스 이미지를 WebP로 압축하여 API 전송 크기 줄이기 (413 방지)
+  // ── Phase 1: 듀얼 레퍼런스로 base64 수집 ──
+  // 캐릭터 레퍼런스: 항상 원본 고정 (외형 일관성)
+  // 장면 앵커: sceneGroup별 첫 생성 이미지 고정 (배경/분위기 연속성)
   const compressedMainRef = referenceImageBase64
     ? (await convertToWebP(referenceImageBase64)).data
     : undefined;
@@ -291,11 +246,13 @@ export const generateStoryImages = async (
   const base64Images: string[] = new Array(pages.length);
   const sceneGroupAnchors = new Map<number, string>();
   const castCharacters = subCharacters ?? [];
-  const subCharRefs = new Map<string, string>();
+
+  // 서브캐릭터 ref를 WebP로 압축
+  const compressedSubRefs: Array<{ role: string; data: string; pages: number[] }> = [];
   for (const sc of castCharacters) {
     if (sc.imageBase64) {
       const { data } = await convertToWebP(sc.imageBase64);
-      subCharRefs.set(sc.role, data);
+      compressedSubRefs.push({ role: sc.role, data, pages: sc.pages });
     }
   }
 
@@ -306,10 +263,10 @@ export const generateStoryImages = async (
     const group = pages[i].sceneGroup;
     const pageNum = i + 1;
 
-    // 이 페이지에 등장하는 서브캐릭터 역할 목록
-    const pageCharacterRoles = castCharacters
-      .filter((c) => c.pages.includes(pageNum))
-      .map((c) => c.role);
+    // 이 페이지에 등장하는 서브캐릭터 ref만 선택
+    const pageSubRefs = compressedSubRefs
+      .filter((s) => s.pages.includes(pageNum))
+      .map((s) => ({ role: s.role, data: s.data }));
 
     const sceneAnchor = sceneGroupAnchors.get(group);
     const base64 = await generateSingleImage(
@@ -317,12 +274,11 @@ export const generateStoryImages = async (
       imagePrompt,
       aspectRatio,
       compressedMainRef,
-      subCharRefs,
-      pageCharacterRoles,
-      castCharacters,
+      pageSubRefs.length > 0 ? pageSubRefs : undefined,
       sceneAnchor,
     );
 
+    // sceneGroup 첫 페이지 결과를 장면 앵커로 저장
     if (!sceneAnchor) {
       const { data: compressedAnchor } = await convertToWebP(base64);
       sceneGroupAnchors.set(group, compressedAnchor);
