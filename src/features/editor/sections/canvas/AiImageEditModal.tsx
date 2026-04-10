@@ -307,7 +307,7 @@ const AiImageEditModal = ({
       ctx.stroke();
     }
 
-    return fullCanvas.toDataURL("image/png").split(",")[1];
+    return fullCanvas.toDataURL("image/webp", 1.0).split(",")[1];
   };
 
   const handleGenerate = async () => {
