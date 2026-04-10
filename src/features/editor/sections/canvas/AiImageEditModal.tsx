@@ -49,6 +49,7 @@ const AiImageEditModal = ({
   const scaleRef = useRef(1);
   const mountedRef = useRef(true);
   const rectStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastRectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const lassoPointsRef = useRef<Array<{ x: number; y: number }>>([]);
 
   useEffect(() => {
@@ -67,6 +68,7 @@ const AiImageEditModal = ({
       isDrawingRef.current = false;
       lassoPointsRef.current = [];
       rectStartRef.current = null;
+      lastRectRef.current = null;
     }
   }, [isOpen]);
 
@@ -217,6 +219,12 @@ const AiImageEditModal = ({
       ctx.lineWidth = 2;
       ctx.strokeRect(rectStart.x, rectStart.y, pos.x - rectStart.x, pos.y - rectStart.y);
       hasSelectionRef.current = true;
+      lastRectRef.current = {
+        x: Math.min(rectStart.x, pos.x),
+        y: Math.min(rectStart.y, pos.y),
+        w: Math.abs(pos.x - rectStart.x),
+        h: Math.abs(pos.y - rectStart.y),
+      };
       rectStartRef.current = null;
       return;
     }
@@ -240,46 +248,66 @@ const AiImageEditModal = ({
   const handleReset = () => {
     lassoPointsRef.current = [];
     rectStartRef.current = null;
+    lastRectRef.current = null;
     hasSelectionRef.current = false;
     isDrawingRef.current = false;
     drawCanvas();
   };
 
-  const getCanvasBase64 = (): string | null => {
-    const displayCanvas = canvasRef.current;
+  /** 원본 이미지 URL → base64 (캔버스 없이, 무손실) */
+  const fetchOriginalBase64 = async (): Promise<string> => {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]);
+      };
+      reader.onerror = () => reject(new Error("이미지 읽기 실패"));
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  /** 원본 해상도 캔버스에 이미지 + 마스크 오버레이를 그려서 PNG base64 반환 */
+  const buildMaskedBase64 = (): string | null => {
     const img = imageRef.current;
-    if (!displayCanvas || !img) return null;
+    if (!img) return null;
+    const scale = scaleRef.current;
+    if (scale <= 0) return null;
+    const invScale = 1 / scale;
+
     const fullCanvas = document.createElement("canvas");
     fullCanvas.width = img.width;
     fullCanvas.height = img.height;
     const ctx = fullCanvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(displayCanvas, 0, 0, displayCanvas.width, displayCanvas.height, 0, 0, img.width, img.height);
-    return fullCanvas.toDataURL("image/webp", 0.85).split(",")[1];
-  };
 
-  const getOriginalBase64 = async (): Promise<string> => {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    try {
-      return await new Promise<string>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement("canvas");
-          c.width = img.width;
-          c.height = img.height;
-          const ctx = c.getContext("2d");
-          if (!ctx) { reject(new Error("canvas 생성 실패")); return; }
-          ctx.drawImage(img, 0, 0);
-          resolve(c.toDataURL("image/webp", 0.85).split(",")[1]);
-        };
-        img.onerror = () => reject(new Error("이미지 로드 실패"));
-        img.src = blobUrl;
-      });
-    } finally {
-      URL.revokeObjectURL(blobUrl);
+    // 원본 해상도로 이미지 그리기
+    ctx.drawImage(img, 0, 0);
+
+    // 화면 좌표 → 원본 좌표로 역변환하여 마스크 그리기
+    if (tool === "rect" && lastRectRef.current) {
+      const r = lastRectRef.current;
+      ctx.fillStyle = OVERLAY_COLOR;
+      ctx.fillRect(r.x * invScale, r.y * invScale, r.w * invScale, r.h * invScale);
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = 2 * invScale;
+      ctx.strokeRect(r.x * invScale, r.y * invScale, r.w * invScale, r.h * invScale);
+    } else if (tool === "lasso" && lassoPointsRef.current.length > 2) {
+      const points = lassoPointsRef.current;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x * invScale, points[0].y * invScale);
+      for (const p of points) ctx.lineTo(p.x * invScale, p.y * invScale);
+      ctx.closePath();
+      ctx.fillStyle = OVERLAY_COLOR;
+      ctx.fill();
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = 2 * invScale;
+      ctx.stroke();
     }
+
+    return fullCanvas.toDataURL("image/png").split(",")[1];
   };
 
   const handleGenerate = async () => {
@@ -293,7 +321,7 @@ const AiImageEditModal = ({
     setResultUrl(null);
     try {
       const hasSelection = hasSelectionRef.current;
-      const base64 = hasSelection ? getCanvasBase64() : await getOriginalBase64();
+      const base64 = hasSelection ? buildMaskedBase64() : await fetchOriginalBase64();
       if (!base64) throw new Error("이미지 추출 실패");
       const url = await editImageWithAi(base64, prompt, hasSelection);
       if (mountedRef.current) setResultUrl(url);
