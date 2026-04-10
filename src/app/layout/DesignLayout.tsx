@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { flushSync } from "react-dom";
 import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
@@ -36,6 +37,7 @@ import { useOrientationControl } from "@/features/editor/hooks/useOrientationCon
 import type { Page } from "@/features/editor/model/pageTypes";
 import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 import { mp } from "@/shared/utils/mixpanel";
+import { fetchCreditBalance } from "@/features/editor/utils/aiTemplateUsage";
 
 const ExportModal = lazy(
   () => import("@/features/editor/shared/ExportModal"),
@@ -98,6 +100,12 @@ const DesignLayout = () => {
     isVerticalDisabled,
     handleOrientationChange,
   } = useOrientationControl();
+
+  // AI 크레딧 잔량 표시
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  useEffect(() => {
+    fetchCreditBalance().then((b) => setCreditBalance(b));
+  }, []);
 
   const spellCheckResults = useSpellCheckStore((s) => s.results);
   const isSpellChecking = useSpellCheckStore((s) => s.isChecking);
@@ -616,6 +624,10 @@ const DesignLayout = () => {
 
           {!isFocusedMode && (
           <div className="flex h-full shrink-0 items-center gap-3 pr-3">
+            {/* AI 크레딧 잔량 */}
+            {creditBalance !== null && (
+              <CreditBadge balance={creditBalance} />
+            )}
             {/* 맞춤법 검사 버튼 */}
             <div className="relative flex h-full items-center justify-center">
               <button
@@ -739,6 +751,52 @@ const DesignLayout = () => {
       )}
       <CreditExhaustedModal />
     </div>
+  );
+};
+
+// 헤더 크레딧 뱃지 — 노란 동전 스타일
+const CreditBadge = ({ balance }: { balance: number }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ left: 0, top: 0 });
+
+  const handleEnter = () => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    setPos({ left: r.left + r.width / 2, top: r.bottom + 8 });
+    setShow(true);
+  };
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className="flex items-center gap-1 rounded-full pl-0.5 pr-2.5 py-0.5 cursor-default"
+        style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}
+        onMouseEnter={handleEnter}
+        onMouseLeave={() => setShow(false)}
+      >
+        <div className="flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "linear-gradient(145deg, #FCD34D, #F59E0B)", border: "1.5px solid #D97706" }}>
+          <span style={{ fontSize: "9px", fontWeight: 700, color: "#78350F", lineHeight: 1 }}>C</span>
+        </div>
+        <span className="text-13-bold" style={{ color: "#92400E" }}>{balance}</span>
+      </div>
+      {show && createPortal(
+        <div
+          className="fixed z-[9999] w-56 rounded-xl border border-black-10 bg-white-100 px-4 py-3 shadow-xl pointer-events-none"
+          style={{ left: pos.left, top: pos.top, transform: "translateX(-50%)" }}
+        >
+          <p className="text-13-bold text-black-90">AI 크레딧</p>
+          <p className="text-12-regular text-black-60 mt-1">이미지 생성, 스토리북, 감정추론, AI 편집에 사용돼요.</p>
+          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-black-10">
+            <span className="text-12-regular text-black-50">남은 크레딧</span>
+            <span className="text-13-bold ml-auto" style={{ color: "#D97706" }}>{balance}회</span>
+          </div>
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-l border-t border-black-10 bg-white-100" />
+        </div>,
+        document.body,
+      )}
+    </>
   );
 };
 
