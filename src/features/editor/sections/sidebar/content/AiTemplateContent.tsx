@@ -20,7 +20,6 @@ import {
 } from "@/features/editor/templates/templateRegistry";
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
 import {
-  MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
   hasPendingCreditRequest,
@@ -137,7 +136,7 @@ const AiTemplateContent = () => {
                 {remainingCredits !== null ? remainingCredits : "--"}
               </span>
               <span className="text-14-regular text-black-50">
-                / {MONTHLY_AI_CREDIT_LIMIT}
+                회 남음
               </span>
             </div>
           </div>

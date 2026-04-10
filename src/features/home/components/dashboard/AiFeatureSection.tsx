@@ -7,7 +7,6 @@ import type { LucideIcon } from "lucide-react";
 
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 import {
-  MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
   hasPendingCreditRequest,
@@ -91,7 +90,7 @@ const AiFeatureSection = () => {
           <Zap className="h-4 w-4 text-black-40" />
           <span className={`text-title-20-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-60"}`}>
             {creditBalance !== null ? creditBalance : "--"}
-            <span className="text-black-40">/{MONTHLY_AI_CREDIT_LIMIT}</span>
+            <span className="text-14-regular text-black-40"> 회 남음</span>
           </span>
         </div>
       </div>
