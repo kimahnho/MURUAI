@@ -90,7 +90,7 @@ const GeneratedImageGrid = ({
 };
 
 type DesignContentViewProps = {
-  selectedStyle: ImageStyle;
+  selectedStyle: ImageStyle | null;
   prompt: string;
   isGenerating: boolean;
   generatedImages: GeneratedImage[];
@@ -131,26 +131,11 @@ const DesignContentView = ({
     </div>
 
     <div className="flex flex-col gap-4">
-      {/* 생성 조건을 결정하는 입력 영역: 스타일 + 프롬프트 */}
+      {/* 프롬프트 입력 → 스타일 선택 → 생성 버튼 순서 */}
       <div className="flex flex-col gap-2">
-        <span className="text-14-semibold text-black-90">스타일 선택</span>
-        <div className="flex gap-2">
-          {STYLE_OPTIONS.map((option) => (
-            <StyleButton
-              key={option.id}
-              isActive={selectedStyle === option.id}
-              onClick={() => {
-                onSelectStyle(option.id);
-              }}
-              icon={STYLE_ICONS[option.id]}
-              label={option.label}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-14-semibold text-black-90">요구사항</span>
+        <span className="text-14-semibold text-black-90">
+          원하는 이미지를 자유롭게 그려보세요!
+        </span>
         <textarea
           value={prompt}
           onChange={(e) => {
@@ -162,6 +147,25 @@ const DesignContentView = ({
           className="w-full h-32 px-4 py-3 border border-black-25 rounded-xl text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors resize-none"
         />
       </div>
+
+      {prompt.trim().length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-14-semibold text-black-90">스타일 선택</span>
+          <div className="flex gap-2">
+            {STYLE_OPTIONS.map((option) => (
+              <StyleButton
+                key={option.id}
+                isActive={selectedStyle === option.id}
+                onClick={() => {
+                  onSelectStyle(option.id);
+                }}
+                icon={STYLE_ICONS[option.id]}
+                label={option.label}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         onClick={onGenerate}
