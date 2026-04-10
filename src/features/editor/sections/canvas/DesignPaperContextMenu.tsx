@@ -14,6 +14,7 @@ import {
   Eraser,
   Group,
   Layers,
+  Sparkles,
   Table,
   Trash2,
   Ungroup,
@@ -60,6 +61,7 @@ type DesignPaperContextMenuProps = {
   onMoveLayer: (id: string, direction: LayerDirection) => void;
   onRemoveBackground?: (elementId: string) => void;
   isRemovingBackground?: boolean;
+  onAiEdit?: (elementId: string) => void;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
 };
 
@@ -133,6 +135,7 @@ export const DesignPaperContextMenu = ({
   onMoveLayer,
   onRemoveBackground,
   isRemovingBackground,
+  onAiEdit,
   setContextMenu,
 }: DesignPaperContextMenuProps) => {
   const mainMenuRef = useRef<HTMLDivElement>(null);
@@ -333,6 +336,18 @@ export const DesignPaperContextMenu = ({
               {!isRemovingBackground && (
                 <span className="text-10-regular text-primary ml-6">단색 배경만 제거됩니다</span>
               )}
+            </span>
+          </button>
+        )}
+        {isElementMenu && hasImageFill && onAiEdit && elementId && !targetElement?.locked && (
+          <button
+            type="button"
+            onClick={() => { onAiEdit(elementId); setContextMenu(null); }}
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5 active:bg-black-10"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI 편집하기
             </span>
           </button>
         )}
