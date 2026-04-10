@@ -84,8 +84,8 @@ export const editImageWithAi = async (
 
   // 시스템 지시와 유저 프롬프트를 별도 파트로 분리 — 프롬프트 인젝션 방지
   const systemPart = hasSelection
-    ? "Generate an image: The user has marked a specific area in this image with a semi-transparent RED overlay. Edit ONLY the red area according to the user's request below. Keep everything outside the red area exactly the same. Remove the red overlay from the result. Blend naturally. Do NOT add text unless asked."
-    : "Generate an image: Edit this image according to the user's request below. Maintain the original style and quality. Do NOT add text unless asked.";
+    ? "Generate an image: The user has drawn a thin red border/outline on this image to indicate which area to edit. Apply the user's edit request ONLY to the area INSIDE the red border. IMPORTANT: Keep everything outside the red border PIXEL-PERFECT identical to the original. Remove the red border line completely from the output. The red line is just a selection boundary, NOT part of the image. Match the original art style, lighting, and quality exactly. Do NOT add any text unless specifically asked."
+    : "Generate an image: Edit this image according to the user's request below. Maintain the original art style, lighting, resolution, and quality exactly. Do NOT add any text unless specifically asked.";
 
   const userPart = prompt;
 

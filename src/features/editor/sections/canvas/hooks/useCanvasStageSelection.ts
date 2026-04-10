@@ -89,6 +89,8 @@ export const useCanvasStageSelection = ({
     if (target.closest("[data-text-props-panel]")) return false;
     // 컨텍스트 메뉴 portal 클릭은 캔버스 선택으로 처리하지 않음
     if (target.closest("[data-context-menu-portal]")) return false;
+    // AI 편집 플로팅 패널 클릭은 캔버스 선택으로 처리하지 않음
+    if (target.closest("[data-ai-edit-panel]")) return false;
     const pageRoot = target.closest("[data-page-id]");
     if (!pageRoot) return true;
     return target === pageRoot;
