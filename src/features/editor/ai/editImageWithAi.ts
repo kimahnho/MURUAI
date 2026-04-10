@@ -11,7 +11,7 @@ import { captureSentryError } from "@/shared/utils/sentryUtils";
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
-/** 큰 이미지를 maxDim 이하로 리사이즈 + WebP 출력. 작으면 원본 반환. */
+/** 큰 이미지를 maxDim 이하로 리사이즈. PNG 품질 유지. 작으면 원본 반환. */
 const resizeIfNeeded = (base64: string, maxDim: number): Promise<string> =>
   new Promise((resolve) => {
     const img = new Image();
@@ -24,8 +24,8 @@ const resizeIfNeeded = (base64: string, maxDim: number): Promise<string> =>
       const ctx = canvas.getContext("2d");
       if (!ctx) { resolve(base64); return; }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      // WebP로 직접 출력 — 이중 변환 방지
-      resolve(canvas.toDataURL("image/webp", 0.85).split(",")[1]);
+      // PNG로 출력 — Gemini 입력 품질 유지 (WebP 변환은 결과 업로드 시에만)
+      resolve(canvas.toDataURL("image/png").split(",")[1]);
     };
     img.onerror = () => {
       console.warn("resizeIfNeeded: 이미지 로드 실패, 원본 사용");
@@ -78,8 +78,8 @@ export const editImageWithAi = async (
   if (!authData.user) throw new Error("로그인이 필요합니다.");
 
   const ai = getGenAI();
-  const resizedBase64 = await resizeIfNeeded(imageBase64, 2048);
-  const { data: compressedImage } = await convertToWebP(resizedBase64, 0.7);
+  // Gemini 입력은 PNG 고품질 유지 — WebP 변환은 결과 업로드 시에만
+  const inputBase64 = await resizeIfNeeded(imageBase64, 2048);
 
   // 시스템 지시와 유저 프롬프트를 별도 파트로 분리 — 프롬프트 인젝션 방지
   const systemPart = hasSelection
@@ -96,7 +96,7 @@ export const editImageWithAi = async (
         model: "gemini-2.5-flash-image",
         contents: [
           { text: systemPart },
-          { inlineData: { mimeType: "image/webp" as const, data: compressedImage } },
+          { inlineData: { mimeType: "image/png" as const, data: inputBase64 } },
           { text: `User request: ${userPart}` },
         ],
         config: {
