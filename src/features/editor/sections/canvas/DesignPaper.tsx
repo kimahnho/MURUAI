@@ -19,6 +19,7 @@ import {
   type ContextMenuState,
   type TableContextMenuActions,
 } from "./DesignPaperContextMenu";
+import AiImageEditModal from "./AiImageEditModal";
 import { extractImageSrc, removeImageBackground } from "../../utils/removeBackground";
 import { useToastStore } from "../../store/toastStore";
 import { useTableStore } from "../../store/tableStore";
@@ -51,8 +52,6 @@ import { useDesignPaperRotation } from "./hooks/useDesignPaperRotation";
 import { useDesignPaperSelectionContextMenu } from "./hooks/useDesignPaperSelectionContextMenu";
 import { useGroupOverlayDrag } from "./hooks/useGroupOverlayDrag";
 import { useDesignPaperElementRenderer } from "./hooks/useDesignPaperElementRenderer";
-import { useFreeformDrawing } from "./hooks/useFreeformDrawing";
-import { useDrawingModeStore } from "../../store/drawingModeStore";
 import { useSnapTransformRect } from "./hooks/useSnapTransformRect";
 import { useElementPatchUpdater } from "./hooks/useElementPatchUpdater";
 import { usePaperRects } from "./hooks/usePaperRects";
@@ -77,44 +76,6 @@ import {
 } from "../../utils/pagePresentation";
 import RotationBadge from "./RotationBadge";
 import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
-
-// 자유형 도형 생성 직후 "매끈하게 다듬기" 1회성 팝업
-const SmoothPromptPopup = ({
-  element,
-  onAccept,
-  onDismiss,
-}: {
-  element: { id: string; x: number; y: number; w: number; h: number };
-  onAccept: () => void;
-  onDismiss: () => void;
-}) => (
-  <div
-    className="absolute flex items-center gap-2 pointer-events-auto"
-    style={{
-      left: element.x + element.w / 2,
-      top: element.y - 52,
-      transform: "translate(-50%, -100%)",
-      zIndex: 50,
-    }}
-  >
-    <div className="flex items-center gap-1.5 rounded-lg bg-white-100 border border-black-25 shadow-lg px-3 py-2">
-      <button
-        type="button"
-        onPointerDown={(e) => { e.stopPropagation(); onAccept(); }}
-        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-12-semibold text-white-100 hover:bg-primary-700 transition-colors whitespace-nowrap"
-      >
-        ✨ 매끈하게 다듬기
-      </button>
-      <button
-        type="button"
-        onPointerDown={(e) => { e.stopPropagation(); onDismiss(); }}
-        className="rounded-md px-2 py-1.5 text-12-semibold text-black-60 hover:bg-black-5 transition-colors whitespace-nowrap"
-      >
-        유지
-      </button>
-    </div>
-  </div>
-);
 
 interface DesignPaperProps {
   pageId: string;
@@ -180,6 +141,7 @@ const DesignPaper = ({
   } | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const [aiEditTarget, setAiEditTarget] = useState<{ elementId: string; imageUrl: string; rect: { x: number; y: number; w: number; h: number } } | null>(null);
   const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(
     null,
   );
@@ -313,6 +275,56 @@ const DesignPaper = ({
       setIsRemovingBackground(false);
       setContextMenu(null);
     }
+  };
+
+  const handleAiEdit = (elementId: string) => {
+    const element = elements.find((el) => el.id === elementId);
+    if (!element || !("fill" in element) || typeof element.fill !== "string") return;
+    const imageSrc = element.fill.startsWith("url(")
+      ? element.fill.slice(4, -1).replace(/(^['"]|['"]$)/g, "")
+      : element.fill;
+    setAiEditTarget({
+      elementId,
+      imageUrl: imageSrc,
+      rect: { x: "x" in element ? (element.x as number) : 0, y: "y" in element ? (element.y as number) : 0, w: element.w, h: element.h },
+    });
+    setContextMenu(null);
+  };
+
+  const handleAiEditApply = (newImageUrl: string) => {
+    if (!aiEditTarget || !onElementsChange) return;
+    const { rect } = aiEditTarget;
+
+    // 페이지 크기 계산 (orientation 기반)
+    const A4_W = orientation === "horizontal" ? 297 * 3.7795 : 210 * 3.7795;
+    const A4_H = orientation === "horizontal" ? 210 * 3.7795 : 297 * 3.7795;
+
+    // 오른쪽에 공간 있으면 옆에, 없으면 아래, 그것도 안 되면 원본 위치에 겹침
+    let newX = rect.x + rect.w + 20;
+    let newY = rect.y;
+    if (newX + rect.w > A4_W) {
+      newX = rect.x;
+      newY = rect.y + rect.h + 20;
+    }
+    if (newY + rect.h > A4_H) {
+      newX = rect.x + 30;
+      newY = rect.y + 30;
+    }
+
+    const newElement = {
+      id: crypto.randomUUID(),
+      type: "rect" as const,
+      x: newX,
+      y: newY,
+      w: rect.w,
+      h: rect.h,
+      fill: `url(${newImageUrl})`,
+      radius: 0,
+      imageBox: { x: 0, y: 0, w: rect.w, h: rect.h },
+    };
+    onElementsChange([...elements, newElement]);
+    setAiEditTarget(null);
+    useToastStore.getState().showToast("편집된 이미지가 추가되었어요!", "success");
   };
 
   const {
@@ -510,34 +522,6 @@ const DesignPaper = ({
     mmToPx,
   });
 
-  // 자유형: 매끈하게 팝업 대상 요소
-  const smoothPromptElementId = useDrawingModeStore((s) => s.smoothPromptElementId);
-  // 선택 해제되면 팝업 자동 닫기
-  useEffect(() => {
-    if (smoothPromptElementId && !selectedIds.includes(smoothPromptElementId)) {
-      useDrawingModeStore.getState().setSmoothPromptElementId(null);
-    }
-  }, [selectedIds, smoothPromptElementId]);
-  // 좌측 패널에서 smooth 토글하면 팝업 자동 닫기
-  const smoothPromptRawElement = smoothPromptElementId
-    ? (elements.find((e) => e.id === smoothPromptElementId && e.type === "freeform") as import("../../model/canvasTypes").FreeformElement | undefined) ?? null
-    : null;
-  useEffect(() => {
-    if (smoothPromptRawElement?.smooth) {
-      useDrawingModeStore.getState().setSmoothPromptElementId(null);
-    }
-  }, [smoothPromptRawElement?.smooth]);
-  const smoothPromptElement = smoothPromptRawElement?.smooth ? null : smoothPromptRawElement;
-
-  // 자유형 그리기 모드
-  const { isDrawing: isFreeformDrawing, previewPoints: freeformPreviewPoints, handleDrawingPointerDown } = useFreeformDrawing({
-    elements,
-    readOnly,
-    onElementsChange,
-    onSelectedIdsChange,
-    getPointerPosition,
-  });
-
   // 테이블 셀 기준 행/열 삽입·삭제 핸들러 — 클로저에서 snapshot을 캡처해 클릭 시점의 stale 방지
   const buildTableContext = (): TableContextMenuActions | undefined => {
     const { selectedTable, selectedCells, updateTable, setSelectedCells } =
@@ -610,7 +594,7 @@ const DesignPaper = ({
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
-      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle, cursor: isFreeformDrawing ? "crosshair" : undefined }}
+      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => {
@@ -635,14 +619,6 @@ const DesignPaper = ({
         }
       }}
       onPointerDownCapture={(event) => {
-        // 자유형 그리기 모드: 하위 요소 핸들러가 실행되지 않도록 이벤트를 캡처 단계에서 가로챈다.
-        // 이렇게 하면 다른 요소 위에서도 자유형 도형을 그릴 수 있다.
-        if (isFreeformDrawing && event.button === 0) {
-          event.stopPropagation();
-          lastPointerRef.current = getPointerPosition(event);
-          handleDrawingPointerDown(event);
-          return;
-        }
         // 하위 요소 핸들러가 선택/드래그 상태를 바꾸기 전에 포인터 좌표를 먼저 저장해
         // 스테이지 공통 동작이 동일한 기준 좌표를 사용하도록 한다.
         if (!readOnly) {
@@ -738,17 +714,6 @@ const DesignPaper = ({
         <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
       )}
       {elements.map((element) => renderElement(element))}
-      {/* 자유형 그리기 모드: 모든 기존 요소 위에 투명 오버레이를 덮어 hover/pointerEnter를 차단 */}
-      {isFreeformDrawing && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 4,
-            cursor: "crosshair",
-          }}
-        />
-      )}
       {/* 페이지 영역 바깥의 요소 부분을 반투명 화이트 오버레이로 덮어 경계 밖임을 시각적으로 표현한다. */}
       {!readOnly && (
         <div
@@ -778,77 +743,34 @@ const DesignPaper = ({
           />
         );
       })()}
-      {/* 자유형 그리기 라이브 프리뷰 */}
-      {freeformPreviewPoints && freeformPreviewPoints.length > 1 && (
-        <svg
-          className="absolute inset-0 pointer-events-none"
-          style={{ width: pageWidth, height: pageHeight, zIndex: 30 }}
-        >
-          <polyline
-            points={freeformPreviewPoints.map((p) => `${p.x},${p.y}`).join(" ")}
-            fill="none"
-            stroke="#7C3AED"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="6 3"
-          />
-          {/* 시작점 표시 */}
-          <circle
-            cx={freeformPreviewPoints[0].x}
-            cy={freeformPreviewPoints[0].y}
-            r={5}
-            fill="#7C3AED"
-            opacity={0.6}
-          />
-        </svg>
-      )}
-      {/* 자유형 도형 생성 직후 "매끈하게" 팝업 */}
-      {smoothPromptElement && (
-        <SmoothPromptPopup
-          element={smoothPromptElement}
-          onAccept={() => {
-            updateElement(smoothPromptElement.id, { smooth: true });
-            useDrawingModeStore.getState().setSmoothPromptElementId(null);
-          }}
-          onDismiss={() => {
-            useDrawingModeStore.getState().setSmoothPromptElementId(null);
-          }}
-        />
-      )}
       <SelectionRectOverlay selectionRect={selectionRect} />
-      {/* 자유형 그리기 모드에서는 선택/변형 오버레이를 숨겨 hover UI가 표시되지 않게 한다 */}
-      {!isFreeformDrawing && (
-        <>
-          <SingleShapeTransformOverlay
-            selectedIds={selectedIds}
-            elements={elements}
-            activePreview={activePreview}
-            isRotating={isRotating}
-            editingImageId={editingImageId}
-            editingShapeTextId={editingShapeTextId}
-            updateElement={updateElement}
-            startShapeRotation={startShapeRotation}
-            getBottomCenterAnchor={getBottomCenterAnchor}
-            getTopCenterAnchor={getTopCenterAnchor}
-          />
-          <GroupSelectionOverlay
-            isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
-            readOnly={readOnly}
-            selectedIds={selectedIds}
-            elements={elements}
-            showHandles
-            onResizeHandlePointerDown={handleGroupResizePointerDown}
-            onDragPointerDown={handleGroupOverlayDragPointerDown}
-            onContextMenu={(event) => {
-              const firstSelectedId = selectedIds[0];
-              if (firstSelectedId) {
-                openContextMenu(event, firstSelectedId);
-              }
-            }}
-          />
-        </>
-      )}
+      <SingleShapeTransformOverlay
+        selectedIds={selectedIds}
+        elements={elements}
+        activePreview={activePreview}
+        isRotating={isRotating}
+        editingImageId={editingImageId}
+        editingShapeTextId={editingShapeTextId}
+        updateElement={updateElement}
+        startShapeRotation={startShapeRotation}
+        getBottomCenterAnchor={getBottomCenterAnchor}
+        getTopCenterAnchor={getTopCenterAnchor}
+      />
+      <GroupSelectionOverlay
+        isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
+        readOnly={readOnly}
+        selectedIds={selectedIds}
+        elements={elements}
+        showHandles
+        onResizeHandlePointerDown={handleGroupResizePointerDown}
+        onDragPointerDown={handleGroupOverlayDragPointerDown}
+        onContextMenu={(event) => {
+          const firstSelectedId = selectedIds[0];
+          if (firstSelectedId) {
+            openContextMenu(event, firstSelectedId);
+          }
+        }}
+      />
       <DesignPaperContextMenu
         contextMenu={contextMenu}
         elements={elements}
@@ -866,9 +788,18 @@ const DesignPaper = ({
         onDelete={deleteSelectedElements}
         onMoveLayer={moveElement}
         onRemoveBackground={(id) => { void handleRemoveBackground(id); }}
+        onAiEdit={handleAiEdit}
         isRemovingBackground={isRemovingBackground}
         setContextMenu={setContextMenu}
       />
+      {aiEditTarget && (
+        <AiImageEditModal
+          isOpen={!!aiEditTarget}
+          onClose={() => setAiEditTarget(null)}
+          imageUrl={aiEditTarget.imageUrl}
+          onApply={handleAiEditApply}
+        />
+      )}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
         <SmartGuideOverlay guides={isDraggingWorksheet ? [] : smartGuides.guides} />
       </div>
