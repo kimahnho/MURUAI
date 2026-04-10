@@ -165,11 +165,11 @@ const uploadToCloudinary = async (
  * - store 구독은 selector 기반
  */
 // 탭 전환 시에도 프롬프트와 스타일 선택을 유지하기 위한 모듈 레벨 변수
-let _persistedStyle: ImageStyle = "photo";
+let _persistedStyle: ImageStyle | null = null;
 let _persistedPrompt = "";
 
 export const useAiImageGeneration = () => {
-  const [selectedStyle, setSelectedStyleState] = useState<ImageStyle>(_persistedStyle);
+  const [selectedStyle, setSelectedStyleState] = useState<ImageStyle | null>(_persistedStyle);
   const [prompt, setPromptState] = useState(_persistedPrompt);
 
   const setSelectedStyle = (style: ImageStyle) => { _persistedStyle = style; setSelectedStyleState(style); };
@@ -257,13 +257,13 @@ export const useAiImageGeneration = () => {
     fetchGeneratedImages();
   }, [fetchUsageStatus, fetchGeneratedImages]);
 
-  const buildFinalPrompt = () => buildPromptWithStyle(selectedStyle, prompt);
+  const buildFinalPrompt = () => buildPromptWithStyle(selectedStyle!, prompt);
 
   const canGenerate =
-    prompt.trim().length > 0 && !isGenerating && usageStatus.canGenerate;
+    prompt.trim().length > 0 && selectedStyle !== null && !isGenerating && usageStatus.canGenerate;
 
   const generate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim() || !selectedStyle || isGenerating) return;
 
     // 중복 클릭으로 중복 생성 요청이 발생하지 않게 즉시 잠근다.
     setIsGenerating(true);
