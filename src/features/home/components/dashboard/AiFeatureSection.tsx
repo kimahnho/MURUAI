@@ -7,7 +7,6 @@ import type { LucideIcon } from "lucide-react";
 
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 import {
-  MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
   hasPendingCreditRequest,
@@ -91,7 +90,7 @@ const AiFeatureSection = () => {
           <Zap className="h-4 w-4 text-black-40" />
           <span className={`text-title-20-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-60"}`}>
             {creditBalance !== null ? creditBalance : "--"}
-            <span className="text-black-40">/{MONTHLY_AI_CREDIT_LIMIT}</span>
+            <span className="text-14-regular text-black-40"> 회 남음</span>
           </span>
         </div>
       </div>
@@ -100,7 +99,7 @@ const AiFeatureSection = () => {
       {isQuotaExhausted && (
         <div className="flex items-center justify-between gap-3 rounded-xl bg-error-50 border border-error-100 px-4 py-3">
           <span className="text-13-regular text-error-700">
-            이번 달 이미지 크레딧을 모두 사용했어요.
+            크레딧을 모두 사용했어요.
           </span>
           <button
             type="button"

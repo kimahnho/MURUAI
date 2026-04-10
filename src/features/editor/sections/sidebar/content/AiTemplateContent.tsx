@@ -20,7 +20,6 @@ import {
 } from "@/features/editor/templates/templateRegistry";
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
 import {
-  MONTHLY_AI_CREDIT_LIMIT,
   fetchCreditBalance,
   requestMoreCredits,
   hasPendingCreditRequest,
@@ -120,7 +119,7 @@ const AiTemplateContent = () => {
   return (
     <>
       <div className="flex flex-col w-full gap-6">
-        {/* 월간 이미지 크레딧 표시 */}
+        {/* 크레딧 표시 */}
         <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
           isQuotaExhausted
             ? "bg-error-50 border-error-100"
@@ -130,14 +129,14 @@ const AiTemplateContent = () => {
         }`}>
           <div className="flex flex-col">
             <span className={`text-12-regular ${isQuotaExhausted ? "text-error-700" : isCreditLow ? "text-warning-700" : "text-black-60"}`}>
-              이번 달 남은 이미지 크레딧
+              남은 크레딧
             </span>
             <div className="flex items-baseline gap-1">
               <span className={`text-title-22-semibold ${isQuotaExhausted ? "text-error" : isCreditLow ? "text-warning" : "text-black-80"}`}>
                 {remainingCredits !== null ? remainingCredits : "--"}
               </span>
               <span className="text-14-regular text-black-50">
-                / {MONTHLY_AI_CREDIT_LIMIT}
+                회 남음
               </span>
             </div>
           </div>
@@ -148,7 +147,7 @@ const AiTemplateContent = () => {
         {isQuotaExhausted && (
           <div className="flex flex-col gap-2.5 rounded-lg bg-error-50 border border-error-100 px-3.5 py-2.5">
             <span className="text-13-regular text-error-700">
-              이번 달 이미지 크레딧을 모두 사용했어요.
+              크레딧을 모두 사용했어요.
             </span>
             <button
               type="button"

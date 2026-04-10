@@ -126,7 +126,7 @@ const DesignContentView = ({
       <span
         className={`text-12-medium ${usageStatus.remaining <= 5 ? "text-red-500" : "text-black-50"}`}
       >
-        {usageStatus.used}/{usageStatus.limit}회
+        크레딧 {usageStatus.remaining}회 남음
       </span>
     </div>
 

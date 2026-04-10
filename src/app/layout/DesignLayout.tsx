@@ -101,7 +101,7 @@ const DesignLayout = () => {
     handleOrientationChange,
   } = useOrientationControl();
 
-  // AI 크레딧 잔량 표시
+  // 크레딧 잔량 표시
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   useEffect(() => {
     fetchCreditBalance().then((b) => setCreditBalance(b));
@@ -624,7 +624,7 @@ const DesignLayout = () => {
 
           {!isFocusedMode && (
           <div className="flex h-full shrink-0 items-center gap-3 pr-3">
-            {/* AI 크레딧 잔량 */}
+            {/* 크레딧 잔량 */}
             {creditBalance !== null && (
               <CreditBadge balance={creditBalance} />
             )}
@@ -786,8 +786,8 @@ const CreditBadge = ({ balance }: { balance: number }) => {
           className="fixed z-[9999] w-56 rounded-xl border border-black-10 bg-white-100 px-4 py-3 shadow-xl pointer-events-none"
           style={{ left: pos.left, top: pos.top, transform: "translateX(-50%)" }}
         >
-          <p className="text-13-bold text-black-90">AI 크레딧</p>
-          <p className="text-12-regular text-black-60 mt-1">이미지 생성, 스토리북, 감정추론, AI 편집에 사용돼요.</p>
+          <p className="text-13-bold text-black-90">크레딧</p>
+          <p className="text-12-regular text-black-60 mt-1">이미지 생성, 스토리북, 감정추론, 이미지 편집에 사용돼요.</p>
           <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-black-10">
             <span className="text-12-regular text-black-50">남은 크레딧</span>
             <span className="text-13-bold ml-auto" style={{ color: "#D97706" }}>{balance}회</span>

@@ -202,7 +202,7 @@ const StorybookWizard = ({ onClose }: StorybookWizardProps) => {
           </div>
           {currentStep === 45 && remaining !== null && (
             <p className="text-12-regular text-black-40 text-center">
-              10크레딧 차감 (잔여 {remaining}크레딧)
+              10 크레딧 차감 · 잔여 {remaining}회
             </p>
           )}
         </div>

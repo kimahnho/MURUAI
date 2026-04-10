@@ -44,7 +44,7 @@ const CreditExhaustedModal = () => {
     <BaseModal
       isOpen={isOpen}
       onClose={close}
-      title="이미지 크레딧 부족"
+      title="크레딧 부족"
       size="sm"
     >
       <div className="flex flex-col items-center gap-5 py-2 text-center">
