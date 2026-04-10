@@ -7,6 +7,7 @@ import type {
   AacCardElement,
   CanvasElement,
   EmotionCardElement,
+  FreeformElement,
   LineElement,
   ShapeElement,
   TableElement,
@@ -35,6 +36,7 @@ import TextBox from "../elements/text/TextBox";
 import TableBox from "../elements/table/TableBox";
 import AacCardBox from "../elements/aac_card/AacCardBox";
 import EmotionCardBox from "../elements/emotion_card/EmotionCardBox";
+import FreeformBox from "../elements/freeform/FreeformBox";
 import { buildTextToolbarConfig } from "../utils/textToolbarConfig";
 import { useTableStore } from "../../../store/tableStore";
 import { useImageUploadToCloudinary } from "../../../sections/sidebar/hooks/useImageUploadToCloudinary";
@@ -770,6 +772,26 @@ export const useDesignPaperElementRenderer = ({
     );
   };
 
+  const renderFreeformElement = (element: FreeformElement) => {
+    const isSelected = selectedIds.includes(element.id);
+    const locked = readOnly || element.locked === true;
+    const rect = getRenderableRect(element);
+    if (!rect) return null;
+    return (
+      <FreeformBox
+        key={element.id}
+        element={element}
+        rect={rect}
+        isSelected={isSelected}
+        locked={locked}
+        onRectChange={handleRectChange}
+        onDragStateChange={handleDragStateChange}
+        onSelectChange={handleSelectChange}
+        onContextMenu={(e) => openContextMenu(e as ReactMouseEvent<HTMLElement>, element.id)}
+      />
+    );
+  };
+
   const renderElement = (element: CanvasElement) => {
     if (element.visible === false) return null;
     switch (element.type) {
@@ -790,6 +812,8 @@ export const useDesignPaperElementRenderer = ({
         return renderAacCardElement(element);
       case "emotionCard":
         return renderEmotionCardElement(element);
+      case "freeform":
+        return renderFreeformElement(element);
       default:
         return null;
     }

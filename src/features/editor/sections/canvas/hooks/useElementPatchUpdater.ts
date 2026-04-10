@@ -115,7 +115,7 @@ export const useElementPatchUpdater = ({
     }
 
     if (
-      (element.type === "line" || element.type === "arrow") &&
+      (element.type === "line" || element.type === "arrow" || element.type === "freeform") &&
       "stroke" in patch
     ) {
       // 선 계열 stroke도 기본값을 유지한 채 부분 업데이트해 스타일 토글 시 필드 손실을 막는다.
@@ -131,7 +131,7 @@ export const useElementPatchUpdater = ({
         ...element,
         ...patch,
         stroke: nextStroke,
-      };
+      } as CanvasElement;
     }
 
     return { ...element, ...patch } as CanvasElement;

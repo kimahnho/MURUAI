@@ -51,6 +51,7 @@ import { useDesignPaperRotation } from "./hooks/useDesignPaperRotation";
 import { useDesignPaperSelectionContextMenu } from "./hooks/useDesignPaperSelectionContextMenu";
 import { useGroupOverlayDrag } from "./hooks/useGroupOverlayDrag";
 import { useDesignPaperElementRenderer } from "./hooks/useDesignPaperElementRenderer";
+import { useFreeformDrawing } from "./hooks/useFreeformDrawing";
 import { useSnapTransformRect } from "./hooks/useSnapTransformRect";
 import { useElementPatchUpdater } from "./hooks/useElementPatchUpdater";
 import { usePaperRects } from "./hooks/usePaperRects";
@@ -470,6 +471,15 @@ const DesignPaper = ({
     mmToPx,
   });
 
+  // 자유형 그리기 모드
+  const { isDrawing: isFreeformDrawing, previewPoints: freeformPreviewPoints, handleDrawingPointerDown } = useFreeformDrawing({
+    elements,
+    readOnly,
+    onElementsChange,
+    onSelectedIdsChange,
+    getPointerPosition,
+  });
+
   // 테이블 셀 기준 행/열 삽입·삭제 핸들러 — 클로저에서 snapshot을 캡처해 클릭 시점의 stale 방지
   const buildTableContext = (): TableContextMenuActions | undefined => {
     const { selectedTable, selectedCells, updateTable, setSelectedCells } =
@@ -542,7 +552,7 @@ const DesignPaper = ({
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
-      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle }}
+      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle, cursor: isFreeformDrawing ? "crosshair" : undefined }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => {
@@ -552,6 +562,9 @@ const DesignPaper = ({
         handleDeleteSelectionKeyDown(event);
       }}
       onPointerDown={(event) => {
+        // 자유형 그리기 모드: 포인터 이벤트를 경로 수집으로 전환
+        if (isFreeformDrawing && handleDrawingPointerDown(event)) return;
+
         // 내부 텍스트 편집 노드가 활성화된 상태가 아닐 때는 컨테이너 포커스를 유지해
         // 키보드 단축키가 끊기지 않도록 한다.
         if (!readOnly) {
@@ -691,6 +704,31 @@ const DesignPaper = ({
           />
         );
       })()}
+      {/* 자유형 그리기 라이브 프리뷰 */}
+      {freeformPreviewPoints && freeformPreviewPoints.length > 1 && (
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: pageWidth, height: pageHeight, zIndex: 30 }}
+        >
+          <polyline
+            points={freeformPreviewPoints.map((p) => `${p.x},${p.y}`).join(" ")}
+            fill="none"
+            stroke="#7C3AED"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="6 3"
+          />
+          {/* 시작점 표시 */}
+          <circle
+            cx={freeformPreviewPoints[0].x}
+            cy={freeformPreviewPoints[0].y}
+            r={5}
+            fill="#7C3AED"
+            opacity={0.6}
+          />
+        </svg>
+      )}
       <SelectionRectOverlay selectionRect={selectionRect} />
       <SingleShapeTransformOverlay
         selectedIds={selectedIds}

@@ -178,7 +178,8 @@ export const useDesignPaperInteraction = ({
           targetElement.type === "mosaic" ||
           targetElement.type === "circleMosaic" ||
           targetElement.type === "aacCard" ||
-          targetElement.type === "emotionCard")
+          targetElement.type === "emotionCard" ||
+          targetElement.type === "freeform")
       ) {
         const isSameShapeRect =
           Math.abs(nextRect.x - targetElement.x) <= RECT_TOLERANCE &&
@@ -193,8 +194,8 @@ export const useDesignPaperInteraction = ({
         w: nextRect.width,
         h: nextRect.height,
       };
-      // 표/텍스트처럼 x/y로 직접 위치를 관리하는 요소는 좌표도 함께 업데이트한다.
-      if (targetElement?.type === "text" || targetElement?.type === "table") {
+      // 표/텍스트/자유형처럼 x/y로 직접 위치를 관리하는 요소는 좌표도 함께 업데이트한다.
+      if (targetElement?.type === "text" || targetElement?.type === "table" || targetElement?.type === "freeform") {
         updates.x = nextRect.x;
         updates.y = nextRect.y;
       }

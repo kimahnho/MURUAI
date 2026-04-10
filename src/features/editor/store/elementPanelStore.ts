@@ -6,6 +6,7 @@ import { create } from "zustand";
 import type {
   AacCardElement,
   EmotionCardElement,
+  FreeformElement,
   LineElement,
   ShapeElement,
   TextElement,
@@ -94,6 +95,16 @@ export type EmotionCardPanelData = {
   hasImage: boolean;
 };
 
+export type FreeformPanelData = {
+  type: "freeform";
+  element: FreeformElement;
+  rect: { x: number; y: number; width: number; height: number };
+  closed: boolean;
+  strokeColor: string;
+  strokeWidth: number;
+  fillColor: string;
+};
+
 export type MultiPanelData = {
   type: "multi";
 };
@@ -105,6 +116,7 @@ export type PanelData =
   | AacPanelData
   | AacCardV2PanelData
   | EmotionCardPanelData
+  | FreeformPanelData
   | MultiPanelData
   | null;
 

@@ -4,6 +4,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { useTableStore } from "../../../store/tableStore";
+import { useDrawingModeStore } from "../../../store/drawingModeStore";
 import {
   getRectFromElement,
   isEditableTarget,
@@ -150,6 +151,11 @@ export const useDesignPaperKeyboard = ({
       }
 
       if (event.key === "Escape") {
+        // 자유형 그리기 모드 취소
+        if (useDrawingModeStore.getState().isDrawing) {
+          useDrawingModeStore.getState().setIsDrawing(false);
+          return;
+        }
         selectedIdsRef.current = [];
         onSelectedIdsChange?.([]);
         onEditingTextIdChange?.(null);

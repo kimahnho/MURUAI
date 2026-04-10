@@ -10,11 +10,13 @@ import {
   Minus,
   RectangleHorizontal,
   SmilePlus,
+  Spline,
   Square,
   SquareUser,
   Table2,
 } from "lucide-react";
 import { useElementStore } from "@/features/editor/store/elementStore";
+import { useDrawingModeStore } from "@/features/editor/store/drawingModeStore";
 import type { ElementType } from "@/features/editor/model/canvasTypes";
 
 type ShapeItem = {
@@ -39,12 +41,19 @@ const SyllableBoxIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-type ShapeItemWithCustom = ShapeItem | {
+type ShapeItemWithAction = {
   id: number;
   name: string;
-  customIcon: React.FC<{ className?: string }>;
   action: "syllableBox";
+  customIcon: React.FC<{ className?: string }>;
+} | {
+  id: number;
+  name: string;
+  action: "freeform";
+  icon: typeof Square;
 };
+
+type ShapeItemWithCustom = ShapeItem | ShapeItemWithAction;
 
 const SHAPES: (ShapeItem | ShapeItemWithCustom)[] = [
   { id: 1, name: "사각형", icon: Square, type: "rect" },
@@ -57,6 +66,7 @@ const SHAPES: (ShapeItem | ShapeItemWithCustom)[] = [
   { id: 8, name: "AAC 카드", icon: SquareUser, type: "aacCard" },
   { id: 9, name: "감정카드", icon: SmilePlus, type: "emotionCard" },
   { id: 10, name: "음절상자", customIcon: SyllableBoxIcon, action: "syllableBox" },
+  { id: 11, name: "자유형", icon: Spline, action: "freeform" },
 ];
 
 const MIN_TABLE_SIZE = 1;
@@ -99,10 +109,12 @@ const ElementContent = () => {
         </div>
         <div className="grid grid-cols-3 gap-2">
           {SHAPES.map((shape) => {
-            const isSyllableBox = "action" in shape && shape.action === "syllableBox";
+            const isAction = "action" in shape;
             const handleClick = () => {
-              if (isSyllableBox) {
+              if (isAction && shape.action === "syllableBox") {
                 requestSyllableBox();
+              } else if (isAction && shape.action === "freeform") {
+                useDrawingModeStore.getState().setIsDrawing(true);
               } else if ("type" in shape) {
                 onSelectShape(shape.type);
               }
