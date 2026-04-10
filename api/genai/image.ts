@@ -43,17 +43,29 @@ export default async function handler(
       .json({ error: `Model not allowed. Use: ${ALLOWED_MODELS.join(", ")}` });
   }
 
-  try {
-    const ai = getServerGenAI();
-    const response = await ai.models.generateContent({
-      model,
-      contents,
-      config: genConfig,
-    });
-    return res.status(200).json(response);
-  } catch (err) {
-    console.error("[/api/genai/image] Gemini API error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(502).json({ error: `Gemini API error: ${message}` });
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 2000;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const ai = getServerGenAI();
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: genConfig,
+      });
+      return res.status(200).json(response);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const isRetryable = message.includes("503") || message.includes("429") || message.includes("UNAVAILABLE") || message.includes("overloaded");
+      console.error(`[/api/genai/image] attempt ${attempt + 1}/${MAX_RETRIES}:`, message);
+
+      if (isRetryable && attempt < MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+
+      return res.status(502).json({ error: `Gemini API error: ${message}` });
+    }
   }
 }

@@ -34,8 +34,8 @@ const resizeIfNeeded = (base64: string, maxDim: number): Promise<string> =>
     img.src = `data:image/png;base64,${base64}`;
   });
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 2000;
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 3000;
 
 /** Cloudinary에 WebP 이미지를 업로드하고 URL을 반환한다. */
 const uploadToCloudinary = async (base64Data: string, userId: string): Promise<string> => {
@@ -78,7 +78,7 @@ export const editImageWithAi = async (
   if (!authData.user) throw new Error("로그인이 필요합니다.");
 
   const ai = getGenAI();
-  const resizedBase64 = await resizeIfNeeded(imageBase64, 2048);
+  const resizedBase64 = await resizeIfNeeded(imageBase64, 1024);
   const { data: compressedImage } = await convertToWebP(resizedBase64);
 
   // 시스템 지시와 유저 프롬프트를 별도 파트로 분리 — 프롬프트 인젝션 방지
