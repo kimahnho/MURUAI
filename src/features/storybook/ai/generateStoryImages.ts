@@ -133,6 +133,12 @@ const buildMultiRefContents = (
   // 절대 규칙 (최상단)
   textLines.push("NO TEXT in the image. No letters, words, numbers, signs, labels, captions.");
   textLines.push("");
+  textLines.push("KOREAN CULTURAL RULES:");
+  textLines.push("- Shoes ALWAYS removed indoors. Socks or slippers inside homes/classrooms.");
+  textLines.push("- Korean homes: warm ondol floor, low table, cushions. Beds in bedrooms only.");
+  textLines.push("- Korean kindergarten: indoor shoes (실내화) at entrance shoe cabinet.");
+  textLines.push("- Korean meals: rice, soup, side dishes. Chopsticks and spoon.");
+  textLines.push("");
 
   // 캐릭터 정의 — 태그 + 위치 + 1회만
   textLines.push("CHARACTERS (each appears EXACTLY ONCE):");
@@ -234,7 +240,7 @@ const generateSingleImage = async (
  * Phase 2: 전부 성공 후 일괄 Cloudinary 업로드
  */
 export const generateStoryImages = async (
-  pages: Array<{ sceneDescription: string; sceneGroup: number }>,
+  pages: Array<{ sceneDescription: string; sceneGroup: number; text: string }>,
   artStyleId: ArtStyleId,
   layout: PageLayout,
   referenceImageBase64?: string,
@@ -295,7 +301,8 @@ export const generateStoryImages = async (
 
   for (let i = 0; i < pages.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
-    const imagePrompt = `${scene}, ${stylePostfix}`;
+    const storyText = pages[i].text;
+    const imagePrompt = `Story text: "${storyText}"\n\nScene: ${scene}, ${stylePostfix}`;
     const group = pages[i].sceneGroup;
     const pageNum = i + 1;
 

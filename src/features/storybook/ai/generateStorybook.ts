@@ -54,11 +54,13 @@ ${topicSection}
 [페이지별 초안]
 ${pagesBlock}
 
-═══ 핵심 원칙: 유저가 수정한 텍스트는 그대로 유지 ═══
-- 유저가 직접 작성하거나 수정한 textContent는 **절대 변경하지 마세요**. 맞춤법 오류가 있어도 그대로 둡니다.
-- sceneDescription만 보강하세요. textContent는 원본 그대로 복사합니다.
-- 기획서의 줄거리와 주제를 변경하지 마세요.
-- 새 등장인물이나 서브플롯을 추가하지 마세요.
+═══ 핵심 원칙 ═══
+1. **textContent는 절대 변경하지 마세요.** 맞춤법 오류가 있어도 원본 그대로 복사합니다.
+2. **sceneDescription은 반드시 textContent의 내용을 시각적으로 반영해야 합니다.**
+   - textContent가 "바다에서 수영한다"이면 sceneDescription에 반드시 바다와 수영 장면이 있어야 합니다.
+   - textContent와 sceneDescription이 모순되면 안 됩니다.
+3. 기획서의 줄거리와 주제를 변경하지 마세요.
+4. 새 등장인물이나 서브플롯을 추가하지 마세요.
 
 ═══ 텍스트(text) 다듬기 ═══
 

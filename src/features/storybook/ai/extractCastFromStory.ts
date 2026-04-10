@@ -14,7 +14,7 @@ const buildCastingPrompt = (
   protagonistName: string,
 ): string => {
   const scenesBlock = pages
-    .map((p) => `${p.pageNumber}. ${p.sceneDescription}`)
+    .map((p) => `${p.pageNumber}. [장면] ${p.sceneDescription} [텍스트] ${p.textContent}`)
     .join("\n");
 
   return `You are a casting director for a children's picture book.
