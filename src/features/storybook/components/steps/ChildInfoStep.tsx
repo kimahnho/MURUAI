@@ -31,6 +31,7 @@ const ChildInfoStep = () => {
     const num = parseInt(ageInput, 10);
     if (isNaN(num) || num < 1) {
       setAgeInput("");
+      setChildInfo({ id: childInfo?.id ?? crypto.randomUUID(), age: 0 });
       return;
     }
     const clamped = Math.min(19, Math.max(1, num));
