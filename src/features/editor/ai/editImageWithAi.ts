@@ -11,27 +11,28 @@ import { captureSentryError } from "@/shared/utils/sentryUtils";
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
-/** 큰 이미지를 maxDim 이하로 리사이즈. PNG 품질 유지. 작으면 원본 반환. */
-const resizeIfNeeded = (base64: string, maxDim: number): Promise<string> =>
+/** 이미지를 maxDim 이하로 리사이즈 + WebP 무손실 통일. 작아도 WebP로 변환. */
+const toWebpLossless = (base64: string, maxDim: number): Promise<string> =>
   new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      if (img.width <= maxDim && img.height <= maxDim) { resolve(base64); return; }
-      const scale = Math.min(maxDim / img.width, maxDim / img.height);
+      const needsResize = img.width > maxDim || img.height > maxDim;
+      const scale = needsResize ? Math.min(maxDim / img.width, maxDim / img.height) : 1;
       const canvas = document.createElement("canvas");
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext("2d");
       if (!ctx) { resolve(base64); return; }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      // PNG로 출력 — Gemini 입력 품질 유지 (WebP 변환은 결과 업로드 시에만)
-      resolve(canvas.toDataURL("image/png").split(",")[1]);
+      // WebP quality 1.0 = 무손실. 원본 포맷(JPEG/PNG 등)을 WebP로 통일.
+      resolve(canvas.toDataURL("image/webp", 1.0).split(",")[1]);
     };
     img.onerror = () => {
-      console.warn("resizeIfNeeded: 이미지 로드 실패, 원본 사용");
+      console.warn("toWebpLossless: 이미지 로드 실패, 원본 사용");
       resolve(base64);
     };
-    img.src = `data:image/png;base64,${base64}`;
+    // data URL prefix가 없을 수 있으므로 범용 처리
+    img.src = base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
   });
 
 const MAX_RETRIES = 5;
@@ -78,13 +79,13 @@ export const editImageWithAi = async (
   if (!authData.user) throw new Error("로그인이 필요합니다.");
 
   const ai = getGenAI();
-  // Gemini 입력은 PNG 고품질 유지 — WebP 변환은 결과 업로드 시에만
-  const inputBase64 = await resizeIfNeeded(imageBase64, 2048);
+  // Gemini 입력은 WebP 무손실(quality 1.0) — 품질 유지 + 용량 절감
+  const inputBase64 = await toWebpLossless(imageBase64, 2048);
 
   // 시스템 지시와 유저 프롬프트를 별도 파트로 분리 — 프롬프트 인젝션 방지
   const systemPart = hasSelection
-    ? "Generate an image: The user has marked a specific area in this image with a semi-transparent RED overlay. Edit ONLY the red area according to the user's request below. Keep everything outside the red area exactly the same. Remove the red overlay from the result. Blend naturally. Do NOT add text unless asked."
-    : "Generate an image: Edit this image according to the user's request below. Maintain the original style and quality. Do NOT add text unless asked.";
+    ? "Generate an image: The user has drawn a thin red border/outline on this image to indicate which area to edit. Apply the user's edit request ONLY to the area INSIDE the red border. IMPORTANT: Keep everything outside the red border PIXEL-PERFECT identical to the original. Remove the red border line completely from the output. The red line is just a selection boundary, NOT part of the image. Match the original art style, lighting, and quality exactly. Do NOT add any text unless specifically asked."
+    : "Generate an image: Edit this image according to the user's request below. Maintain the original art style, lighting, resolution, and quality exactly. Do NOT add any text unless specifically asked.";
 
   const userPart = prompt;
 
@@ -96,7 +97,7 @@ export const editImageWithAi = async (
         model: "gemini-2.5-flash-image",
         contents: [
           { text: systemPart },
-          { inlineData: { mimeType: "image/png" as const, data: inputBase64 } },
+          { inlineData: { mimeType: "image/webp" as const, data: inputBase64 } },
           { text: `User request: ${userPart}` },
         ],
         config: {

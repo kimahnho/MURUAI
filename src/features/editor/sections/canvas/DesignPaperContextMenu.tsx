@@ -339,7 +339,7 @@ export const DesignPaperContextMenu = ({
             </span>
           </button>
         )}
-        {isElementMenu && hasImageFill && onAiEdit && elementId && !targetElement?.locked && (
+        {isElementMenu && hasImageFill && onAiEdit && elementId && !targetElement?.locked && !("transform" in targetElement && (targetElement as { transform?: { rotation?: number } }).transform?.rotation) && (
           <button
             type="button"
             onClick={() => { onAiEdit(elementId); setContextMenu(null); }}

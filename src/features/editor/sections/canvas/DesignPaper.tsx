@@ -19,7 +19,7 @@ import {
   type ContextMenuState,
   type TableContextMenuActions,
 } from "./DesignPaperContextMenu";
-import AiImageEditModal from "./AiImageEditModal";
+import AiEditOverlay from "./AiEditOverlay";
 import { extractImageSrc, removeImageBackground } from "../../utils/removeBackground";
 import { useToastStore } from "../../store/toastStore";
 import { useTableStore } from "../../store/tableStore";
@@ -601,6 +601,12 @@ const DesignPaper = ({
         setIsFocused(false);
       }}
       onKeyDown={(event) => {
+        // AI 편집 모드에서 ESC로 종료
+        if (aiEditTarget && event.key === "Escape") {
+          setAiEditTarget(null);
+          event.preventDefault();
+          return;
+        }
         handleDeleteSelectionKeyDown(event);
       }}
       onPointerDown={(event) => {
@@ -792,12 +798,32 @@ const DesignPaper = ({
         isRemovingBackground={isRemovingBackground}
         setContextMenu={setContextMenu}
       />
+      {/* AI 편집 모드: 딤 오버레이(z-10) + 대상 요소 z-20으로 강조 */}
+      {aiEditTarget && (() => {
+        const el = elements.find((e) => e.id === aiEditTarget.elementId);
+        if (!el) return null;
+        return (
+          <div
+            className="absolute pointer-events-none z-10"
+            style={{
+              left: aiEditTarget.rect.x,
+              top: aiEditTarget.rect.y,
+              width: aiEditTarget.rect.w,
+              height: aiEditTarget.rect.h,
+              borderRadius: el.type === "ellipse" ? "50%" : ((el as { radius?: number }).radius ?? 0),
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)",
+            }}
+          />
+        );
+      })()}
       {aiEditTarget && (
-        <AiImageEditModal
-          isOpen={!!aiEditTarget}
-          onClose={() => setAiEditTarget(null)}
+        <AiEditOverlay
+          elementId={aiEditTarget.elementId}
           imageUrl={aiEditTarget.imageUrl}
-          onApply={handleAiEditApply}
+          elementRect={aiEditTarget.rect}
+          paperRef={containerRef}
+          onInsertResult={handleAiEditApply}
+          onClose={() => setAiEditTarget(null)}
         />
       )}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
