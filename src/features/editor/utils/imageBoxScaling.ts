@@ -31,9 +31,13 @@ export const computeScaledImageBox = (
     newBoxH = newWidth / imageAspectRatio;
   }
 
+  // 크롭 오프셋 비율 유지 — 크롭한 위치가 리사이즈 후에도 고정
+  const scaleW = newBoxW / oldImageBox.w;
+  const scaleH = newBoxH / oldImageBox.h;
+
   return {
-    x: (newWidth - newBoxW) / 2,
-    y: (newHeight - newBoxH) / 2,
+    x: oldImageBox.x * scaleW,
+    y: oldImageBox.y * scaleH,
     w: newBoxW,
     h: newBoxH,
   };
