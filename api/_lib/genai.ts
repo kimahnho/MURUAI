@@ -4,8 +4,7 @@
  */
 import { GoogleGenAI } from "@google/genai";
 
-const GOOGLE_API_KEY =
-  process.env.GOOGLE_API_KEY ?? process.env.VITE_GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 let instance: GoogleGenAI | null = null;
 
