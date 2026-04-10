@@ -94,43 +94,7 @@ const FreeformBox = ({
       onPointerDown={handlePointerDown}
       onContextMenu={onContextMenu}
     >
-      {/* 선택 아웃라인 */}
-      {showOutline && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            border: `2px solid ${SELECTION_COLOR}`,
-            pointerEvents: "none",
-            boxSizing: "border-box",
-            zIndex: 2,
-          }}
-        />
-      )}
-
-      {/* 리사이즈 핸들 (8개 도트) */}
-      {showResizeHandles && (
-        <ResizeHandles
-          selectionColor={SELECTION_COLOR}
-          onPointerDown={handleResizePointerDown}
-        />
-      )}
-
-      {/* 닫힌 도형 border overlay */}
-      {borderStyle && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            border: borderStyle,
-            pointerEvents: "none",
-            boxSizing: "border-box",
-            zIndex: 1,
-          }}
-        />
-      )}
-
-      {/* SVG 경로 */}
+      {/* SVG 경로 — 핸들보다 먼저 렌더링하여 핸들이 DOM 순서상 위에 오게 한다 */}
       <svg
         viewBox="0 0 1 1"
         preserveAspectRatio="none"
@@ -158,6 +122,42 @@ const FreeformBox = ({
           pointerEvents="none"
         />
       </svg>
+
+      {/* 닫힌 도형 border overlay */}
+      {borderStyle && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            border: borderStyle,
+            pointerEvents: "none",
+            boxSizing: "border-box",
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* 선택 아웃라인 */}
+      {showOutline && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            border: `2px solid ${SELECTION_COLOR}`,
+            pointerEvents: "none",
+            boxSizing: "border-box",
+            zIndex: 2,
+          }}
+        />
+      )}
+
+      {/* 리사이즈 핸들 (8개 도트) — SVG보다 뒤에 렌더링하여 포인터 이벤트 우선 수신 */}
+      {showResizeHandles && (
+        <ResizeHandles
+          selectionColor={SELECTION_COLOR}
+          onPointerDown={handleResizePointerDown}
+        />
+      )}
     </div>
   );
 };
