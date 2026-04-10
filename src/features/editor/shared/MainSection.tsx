@@ -488,6 +488,13 @@ const MainSection = () => {
     shapeToolbarData,
     aacToolbarData,
     applyAacLabelPosition,
+    canAlign,
+    alignLeft,
+    alignCenterH,
+    alignRight,
+    alignTop,
+    alignCenterV,
+    alignBottom,
     canDistribute,
     distributeHorizontal,
     distributeVertical,
@@ -728,14 +735,32 @@ const MainSection = () => {
         borderStyleOptions,
         clampBorderWidth,
         applyMultiBorderPatch,
+      });
+    } else {
+      setMultiCallbacks(null);
+    }
+  }, [isMultiColorSelection, multiColorValue, handleMultiColorChange, hasMultiFontTargets, handleOpenFontPanel, multiFontFamily, multiFontLabel, multiFontSizeInput, hasMultiBorderTargets, multiBorderEnabled, multiBorderColor, multiBorderWidth, activeBorderStyle, borderStyleOptions, clampBorderWidth, applyMultiBorderPatch, setMultiCallbacks]);
+
+  // alignmentCallbacks 동기화: 패널 타입과 무관하게 2개+ 선택 시 정렬/분배 콜백 제공
+  const setAlignmentCallbacks = useElementPanelStore((s) => s.setAlignmentCallbacks);
+  useEffect(() => {
+    if (selectedIds.length >= 2) {
+      setAlignmentCallbacks({
+        canAlign,
+        onAlignLeft: alignLeft,
+        onAlignCenterH: alignCenterH,
+        onAlignRight: alignRight,
+        onAlignTop: alignTop,
+        onAlignCenterV: alignCenterV,
+        onAlignBottom: alignBottom,
         canDistribute,
         onDistributeHorizontal: distributeHorizontal,
         onDistributeVertical: distributeVertical,
       });
     } else {
-      setMultiCallbacks(null);
+      setAlignmentCallbacks(null);
     }
-  }, [isMultiColorSelection, multiColorValue, handleMultiColorChange, hasMultiFontTargets, handleOpenFontPanel, multiFontFamily, multiFontLabel, multiFontSizeInput, hasMultiBorderTargets, multiBorderEnabled, multiBorderColor, multiBorderWidth, activeBorderStyle, borderStyleOptions, clampBorderWidth, applyMultiBorderPatch, canDistribute, distributeHorizontal, distributeVertical, setMultiCallbacks]);
+  }, [selectedIds.length, canAlign, alignLeft, alignCenterH, alignRight, alignTop, alignCenterV, alignBottom, canDistribute, distributeHorizontal, distributeVertical, setAlignmentCallbacks]);
 
   // moveLayer 콜백 등록
   useEffect(() => {

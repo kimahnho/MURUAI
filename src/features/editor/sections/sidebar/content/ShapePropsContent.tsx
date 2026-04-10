@@ -11,6 +11,7 @@ import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
 import LayerPanel from "./LayerPanel";
+import AlignmentSection from "./AlignmentSection";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -270,6 +271,9 @@ const ShapePropsContent = () => {
           hasMatchingColors={hasMatchingColors}
         />
       )}
+
+      {/* 정렬/분배 — 다중 선택 시 표시 */}
+      {data.isMultiShape && <AlignmentSection />}
 
       {/* 레이어 — 다중 선택 시 숨김 */}
       {moveLayer && !data.isMultiShape && <LayerPanel onMoveLayer={(dir) => moveLayer(element.id, dir)} />}

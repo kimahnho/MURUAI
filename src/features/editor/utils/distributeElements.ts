@@ -94,4 +94,96 @@ export const buildVerticalDistribution = (
   return positionMap;
 };
 
+// --- 정렬 (Alignment) ---
+
+export const buildAlignLeft = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const minX = Math.min(...rects.map((r) => r.rect.x));
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, minX);
+  }
+  return positionMap;
+};
+
+export const buildAlignCenterH = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const minX = Math.min(...rects.map((r) => r.rect.x));
+  const maxRight = Math.max(...rects.map((r) => r.rect.x + r.rect.width));
+  const centerX = (minX + maxRight) / 2;
+
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, centerX - item.rect.width / 2);
+  }
+  return positionMap;
+};
+
+export const buildAlignRight = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const maxRight = Math.max(...rects.map((r) => r.rect.x + r.rect.width));
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, maxRight - item.rect.width);
+  }
+  return positionMap;
+};
+
+export const buildAlignTop = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const minY = Math.min(...rects.map((r) => r.rect.y));
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, minY);
+  }
+  return positionMap;
+};
+
+export const buildAlignCenterV = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const minY = Math.min(...rects.map((r) => r.rect.y));
+  const maxBottom = Math.max(...rects.map((r) => r.rect.y + r.rect.height));
+  const centerY = (minY + maxBottom) / 2;
+
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, centerY - item.rect.height / 2);
+  }
+  return positionMap;
+};
+
+export const buildAlignBottom = (
+  elements: CanvasElement[],
+): Map<string, number> | null => {
+  const rects = toElementRects(elements);
+  if (rects.length < 2) return null;
+
+  const maxBottom = Math.max(...rects.map((r) => r.rect.y + r.rect.height));
+  const positionMap = new Map<string, number>();
+  for (const item of rects) {
+    positionMap.set(item.id, maxBottom - item.rect.height);
+  }
+  return positionMap;
+};
+
 export { applyPositionToElement };

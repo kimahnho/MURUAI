@@ -84,9 +84,6 @@ export type MultiCallbacks = {
   borderStyleOptions: Array<"solid" | "dashed" | "dotted" | "double" | "none">;
   clampBorderWidth: (value: number) => number;
   applyMultiBorderPatch: (patch: Partial<{ enabled: boolean; color: string; width: number; style: "solid" | "dashed" | "dotted" | "double" }>) => void;
-  canDistribute: boolean;
-  onDistributeHorizontal: () => void;
-  onDistributeVertical: () => void;
 };
 
 export type EmotionCardPanelData = {
@@ -177,6 +174,20 @@ export type TextEditingCallbacks = {
   alignY: "top" | "middle" | "bottom";
 };
 
+// 정렬/분배 콜백: 다중 선택 시 패널 타입(shape/multi 등)과 무관하게 사용 가능
+export type AlignmentCallbacks = {
+  canAlign: boolean;
+  onAlignLeft: () => void;
+  onAlignCenterH: () => void;
+  onAlignRight: () => void;
+  onAlignTop: () => void;
+  onAlignCenterV: () => void;
+  onAlignBottom: () => void;
+  canDistribute: boolean;
+  onDistributeHorizontal: () => void;
+  onDistributeVertical: () => void;
+};
+
 // --- Store interface ---
 
 interface ElementPanelStore {
@@ -191,6 +202,7 @@ interface ElementPanelStore {
   textEditingCallbacks: TextEditingCallbacks | null;
   textEditingRevision: number;
   multiCallbacks: MultiCallbacks | null;
+  alignmentCallbacks: AlignmentCallbacks | null;
 
   setPanelData: (
     data: PanelData,
@@ -205,6 +217,7 @@ interface ElementPanelStore {
   setTextEditingCallbacks: (callbacks: TextEditingCallbacks | null) => void;
   bumpTextEditingRevision: () => void;
   setMultiCallbacks: (callbacks: MultiCallbacks | null) => void;
+  setAlignmentCallbacks: (callbacks: AlignmentCallbacks | null) => void;
 }
 
 export const useElementPanelStore = create<ElementPanelStore>((set) => ({
@@ -219,6 +232,7 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   textEditingCallbacks: null,
   textEditingRevision: 0,
   multiCallbacks: null,
+  alignmentCallbacks: null,
 
   setPanelData: (data, update, updateLines) => {
     set({ panelData: data, updateElement: update, updateLines: updateLines ?? null });
@@ -246,5 +260,8 @@ export const useElementPanelStore = create<ElementPanelStore>((set) => ({
   },
   setMultiCallbacks: (callbacks) => {
     set({ multiCallbacks: callbacks });
+  },
+  setAlignmentCallbacks: (callbacks) => {
+    set({ alignmentCallbacks: callbacks });
   },
 }));

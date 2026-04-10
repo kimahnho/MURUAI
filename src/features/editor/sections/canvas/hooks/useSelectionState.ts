@@ -17,6 +17,12 @@ import { useAacSelectionState } from "./useAacSelectionState";
 import {
   buildHorizontalDistribution,
   buildVerticalDistribution,
+  buildAlignLeft,
+  buildAlignCenterH,
+  buildAlignRight,
+  buildAlignTop,
+  buildAlignCenterV,
+  buildAlignBottom,
   applyPositionToElement,
 } from "../../../utils/distributeElements";
 import { updateElementsByPageId } from "../../../utils/pageMutation";
@@ -303,7 +309,32 @@ export const useSelectionState = ({
     setPages,
   });
 
+  const canAlign = selectedElements.length >= 2;
   const canDistribute = selectedElements.length >= 3;
+
+  const applyAlignment = (
+    builder: (elements: CanvasElement[]) => Map<string, number> | null,
+    axis: "x" | "y",
+    direction: string,
+  ) => {
+    if (!activePage || selectedElements.length < 2) return;
+    const positionMap = builder(selectedElements);
+    if (!positionMap) return;
+
+    setPages((prevPages) =>
+      updateElementsByPageId(prevPages, selectedPageId, (elements) =>
+        elements.map((el) => applyPositionToElement(el, axis, positionMap)),
+      ),
+    );
+    mp.track("요소 정렬", { direction });
+  };
+
+  const alignLeft = () => applyAlignment(buildAlignLeft, "x", "left");
+  const alignCenterH = () => applyAlignment(buildAlignCenterH, "x", "center-h");
+  const alignRight = () => applyAlignment(buildAlignRight, "x", "right");
+  const alignTop = () => applyAlignment(buildAlignTop, "y", "top");
+  const alignCenterV = () => applyAlignment(buildAlignCenterV, "y", "center-v");
+  const alignBottom = () => applyAlignment(buildAlignBottom, "y", "bottom");
 
   const distributeHorizontal = () => {
     if (!activePage || selectedElements.length < 3) return;
@@ -352,6 +383,13 @@ export const useSelectionState = ({
     shapeToolbarData,
     aacToolbarData,
     applyAacLabelPosition,
+    canAlign,
+    alignLeft,
+    alignCenterH,
+    alignRight,
+    alignTop,
+    alignCenterV,
+    alignBottom,
     canDistribute,
     distributeHorizontal,
     distributeVertical,
