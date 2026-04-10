@@ -78,8 +78,8 @@ export const editImageWithAi = async (
   if (!authData.user) throw new Error("로그인이 필요합니다.");
 
   const ai = getGenAI();
-  const resizedBase64 = await resizeIfNeeded(imageBase64, 1024);
-  const { data: compressedImage } = await convertToWebP(resizedBase64);
+  const resizedBase64 = await resizeIfNeeded(imageBase64, 2048);
+  const { data: compressedImage } = await convertToWebP(resizedBase64, 0.7);
 
   // 시스템 지시와 유저 프롬프트를 별도 파트로 분리 — 프롬프트 인젝션 방지
   const systemPart = hasSelection
