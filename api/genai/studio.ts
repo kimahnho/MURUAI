@@ -5,6 +5,11 @@
  * - 서버에서 도메인 레퍼런스를 시스템 프롬프트에 주입
  * - 클라이언트에서 systemInstruction을 받지 않음 (서버가 조립)
  * - 입력 안전 검사 (위기 키워드 감지)
+ *
+ * 보안:
+ * - 요청 body 10MB 제한
+ * - responseSchema 타입 검증 (객체 또는 null만 허용)
+ * - 내부 Gemini 에러 메시지 클라이언트에 미노출
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
@@ -14,6 +19,7 @@ import { buildServerSystemPrompt, checkSafety } from "../_lib/studio/buildPrompt
 
 const MODEL = "gemini-2.5-flash";
 const MAX_OUTPUT_TOKENS = 8192;
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB
 
 export const config = {
   maxDuration: 60,
@@ -25,6 +31,12 @@ export default async function handler(
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // 요청 body 크기 제한
+  const bodySize = JSON.stringify(req.body ?? {}).length;
+  if (bodySize > MAX_BODY_BYTES) {
+    return res.status(413).json({ error: "요청 크기가 너무 큽니다." });
   }
 
   // 인증
@@ -50,6 +62,11 @@ export default async function handler(
 
   if (!contents) {
     return res.status(400).json({ error: "contents is required" });
+  }
+
+  // responseSchema 타입 검증 — 객체 또는 null/undefined만 허용
+  if (responseSchema !== undefined && responseSchema !== null && typeof responseSchema !== "object") {
+    return res.status(400).json({ error: "responseSchema must be an object" });
   }
 
   // 서버 측 안전 검사 — 마지막 사용자 메시지에서 위기 키워드 감지
@@ -100,7 +117,6 @@ export default async function handler(
     return res.status(200).json(response);
   } catch (err) {
     console.error("[/api/genai/studio] Gemini API error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(502).json({ error: `Gemini API error: ${message}` });
+    return res.status(502).json({ error: "AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해 주세요." });
   }
 }
