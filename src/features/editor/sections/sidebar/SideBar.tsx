@@ -30,6 +30,7 @@ import AacPropsContent from "./content/AacPropsContent";
 import AacCardPropsContent from "./content/AacCardPropsContent";
 import EmotionCardPropsContent from "./content/EmotionCardPropsContent";
 import MultiPropsContent from "./content/MultiPropsContent";
+import FreeformPropsContent from "./content/FreeformPropsContent";
 import TextPropsContent from "./content/TextPropsContent";
 import AiStoryEditContent from "./content/AiStoryEditContent";
 import TherapyContextContent from "./content/TherapyContextContent";
@@ -39,7 +40,7 @@ import type { PanelData } from "@/features/editor/store/elementPanelStore";
 import { useAiGenerationModeStore } from "@/features/editor/store/aiGenerationModeStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 
-type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props" | "ai-story-edit">;
+type MenuItemId = Exclude<SideBarMenu, null | "font" | "table" | "shape-props" | "line-props" | "arrow-props" | "text-props" | "aac-props" | "aacCard-props" | "emotionCard-props" | "multi-props" | "freeform-props" | "ai-story-edit">;
 
 const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   design: "AI 이미지",
@@ -60,6 +61,7 @@ const MENU_LABELS: Record<Exclude<SideBarMenu, null>, string> = {
   "aacCard-props": "AAC 카드",
   "emotionCard-props": "감정카드",
   "multi-props": "다중 선택",
+  "freeform-props": "자유형",
   "ai-story-edit": "스토리 편집",
   therapy: "치료 AI",
 };
@@ -99,6 +101,7 @@ const CONTENT_COMPONENTS: Record<
   "aacCard-props": AacCardPropsContent,
   "emotionCard-props": EmotionCardPropsContent,
   "multi-props": MultiPropsContent,
+  "freeform-props": FreeformPropsContent,
   "ai-story-edit": AiStoryEditContent,
   therapy: TherapyContextContent,
 };
@@ -112,6 +115,7 @@ const PROPS_OVERLAY: Record<string, { component: ComponentType; title: string }>
   aacCardV2: { component: AacCardPropsContent, title: "AAC 카드" },
   emotionCard: { component: EmotionCardPropsContent, title: "감정카드" },
   multi: { component: MultiPropsContent, title: "다중 선택" },
+  freeform: { component: FreeformPropsContent, title: "자유형" },
 };
 
 const resolveOverlay = (panelData: PanelData) => {

@@ -8,6 +8,7 @@ import type {
   AacCardElement,
   CanvasElement,
   EmotionCardElement,
+  FreeformElement,
   ShapeElement,
   TextElement,
 } from "../../../model/canvasTypes";
@@ -50,7 +51,7 @@ export const useSelectionState = ({
 
   const isColorTarget = (
     element: CanvasElement,
-  ): element is TextElement | ShapeElement | AacCardElement | EmotionCardElement =>
+  ): element is TextElement | ShapeElement | AacCardElement | EmotionCardElement | FreeformElement =>
     element.type === "text" ||
     element.type === "rect" ||
     element.type === "roundRect" ||
@@ -58,7 +59,8 @@ export const useSelectionState = ({
     element.type === "mosaic" ||
     element.type === "circleMosaic" ||
     element.type === "aacCard" ||
-    element.type === "emotionCard";
+    element.type === "emotionCard" ||
+    element.type === "freeform";
   const isMultiColorSelection =
     selectedElements.length > 1 && selectedElements.every(isColorTarget);
   // 다중 선택 UI는 잠금 요소가 섞일 수 있어 "수정 가능한 첫 요소"를 대표값으로 사용한다.
@@ -135,14 +137,15 @@ export const useSelectionState = ({
     onChange: applyMultiFontSize,
   });
 
-  const isBorderTarget = (element: CanvasElement): element is ShapeElement | AacCardElement | EmotionCardElement =>
+  const isBorderTarget = (element: CanvasElement): element is ShapeElement | AacCardElement | EmotionCardElement | FreeformElement =>
     element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse" ||
     element.type === "mosaic" ||
     element.type === "circleMosaic" ||
     element.type === "aacCard" ||
-    element.type === "emotionCard";
+    element.type === "emotionCard" ||
+    element.type === "freeform";
   const multiBorderTargets = isMultiColorSelection
     ? selectedElements.filter(isBorderTarget)
     : [];

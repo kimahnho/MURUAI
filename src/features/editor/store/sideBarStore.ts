@@ -23,6 +23,7 @@ export type SideBarMenu =
   | "aacCard-props"
   | "emotionCard-props"
   | "multi-props"
+  | "freeform-props"
   | "ai-story-edit"
   | "therapy"
   | null;

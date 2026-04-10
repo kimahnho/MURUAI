@@ -27,7 +27,8 @@ export type ElementType =
   | "arrow"
   | "table"
   | "aacCard"
-  | "emotionCard";
+  | "emotionCard"
+  | "freeform";
 
 /** 워크시트 컴포넌트 소속 마커 — 요소가 어떤 워크시트 컴포넌트에 속하는지 식별 */
 export type WorksheetMeta = {
@@ -274,7 +275,38 @@ export type EmotionCardElement = ElementBase & {
   };
 };
 
-export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement | EmotionCardElement;
+export type FreeformElement = ElementBase & {
+  type: "freeform";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 0~1 정규화 좌표 (바운딩 박스 기준). SVG viewBox로 렌더링하므로 리사이즈 시 자동 스케일 */
+  points: Array<{ x: number; y: number }>;
+  /** 시작/끝점이 만나면 true — 채우기/테두리 편집 가능 */
+  closed: boolean;
+  /** 매끈하게 — Catmull-Rom 스플라인으로 곡선화 */
+  smooth?: boolean;
+  fill: string;
+  stroke: {
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted";
+  };
+  border?: {
+    enabled: boolean;
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted" | "double";
+  };
+  transform?: {
+    flipX?: boolean;
+    flipY?: boolean;
+    rotation?: number;
+  };
+};
+
+export type CanvasElement = TextElement | ShapeElement | LineElement | TableElement | AacCardElement | EmotionCardElement | FreeformElement;
 
 export type TemplateElement =
   | Omit<TextElement, "id">
@@ -282,7 +314,8 @@ export type TemplateElement =
   | Omit<LineElement, "id">
   | Omit<TableElement, "id">
   | Omit<AacCardElement, "id">
-  | Omit<EmotionCardElement, "id">;
+  | Omit<EmotionCardElement, "id">
+  | Omit<FreeformElement, "id">;
 
 export type Template = {
   id: string;
