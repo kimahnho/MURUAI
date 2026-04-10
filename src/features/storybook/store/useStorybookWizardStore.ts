@@ -162,14 +162,16 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     selectSavedCharacter: (character) => {
       // 저장된 캐릭터 선택 시: 그림체 + 캐릭터 레퍼런스 동시 설정
       set((s) => ({
+        isLoading: true,
         formData: {
           ...s.formData,
           artStyle: character.artStyleId ?? "custom",
           customPromptTemplate: character.promptTemplate ?? undefined,
           selectedCharacterId: character.id,
+          referenceImageBase64: undefined,
         },
       }));
-      // Cloudinary URL에서 base64로 변환하여 referenceImageBase64 설정
+      // Cloudinary URL에서 base64로 변환 — 완료 전까지 isLoading으로 "다음" 버튼 차단
       void fetch(character.imageUrl)
         .then((res) => res.blob())
         .then((blob) => {
@@ -178,13 +180,14 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
             const dataUrl = reader.result as string;
             const base64 = dataUrl.split(",")[1];
             set((s) => ({
+              isLoading: false,
               formData: { ...s.formData, referenceImageBase64: base64 },
             }));
           };
           reader.readAsDataURL(blob);
         })
         .catch(() => {
-          // 이미지 로드 실패 시 캐릭터 선택만 유지
+          set({ isLoading: false });
         });
     },
 
@@ -211,21 +214,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         },
       }));
       mp.track("AI 스토리북 기획서 선택");
-
-      // 백그라운드 캐스팅 분석 — Step 4에서 스타일 고르는 동안 준비됨
-      if (proposal && formData.childInfo) {
-        void extractCastFromStory(proposal.pages, formData.childInfo.name ?? "주인공").then((castingNote) => {
-          set((s) => ({
-            formData: { ...s.formData, castingNote },
-          }));
-          if (castingNote.characters.length > 0) {
-            mp.track("AI 스토리북 캐스팅 분석", {
-              sub_character_count: castingNote.characters.length,
-              sub_character_roles: castingNote.characters.map((c) => c.role).join(", "),
-            });
-          }
-        });
-      }
+      // 캐스팅 분석은 generateBook()에서 editedProposal 기반으로 실행 (사용자 수정 반영)
     },
 
     updateProposalPage: (proposalId, pageNumber, text) => {
@@ -385,11 +374,14 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
         useToastStore.getState().showToast("성공적으로 스토리북이 생성되었어요!", "success");
       } catch (error) {
         captureSentryError(error, "스토리북 생성");
+        // Step 4.5를 스킵했으면 4로, 아니면 45로 복귀
+        const recoveryStep = formData.selectedCharacterId ? 4 : 45;
         set({
           isLoading: false,
           imageProgress: null,
+          subCharProgress: null,
           error: "스토리북 생성에 실패했어요. 다시 시도해 주세요.",
-          currentStep: 45,
+          currentStep: recoveryStep as WizardStep,
         });
       }
     },

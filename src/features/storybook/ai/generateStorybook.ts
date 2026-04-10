@@ -211,6 +211,7 @@ export const generateStorybook = async (
   } catch (error) {
     console.error("Story image generation failed:", error);
     captureSentryError(error, "스토리북 이미지 생성");
+    throw error;
   }
 
   return {
