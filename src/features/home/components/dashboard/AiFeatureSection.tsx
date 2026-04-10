@@ -100,7 +100,7 @@ const AiFeatureSection = () => {
       {isQuotaExhausted && (
         <div className="flex items-center justify-between gap-3 rounded-xl bg-error-50 border border-error-100 px-4 py-3">
           <span className="text-13-regular text-error-700">
-            이번 달 이미지 크레딧을 모두 사용했어요.
+            크레딧을 모두 사용했어요.
           </span>
           <button
             type="button"
