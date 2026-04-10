@@ -134,7 +134,7 @@ const generateSingleImage = async (
   let contents: string | Array<Record<string, unknown>>;
 
   if (!characterRef) {
-    contents = imagePrompt;
+    contents = `${imagePrompt}\n\n${COMMON_RULES}`;
   } else {
     const parts: Array<Record<string, unknown>> = [];
     const suffixLines: string[] = [];
@@ -151,11 +151,11 @@ const generateSingleImage = async (
       }
     }
 
-    // 씬앵커 (sceneGroup 후속 페이지)
+    // sceneGroup 첫 페이지 앵커 — 장소 구조/레이아웃 유지
     if (sceneAnchor) {
       parts.push({ inlineData: { mimeType: "image/webp" as const, data: sceneAnchor } });
-      suffixLines.push("The last image is a previous scene from the same location — maintain the same background, lighting, and atmosphere.");
-      suffixLines.push("Only change characters' actions and expressions as the new scene describes.");
+      suffixLines.push("The last image shows the same location from an earlier scene — maintain the physical space, layout, and architecture.");
+      suffixLines.push("Apply any environmental changes described in the current scene text (weather, lighting, time of day) while keeping the same location structure.");
     }
 
     suffixLines.push("");
@@ -245,6 +245,7 @@ export const generateStoryImages = async (
 
   const base64Images: string[] = new Array(pages.length);
   const sceneGroupAnchors = new Map<number, string>();
+  const sceneGroupFirstDesc = new Map<number, string>();
   const castCharacters = subCharacters ?? [];
 
   // 서브캐릭터 ref를 WebP로 압축
@@ -259,9 +260,22 @@ export const generateStoryImages = async (
   for (let i = 0; i < pages.length; i++) {
     const scene = englishScenes[i] ?? koreanScenes[i];
     const storyText = pages[i].text;
-    const imagePrompt = `Story text: "${storyText}"\n\nScene: ${scene}, ${stylePostfix}`;
     const group = pages[i].sceneGroup;
     const pageNum = i + 1;
+
+    // sceneGroup 첫 페이지의 장면 묘사를 저장 — 후속 페이지에서 변화 컨텍스트로 활용
+    const isFirstOfGroup = !sceneGroupAnchors.has(group);
+    if (isFirstOfGroup) {
+      sceneGroupFirstDesc.set(group, scene);
+    }
+
+    // 후속 페이지: 첫 장면과의 차이를 프롬프트에 명시 (날씨/시간/상황 변화 반영)
+    let changeContext = "";
+    if (!isFirstOfGroup) {
+      changeContext = `\n\nIMPORTANT CONTINUITY: The reference scene image shows the SAME LOCATION from an earlier moment. Apply any changes described in the current scene (weather, time of day, lighting, new objects) while keeping the same physical space and layout.`;
+    }
+
+    const imagePrompt = `Story text: "${storyText}"\n\nScene: ${scene}, ${stylePostfix}${changeContext}`;
 
     // 이 페이지에 등장하는 서브캐릭터 ref만 선택
     const pageSubRefs = compressedSubRefs
@@ -278,8 +292,8 @@ export const generateStoryImages = async (
       sceneAnchor,
     );
 
-    // sceneGroup 첫 페이지 결과를 장면 앵커로 저장
-    if (!sceneAnchor) {
+    // sceneGroup 첫 페이지만 앵커로 저장 (품질 유지 — AI 출력물 반복 열화 방지)
+    if (isFirstOfGroup) {
       const { data: compressedAnchor } = await convertToWebP(base64);
       sceneGroupAnchors.set(group, compressedAnchor);
     }
