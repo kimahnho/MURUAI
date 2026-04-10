@@ -17,6 +17,7 @@ import {
   type SelectionRect,
 } from "../../../utils/designPaperUtils";
 import { useWorksheetElementStore } from "../../../store/worksheetElementStore";
+import { useDrawingModeStore } from "../../../store/drawingModeStore";
 import { getComponentBounds } from "../WorksheetComponentOverlay";
 
 type UseCanvasStageSelectionParams = {
@@ -81,6 +82,8 @@ export const useCanvasStageSelection = ({
 
   const shouldStartSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return false;
+    // 자유형 그리기 모드에서는 드래그 선택 비활성화
+    if (useDrawingModeStore.getState().isDrawing) return false;
     const target = event.target as HTMLElement;
     // 텍스트 속성 패널 클릭은 선택 로직을 시작하지 않음
     if (target.closest("[data-text-props-panel]")) return false;

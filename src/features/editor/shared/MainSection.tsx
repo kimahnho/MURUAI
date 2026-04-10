@@ -534,6 +534,17 @@ const MainSection = () => {
           hasImage,
         };
       }
+      if (el?.type === "freeform") {
+        return {
+          type: "freeform" as const,
+          element: el,
+          rect: { x: el.x, y: el.y, width: el.w, height: el.h },
+          closed: el.closed,
+          strokeColor: el.stroke.color,
+          strokeWidth: el.stroke.width,
+          fillColor: el.fill,
+        };
+      }
     }
     // AAC 카드(레거시)를 shape보다 먼저 확인해 shape-props 패널 대신 emotion-aac 탭이 열리도록 한다.
     if (aacToolbarData) {
