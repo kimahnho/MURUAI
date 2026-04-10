@@ -333,6 +333,12 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
 
       set({ isLoading: true, error: null, currentStep: 5, imageProgress: null, subCharProgress: null });
       try {
+        // 편집된 기획서 기반으로 캐스팅 재분석 (사용자 수정 반영)
+        const freshCasting = await extractCastFromStory(
+          proposal.pages,
+          formData.childInfo?.name ?? "주인공",
+        );
+
         const book = await generateStorybook(
           proposal,
           artStyle,
@@ -343,7 +349,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           (current, total) => { set({ imageProgress: { current, total } }); },
           effectivePromptTemplate,
           formData.topic,
-          formData.castingNote,
+          freshCasting,
           (current, total) => { set({ subCharProgress: { current, total } }); },
         );
         set({ generatedBook: book, isLoading: false, imageProgress: null, subCharProgress: null, currentStep: 6 });
