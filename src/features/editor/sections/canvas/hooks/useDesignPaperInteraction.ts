@@ -359,17 +359,15 @@ export const useDesignPaperInteraction = ({
         setActivePreview({ id: elementId, rect: nextRect });
         return;
       }
-      const isEdgeHandle =
-        activeInteraction.handle != null &&
-        activeInteraction.handle.length === 1;
-      const imageBox = isEdgeHandle
-        ? { x: 0, y: 0, w: nextRect.width, h: nextRect.height }
-        : computeScaledImageBox(
-            activeInteraction.startImageBox ??
-              (targetElement as ShapeElement).imageBox,
-            nextRect.width,
-            nextRect.height,
-          );
+      // 크롭 포인트 고정 + 요소 크기 비율대로 imageBox 스케일
+      const startBox = activeInteraction.startImageBox ?? (targetElement as ShapeElement).imageBox;
+      const startW = activeInteraction.startRect?.width ?? nextRect.width;
+      const startH = activeInteraction.startRect?.height ?? nextRect.height;
+      const scaleX = startW > 0 ? nextRect.width / startW : 1;
+      const scaleY = startH > 0 ? nextRect.height / startH : 1;
+      const imageBox = startBox
+        ? { x: startBox.x * scaleX, y: startBox.y * scaleY, w: startBox.w * scaleX, h: startBox.h * scaleY }
+        : { x: 0, y: 0, w: nextRect.width, h: nextRect.height };
       updateElement(elementId, {
         x: nextRect.x,
         y: nextRect.y,
@@ -572,17 +570,14 @@ export const useDesignPaperInteraction = ({
           isResize &&
           !activeInteraction?.isCrop
         ) {
-          const isEdgeHandle =
-            activeInteraction?.handle != null &&
-            activeInteraction.handle.length === 1;
-          updates.imageBox = isEdgeHandle
-            ? { x: 0, y: 0, w: finalRect.width, h: finalRect.height }
-            : computeScaledImageBox(
-                activeInteraction?.startImageBox ??
-                  (targetElement as ShapeElement).imageBox,
-                finalRect.width,
-                finalRect.height,
-              );
+          const finalStartBox = activeInteraction?.startImageBox ?? (targetElement as ShapeElement).imageBox;
+          const finalStartW = activeInteraction?.startRect?.width ?? finalRect.width;
+          const finalStartH = activeInteraction?.startRect?.height ?? finalRect.height;
+          const finalScaleX = finalStartW > 0 ? finalRect.width / finalStartW : 1;
+          const finalScaleY = finalStartH > 0 ? finalRect.height / finalStartH : 1;
+          updates.imageBox = finalStartBox
+            ? { x: finalStartBox.x * finalScaleX, y: finalStartBox.y * finalScaleY, w: finalStartBox.w * finalScaleX, h: finalStartBox.h * finalScaleY }
+            : { x: 0, y: 0, w: finalRect.width, h: finalRect.height };
         }
         const labelId =
           targetElement &&
