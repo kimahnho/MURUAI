@@ -2,8 +2,7 @@
  * 자유형 요소 렌더러.
  * 정규화된 포인트(0~1)를 SVG path로 렌더링하고, 선택/드래그/리사이즈를 지원한다.
  */
-import type { PointerEvent as ReactPointerEvent } from "react";
-import type { FreeformElement, ResizeHandle } from "@/features/editor/model/canvasTypes";
+import type { FreeformElement } from "@/features/editor/model/canvasTypes";
 import { useFreeformInteraction } from "./useFreeformInteraction";
 import { ResizeHandles } from "../round_box/ResizeHandles";
 import { buildSmoothPathD } from "@/features/editor/utils/pathSmooth";
@@ -50,7 +49,7 @@ const FreeformBox = ({
   onSelectChange,
   onContextMenu,
 }: FreeformBoxProps) => {
-  const { handlePointerDown } = useFreeformInteraction({
+  const { handlePointerDown, handleResizePointerDown } = useFreeformInteraction({
     element,
     isSelected,
     selectionCount,
@@ -63,9 +62,9 @@ const FreeformBox = ({
   const { points, closed, smooth, fill, stroke, border, transform } = element;
   const pathD = smooth ? buildSmoothPathD(points, closed) : buildPathD(points, closed);
 
-  // viewBox 기준 stroke 너비 (정규화 좌표 공간에서의 비율)
-  const svgStrokeWidth = rect.width > 0 ? stroke.width / rect.width : 0;
-  const hitStrokeWidth = rect.width > 0 ? Math.max(12, stroke.width + 6) / rect.width : 0;
+  // vector-effect="non-scaling-stroke" 사용 시 px 단위 그대로 적용 가능
+  const svgStrokeWidth = stroke.width;
+  const hitStrokeWidth = Math.max(12, stroke.width + 6);
 
   const transformParts = [
     transform?.rotation ? `rotate(${transform.rotation}deg)` : "",
@@ -80,16 +79,6 @@ const FreeformBox = ({
 
   const showOutline = isSelected && !locked;
   const showResizeHandles = showOutline && selectionCount <= 1;
-
-  // 리사이즈 핸들 pointerDown — useDesignPaperInteraction의 handleDragStateChange로 전파
-  const handleResizePointerDown = (
-    e: ReactPointerEvent<HTMLDivElement>,
-    _type: "resize" | "imageBoxResize",
-    _handle: ResizeHandle,
-  ) => {
-    e.stopPropagation();
-    onDragStateChange?.(element.id, true, undefined, { type: "resize" });
-  };
 
   return (
     <div
@@ -152,6 +141,7 @@ const FreeformBox = ({
           d={pathD}
           stroke="transparent"
           strokeWidth={hitStrokeWidth}
+          vectorEffect="non-scaling-stroke"
           fill={closed ? "transparent" : "none"}
           pointerEvents="stroke"
         />
@@ -160,6 +150,7 @@ const FreeformBox = ({
           d={pathD}
           stroke={stroke.color}
           strokeWidth={svgStrokeWidth}
+          vectorEffect="non-scaling-stroke"
           strokeDasharray={getDashArray(stroke.style, svgStrokeWidth)}
           strokeLinecap="round"
           strokeLinejoin="round"

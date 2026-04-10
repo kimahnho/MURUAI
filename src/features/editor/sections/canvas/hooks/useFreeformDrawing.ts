@@ -20,6 +20,7 @@ interface UseFreeformDrawingProps {
   readOnly?: boolean;
   onElementsChange?: (elements: CanvasElement[]) => void;
   onSelectedIdsChange?: (ids: string[]) => void;
+  onFreeformCreated?: (id: string, closed: boolean) => void;
   getPointerPosition: (event: PointerEvent | ReactPointerEvent<HTMLElement>) => Point;
 }
 
@@ -28,6 +29,7 @@ export const useFreeformDrawing = ({
   readOnly,
   onElementsChange,
   onSelectedIdsChange,
+  onFreeformCreated,
   getPointerPosition,
 }: UseFreeformDrawingProps) => {
   const isDrawing = useDrawingModeStore((s) => s.isDrawing);
@@ -150,9 +152,8 @@ export const useFreeformDrawing = ({
 
     onElementsChange?.([...elementsRef.current, newElement]);
     onSelectedIdsChange?.([newId]);
-
-    // 생성 직후 "매끈하게" 팝업 표시
-    useDrawingModeStore.getState().setSmoothPromptElementId(newId);
+    // 닫힌 도형만 매끈하게 팝업 표시
+    onFreeformCreated?.(newId, closed);
   };
 
   return {

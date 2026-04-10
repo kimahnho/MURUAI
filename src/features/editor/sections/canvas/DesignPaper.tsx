@@ -52,6 +52,7 @@ import { useDesignPaperRotation } from "./hooks/useDesignPaperRotation";
 import { useDesignPaperSelectionContextMenu } from "./hooks/useDesignPaperSelectionContextMenu";
 import { useGroupOverlayDrag } from "./hooks/useGroupOverlayDrag";
 import { useDesignPaperElementRenderer } from "./hooks/useDesignPaperElementRenderer";
+import { useFreeformDrawing } from "./hooks/useFreeformDrawing";
 import { useSnapTransformRect } from "./hooks/useSnapTransformRect";
 import { useElementPatchUpdater } from "./hooks/useElementPatchUpdater";
 import { usePaperRects } from "./hooks/usePaperRects";
@@ -76,6 +77,44 @@ import {
 } from "../../utils/pagePresentation";
 import RotationBadge from "./RotationBadge";
 import SingleShapeTransformOverlay from "./SingleShapeTransformOverlay";
+
+// 자유형 도형 생성 직후 "매끈하게 다듬기" 1회성 팝업
+const SmoothPromptPopup = ({
+  element,
+  onAccept,
+  onDismiss,
+}: {
+  element: { id: string; x: number; y: number; w: number; h: number };
+  onAccept: () => void;
+  onDismiss: () => void;
+}) => (
+  <div
+    className="absolute flex items-center gap-2 pointer-events-auto"
+    style={{
+      left: element.x + element.w / 2,
+      top: element.y - 60,
+      transform: "translate(-50%, -100%)",
+      zIndex: 55,
+    }}
+  >
+    <div className="flex items-center gap-1.5 rounded-lg bg-white-100 border border-black-25 shadow-lg px-3 py-2">
+      <button
+        type="button"
+        onPointerDown={(e) => { e.stopPropagation(); onAccept(); }}
+        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-12-semibold text-white-100 hover:bg-primary-700 transition-colors whitespace-nowrap"
+      >
+        ✨ 매끈하게 다듬기
+      </button>
+      <button
+        type="button"
+        onPointerDown={(e) => { e.stopPropagation(); onDismiss(); }}
+        className="rounded-md px-2 py-1.5 text-12-semibold text-black-60 hover:bg-black-5 transition-colors whitespace-nowrap"
+      >
+        유지
+      </button>
+    </div>
+  </div>
+);
 
 interface DesignPaperProps {
   pageId: string;
@@ -522,6 +561,37 @@ const DesignPaper = ({
     mmToPx,
   });
 
+  // 자유형: 매끈하게 팝업 (로컬 state — 스토어 의존 제거)
+  const [smoothPromptId, setSmoothPromptId] = useState<string | null>(null);
+  // 선택 해제 or 다른 요소 선택 → 팝업 닫기
+  useEffect(() => {
+    if (smoothPromptId && !selectedIds.includes(smoothPromptId)) {
+      setSmoothPromptId(null);
+    }
+  }, [selectedIds, smoothPromptId]);
+  // smooth 토글되면 팝업 닫기
+  const smoothPromptElement = smoothPromptId
+    ? (elements.find((e) => e.id === smoothPromptId && e.type === "freeform" && !("smooth" in e && e.smooth)) as import("../../model/canvasTypes").FreeformElement | undefined) ?? null
+    : null;
+  useEffect(() => {
+    if (smoothPromptId && !smoothPromptElement) {
+      setSmoothPromptId(null);
+    }
+  }, [smoothPromptId, smoothPromptElement]);
+
+  // 자유형 그리기 모드
+  const { isDrawing: isFreeformDrawing, previewPoints: freeformPreviewPoints, handleDrawingPointerDown } = useFreeformDrawing({
+    elements,
+    readOnly,
+    onElementsChange,
+    onSelectedIdsChange,
+    onFreeformCreated: (id, closed) => {
+      // 닫힌 도형에만 매끈하게 팝업 표시
+      if (closed) setSmoothPromptId(id);
+    },
+    getPointerPosition,
+  });
+
   // 테이블 셀 기준 행/열 삽입·삭제 핸들러 — 클로저에서 snapshot을 캡처해 클릭 시점의 stale 방지
   const buildTableContext = (): TableContextMenuActions | undefined => {
     const { selectedTable, selectedCells, updateTable, setSelectedCells } =
@@ -594,7 +664,7 @@ const DesignPaper = ({
       } ${showShadow ? "shadow-lg" : ""} ${className ?? ""} ${
         isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
-      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle }}
+      style={{ width: pageWidth, height: pageHeight, ...paperBackgroundStyle, cursor: isFreeformDrawing ? "crosshair" : undefined }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => {
@@ -619,6 +689,14 @@ const DesignPaper = ({
         }
       }}
       onPointerDownCapture={(event) => {
+        // 자유형 그리기 모드: 하위 요소 핸들러가 실행되지 않도록 이벤트를 캡처 단계에서 가로챈다.
+        // 이렇게 하면 다른 요소 위에서도 자유형 도형을 그릴 수 있다.
+        if (isFreeformDrawing && event.button === 0) {
+          event.stopPropagation();
+          lastPointerRef.current = getPointerPosition(event);
+          handleDrawingPointerDown(event);
+          return;
+        }
         // 하위 요소 핸들러가 선택/드래그 상태를 바꾸기 전에 포인터 좌표를 먼저 저장해
         // 스테이지 공통 동작이 동일한 기준 좌표를 사용하도록 한다.
         if (!readOnly) {
@@ -714,6 +792,17 @@ const DesignPaper = ({
         <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
       )}
       {elements.map((element) => renderElement(element))}
+      {/* 자유형 그리기 모드: 모든 기존 요소 위에 투명 오버레이를 덮어 hover/pointerEnter를 차단 */}
+      {isFreeformDrawing && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 4,
+            cursor: "crosshair",
+          }}
+        />
+      )}
       {/* 페이지 영역 바깥의 요소 부분을 반투명 화이트 오버레이로 덮어 경계 밖임을 시각적으로 표현한다. */}
       {!readOnly && (
         <div
@@ -743,34 +832,77 @@ const DesignPaper = ({
           />
         );
       })()}
+      {/* 자유형 그리기 라이브 프리뷰 */}
+      {freeformPreviewPoints && freeformPreviewPoints.length > 1 && (
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: pageWidth, height: pageHeight, zIndex: 30 }}
+        >
+          <polyline
+            points={freeformPreviewPoints.map((p) => `${p.x},${p.y}`).join(" ")}
+            fill="none"
+            stroke="#7C3AED"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="6 3"
+          />
+          {/* 시작점 표시 */}
+          <circle
+            cx={freeformPreviewPoints[0].x}
+            cy={freeformPreviewPoints[0].y}
+            r={5}
+            fill="#7C3AED"
+            opacity={0.6}
+          />
+        </svg>
+      )}
+      {/* 자유형 도형 생성 직후 "매끈하게" 팝업 */}
+      {smoothPromptElement && (
+        <SmoothPromptPopup
+          element={smoothPromptElement}
+          onAccept={() => {
+            updateElement(smoothPromptElement.id, { smooth: true });
+            setSmoothPromptId(null);
+          }}
+          onDismiss={() => {
+            setSmoothPromptId(null);
+          }}
+        />
+      )}
       <SelectionRectOverlay selectionRect={selectionRect} />
-      <SingleShapeTransformOverlay
-        selectedIds={selectedIds}
-        elements={elements}
-        activePreview={activePreview}
-        isRotating={isRotating}
-        editingImageId={editingImageId}
-        editingShapeTextId={editingShapeTextId}
-        updateElement={updateElement}
-        startShapeRotation={startShapeRotation}
-        getBottomCenterAnchor={getBottomCenterAnchor}
-        getTopCenterAnchor={getTopCenterAnchor}
-      />
-      <GroupSelectionOverlay
-        isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
-        readOnly={readOnly}
-        selectedIds={selectedIds}
-        elements={elements}
-        showHandles
-        onResizeHandlePointerDown={handleGroupResizePointerDown}
-        onDragPointerDown={handleGroupOverlayDragPointerDown}
-        onContextMenu={(event) => {
-          const firstSelectedId = selectedIds[0];
-          if (firstSelectedId) {
-            openContextMenu(event, firstSelectedId);
-          }
-        }}
-      />
+      {/* 자유형 그리기 모드에서는 선택/변형 오버레이를 숨겨 hover UI가 표시되지 않게 한다 */}
+      {!isFreeformDrawing && (
+        <>
+          <SingleShapeTransformOverlay
+            selectedIds={selectedIds}
+            elements={elements}
+            activePreview={activePreview}
+            isRotating={isRotating}
+            editingImageId={editingImageId}
+            editingShapeTextId={editingShapeTextId}
+            updateElement={updateElement}
+            startShapeRotation={startShapeRotation}
+            getBottomCenterAnchor={getBottomCenterAnchor}
+            getTopCenterAnchor={getTopCenterAnchor}
+          />
+          <GroupSelectionOverlay
+            isGroupedSelection={isGroupedSelection || selectedIds.length > 1}
+            readOnly={readOnly}
+            selectedIds={selectedIds}
+            elements={elements}
+            showHandles
+            onResizeHandlePointerDown={handleGroupResizePointerDown}
+            onDragPointerDown={handleGroupOverlayDragPointerDown}
+            onContextMenu={(event) => {
+              const firstSelectedId = selectedIds[0];
+              if (firstSelectedId) {
+                openContextMenu(event, firstSelectedId);
+              }
+            }}
+          />
+        </>
+      )}
       <DesignPaperContextMenu
         contextMenu={contextMenu}
         elements={elements}
