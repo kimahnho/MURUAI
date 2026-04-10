@@ -8,7 +8,7 @@
 import { supabase } from "@/shared/api/supabase";
 
 /** 기본 이미지 크레딧 한도 (모든 AI 기능 통합) */
-export const MONTHLY_AI_CREDIT_LIMIT = 50;
+export const MONTHLY_AI_CREDIT_LIMIT = 40;
 
 /** @deprecated MONTHLY_AI_CREDIT_LIMIT 사용 */
 export const MONTHLY_AI_TEMPLATE_LIMIT = MONTHLY_AI_CREDIT_LIMIT;
