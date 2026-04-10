@@ -140,27 +140,22 @@ Rules:
 - Pure white (#FFFFFF) background, no scenery, no text, no labels.
 - Do NOT draw the character from the reference image. Draw only the NEW character described above.`;
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-    }
+  // 서브캐릭터는 retry 1회만 (타임아웃 방지, 실패 시 텍스트 묘사로 폴백)
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image",
+    contents: [
+      { inlineData: { mimeType: "image/webp" as const, data: compressedRef } },
+      { text: prompt },
+    ],
+    config: {
+      responseModalities: ["Text", "Image"],
+      imageConfig: { aspectRatio: "1:1" },
+    },
+  });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: [
-        { inlineData: { mimeType: "image/webp" as const, data: compressedRef } },
-        { text: prompt },
-      ],
-      config: {
-        responseModalities: ["Text", "Image"],
-        imageConfig: { aspectRatio: "1:1" },
-      },
-    });
-
-    const parts = response.candidates?.[0]?.content?.parts;
-    const imagePart = parts?.find((part) => part.inlineData);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
-  }
+  const parts = response.candidates?.[0]?.content?.parts;
+  const imagePart = parts?.find((part) => part.inlineData);
+  if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
 
   throw new Error("서브캐릭터 이미지 생성에 실패했습니다.");
 };
