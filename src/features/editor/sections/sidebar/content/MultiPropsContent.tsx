@@ -2,10 +2,11 @@
  * 다중 선택 상태에서 사이드바에 표시되는 공통 속성 편집 패널.
  */
 import { useState } from "react";
-import { AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Ban } from "lucide-react";
+import { Ban } from "lucide-react";
 import { useElementPanelStore } from "@/features/editor/store/elementPanelStore";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import InlineFontPicker from "@/features/editor/shared/InlineFontPicker";
+import AlignmentSection from "./AlignmentSection";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -32,9 +33,6 @@ const MultiPropsContent = () => {
     borderStyleOptions,
     clampBorderWidth,
     applyMultiBorderPatch,
-    canDistribute,
-    onDistributeHorizontal,
-    onDistributeVertical,
   } = multiCallbacks;
 
   return (
@@ -124,22 +122,8 @@ const MultiPropsContent = () => {
         </div>
       )}
 
-      {/* 분배 */}
-      {canDistribute && (
-        <div className="flex flex-col gap-2">
-          <div className="text-14-semibold text-black-90">간격 분배</div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onDistributeHorizontal} className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-70 hover:border-primary hover:text-primary">
-              <AlignHorizontalSpaceAround className="h-4 w-4" />
-              가로
-            </button>
-            <button type="button" onClick={onDistributeVertical} className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-black-30 px-3 py-2 text-14-regular text-black-70 hover:border-primary hover:text-primary">
-              <AlignVerticalSpaceAround className="h-4 w-4" />
-              세로
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 정렬/분배 — AlignmentSection 공용 컴포넌트 사용 */}
+      <AlignmentSection />
     </div>
   );
 };
