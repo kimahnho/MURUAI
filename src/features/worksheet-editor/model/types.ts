@@ -25,6 +25,7 @@ export interface HeaderInstructionConfig {
   title_highlights: string[];
   instruction: string;
   rule_note: string;
+  title_align?: "left" | "center" | "right";
 }
 
 export interface ArrowTransformConfig {

@@ -659,7 +659,7 @@ export const useEditorSubscriptions = ({
 
       // config로 새 요소 빌드 + worksheetMeta 스탬프
       // (이미지 상태는 config.items.imageUrl에 저장되어 있으므로 buildGrid에서 직접 복원)
-      const newElements = buildWorksheetComponentElementsFromConfig(
+      const rawNewElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
         insertY,
@@ -667,6 +667,29 @@ export const useEditorSubscriptions = ({
         ...el,
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
       }));
+
+      // header_instruction: 기존 요소의 폰트 스타일을 새 요소에 복원
+      // (캔버스에서 직접 변경한 fontFamily/fontSize 등이 재빌드로 유실되는 것을 방지)
+      let newElements = rawNewElements;
+      if (comp.type === "header_instruction") {
+        const oldTextEls = page.elements.filter(
+          (el) => oldElementIdSet.has(el.id) && el.type === "text",
+        ) as import("../model/canvasTypes").TextElement[];
+        // 역할별 매칭: fontSize 기준 (제목 >= 20, 지시문 < 20 && 비파란색, 메모 = 파란색)
+        const oldTitle = oldTextEls.find((el) => el.style.fontSize >= 20);
+        const oldInstruction = oldTextEls.find((el) => el.style.fontSize < 20 && el.style.color !== "#2e6da4");
+        newElements = rawNewElements.map((el) => {
+          if (el.type !== "text") return el;
+          const textEl = el as import("../model/canvasTypes").TextElement;
+          let source: import("../model/canvasTypes").TextElement | undefined;
+          if (textEl.style.fontSize >= 20) source = oldTitle;
+          else if (textEl.style.fontSize < 20 && textEl.style.color !== "#2e6da4") source = oldInstruction;
+          if (source?.style.fontFamily) {
+            return { ...el, style: { ...textEl.style, fontFamily: source.style.fontFamily } };
+          }
+          return el;
+        });
+      }
 
       // 기존 요소 제거 + 새 요소 삽입
       const updatedElements = page.elements
@@ -879,7 +902,24 @@ export const useEditorSubscriptions = ({
             }
             return minY === Infinity ? 0 : minY;
           };
-          const sorted = [...allComps].sort((a, b) => getMinY(a.elementIds) - getMinY(b.elementIds));
+          // Y_FREE 컴포넌트는 원래 인덱스 유지, 나머지만 Y순 정렬
+          const yFreeSlots = new Map<number, typeof allComps[number]>();
+          const sortable: (typeof allComps[number] & { _minY: number })[] = [];
+          for (let i = 0; i < allComps.length; i++) {
+            const c = allComps[i];
+            if (c.type === "header_instruction") {
+              yFreeSlots.set(i, c);
+            } else {
+              sortable.push({ ...c, _minY: getMinY(c.elementIds) });
+            }
+          }
+          sortable.sort((a, b) => a._minY - b._minY);
+          const sorted: typeof allComps = new Array(allComps.length);
+          for (const [idx, c] of yFreeSlots) sorted[idx] = c;
+          let si = 0;
+          for (let i = 0; i < sorted.length; i++) {
+            if (!sorted[i]) sorted[i] = sortable[si++];
+          }
           useWorksheetElementStore.setState({ insertedComponents: sorted });
 
           setPages((prev) =>

@@ -72,6 +72,14 @@ export const HeaderInstructionForm = ({ config, onUpdate }: FormProps<HeaderInst
       />
     </div>
     <div className="mb-3">
+      <label className={labelCls}>제목 정렬</label>
+      <div className={chipGroupCls}>
+        <Chip label="좌측" isActive={(config.title_align ?? "left") === "left"} onClick={() => onUpdate((c) => ({ ...c, title_align: "left" }))} />
+        <Chip label="중앙" isActive={config.title_align === "center"} onClick={() => onUpdate((c) => ({ ...c, title_align: "center" }))} />
+        <Chip label="우측" isActive={config.title_align === "right"} onClick={() => onUpdate((c) => ({ ...c, title_align: "right" }))} />
+      </div>
+    </div>
+    <div className="mb-3">
       <label className={labelCls}>지시문</label>
       <input
         type="text"
