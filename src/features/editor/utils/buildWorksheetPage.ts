@@ -971,6 +971,9 @@ const buildComponentElements = (
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+    case "date_name_field":
+      // 자유 배치 요소 — pageFactory.addDateNameFieldElement()에서 직접 삽입
+      return { elements: [], height: 0 };
     default:
       return { elements: [], height: 0 };
   }
@@ -1017,9 +1020,12 @@ export const buildWorksheetComponentElementsFromConfig = (
  * 배열 순서가 곧 캔버스 상의 위→아래 순서.
  * 각 컴포넌트의 내부 요소 상대 위치는 유지하고, 컴포넌트 간 COMP_GAP 간격을 보장.
  */
+/** 자유 배치 컴포넌트 타입 — reflow에서 제외 */
+const FREE_POSITION_TYPES = new Set<string>(["date_name_field"]);
+
 export const reflowWorksheetComponents = (
   pageElements: CanvasElement[],
-  insertedComponents: { id: string; elementIds: string[] }[],
+  insertedComponents: { id: string; type?: string; elementIds: string[] }[],
   /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
   skipComponentId?: string,
   /** true면 드롭 시 X를 MARGIN으로 리셋 (기본 false — 드래그 중에는 X 건드리지 않음) */
@@ -1028,19 +1034,42 @@ export const reflowWorksheetComponents = (
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
 } => {
-  // 워크시트에 속하지 않는 요소 (로고 등)
-  const worksheetElementIds = new Set<string>();
+  // 자유 배치 컴포넌트와 reflow 대상 분리
+  const freeComponents: typeof insertedComponents = [];
+  const reflowTargets: typeof insertedComponents = [];
   for (const comp of insertedComponents) {
+    if (comp.type && FREE_POSITION_TYPES.has(comp.type)) {
+      freeComponents.push(comp);
+    } else {
+      reflowTargets.push(comp);
+    }
+  }
+
+  // 워크시트에 속하지 않는 요소 (로고 등) + 자유 배치 요소
+  const worksheetElementIds = new Set<string>();
+  for (const comp of reflowTargets) {
     for (const eid of comp.elementIds) worksheetElementIds.add(eid);
   }
-  const nonWorksheetElements = pageElements.filter((el) => !worksheetElementIds.has(el.id));
+  // 자유 배치 요소 ID도 비워크시트로 취급 (원본 위치 유지)
+  const freeElementIds = new Set<string>();
+  for (const comp of freeComponents) {
+    for (const eid of comp.elementIds) freeElementIds.add(eid);
+  }
+  const nonWorksheetElements = pageElements.filter(
+    (el) => !worksheetElementIds.has(el.id),
+  );
 
   // insertedComponents 배열 순서 그대로 (Y좌표 정렬 안 함 — 배열 순서가 곧 순서)
   let curY = MARGIN;
   const allReflowed: CanvasElement[] = [...nonWorksheetElements];
   const updatedElementIds = new Map<string, string[]>();
 
-  for (const comp of insertedComponents) {
+  // 자유 배치 컴포넌트는 elementIds만 기록 (위치 변경 없음)
+  for (const comp of freeComponents) {
+    updatedElementIds.set(comp.id, comp.elementIds);
+  }
+
+  for (const comp of reflowTargets) {
     const idSet = new Set(comp.elementIds);
     const compElements = pageElements.filter((el) => idSet.has(el.id));
     if (compElements.length === 0) continue;

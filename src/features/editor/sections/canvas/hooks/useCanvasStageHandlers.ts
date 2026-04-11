@@ -100,7 +100,7 @@ export const useCanvasStageHandlers = ({
               const { elements: reflowedElements, updatedElementIds } =
                 reflowWorksheetComponents(
                   currentElements,
-                  reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+                  reordered.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
                 );
 
               for (const [compId, newIds] of updatedElementIds) {
@@ -168,7 +168,7 @@ export const useCanvasStageHandlers = ({
             const { elements: reflowedElements, updatedElementIds } =
               reflowWorksheetComponents(
                 page.elements,
-                insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+                insertedComponents.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
                 undefined,
                 true,
               );
@@ -191,7 +191,7 @@ export const useCanvasStageHandlers = ({
           const { elements: reflowedElements, updatedElementIds } =
             reflowWorksheetComponents(
               page.elements,
-              reordered.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+              reordered.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
               undefined,
               true,
             );

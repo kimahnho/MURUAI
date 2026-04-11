@@ -15,7 +15,8 @@ export type WorksheetComponentType =
   | "sentence_completion"
   | "sentence_fill"
   | "passage_question"
-  | "matching_connect";
+  | "matching_connect"
+  | "date_name_field";
 
 // --- Config types ---
 
@@ -148,6 +149,13 @@ export interface MatchingConnectConfig {
   answer_key_text: string;
 }
 
+export interface DateNameFieldConfig {
+  layout: "inline" | "stacked";
+  show_day: boolean;
+  background: "none" | "round_mint" | "round_lavender" | "round_peach";
+  font_size: number;
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -163,7 +171,8 @@ export type WorksheetConfig =
   | SentenceCompletionConfig
   | SentenceFillConfig
   | PassageQuestionConfig
-  | MatchingConnectConfig;
+  | MatchingConnectConfig
+  | DateNameFieldConfig;
 
 export interface WorksheetComponent {
   id: string;

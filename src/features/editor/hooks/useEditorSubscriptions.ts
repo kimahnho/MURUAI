@@ -41,6 +41,7 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
+import { addDateNameFieldElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
 
@@ -339,6 +340,57 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
+      const compType = state.requestedComponent;
+
+      // 날짜&이름 칸은 자유 배치 요소로 삽입 (워크시트 세로 스택 우회, groupId 기반)
+      if (compType === "date_name_field") {
+        const config = structuredClone(DEFAULT_CONFIGS[compType]) as import("@/features/worksheet-editor/model/types").DateNameFieldConfig;
+        const getOrientation = () => page.orientation ?? null;
+        const ids = addDateNameFieldElement({
+          pageId: activePageId,
+          layout: config.layout,
+          showDay: config.show_day,
+          background: config.background,
+          fontSize: config.font_size,
+          setPages,
+          getOrientation,
+        });
+
+        // 편집 패널용 등록 + worksheetMeta 스탬프 (undo/redo 복원에 필요)
+        const wsCompId = crypto.randomUUID();
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId,
+          type: compType,
+          config,
+          elementIds: ids,
+        });
+
+        // worksheetMeta 스탬프 + worksheetComponents 기록
+        const idSet = new Set(ids);
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+              id: wsCompId,
+              type: compType,
+              config,
+              elementIds: ids,
+            };
+            return {
+              ...p,
+              elements: p.elements.map((el) =>
+                idSet.has(el.id) ? { ...el, worksheetMeta: { componentId: wsCompId, componentType: compType } } : el,
+              ),
+              worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+            };
+          }),
+        );
+
+        setSelectedIds(ids);
+        setEditingTextId(null);
+        return;
+      }
+
       // 로고 요소를 제외한 현재 페이지 최하단 Y좌표 계산
       const SINGLE_MARGIN_PX = 56.7; // mmToPx(15) ≈ 기본 마진
       let maxY = SINGLE_MARGIN_PX;
@@ -351,8 +403,6 @@ export const useEditorSubscriptions = ({
       }
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
-
-      const compType = state.requestedComponent;
       const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
@@ -494,7 +544,7 @@ export const useEditorSubscriptions = ({
 
         const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
           page.elements,
-          insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+          insertedComponents.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
           undefined,
           true,
         );
@@ -513,6 +563,89 @@ export const useEditorSubscriptions = ({
       const activePageId = selectedPageIdRef.current;
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
+
+      // 날짜&이름 칸: 자유 배치 — 기존 위치 유지 + reflow 없이 직접 재생성
+      if (comp.type === "date_name_field") {
+        const dnConfig = comp.config as import("@/features/worksheet-editor/model/types").DateNameFieldConfig;
+        const oldIds = new Set(comp.elementIds);
+
+        // 기존 요소의 바운딩 박스에서 좌상단 좌표 복원
+        let minX = Infinity;
+        let minY = Infinity;
+        for (const el of page.elements) {
+          if (oldIds.has(el.id) && "x" in el && "y" in el) {
+            const ex = (el as { x: number }).x;
+            const ey = (el as { y: number }).y;
+            if (ex < minX) minX = ex;
+            if (ey < minY) minY = ey;
+          }
+        }
+
+        // 기존 요소 제거
+        const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
+
+        // 새 요소 생성 (임시 페이지에 생성 후 추출)
+        const getOrientation = () => page.orientation ?? null;
+        const tempPages: import("../model/pageTypes").Page[] = [{ ...page, elements: cleaned }];
+        const tempSetPages: import("react").Dispatch<import("react").SetStateAction<import("../model/pageTypes").Page[]>> = (updater) => {
+          const next = typeof updater === "function" ? updater(tempPages) : updater;
+          tempPages.length = 0;
+          tempPages.push(...next);
+        };
+        const newIds = addDateNameFieldElement({
+          pageId: activePageId,
+          layout: dnConfig.layout,
+          showDay: dnConfig.show_day,
+          background: dnConfig.background,
+          fontSize: dnConfig.font_size,
+          setPages: tempSetPages,
+          getOrientation,
+        });
+
+        // 새 요소를 기존 위치로 이동
+        const newPage = tempPages.find((p) => p.id === activePageId);
+        if (!newPage) return;
+        const newEls = newPage.elements.filter((el) => newIds.includes(el.id));
+        let newMinX = Infinity;
+        let newMinY = Infinity;
+        for (const el of newEls) {
+          if ("x" in el && "y" in el) {
+            const ex = (el as { x: number }).x;
+            const ey = (el as { y: number }).y;
+            if (ex < newMinX) newMinX = ex;
+            if (ey < newMinY) newMinY = ey;
+          }
+        }
+        const dx = isFinite(minX) ? minX - newMinX : 0;
+        const dy = isFinite(minY) ? minY - newMinY : 0;
+        const repositioned = newEls.map((el) => {
+          const stamped = { ...el, worksheetMeta: { componentId: comp.id, componentType: comp.type } };
+          if ("x" in stamped && "y" in stamped) {
+            return { ...stamped, x: (stamped as { x: number }).x + dx, y: (stamped as { y: number }).y + dy };
+          }
+          return stamped;
+        });
+
+        const store = useWorksheetElementStore.getState();
+        store.updateElementIds(comp.id, newIds);
+
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const finalElements = cleaned.concat(repositioned as typeof cleaned);
+            const finalComps = useWorksheetElementStore.getState().insertedComponents;
+            return {
+              ...p,
+              elements: finalElements,
+              worksheetComponents: finalComps.map((c) => ({
+                id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+              })),
+            };
+          }),
+        );
+        setSelectedIds(newIds);
+        return;
+      }
 
       // 기존 요소의 Y좌표 찾기
       const oldElementIdSet = new Set(comp.elementIds);
@@ -548,7 +681,7 @@ export const useEditorSubscriptions = ({
       const latestComps = useWorksheetElementStore.getState().insertedComponents;
       const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
         updatedElements,
-        latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        latestComps.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
         undefined,
         true,
       );
@@ -620,13 +753,13 @@ export const useEditorSubscriptions = ({
     const currentPageId = selectedPageIdRef.current;
     const page = pagesRef.current.find((p) => p.id === currentPageId);
     if (page) {
-      // groupId 마이그레이션
-      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+      // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
+      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field");
       if (needsMigration) {
         setPages((prev) =>
           prev.map((p) =>
             p.id === currentPageId
-              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" ? { ...el, groupId: undefined } : el) }
               : p,
           ),
         );
@@ -660,13 +793,13 @@ export const useEditorSubscriptions = ({
         lastPageId = currentPageId;
         lastElementCount = currentElementCount;
 
-        // groupId 마이그레이션
-        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+        // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
+        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field");
         if (needsMigration) {
           setPages((prev) =>
             prev.map((p) =>
               p.id === currentPageId
-                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" ? { ...el, groupId: undefined } : el) }
                 : p,
             ),
           );

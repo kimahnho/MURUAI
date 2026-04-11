@@ -16,6 +16,7 @@ import type {
   SentenceFillConfig,
   PassageQuestionConfig,
   MatchingConnectConfig,
+  DateNameFieldConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
 
@@ -1144,6 +1145,78 @@ export const MatchingConnectForm = ({ config, onUpdate }: FormProps<MatchingConn
           <p className="text-[10px] text-black-45 mt-1">캔버스 하단에 표시됩니다</p>
         </div>
       )}
+    </div>
+  </>
+);
+
+// --- 날짜&이름 칸 ---
+
+const BG_OPTIONS: { key: DateNameFieldConfig["background"]; label: string; color: string; border: string }[] = [
+  { key: "none", label: "없음", color: "transparent", border: "#d1d5db" },
+  { key: "round_mint", label: "민트", color: "#ecfdf5", border: "#a7f3d0" },
+  { key: "round_lavender", label: "라벤더", color: "#f5f3ff", border: "#ddd6fe" },
+  { key: "round_peach", label: "피치", color: "#fff7ed", border: "#fed7aa" },
+];
+
+export const DateNameFieldForm = ({ config, onUpdate }: FormProps<DateNameFieldConfig>) => (
+  <>
+    {/* 레이아웃 */}
+    <div className="mb-3">
+      <label className={labelCls}>레이아웃</label>
+      <div className={chipGroupCls}>
+        <Chip label="한 줄" isActive={config.layout === "inline"} onClick={() => onUpdate((c) => ({ ...c, layout: "inline" }))} />
+        <Chip label="두 줄" isActive={config.layout === "stacked"} onClick={() => onUpdate((c) => ({ ...c, layout: "stacked" }))} />
+      </div>
+    </div>
+
+    {/* 요일 칸 */}
+    <div className="mb-3">
+      <label className={labelCls}>요일 칸</label>
+      <div className={chipGroupCls}>
+        <Chip label="있음" isActive={config.show_day} onClick={() => onUpdate((c) => ({ ...c, show_day: true }))} />
+        <Chip label="없음" isActive={!config.show_day} onClick={() => onUpdate((c) => ({ ...c, show_day: false }))} />
+      </div>
+    </div>
+
+    {/* 글자 크기 */}
+    <div className="mb-3">
+      <label className={labelCls}>글자 크기</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="range"
+          min={12}
+          max={24}
+          step={1}
+          value={config.font_size ?? 17}
+          onChange={(e) => onUpdate((c) => ({ ...c, font_size: Number(e.target.value) }))}
+          className="flex-1 accent-[#7C3AED]"
+        />
+        <span className="text-12-semibold text-black-70 w-8 text-right">{config.font_size ?? 17}</span>
+      </div>
+    </div>
+
+    {/* 배경 스타일 */}
+    <div className="mb-3">
+      <label className={labelCls}>배경</label>
+      <div className="flex gap-2">
+        {BG_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            className={`flex-1 h-9 rounded-lg border-[1.5px] cursor-pointer transition ${
+              config.background === opt.key
+                ? "border-primary ring-2 ring-primary-200 scale-105"
+                : "border-black-25 hover:border-primary-200"
+            }`}
+            style={{ backgroundColor: opt.color, borderColor: config.background === opt.key ? undefined : opt.border }}
+            onClick={() => onUpdate((c) => ({ ...c, background: opt.key }))}
+            title={opt.label}
+          />
+        ))}
+      </div>
+      <p className="text-[10px] text-black-45 mt-1">
+        {BG_OPTIONS.find((o) => o.key === config.background)?.label ?? "없음"}
+      </p>
     </div>
   </>
 );

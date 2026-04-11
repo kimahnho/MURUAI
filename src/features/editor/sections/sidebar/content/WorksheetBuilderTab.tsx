@@ -24,6 +24,7 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     title: "기본 컴포넌트",
     items: [
       { type: "header_instruction", icon: "📝", name: "제목", desc: "제목 + 활동 안내 문구" },
+      { type: "date_name_field", icon: "📅", name: "날짜&이름", desc: "날짜·요일·이름 입력 칸" },
       { type: "reward_tracker", icon: "⭐", name: "칭찬 스탬프", desc: "칭찬 스티커 붙이는 칸" },
       { type: "info_guide", icon: "💬", name: "안내 가이드", desc: "캐릭터가 활동을 안내" },
     ],
