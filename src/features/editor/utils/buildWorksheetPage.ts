@@ -70,21 +70,24 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
   let curY = y;
 
   const INNER_GAP = mmToPx(2); // 요소 사이 간격
+  const titleAlign = config.title_align ?? "left";
 
-  // Title
+  // Title — 폰트 크기에 비례한 높이 (기준 28px → 10mm)
+  const TITLE_FONT = 28;
+  const titleH = mmToPx(10) * (TITLE_FONT / 28);
   els.push(textEl({
-    x, y: curY, w: CONTENT_W, h: mmToPx(10),
+    x, y: curY, w: CONTENT_W, h: titleH,
     text: config.title,
-    style: { fontSize: 28, fontWeight: "bold", color: "#2c2c2c", underline: false, alignX: "left", alignY: "middle" },
+    style: { fontSize: TITLE_FONT, fontWeight: "bold", color: "#2c2c2c", underline: false, alignX: titleAlign, alignY: "middle" },
   }));
-  curY += mmToPx(10) + INNER_GAP;
+  curY += titleH + INNER_GAP;
 
   // Instruction
   if (config.instruction) {
     els.push(textEl({
       x, y: curY, w: CONTENT_W, h: mmToPx(6),
       text: config.instruction,
-      style: { fontSize: 14, fontWeight: "normal", color: "#888888", underline: false, alignX: "left", alignY: "top" },
+      style: { fontSize: 14, fontWeight: "normal", color: "#888888", underline: false, alignX: titleAlign, alignY: "top" },
     }));
     curY += mmToPx(6) + INNER_GAP;
   }
@@ -95,7 +98,10 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
     const textPadding = mmToPx(4); // 좌우 패딩
     const estimatedTextW = config.rule_note.length * charWidth + textPadding * 2;
     const ruleW = Math.min(Math.max(estimatedTextW, mmToPx(30)), CONTENT_W); // 최소 30mm, 최대 전체
-    const ruleX = x; // 좌측 정렬
+    // 정렬에 따라 박스 X 위치 결정
+    const ruleX = titleAlign === "center" ? x + (CONTENT_W - ruleW) / 2
+      : titleAlign === "right" ? x + CONTENT_W - ruleW
+      : x;
 
     els.push(shapeEl({
       type: "roundRect", x: ruleX, y: curY, w: ruleW, h: mmToPx(6),
@@ -971,6 +977,10 @@ const buildComponentElements = (
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+    case "date_name_field":
+    case "clock_face":
+      // 자유 배치 요소 — pageFactory에서 직접 삽입
+      return { elements: [], height: 0 };
     default:
       return { elements: [], height: 0 };
   }
@@ -1017,9 +1027,14 @@ export const buildWorksheetComponentElementsFromConfig = (
  * 배열 순서가 곧 캔버스 상의 위→아래 순서.
  * 각 컴포넌트의 내부 요소 상대 위치는 유지하고, 컴포넌트 간 COMP_GAP 간격을 보장.
  */
+/** XY 완전 자유 배치 — reflow에서 완전 제외 */
+const FREE_POSITION_TYPES = new Set<string>(["date_name_field", "clock_face"]);
+/** Y 자유 + X 중앙 정렬 — Y는 사용자 설정값 유지, 아래 컴포넌트는 이 컴포넌트 하단부터 스택 */
+export const Y_FREE_TYPES = new Set<string>(["header_instruction"]);
+
 export const reflowWorksheetComponents = (
   pageElements: CanvasElement[],
-  insertedComponents: { id: string; elementIds: string[] }[],
+  insertedComponents: { id: string; type?: string; elementIds: string[] }[],
   /** 드래그 중인 컴포넌트 ID — 이 컴포넌트는 reflow에서 제외 (사용자가 드래그 중) */
   skipComponentId?: string,
   /** true면 드롭 시 X를 MARGIN으로 리셋 (기본 false — 드래그 중에는 X 건드리지 않음) */
@@ -1028,19 +1043,37 @@ export const reflowWorksheetComponents = (
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
 } => {
-  // 워크시트에 속하지 않는 요소 (로고 등)
-  const worksheetElementIds = new Set<string>();
+  // 3가지 카테고리로 분류 (삽입 순서 유지)
+  const freeComponents: typeof insertedComponents = [];
+  const managedComponents: typeof insertedComponents = []; // Y_FREE + 일반 (순서 유지)
   for (const comp of insertedComponents) {
-    for (const eid of comp.elementIds) worksheetElementIds.add(eid);
+    if (comp.type && FREE_POSITION_TYPES.has(comp.type)) {
+      freeComponents.push(comp);
+    } else {
+      managedComponents.push(comp); // Y_FREE와 일반을 섞어 원래 순서 유지
+    }
   }
-  const nonWorksheetElements = pageElements.filter((el) => !worksheetElementIds.has(el.id));
 
-  // insertedComponents 배열 순서 그대로 (Y좌표 정렬 안 함 — 배열 순서가 곧 순서)
+  // 워크시트에 속하지 않는 요소 (로고 등)
+  const managedElementIds = new Set<string>();
+  for (const comp of managedComponents) {
+    for (const eid of comp.elementIds) managedElementIds.add(eid);
+  }
+  const nonWorksheetElements = pageElements.filter(
+    (el) => !managedElementIds.has(el.id),
+  );
+
   let curY = MARGIN;
   const allReflowed: CanvasElement[] = [...nonWorksheetElements];
   const updatedElementIds = new Map<string, string[]>();
 
-  for (const comp of insertedComponents) {
+  // 완전 자유 배치 컴포넌트 — 위치 변경 없음
+  for (const comp of freeComponents) {
+    updatedElementIds.set(comp.id, comp.elementIds);
+  }
+
+  for (const comp of managedComponents) {
+    const isYFree = comp.type != null && Y_FREE_TYPES.has(comp.type);
     const idSet = new Set(comp.elementIds);
     const compElements = pageElements.filter((el) => idSet.has(el.id));
     if (compElements.length === 0) continue;
@@ -1060,6 +1093,52 @@ export const reflowWorksheetComponents = (
         }
       }
       curY = compMaxBottom + COMP_GAP;
+      continue;
+    }
+
+    // Y 자유 컴포넌트 (header_instruction): Y는 사용자 설정값 유지, X만 중앙 정렬
+    // 아래 컴포넌트는 이 컴포넌트 하단부터 스택
+    if (isYFree) {
+      let deltaX = 0;
+      if (resetX) {
+        let minX = Infinity;
+        let maxRight = -Infinity;
+        for (const el of compElements) {
+          if ("x" in el) {
+            const x = (el as { x: number }).x;
+            if (x < minX) minX = x;
+          }
+          if ("x" in el && "w" in el) {
+            const right = (el as { x: number; w: number }).x + (el as { x: number; w: number }).w;
+            if (right > maxRight) maxRight = right;
+          }
+        }
+        if (minX !== Infinity && maxRight !== -Infinity) {
+          const compWidth = maxRight - minX;
+          const targetMinX = (PAGE_W - compWidth) / 2;
+          deltaX = targetMinX - minX;
+        }
+      }
+
+      const shifted = deltaX !== 0
+        ? compElements.map((el) => {
+            if ("x" in el) return { ...el, x: (el as { x: number }).x + deltaX };
+            return el;
+          })
+        : compElements;
+
+      allReflowed.push(...shifted);
+      updatedElementIds.set(comp.id, shifted.map((el) => el.id));
+
+      // 이 컴포넌트의 하단을 curY로 설정 → 아래 컴포넌트가 여기서부터 스택
+      let maxBottom = curY;
+      for (const el of shifted) {
+        if ("y" in el && "h" in el) {
+          const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
+          if (bottom > maxBottom) maxBottom = bottom;
+        }
+      }
+      curY = maxBottom + COMP_GAP;
       continue;
     }
 
