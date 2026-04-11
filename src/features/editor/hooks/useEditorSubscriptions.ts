@@ -41,7 +41,7 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
-import { addDateNameFieldElement } from "../utils/pageFactory";
+import { addDateNameFieldElement, addClockFaceElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
 
@@ -391,6 +391,38 @@ export const useEditorSubscriptions = ({
         return;
       }
 
+      // 시계: 자유 배치 (date_name_field와 동일 패턴)
+      if (compType === "clock_face") {
+        const config = structuredClone(DEFAULT_CONFIGS[compType]) as import("@/features/worksheet-editor/model/types").ClockFaceConfig;
+        const ids = addClockFaceElement({ pageId: activePageId, config, setPages });
+
+        const wsCompId = crypto.randomUUID();
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId, type: compType, config, elementIds: ids,
+        });
+
+        const idSet = new Set(ids);
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+              id: wsCompId, type: compType, config, elementIds: ids,
+            };
+            return {
+              ...p,
+              elements: p.elements.map((el) =>
+                idSet.has(el.id) ? { ...el, worksheetMeta: { componentId: wsCompId, componentType: compType } } : el,
+              ),
+              worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+            };
+          }),
+        );
+
+        setSelectedIds(ids);
+        setEditingTextId(null);
+        return;
+      }
+
       // 로고 요소를 제외한 현재 페이지 최하단 Y좌표 계산
       const SINGLE_MARGIN_PX = 56.7; // mmToPx(15) ≈ 기본 마진
       let maxY = SINGLE_MARGIN_PX;
@@ -647,6 +679,90 @@ export const useEditorSubscriptions = ({
         return;
       }
 
+      // 시계: 자유 배치 — 기존 위치 유지 + reflow 없이 직접 재생성
+      if (comp.type === "clock_face") {
+        const cfConfig = comp.config as import("@/features/worksheet-editor/model/types").ClockFaceConfig;
+        const oldIds = new Set(comp.elementIds);
+
+        let minX = Infinity;
+        let minY = Infinity;
+        for (const el of page.elements) {
+          if (oldIds.has(el.id) && "x" in el && "y" in el) {
+            if ((el as { x: number }).x < minX) minX = (el as { x: number }).x;
+            if ((el as { y: number }).y < minY) minY = (el as { y: number }).y;
+          }
+          // line 요소는 start/end로 좌표 확인
+          if (oldIds.has(el.id) && "start" in el) {
+            const s = (el as { start: { x: number; y: number } }).start;
+            if (s.x < minX) minX = s.x;
+            if (s.y < minY) minY = s.y;
+          }
+        }
+
+        const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
+
+        const tempPages: import("../model/pageTypes").Page[] = [{ ...page, elements: cleaned }];
+        const tempSetPages: import("react").Dispatch<import("react").SetStateAction<import("../model/pageTypes").Page[]>> = (updater) => {
+          const next = typeof updater === "function" ? updater(tempPages) : updater;
+          tempPages.length = 0;
+          tempPages.push(...next);
+        };
+        const newIds = addClockFaceElement({ pageId: activePageId, config: cfConfig, setPages: tempSetPages });
+
+        const newPage = tempPages.find((p) => p.id === activePageId);
+        if (!newPage) return;
+        const newEls = newPage.elements.filter((el) => newIds.includes(el.id));
+
+        // 새 요소의 최소 좌표
+        let newMinX = Infinity;
+        let newMinY = Infinity;
+        for (const el of newEls) {
+          if ("x" in el && "y" in el) {
+            if ((el as { x: number }).x < newMinX) newMinX = (el as { x: number }).x;
+            if ((el as { y: number }).y < newMinY) newMinY = (el as { y: number }).y;
+          }
+          if ("start" in el) {
+            const s = (el as { start: { x: number; y: number } }).start;
+            if (s.x < newMinX) newMinX = s.x;
+            if (s.y < newMinY) newMinY = s.y;
+          }
+        }
+
+        const dx = isFinite(minX) ? minX - newMinX : 0;
+        const dy = isFinite(minY) ? minY - newMinY : 0;
+        const repositioned = newEls.map((el) => {
+          const stamped = { ...el, worksheetMeta: { componentId: comp.id, componentType: comp.type } };
+          if ("x" in stamped && "y" in stamped) {
+            return { ...stamped, x: (stamped as { x: number }).x + dx, y: (stamped as { y: number }).y + dy };
+          }
+          if ("start" in stamped && "end" in stamped) {
+            const s = stamped as { start: { x: number; y: number }; end: { x: number; y: number } };
+            return { ...stamped, start: { x: s.start.x + dx, y: s.start.y + dy }, end: { x: s.end.x + dx, y: s.end.y + dy } };
+          }
+          return stamped;
+        });
+
+        const store = useWorksheetElementStore.getState();
+        store.updateElementIds(comp.id, newIds);
+
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const finalElements = cleaned.concat(repositioned as typeof cleaned);
+            const finalComps = useWorksheetElementStore.getState().insertedComponents;
+            return {
+              ...p,
+              elements: finalElements,
+              worksheetComponents: finalComps.map((c) => ({
+                id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+              })),
+            };
+          }),
+        );
+        setSelectedIds(newIds);
+        return;
+      }
+
       // 기존 요소의 Y좌표 찾기
       const oldElementIdSet = new Set(comp.elementIds);
       let insertY = 56.7;
@@ -777,12 +893,12 @@ export const useEditorSubscriptions = ({
     const page = pagesRef.current.find((p) => p.id === currentPageId);
     if (page) {
       // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
-      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field");
+      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face");
       if (needsMigration) {
         setPages((prev) =>
           prev.map((p) =>
             p.id === currentPageId
-              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" ? { ...el, groupId: undefined } : el) }
+              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face" ? { ...el, groupId: undefined } : el) }
               : p,
           ),
         );
@@ -817,12 +933,12 @@ export const useEditorSubscriptions = ({
         lastElementCount = currentElementCount;
 
         // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
-        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field");
+        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face");
         if (needsMigration) {
           setPages((prev) =>
             prev.map((p) =>
               p.id === currentPageId
-                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" ? { ...el, groupId: undefined } : el) }
+                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face" ? { ...el, groupId: undefined } : el) }
                 : p,
             ),
           );
@@ -895,9 +1011,13 @@ export const useEditorSubscriptions = ({
             const idSet = new Set(elementIds);
             let minY = Infinity;
             for (const el of page.elements) {
-              if (idSet.has(el.id) && "y" in el) {
+              if (!idSet.has(el.id)) continue;
+              if ("y" in el) {
                 const y = (el as { y: number }).y;
                 if (y < minY) minY = y;
+              } else if ("start" in el) {
+                const sy = (el as { start: { y: number } }).start.y;
+                if (sy < minY) minY = sy;
               }
             }
             return minY === Infinity ? 0 : minY;

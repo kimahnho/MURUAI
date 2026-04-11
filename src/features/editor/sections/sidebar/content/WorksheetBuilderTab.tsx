@@ -66,6 +66,12 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
       { type: "checklist_table", icon: "📊", name: "체크리스트", desc: "어휘 목록/기록표" },
     ],
   },
+  {
+    title: "시간 · 수",
+    items: [
+      { type: "clock_face", icon: "🕐", name: "시계", desc: "아날로그/전자 시계" },
+    ],
+  },
 ];
 
 const PAGE_WIDTH_PX = 210 * 3.7795;

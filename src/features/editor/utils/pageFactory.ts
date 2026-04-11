@@ -774,6 +774,237 @@ export const addDateNameFieldElement = ({
   return ids;
 };
 
+// --- 시계 컴포넌트 ---
+
+const CLOCK_COLORS: Record<string, { bg: string; border: string; numColor: string }> = {
+  white: { bg: "#ffffff", border: "#333333", numColor: "#333333" },
+  pastel_blue: { bg: "#eff6ff", border: "#93c5fd", numColor: "#1e40af" },
+  pastel_yellow: { bg: "#fefce8", border: "#fde68a", numColor: "#92400e" },
+};
+
+const CLOCK_SIZES: Record<string, { analog: number; digitalW: number; digitalH: number }> = {
+  small: { analog: mmToPx(40), digitalW: 100, digitalH: 50 },
+  medium: { analog: mmToPx(60), digitalW: 140, digitalH: 65 },
+  large: { analog: mmToPx(80), digitalW: 180, digitalH: 80 },
+};
+
+const clockAngleToXY = (angleDeg: number, length: number, cx: number, cy: number) => {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + length * Math.cos(rad), y: cy + length * Math.sin(rad) };
+};
+
+export const addClockFaceElement = ({
+  pageId,
+  config,
+  setPages,
+}: {
+  pageId: string;
+  config: {
+    clock_type: "analog" | "digital";
+    hour: number;
+    minute: number;
+    show_answer_line: boolean;
+    size: "small" | "medium" | "large";
+    variant: "blank" | "hour_only" | "full";
+    shape: "circle" | "square";
+    color_theme: "white" | "pastel_blue" | "pastel_yellow";
+    show_numbers: boolean;
+    digital_format: "time_only" | "ampm" | "blank";
+    digital_color?: "black_green" | "white_black" | "blue_dark";
+  };
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}): string[] => {
+  const groupId = crypto.randomUUID();
+  const elements: CanvasElement[] = [];
+  const sizeSpec = CLOCK_SIZES[config.size];
+  const ANSWER_H = 28;
+  const ANSWER_GAP = 8;
+
+  if (config.clock_type === "analog") {
+    const d = sizeSpec.analog;
+    const r = d / 2;
+    const cx = r;
+    const cy = r;
+    const colors = CLOCK_COLORS[config.color_theme];
+
+    // 외곽 프레임
+    if (config.shape === "circle") {
+      elements.push({
+        id: crypto.randomUUID(), type: "ellipse", groupId,
+        x: 0, y: 0, w: d, h: d,
+        fill: colors.bg,
+        border: { enabled: true, color: colors.border, width: 2, style: "solid" },
+      });
+    } else {
+      elements.push({
+        id: crypto.randomUUID(), type: "roundRect", groupId,
+        x: 0, y: 0, w: d, h: d,
+        fill: colors.bg, radius: 12,
+        border: { enabled: true, color: colors.border, width: 2, style: "solid" },
+      });
+    }
+
+    // 눈금 12개 (시간 마커)
+    const TICK_OUTER = r * 0.88;
+    const TICK_INNER = r * 0.78;
+    for (let i = 0; i < 12; i++) {
+      const angle = i * 30;
+      const outer = clockAngleToXY(angle, TICK_OUTER, cx, cy);
+      const inner = clockAngleToXY(angle, TICK_INNER, cx, cy);
+      elements.push({
+        id: crypto.randomUUID(), type: "line", groupId,
+        start: { x: inner.x, y: inner.y },
+        end: { x: outer.x, y: outer.y },
+        stroke: { color: colors.border, width: 1.5, style: "solid" },
+      });
+    }
+
+    // 숫자 1~12
+    if (config.show_numbers) {
+      const NUM_R = r * 0.66;
+      const numSize = Math.max(12, Math.round(d * 0.1));
+      for (let i = 1; i <= 12; i++) {
+        const angle = i * 30;
+        const pos = clockAngleToXY(angle, NUM_R, cx, cy);
+        const tw = numSize * 1.5;
+        const th = numSize * 1.4;
+        elements.push({
+          id: crypto.randomUUID(), type: "text", groupId,
+          x: pos.x - tw / 2, y: pos.y - th / 2, w: tw, h: th,
+          text: String(i),
+          style: { fontSize: numSize, fontWeight: "bold", color: colors.numColor, underline: false, alignX: "center", alignY: "middle" },
+        });
+      }
+    }
+
+    // 중심점
+    const dotSize = Math.max(4, d * 0.03);
+    elements.push({
+      id: crypto.randomUUID(), type: "ellipse", groupId,
+      x: cx - dotSize / 2, y: cy - dotSize / 2, w: dotSize, h: dotSize,
+      fill: colors.border,
+    });
+
+    // 시침 — 굵고 짧게
+    if (config.variant !== "blank") {
+      const hourAngle = (config.hour % 12) * 30 + config.minute * 0.5;
+      const hourEnd = clockAngleToXY(hourAngle, r * 0.38, cx, cy);
+      elements.push({
+        id: crypto.randomUUID(), type: "line", groupId,
+        start: { x: cx, y: cy },
+        end: { x: hourEnd.x, y: hourEnd.y },
+        stroke: { color: colors.border, width: 4, style: "solid" },
+      });
+    }
+
+    // 분침 — 숫자 영역 침범하지 않도록 길이 조정
+    if (config.variant === "full") {
+      const minAngle = config.minute * 6;
+      const minEnd = clockAngleToXY(minAngle, r * 0.58, cx, cy);
+      elements.push({
+        id: crypto.randomUUID(), type: "line", groupId,
+        start: { x: cx, y: cy },
+        end: { x: minEnd.x, y: minEnd.y },
+        stroke: { color: colors.border, width: 2, style: "solid" },
+      });
+    }
+
+    // 답안 빈칸
+    if (config.show_answer_line) {
+      elements.push({
+        id: crypto.randomUUID(), type: "text", groupId,
+        x: 0, y: d + ANSWER_GAP, w: d, h: ANSWER_H,
+        text: "(    시    분)",
+        style: { fontSize: 15, fontWeight: "normal", color: "#666666", underline: false, alignX: "center", alignY: "middle" },
+      });
+    }
+  } else {
+    // 전자시계 — AM/PM 시 더 넓은 크기 + 작은 폰트
+    const isAmpm = config.digital_format === "ampm";
+    const dw = Math.round(sizeSpec.digitalW * (isAmpm ? 1.3 : 1));
+    const dh = sizeSpec.digitalH;
+    const fontSize = Math.round(dh * (isAmpm ? 0.40 : 0.52));
+
+    // 컬러 테마
+    const digitalColors: Record<string, { bg: string; border: string; text: string }> = {
+      black_green: { bg: "#1a1a2e", border: "#4a4a5a", text: "#4ade80" },
+      white_black: { bg: "#ffffff", border: "#333333", text: "#1a1a1a" },
+      blue_dark: { bg: "#e0f2fe", border: "#7dd3fc", text: "#1e3a5f" },
+    };
+    const dc = digitalColors[config.digital_color ?? "black_green"];
+
+    // 외곽
+    elements.push({
+      id: crypto.randomUUID(), type: "roundRect", groupId,
+      x: 0, y: 0, w: dw, h: dh,
+      fill: dc.bg, radius: 8,
+      border: { enabled: true, color: dc.border, width: 2, style: "solid" },
+    });
+
+    // 디스플레이 텍스트
+    let displayText: string;
+    if (config.digital_format === "blank") {
+      displayText = "  :  ";
+    } else {
+      const h = config.hour;
+      const m = String(config.minute).padStart(2, "0");
+      if (config.digital_format === "ampm") {
+        const period = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        displayText = `${h12}:${m} ${period}`;
+      } else {
+        displayText = `${h}:${m}`;
+      }
+    }
+
+    elements.push({
+      id: crypto.randomUUID(), type: "text", groupId,
+      x: 4, y: 0, w: dw - 8, h: dh,
+      text: displayText,
+      style: { fontSize, fontWeight: "bold", color: dc.text, underline: false, alignX: "center", alignY: "middle" },
+    });
+
+    // 답안 빈칸
+    if (config.show_answer_line) {
+      elements.push({
+        id: crypto.randomUUID(), type: "text", groupId,
+        x: 0, y: dh + ANSWER_GAP, w: dw, h: ANSWER_H,
+        text: "(    시    분)",
+        style: { fontSize: 15, fontWeight: "normal", color: "#666666", underline: false, alignX: "center", alignY: "middle" },
+      });
+    }
+  }
+
+  // 페이지 좌상단 마진 위치에 배치
+  const offsetX = mmToPx(15);
+  const offsetY = mmToPx(15);
+  for (const el of elements) {
+    if ("x" in el && "y" in el) {
+      (el as { x: number; y: number }).x += offsetX;
+      (el as { y: number }).y += offsetY;
+    }
+    if ("start" in el && "end" in el) {
+      const lineEl = el as { start: { x: number; y: number }; end: { x: number; y: number } };
+      lineEl.start.x += offsetX;
+      lineEl.start.y += offsetY;
+      lineEl.end.x += offsetX;
+      lineEl.end.y += offsetY;
+    }
+  }
+
+  const ids = elements.map((el) => el.id);
+
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === pageId
+        ? bumpPageRevision({ ...page, elements: [...page.elements, ...elements] })
+        : page
+    )
+  );
+
+  return ids;
+};
+
 export const addAacCardElement = ({
   pageId,
   setPages,

@@ -16,7 +16,8 @@ export type WorksheetComponentType =
   | "sentence_fill"
   | "passage_question"
   | "matching_connect"
-  | "date_name_field";
+  | "date_name_field"
+  | "clock_face";
 
 // --- Config types ---
 
@@ -157,6 +158,20 @@ export interface DateNameFieldConfig {
   font_size: number;
 }
 
+export interface ClockFaceConfig {
+  clock_type: "analog" | "digital";
+  hour: number;
+  minute: number;
+  show_answer_line: boolean;
+  size: "small" | "medium" | "large";
+  variant: "blank" | "hour_only" | "full";
+  shape: "circle" | "square";
+  color_theme: "white" | "pastel_blue" | "pastel_yellow";
+  show_numbers: boolean;
+  digital_format: "time_only" | "ampm" | "blank";
+  digital_color: "black_green" | "white_black" | "blue_dark";
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -173,7 +188,8 @@ export type WorksheetConfig =
   | SentenceFillConfig
   | PassageQuestionConfig
   | MatchingConnectConfig
-  | DateNameFieldConfig;
+  | DateNameFieldConfig
+  | ClockFaceConfig;
 
 export interface WorksheetComponent {
   id: string;

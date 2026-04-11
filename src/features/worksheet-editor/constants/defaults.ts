@@ -18,6 +18,7 @@ import type {
   PassageQuestionConfig,
   MatchingConnectConfig,
   DateNameFieldConfig,
+  ClockFaceConfig,
 } from "../model/types";
 
 export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = {
@@ -171,6 +172,20 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
     background: "none",
     font_size: 17,
   } satisfies DateNameFieldConfig,
+
+  clock_face: {
+    clock_type: "analog",
+    hour: 3,
+    minute: 0,
+    show_answer_line: true,
+    size: "medium",
+    variant: "blank",
+    shape: "circle",
+    color_theme: "white",
+    show_numbers: true,
+    digital_format: "time_only",
+    digital_color: "black_green",
+  } satisfies ClockFaceConfig,
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
@@ -190,6 +205,7 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   passage_question: { icon: "📖", name: "지문+질문" },
   matching_connect: { icon: "🔗", name: "의미 연결하기" },
   date_name_field: { icon: "📅", name: "날짜&이름" },
+  clock_face: { icon: "🕐", name: "시계" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {

@@ -26,6 +26,7 @@ import type {
   PassageQuestionConfig,
   MatchingConnectConfig,
   DateNameFieldConfig,
+  ClockFaceConfig,
 } from "@/features/worksheet-editor/model/types";
 import {
   HeaderInstructionForm,
@@ -44,6 +45,7 @@ import {
   PassageQuestionForm,
   MatchingConnectForm,
   DateNameFieldForm,
+  ClockFaceForm,
 } from "@/features/worksheet-editor/sections/forms/EditorForms";
 import type { InsertedWorksheetComponent } from "@/features/editor/store/worksheetElementStore";
 
@@ -120,6 +122,8 @@ const renderForm = (
       return <MatchingConnectForm config={comp.config as MatchingConnectConfig} onUpdate={onUpdate} />;
     case "date_name_field":
       return <DateNameFieldForm config={comp.config as DateNameFieldConfig} onUpdate={onUpdate} />;
+    case "clock_face":
+      return <ClockFaceForm config={comp.config as ClockFaceConfig} onUpdate={onUpdate} />;
     default:
       return null;
   }

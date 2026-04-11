@@ -17,6 +17,7 @@ import type {
   PassageQuestionConfig,
   MatchingConnectConfig,
   DateNameFieldConfig,
+  ClockFaceConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
 
@@ -1225,6 +1226,163 @@ export const DateNameFieldForm = ({ config, onUpdate }: FormProps<DateNameFieldC
       <p className="text-[10px] text-black-45 mt-1">
         {BG_OPTIONS.find((o) => o.key === config.background)?.label ?? "없음"}
       </p>
+    </div>
+  </>
+);
+
+// --- 시계 ---
+
+const COLOR_THEME_OPTIONS: { key: ClockFaceConfig["color_theme"]; label: string; bg: string; border: string }[] = [
+  { key: "white", label: "흰색", bg: "#ffffff", border: "#333333" },
+  { key: "pastel_blue", label: "파란색", bg: "#eff6ff", border: "#93c5fd" },
+  { key: "pastel_yellow", label: "노란색", bg: "#fefce8", border: "#fde68a" },
+];
+
+export const ClockFaceForm = ({ config, onUpdate }: FormProps<ClockFaceConfig>) => (
+  <>
+    {/* 시계 종류 */}
+    <div className="mb-3">
+      <label className={labelCls}>시계 종류</label>
+      <div className={chipGroupCls}>
+        <Chip label="아날로그" isActive={config.clock_type === "analog"} onClick={() => onUpdate((c) => ({ ...c, clock_type: "analog" }))} />
+        <Chip label="전자시계" isActive={config.clock_type === "digital"} onClick={() => onUpdate((c) => ({ ...c, clock_type: "digital" }))} />
+      </div>
+    </div>
+
+    {/* 아날로그 전용 옵션 */}
+    {config.clock_type === "analog" && (
+      <>
+        <div className="mb-3">
+          <label className={labelCls}>바늘</label>
+          <div className={chipGroupCls}>
+            <Chip label="빈 시계" isActive={config.variant === "blank"} onClick={() => onUpdate((c) => ({ ...c, variant: "blank" }))} />
+            <Chip label="시침만" isActive={config.variant === "hour_only"} onClick={() => onUpdate((c) => ({ ...c, variant: "hour_only" }))} />
+            <Chip label="시침+분침" isActive={config.variant === "full"} onClick={() => onUpdate((c) => ({ ...c, variant: "full" }))} />
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className={labelCls}>프레임</label>
+          <div className={chipGroupCls}>
+            <Chip label="원형" isActive={config.shape === "circle"} onClick={() => onUpdate((c) => ({ ...c, shape: "circle" }))} />
+            <Chip label="사각형" isActive={config.shape === "square"} onClick={() => onUpdate((c) => ({ ...c, shape: "square" }))} />
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className={labelCls}>컬러</label>
+          <div className="flex gap-2">
+            {COLOR_THEME_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`flex-1 h-9 rounded-lg border-[1.5px] cursor-pointer transition ${
+                  config.color_theme === opt.key
+                    ? "border-primary ring-2 ring-primary-200 scale-105"
+                    : "border-black-25 hover:border-primary-200"
+                }`}
+                style={{ backgroundColor: opt.bg, borderColor: config.color_theme === opt.key ? undefined : opt.border }}
+                onClick={() => onUpdate((c) => ({ ...c, color_theme: opt.key }))}
+                title={opt.label}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className={labelCls}>숫자 표시</label>
+          <div className={chipGroupCls}>
+            <Chip label="있음" isActive={config.show_numbers} onClick={() => onUpdate((c) => ({ ...c, show_numbers: true }))} />
+            <Chip label="없음" isActive={!config.show_numbers} onClick={() => onUpdate((c) => ({ ...c, show_numbers: false }))} />
+          </div>
+        </div>
+      </>
+    )}
+
+    {/* 전자시계 전용 옵션 */}
+    {config.clock_type === "digital" && (
+      <>
+        <div className="mb-3">
+          <label className={labelCls}>표시 형식</label>
+          <div className={chipGroupCls}>
+            <Chip label="시:분" isActive={config.digital_format === "time_only"} onClick={() => onUpdate((c) => ({ ...c, digital_format: "time_only" }))} />
+            <Chip label="AM/PM" isActive={config.digital_format === "ampm"} onClick={() => onUpdate((c) => ({ ...c, digital_format: "ampm" }))} />
+            <Chip label="빈칸" isActive={config.digital_format === "blank"} onClick={() => onUpdate((c) => ({ ...c, digital_format: "blank" }))} />
+          </div>
+        </div>
+        <div className="mb-3">
+          <label className={labelCls}>컬러</label>
+          <div className="flex gap-2">
+            {([
+              { key: "black_green" as const, bg: "#1a1a2e", border: "#4a4a5a", label: "블랙" },
+              { key: "white_black" as const, bg: "#ffffff", border: "#333333", label: "화이트" },
+              { key: "blue_dark" as const, bg: "#e0f2fe", border: "#7dd3fc", label: "하늘색" },
+            ]).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`flex-1 h-9 rounded-lg border-[1.5px] cursor-pointer transition ${
+                  (config.digital_color ?? "black_green") === opt.key
+                    ? "border-primary ring-2 ring-primary-200 scale-105"
+                    : "border-black-25 hover:border-primary-200"
+                }`}
+                style={{ backgroundColor: opt.bg, borderColor: (config.digital_color ?? "black_green") === opt.key ? undefined : opt.border }}
+                onClick={() => onUpdate((c) => ({ ...c, digital_color: opt.key }))}
+                title={opt.label}
+              />
+            ))}
+          </div>
+        </div>
+      </>
+    )}
+
+    {/* 시/분 (바늘 있거나 전자시계 비빈칸일 때) */}
+    {(config.clock_type === "analog" ? config.variant !== "blank" : config.digital_format !== "blank") && (
+      <div className="mb-3">
+        <label className={labelCls}>시간 설정</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={12}
+            className={`${inputCls} w-16 text-center`}
+            value={config.hour}
+            onChange={(e) => {
+              const v = Math.min(12, Math.max(1, Number(e.target.value) || 1));
+              onUpdate((c) => ({ ...c, hour: v }));
+            }}
+          />
+          <span className="text-14-semibold text-black-50">시</span>
+          <input
+            type="number"
+            min={0}
+            max={59}
+            className={`${inputCls} w-16 text-center`}
+            value={config.minute}
+            onChange={(e) => {
+              const v = Math.min(59, Math.max(0, Number(e.target.value) || 0));
+              onUpdate((c) => ({ ...c, minute: v }));
+            }}
+          />
+          <span className="text-14-semibold text-black-50">분</span>
+        </div>
+      </div>
+    )}
+
+    {/* 크기 */}
+    <div className="mb-3">
+      <label className={labelCls}>크기</label>
+      <div className={chipGroupCls}>
+        <Chip label="작게" isActive={config.size === "small"} onClick={() => onUpdate((c) => ({ ...c, size: "small" }))} />
+        <Chip label="보통" isActive={config.size === "medium"} onClick={() => onUpdate((c) => ({ ...c, size: "medium" }))} />
+        <Chip label="크게" isActive={config.size === "large"} onClick={() => onUpdate((c) => ({ ...c, size: "large" }))} />
+      </div>
+    </div>
+
+    {/* 답안 빈칸 */}
+    <div className="mb-3">
+      <label className={labelCls}>답안 빈칸</label>
+      <div className={chipGroupCls}>
+        <Chip label="있음" isActive={config.show_answer_line} onClick={() => onUpdate((c) => ({ ...c, show_answer_line: true }))} />
+        <Chip label="없음" isActive={!config.show_answer_line} onClick={() => onUpdate((c) => ({ ...c, show_answer_line: false }))} />
+      </div>
     </div>
   </>
 );

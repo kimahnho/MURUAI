@@ -978,7 +978,8 @@ const buildComponentElements = (
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
     case "date_name_field":
-      // 자유 배치 요소 — pageFactory.addDateNameFieldElement()에서 직접 삽입
+    case "clock_face":
+      // 자유 배치 요소 — pageFactory에서 직접 삽입
       return { elements: [], height: 0 };
     default:
       return { elements: [], height: 0 };
@@ -1027,7 +1028,7 @@ export const buildWorksheetComponentElementsFromConfig = (
  * 각 컴포넌트의 내부 요소 상대 위치는 유지하고, 컴포넌트 간 COMP_GAP 간격을 보장.
  */
 /** XY 완전 자유 배치 — reflow에서 완전 제외 */
-const FREE_POSITION_TYPES = new Set<string>(["date_name_field"]);
+const FREE_POSITION_TYPES = new Set<string>(["date_name_field", "clock_face"]);
 /** Y 자유 + X 중앙 정렬 — Y는 사용자 설정값 유지, 아래 컴포넌트는 이 컴포넌트 하단부터 스택 */
 export const Y_FREE_TYPES = new Set<string>(["header_instruction"]);
 
