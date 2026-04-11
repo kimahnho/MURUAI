@@ -13,6 +13,7 @@ import { useEmotionSceneStore } from "../store/emotionSceneStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { migrateLogoFill } from "../utils/logoElement";
+import { migrateCloudinaryToWebp } from "../utils/migrateCloudinaryUrls";
 
 type DocumentLoaderParams = {
   docId?: string;
@@ -77,6 +78,8 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
 
       // 기존 문서의 로고 fill을 현재 고정 URL로 교체 (빌드 해시 변경 대응)
       migrateLogoFill((canvasData as CanvasDocument).pages);
+      // 비WebP Cloudinary URL을 WebP 버전으로 자동 교체
+      migrateCloudinaryToWebp((canvasData as CanvasDocument).pages);
 
       setLoadedDocument(canvasData as CanvasDocument);
       setLoadedDocumentId(row.id);

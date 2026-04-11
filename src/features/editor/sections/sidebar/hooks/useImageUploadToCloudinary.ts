@@ -4,6 +4,7 @@
 import { useState, useCallback } from "react";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { supabase } from "@/shared/api/supabase";
+import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { mp } from "@/shared/utils/mixpanel";
 
@@ -13,15 +14,29 @@ const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env
   .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
-const getImageUrl = (path: string): string => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
-};
+/** 브라우저 Canvas API로 이미지를 WebP data URL로 변환 (SVG 제외) */
+
+const convertToWebpDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas context failed"));
+      ctx.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL("image/webp", 0.92);
+      URL.revokeObjectURL(img.src);
+      console.log("[WebP 변환]", dataUrl.substring(0, 30), "길이:", dataUrl.length);
+      resolve(dataUrl);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error("Image load failed"));
+    };
+    img.src = URL.createObjectURL(file);
+  });
 
 /**
  * 이미지 파일을 Cloudinary에 업로드하고 user_uploads_n에 등록합니다.
@@ -61,7 +76,13 @@ export const useImageUploadToCloudinary = () => {
         const formData = new FormData();
         const publicId = crypto.randomUUID();
         const folder = `muru-user-uploads/${user.id}`;
-        formData.append("file", file);
+        const isSvg = file.type === "image/svg+xml";
+        if (isSvg) {
+          formData.append("file", file);
+        } else {
+          const webpDataUrl = await convertToWebpDataUrl(file);
+          formData.append("file", webpDataUrl);
+        }
         formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
         formData.append("folder", folder);
         formData.append("public_id", publicId);
@@ -82,6 +103,7 @@ export const useImageUploadToCloudinary = () => {
           public_id: string;
           format?: string;
         };
+        console.log("[Cloudinary 응답] format:", payload.format, "public_id:", payload.public_id);
         const imagePath = payload.format
           ? `${payload.public_id}.${payload.format}`
           : payload.public_id;
@@ -98,7 +120,7 @@ export const useImageUploadToCloudinary = () => {
         }
 
         mp.track("이미지 업로드", { file_type: file.type });
-        return getImageUrl(imagePath);
+        return getCloudinaryImageUrl(imagePath);
       } catch (error) {
         captureSentryError(error, "이미지 업로드");
         showToast("업로드에 실패했어요.");
