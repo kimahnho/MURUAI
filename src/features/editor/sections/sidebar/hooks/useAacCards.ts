@@ -3,6 +3,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/shared/api/supabase";
+import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
 
 type AacCardRow = {
   id: string;
@@ -20,20 +21,6 @@ export type AacCard = {
   category: string;
 };
 
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
-  | string
-  | undefined;
-
-const getImageUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
-};
-
 const fetchAllAacCards = async (): Promise<AacCard[]> => {
   const { data, error } = await supabase
     .from("aac_cards")
@@ -45,7 +32,7 @@ const fetchAllAacCards = async (): Promise<AacCard[]> => {
 
   return (data as AacCardRow[]).map((item) => ({
     id: item.id,
-    url: getImageUrl(item.image_path),
+    url: getCloudinaryImageUrl(item.image_path),
     alt: item.label,
     emoji: item.emoji ?? "",
     category: item.category,

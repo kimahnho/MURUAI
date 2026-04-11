@@ -8,6 +8,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { supabase } from "@/shared/api/supabase";
+import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { useImageFillStore } from "@/features/editor/store/imageFillStore";
 import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
@@ -17,20 +18,6 @@ type UploadedFile = {
   id: string;
   image_path: string;
   created_at: string;
-};
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
-  | string
-  | undefined;
-
-const getImageUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
 };
 
 type UploadedFileItem = UploadedFile & { url: string };
@@ -121,7 +108,7 @@ export const useUploadContentState = () => {
 
   const fileItems: UploadedFileItem[] = uploadedFiles.map((file) => ({
     ...file,
-    url: getImageUrl(file.image_path),
+    url: getCloudinaryImageUrl(file.image_path),
   }));
 
   const handleOpenContextMenu = (

@@ -14,25 +14,12 @@ import type {
 } from "@/features/editor/model/pageTypes";
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import { useImageUploadToCloudinary } from "../hooks/useImageUploadToCloudinary";
+import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
 
 type UploadedFile = {
   id: string;
   image_path: string;
   created_at: string;
-};
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
-  | string
-  | undefined;
-
-const getImageUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
 };
 
 const NUMBER_FORMAT_OPTIONS: Array<{ value: PageNumberFormat; label: string }> =
@@ -68,7 +55,7 @@ const PageContent = () => {
       uploadedFiles.map((file) => ({
         id: file.id,
         createdAt: file.created_at,
-        imageUrl: getImageUrl(file.image_path),
+        imageUrl: getCloudinaryImageUrl(file.image_path),
       })),
     [uploadedFiles],
   );
