@@ -44,6 +44,8 @@ import { useUploadListStore } from "../../../store/useUploadListStore";
 import { useToastStore } from "../../../store/toastStore";
 import { trackImageUsageEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
+import { useWorksheetElementStore } from "../../../store/worksheetElementStore";
+import type { HeaderInstructionConfig } from "@/features/worksheet-editor/model/types";
 
 type TextStylePatch = Partial<TextElement["style"]>;
 type TextElementPatch = Omit<Partial<TextElement>, "style"> & {
@@ -246,6 +248,18 @@ export const useDesignPaperElementRenderer = ({
         })}
         onTextChange={(nextText, nextRichText) => {
           updateElement(element.id, { text: nextText, richText: nextRichText });
+          // 워크시트 header_instruction 텍스트를 config에 즉시 역동기화
+          if (element.worksheetMeta?.componentType === "header_instruction") {
+            const store = useWorksheetElementStore.getState();
+            const comp = store.insertedComponents.find((c) => c.id === element.worksheetMeta!.componentId);
+            if (comp) {
+              const hiConfig = { ...comp.config } as HeaderInstructionConfig;
+              // 제목(fontSize >= 20) vs 지시문 식별
+              if (element.style.fontSize >= 20) hiConfig.title = nextText;
+              else hiConfig.instruction = nextText;
+              store.updateComponentConfigSilent(comp.id, hiConfig);
+            }
+          }
         }}
         onRectChange={
           isEmotionSlotText

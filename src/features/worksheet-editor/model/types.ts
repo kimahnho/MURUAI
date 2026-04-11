@@ -15,7 +15,9 @@ export type WorksheetComponentType =
   | "sentence_completion"
   | "sentence_fill"
   | "passage_question"
-  | "matching_connect";
+  | "matching_connect"
+  | "date_name_field"
+  | "clock_face";
 
 // --- Config types ---
 
@@ -24,6 +26,7 @@ export interface HeaderInstructionConfig {
   title_highlights: string[];
   instruction: string;
   rule_note: string;
+  title_align?: "left" | "center" | "right";
 }
 
 export interface ArrowTransformConfig {
@@ -148,6 +151,27 @@ export interface MatchingConnectConfig {
   answer_key_text: string;
 }
 
+export interface DateNameFieldConfig {
+  layout: "inline" | "stacked";
+  show_day: boolean;
+  background: "none" | "round_mint" | "round_lavender" | "round_peach";
+  font_size: number;
+}
+
+export interface ClockFaceConfig {
+  clock_type: "analog" | "digital";
+  hour: number;
+  minute: number;
+  show_answer_line: boolean;
+  size: "small" | "medium" | "large";
+  variant: "blank" | "hour_only" | "full";
+  shape: "circle" | "square";
+  color_theme: "white" | "pastel_blue" | "pastel_yellow";
+  show_numbers: boolean;
+  digital_format: "time_only" | "ampm" | "blank";
+  digital_color: "black_green" | "white_black" | "blue_dark";
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -163,7 +187,9 @@ export type WorksheetConfig =
   | SentenceCompletionConfig
   | SentenceFillConfig
   | PassageQuestionConfig
-  | MatchingConnectConfig;
+  | MatchingConnectConfig
+  | DateNameFieldConfig
+  | ClockFaceConfig;
 
 export interface WorksheetComponent {
   id: string;

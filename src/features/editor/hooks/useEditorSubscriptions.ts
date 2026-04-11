@@ -41,6 +41,7 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
+import { addDateNameFieldElement, addClockFaceElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
 
@@ -339,6 +340,89 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
+      const compType = state.requestedComponent;
+
+      // 날짜&이름 칸은 자유 배치 요소로 삽입 (워크시트 세로 스택 우회, groupId 기반)
+      if (compType === "date_name_field") {
+        const config = structuredClone(DEFAULT_CONFIGS[compType]) as import("@/features/worksheet-editor/model/types").DateNameFieldConfig;
+        const getOrientation = () => page.orientation ?? null;
+        const ids = addDateNameFieldElement({
+          pageId: activePageId,
+          layout: config.layout,
+          showDay: config.show_day,
+          background: config.background,
+          fontSize: config.font_size,
+          setPages,
+          getOrientation,
+        });
+
+        // 편집 패널용 등록 + worksheetMeta 스탬프 (undo/redo 복원에 필요)
+        const wsCompId = crypto.randomUUID();
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId,
+          type: compType,
+          config,
+          elementIds: ids,
+        });
+
+        // worksheetMeta 스탬프 + worksheetComponents 기록
+        const idSet = new Set(ids);
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+              id: wsCompId,
+              type: compType,
+              config,
+              elementIds: ids,
+            };
+            return {
+              ...p,
+              elements: p.elements.map((el) =>
+                idSet.has(el.id) ? { ...el, worksheetMeta: { componentId: wsCompId, componentType: compType } } : el,
+              ),
+              worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+            };
+          }),
+        );
+
+        setSelectedIds(ids);
+        setEditingTextId(null);
+        return;
+      }
+
+      // 시계: 자유 배치 (date_name_field와 동일 패턴)
+      if (compType === "clock_face") {
+        const config = structuredClone(DEFAULT_CONFIGS[compType]) as import("@/features/worksheet-editor/model/types").ClockFaceConfig;
+        const ids = addClockFaceElement({ pageId: activePageId, config, setPages });
+
+        const wsCompId = crypto.randomUUID();
+        useWorksheetElementStore.getState().addInsertedComponent({
+          id: wsCompId, type: compType, config, elementIds: ids,
+        });
+
+        const idSet = new Set(ids);
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
+              id: wsCompId, type: compType, config, elementIds: ids,
+            };
+            return {
+              ...p,
+              elements: p.elements.map((el) =>
+                idSet.has(el.id) ? { ...el, worksheetMeta: { componentId: wsCompId, componentType: compType } } : el,
+              ),
+              worksheetComponents: [...(p.worksheetComponents ?? []), wsComp],
+            };
+          }),
+        );
+
+        setSelectedIds(ids);
+        setEditingTextId(null);
+        return;
+      }
+
       // 로고 요소를 제외한 현재 페이지 최하단 Y좌표 계산
       const SINGLE_MARGIN_PX = 56.7; // mmToPx(15) ≈ 기본 마진
       let maxY = SINGLE_MARGIN_PX;
@@ -351,8 +435,6 @@ export const useEditorSubscriptions = ({
       }
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
-
-      const compType = state.requestedComponent;
       const newElements = buildWorksheetComponentElements(compType, insertY);
       if (newElements.length === 0) return;
 
@@ -494,7 +576,7 @@ export const useEditorSubscriptions = ({
 
         const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
           page.elements,
-          insertedComponents.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+          insertedComponents.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
           undefined,
           true,
         );
@@ -514,6 +596,173 @@ export const useEditorSubscriptions = ({
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
 
+      // 날짜&이름 칸: 자유 배치 — 기존 위치 유지 + reflow 없이 직접 재생성
+      if (comp.type === "date_name_field") {
+        const dnConfig = comp.config as import("@/features/worksheet-editor/model/types").DateNameFieldConfig;
+        const oldIds = new Set(comp.elementIds);
+
+        // 기존 요소의 바운딩 박스에서 좌상단 좌표 복원
+        let minX = Infinity;
+        let minY = Infinity;
+        for (const el of page.elements) {
+          if (oldIds.has(el.id) && "x" in el && "y" in el) {
+            const ex = (el as { x: number }).x;
+            const ey = (el as { y: number }).y;
+            if (ex < minX) minX = ex;
+            if (ey < minY) minY = ey;
+          }
+        }
+
+        // 기존 요소 제거
+        const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
+
+        // 새 요소 생성 (임시 페이지에 생성 후 추출)
+        const getOrientation = () => page.orientation ?? null;
+        const tempPages: import("../model/pageTypes").Page[] = [{ ...page, elements: cleaned }];
+        const tempSetPages: import("react").Dispatch<import("react").SetStateAction<import("../model/pageTypes").Page[]>> = (updater) => {
+          const next = typeof updater === "function" ? updater(tempPages) : updater;
+          tempPages.length = 0;
+          tempPages.push(...next);
+        };
+        const newIds = addDateNameFieldElement({
+          pageId: activePageId,
+          layout: dnConfig.layout,
+          showDay: dnConfig.show_day,
+          background: dnConfig.background,
+          fontSize: dnConfig.font_size,
+          setPages: tempSetPages,
+          getOrientation,
+        });
+
+        // 새 요소를 기존 위치로 이동
+        const newPage = tempPages.find((p) => p.id === activePageId);
+        if (!newPage) return;
+        const newEls = newPage.elements.filter((el) => newIds.includes(el.id));
+        let newMinX = Infinity;
+        let newMinY = Infinity;
+        for (const el of newEls) {
+          if ("x" in el && "y" in el) {
+            const ex = (el as { x: number }).x;
+            const ey = (el as { y: number }).y;
+            if (ex < newMinX) newMinX = ex;
+            if (ey < newMinY) newMinY = ey;
+          }
+        }
+        const dx = isFinite(minX) ? minX - newMinX : 0;
+        const dy = isFinite(minY) ? minY - newMinY : 0;
+        const repositioned = newEls.map((el) => {
+          const stamped = { ...el, worksheetMeta: { componentId: comp.id, componentType: comp.type } };
+          if ("x" in stamped && "y" in stamped) {
+            return { ...stamped, x: (stamped as { x: number }).x + dx, y: (stamped as { y: number }).y + dy };
+          }
+          return stamped;
+        });
+
+        const store = useWorksheetElementStore.getState();
+        store.updateElementIds(comp.id, newIds);
+
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const finalElements = cleaned.concat(repositioned as typeof cleaned);
+            const finalComps = useWorksheetElementStore.getState().insertedComponents;
+            return {
+              ...p,
+              elements: finalElements,
+              worksheetComponents: finalComps.map((c) => ({
+                id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+              })),
+            };
+          }),
+        );
+        setSelectedIds(newIds);
+        return;
+      }
+
+      // 시계: 자유 배치 — 기존 위치 유지 + reflow 없이 직접 재생성
+      if (comp.type === "clock_face") {
+        const cfConfig = comp.config as import("@/features/worksheet-editor/model/types").ClockFaceConfig;
+        const oldIds = new Set(comp.elementIds);
+
+        let minX = Infinity;
+        let minY = Infinity;
+        for (const el of page.elements) {
+          if (oldIds.has(el.id) && "x" in el && "y" in el) {
+            if ((el as { x: number }).x < minX) minX = (el as { x: number }).x;
+            if ((el as { y: number }).y < minY) minY = (el as { y: number }).y;
+          }
+          // line 요소는 start/end로 좌표 확인
+          if (oldIds.has(el.id) && "start" in el) {
+            const s = (el as { start: { x: number; y: number } }).start;
+            if (s.x < minX) minX = s.x;
+            if (s.y < minY) minY = s.y;
+          }
+        }
+
+        const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
+
+        const tempPages: import("../model/pageTypes").Page[] = [{ ...page, elements: cleaned }];
+        const tempSetPages: import("react").Dispatch<import("react").SetStateAction<import("../model/pageTypes").Page[]>> = (updater) => {
+          const next = typeof updater === "function" ? updater(tempPages) : updater;
+          tempPages.length = 0;
+          tempPages.push(...next);
+        };
+        const newIds = addClockFaceElement({ pageId: activePageId, config: cfConfig, setPages: tempSetPages });
+
+        const newPage = tempPages.find((p) => p.id === activePageId);
+        if (!newPage) return;
+        const newEls = newPage.elements.filter((el) => newIds.includes(el.id));
+
+        // 새 요소의 최소 좌표
+        let newMinX = Infinity;
+        let newMinY = Infinity;
+        for (const el of newEls) {
+          if ("x" in el && "y" in el) {
+            if ((el as { x: number }).x < newMinX) newMinX = (el as { x: number }).x;
+            if ((el as { y: number }).y < newMinY) newMinY = (el as { y: number }).y;
+          }
+          if ("start" in el) {
+            const s = (el as { start: { x: number; y: number } }).start;
+            if (s.x < newMinX) newMinX = s.x;
+            if (s.y < newMinY) newMinY = s.y;
+          }
+        }
+
+        const dx = isFinite(minX) ? minX - newMinX : 0;
+        const dy = isFinite(minY) ? minY - newMinY : 0;
+        const repositioned = newEls.map((el) => {
+          const stamped = { ...el, worksheetMeta: { componentId: comp.id, componentType: comp.type } };
+          if ("x" in stamped && "y" in stamped) {
+            return { ...stamped, x: (stamped as { x: number }).x + dx, y: (stamped as { y: number }).y + dy };
+          }
+          if ("start" in stamped && "end" in stamped) {
+            const s = stamped as { start: { x: number; y: number }; end: { x: number; y: number } };
+            return { ...stamped, start: { x: s.start.x + dx, y: s.start.y + dy }, end: { x: s.end.x + dx, y: s.end.y + dy } };
+          }
+          return stamped;
+        });
+
+        const store = useWorksheetElementStore.getState();
+        store.updateElementIds(comp.id, newIds);
+
+        setPages((prev) =>
+          prev.map((p) => {
+            if (p.id !== activePageId) return p;
+            const finalElements = cleaned.concat(repositioned as typeof cleaned);
+            const finalComps = useWorksheetElementStore.getState().insertedComponents;
+            return {
+              ...p,
+              elements: finalElements,
+              worksheetComponents: finalComps.map((c) => ({
+                id: c.id, type: c.type, config: c.config, elementIds: c.elementIds,
+              })),
+            };
+          }),
+        );
+        setSelectedIds(newIds);
+        return;
+      }
+
       // 기존 요소의 Y좌표 찾기
       const oldElementIdSet = new Set(comp.elementIds);
       let insertY = 56.7;
@@ -526,7 +775,7 @@ export const useEditorSubscriptions = ({
 
       // config로 새 요소 빌드 + worksheetMeta 스탬프
       // (이미지 상태는 config.items.imageUrl에 저장되어 있으므로 buildGrid에서 직접 복원)
-      const newElements = buildWorksheetComponentElementsFromConfig(
+      const rawNewElements = buildWorksheetComponentElementsFromConfig(
         comp.type,
         comp.config,
         insertY,
@@ -534,6 +783,29 @@ export const useEditorSubscriptions = ({
         ...el,
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
       }));
+
+      // header_instruction: 기존 요소의 폰트 스타일을 새 요소에 복원
+      // (캔버스에서 직접 변경한 fontFamily/fontSize 등이 재빌드로 유실되는 것을 방지)
+      let newElements = rawNewElements;
+      if (comp.type === "header_instruction") {
+        const oldTextEls = page.elements.filter(
+          (el) => oldElementIdSet.has(el.id) && el.type === "text",
+        ) as import("../model/canvasTypes").TextElement[];
+        // 역할별 매칭: fontSize 기준 (제목 >= 20, 지시문 < 20 && 비파란색, 메모 = 파란색)
+        const oldTitle = oldTextEls.find((el) => el.style.fontSize >= 20);
+        const oldInstruction = oldTextEls.find((el) => el.style.fontSize < 20 && el.style.color !== "#2e6da4");
+        newElements = rawNewElements.map((el) => {
+          if (el.type !== "text") return el;
+          const textEl = el as import("../model/canvasTypes").TextElement;
+          let source: import("../model/canvasTypes").TextElement | undefined;
+          if (textEl.style.fontSize >= 20) source = oldTitle;
+          else if (textEl.style.fontSize < 20 && textEl.style.color !== "#2e6da4") source = oldInstruction;
+          if (source?.style.fontFamily) {
+            return { ...el, style: { ...textEl.style, fontFamily: source.style.fontFamily } };
+          }
+          return el;
+        });
+      }
 
       // 기존 요소 제거 + 새 요소 삽입
       const updatedElements = page.elements
@@ -548,7 +820,7 @@ export const useEditorSubscriptions = ({
       const latestComps = useWorksheetElementStore.getState().insertedComponents;
       const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
         updatedElements,
-        latestComps.map((c) => ({ id: c.id, elementIds: c.elementIds })),
+        latestComps.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
         undefined,
         true,
       );
@@ -620,13 +892,13 @@ export const useEditorSubscriptions = ({
     const currentPageId = selectedPageIdRef.current;
     const page = pagesRef.current.find((p) => p.id === currentPageId);
     if (page) {
-      // groupId 마이그레이션
-      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+      // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
+      const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face");
       if (needsMigration) {
         setPages((prev) =>
           prev.map((p) =>
             p.id === currentPageId
-              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+              ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face" ? { ...el, groupId: undefined } : el) }
               : p,
           ),
         );
@@ -660,13 +932,13 @@ export const useEditorSubscriptions = ({
         lastPageId = currentPageId;
         lastElementCount = currentElementCount;
 
-        // groupId 마이그레이션
-        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId);
+        // groupId 마이그레이션 — date_name_field는 groupId 필수이므로 제외
+        const needsMigration = page.elements.some((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face");
         if (needsMigration) {
           setPages((prev) =>
             prev.map((p) =>
               p.id === currentPageId
-                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId ? { ...el, groupId: undefined } : el) }
+                ? { ...p, elements: p.elements.map((el) => el.worksheetMeta && el.groupId && el.worksheetMeta.componentType !== "date_name_field" && el.worksheetMeta.componentType !== "clock_face" ? { ...el, groupId: undefined } : el) }
                 : p,
             ),
           );
@@ -739,14 +1011,35 @@ export const useEditorSubscriptions = ({
             const idSet = new Set(elementIds);
             let minY = Infinity;
             for (const el of page.elements) {
-              if (idSet.has(el.id) && "y" in el) {
+              if (!idSet.has(el.id)) continue;
+              if ("y" in el) {
                 const y = (el as { y: number }).y;
                 if (y < minY) minY = y;
+              } else if ("start" in el) {
+                const sy = (el as { start: { y: number } }).start.y;
+                if (sy < minY) minY = sy;
               }
             }
             return minY === Infinity ? 0 : minY;
           };
-          const sorted = [...allComps].sort((a, b) => getMinY(a.elementIds) - getMinY(b.elementIds));
+          // Y_FREE 컴포넌트는 원래 인덱스 유지, 나머지만 Y순 정렬
+          const yFreeSlots = new Map<number, typeof allComps[number]>();
+          const sortable: (typeof allComps[number] & { _minY: number })[] = [];
+          for (let i = 0; i < allComps.length; i++) {
+            const c = allComps[i];
+            if (c.type === "header_instruction") {
+              yFreeSlots.set(i, c);
+            } else {
+              sortable.push({ ...c, _minY: getMinY(c.elementIds) });
+            }
+          }
+          sortable.sort((a, b) => a._minY - b._minY);
+          const sorted: typeof allComps = new Array(allComps.length);
+          for (const [idx, c] of yFreeSlots) sorted[idx] = c;
+          let si = 0;
+          for (let i = 0; i < sorted.length; i++) {
+            if (!sorted[i]) sorted[i] = sortable[si++];
+          }
           useWorksheetElementStore.setState({ insertedComponents: sorted });
 
           setPages((prev) =>
