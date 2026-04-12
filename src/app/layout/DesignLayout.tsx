@@ -64,7 +64,7 @@ const DesignLayout = () => {
     };
   }, []);
 
-  const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument } =
+  const { docName, setDocName, loadedDocument, loadedDocumentId, clearLoadedDocument, isReadOnly } =
     useDocumentLoader({ docId });
 
   const {
@@ -719,6 +719,7 @@ const DesignLayout = () => {
             onNetworkError: () => { setIsOffline(true); },
             setRetryAutoSave,
             setManualSave,
+            isReadOnly,
           }}
         />
       </main>

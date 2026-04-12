@@ -79,6 +79,7 @@ export interface OutletContext {
   onNetworkError: () => void;
   setRetryAutoSave: (retryFn: () => void) => void;
   setManualSave: (saveFn: () => void) => void;
+  isReadOnly?: boolean;
 }
 
 const MainSection = () => {
@@ -96,6 +97,7 @@ const MainSection = () => {
     onNetworkError,
     setRetryAutoSave,
     setManualSave,
+    isReadOnly,
   } = useOutletContext<OutletContext>();
 
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
@@ -178,7 +180,8 @@ const MainSection = () => {
     docName,
     onSaveStateChange: setAutoSaveState,
     onNetworkError,
-    isDataLoaded,
+    // readOnly 문서는 자동 저장 비활성
+    isDataLoaded: isDataLoaded && !isReadOnly,
   });
 
   useEffect(() => {
@@ -969,6 +972,16 @@ const MainSection = () => {
           onDeleteElements={handleDeleteElements}
           aiTipKey={location.key}
         />
+        {/* readOnly 모드: admin이 다른 유저 문서를 조회할 때 편집 차단 */}
+        {isReadOnly && !isFocusedMode && (
+          <div
+            className="absolute inset-0 z-50"
+            style={{ cursor: "default" }}
+            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onContextMenu={(e) => { e.preventDefault(); }}
+          />
+        )}
         {/* 포커스 모드: 클릭/드래그 차단, 스크롤은 통과 */}
         {isFocusedMode && (
           <div
