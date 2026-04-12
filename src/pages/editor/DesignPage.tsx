@@ -16,7 +16,7 @@ const StudioRecordingSection = lazy(
 );
 
 const DesignPage = () => {
-  const { loadedDocumentId } = useOutletContext<OutletContext>();
+  const { loadedDocumentId, isReadOnly } = useOutletContext<OutletContext>();
   const role = useAuthStore((s) => s.role);
 
   const isTester = role === "tester" || role === "admin";
@@ -24,7 +24,9 @@ const DesignPage = () => {
   return (
     <div className="flex h-full w-full overflow-hidden">
       <Suspense fallback={<div className="w-20 shrink-0" />}>
-        <SideBar />
+        <div className={isReadOnly ? "pointer-events-none opacity-50" : ""}>
+          <SideBar />
+        </div>
       </Suspense>
       <Suspense fallback={<div className="flex-1" />}>
         <MainSection key={loadedDocumentId ?? "new"} />

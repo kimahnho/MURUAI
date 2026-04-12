@@ -972,7 +972,7 @@ const MainSection = () => {
           onDeleteElements={handleDeleteElements}
           aiTipKey={location.key}
         />
-        {/* readOnly 모드: admin이 다른 유저 문서를 조회할 때 편집 차단 */}
+        {/* readOnly 모드: admin이 다른 유저 문서를 조회할 때 편집 차단 (줌/스크롤만 허용) */}
         {isReadOnly && !isFocusedMode && (
           <div
             className="absolute inset-0 z-50"
@@ -980,6 +980,7 @@ const MainSection = () => {
             onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onContextMenu={(e) => { e.preventDefault(); }}
+            onWheel={(e) => { e.stopPropagation(); /* 줌/스크롤은 통과 */ }}
           />
         )}
         {/* 포커스 모드: 클릭/드래그 차단, 스크롤은 통과 */}
@@ -993,29 +994,33 @@ const MainSection = () => {
           />
         )}
       </div>
-      <div className={isFocusedMode ? "hidden" : ""}>
-        <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
-      </div>
-      <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />
-      <div className={isFocusedMode ? "hidden" : ""}>
-        <SpellCheckPanel />
-        <SpellCheckToast />
-      </div>
+      {!isReadOnly && (
+        <div className={isFocusedMode ? "hidden" : ""}>
+          <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
+        </div>
+      )}
+      {!isReadOnly && <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />}
+      {!isReadOnly && (
+        <div className={isFocusedMode ? "hidden" : ""}>
+          <SpellCheckPanel />
+          <SpellCheckToast />
+        </div>
+      )}
       <Suspense fallback={null}>
         <div className={`shrink-0 ${isFocusedMode ? "hidden" : ""}`}>
           <BottomBar
             pages={pages}
             selectedPageId={selectedPageId}
-            onAddPage={handleAddPage}
+            onAddPage={isReadOnly ? (() => {}) : handleAddPage}
             onSelectPage={handleSelectPage}
-            onCopyPage={handleCopyPage}
-            onPastePage={handlePastePage}
-            onPastePages={handlePastePages}
-            onReorderPages={handleReorderPages}
-            onDeletePage={handleDeletePage}
-            onAddPageAtIndex={handleAddPageAtIndex}
-            onMovePage={handleMovePage}
-            onDuplicatePage={handleDuplicatePage}
+            onCopyPage={isReadOnly ? (() => {}) : handleCopyPage}
+            onPastePage={isReadOnly ? (() => {}) : handlePastePage}
+            onPastePages={isReadOnly ? (() => {}) : handlePastePages}
+            onReorderPages={isReadOnly ? (() => {}) : handleReorderPages}
+            onDeletePage={isReadOnly ? (() => {}) : handleDeletePage}
+            onAddPageAtIndex={isReadOnly ? (() => {}) : handleAddPageAtIndex}
+            onMovePage={isReadOnly ? (() => {}) : handleMovePage}
+            onDuplicatePage={isReadOnly ? (() => {}) : handleDuplicatePage}
             onVisiblePageIdsChange={setVisiblePageIds}
           />
         </div>
