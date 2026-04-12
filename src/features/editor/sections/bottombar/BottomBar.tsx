@@ -430,6 +430,7 @@ interface BottomBarProps {
   onMovePage?: (pageId: string, direction: "left" | "right") => void;
   onDuplicatePage?: (pageId: string) => void;
   onVisiblePageIdsChange?: (pageIds: string[]) => void;
+  readOnly?: boolean;
 }
 
 type BottomBarItem =
@@ -468,6 +469,7 @@ const BottomBar = ({
   onMovePage,
   onDuplicatePage,
   onVisiblePageIdsChange,
+  readOnly,
 }: BottomBarProps) => {
   // Shift+클릭으로 범위 선택된 페이지 ID 목록. 캔버스 활성 페이지(selectedPageId)와 별도로 관리.
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
@@ -825,10 +827,10 @@ const BottomBar = ({
                     canMoveRight={index < pages.length - 1}
                     spellErrorCount={spellErrorCountByPageId.get(item.page.id)}
                     onSelect={handlePageClick}
-                    onDuplicate={onDuplicatePage}
-                    onDelete={onDeletePage}
-                    onMovePage={onMovePage}
-                    onContextMenu={handlePageContextMenu(item.page.id)}
+                    onDuplicate={readOnly ? undefined : onDuplicatePage}
+                    onDelete={readOnly ? (() => {}) : onDeletePage}
+                    onMovePage={readOnly ? undefined : onMovePage}
+                    onContextMenu={readOnly ? (() => {}) : handlePageContextMenu(item.page.id)}
                     dragHandlers={createDragHandlers(item.page.id)}
                   />
                 </div>
@@ -846,8 +848,9 @@ const BottomBar = ({
               return (
                 <PageInsertDivider
                   key={item.key}
-                  isVisible={showAddButton}
+                  isVisible={!readOnly && showAddButton}
                   onAdd={() => {
+                    if (readOnly) return;
                     handleAddPageBetween(item.insertIndex);
                   }}
                   onDragOver={handleDragOver}
@@ -859,11 +862,12 @@ const BottomBar = ({
                 />
               );
             }
+            if (readOnly) return null;
             return <AddPageButton key={item.key} onAdd={onAddPage} />;
           })}
         </div>
       )}
-      <PageContextMenu
+      {!readOnly && <PageContextMenu
         contextMenu={contextMenu}
         onCopyPage={onCopyPage}
         onPastePage={(pageId) => {
@@ -875,7 +879,7 @@ const BottomBar = ({
           setContextMenu(null);
         }}
         hasCopiedPage={Boolean(getCopiedPageId())}
-      />
+      />}
     </div>
   );
 };

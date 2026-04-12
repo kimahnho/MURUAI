@@ -22,6 +22,7 @@ type DocumentLoaderParams = {
 export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
   const showToast = useToastStore((state) => state.showToast);
   const setOrientation = useOrientationStore((state) => state.setOrientation);
+  const role = useAuthStore((s) => s.role);
 
   const [docName, setDocName] = useState("");
   const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
@@ -64,13 +65,12 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
 
       // 소유권 체크: 본인 문서가 아닌 경우
       const isOwner = row.user_id === user.id;
-      const role = useAuthStore.getState().role;
       if (!isOwner) {
+        // role이 아직 로드 안 됨 → 다음 렌더에서 role이 세팅되면 useEffect가 다시 실행됨
+        if (role === null) return;
         if (role === "admin") {
-          // admin은 조회만 허용 (readOnly)
           setIsReadOnly(true);
         } else {
-          // 일반 유저는 접근 차단
           showToast("접근 권한이 없어요.");
           return;
         }
@@ -142,7 +142,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
     return () => {
       isMounted = false;
     };
-  }, [loadedDocumentId, docId, showToast, setOrientation]);
+  }, [loadedDocumentId, docId, showToast, setOrientation, role]);
 
   return {
     docName,

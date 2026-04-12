@@ -424,10 +424,12 @@ const DesignLayout = () => {
                 <input
                   placeholder="제목을 입력해주세요"
                   value={docName}
+                  readOnly={isReadOnly}
                   onChange={(event) => {
+                    if (isReadOnly) return;
                     setDocName(event.target.value);
                   }}
-                  onFocus={(e) => e.target.select()}
+                  onFocus={(e) => { if (!isReadOnly) e.target.select(); }}
                   className="w-60 min-w-0 shrink h-9 rounded-xl bg-black-5 px-3 pr-9 text-14-semibold text-black-90 placeholder:text-black-40 border border-black-20 hover:bg-black-10 hover:border-black-30 focus:bg-white-100 focus:border-primary focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap transition"
                 />
                 <Pencil className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-black-30 opacity-0 group-hover/title:opacity-100 transition-opacity" />
@@ -435,7 +437,7 @@ const DesignLayout = () => {
             </div>
             )}
 
-            {!isFocusedMode && (<>
+            {!isFocusedMode && (<div className={`flex items-center ${isReadOnly ? "pointer-events-none opacity-40" : ""}`}>
             <div className="flex shrink-0 h-full items-center justify-center gap-2 pr-3">
               <button
                 type="button"
@@ -619,7 +621,7 @@ const DesignLayout = () => {
                 <RotateCcw className="w-4 h-4 text-black-60" />
               </button>
             </div>
-            </>)}
+            </div>)}
           </div>
 
           {!isFocusedMode && (
@@ -628,8 +630,8 @@ const DesignLayout = () => {
             {creditBalance !== null && (
               <CreditBadge balance={creditBalance} />
             )}
-            {/* 맞춤법 검사 버튼 */}
-            <div className="relative flex h-full items-center justify-center">
+            {/* 맞춤법 검사 버튼 — readOnly에서는 숨김 */}
+            {!isReadOnly && <div className="relative flex h-full items-center justify-center">
               <button
                 type="button"
                 onClick={handleSpellCheckClick}
@@ -667,7 +669,7 @@ const DesignLayout = () => {
                   </span>
                 ) : null;
               })()}
-            </div>
+            </div>}
             <div className="flex h-full items-center justify-center">
               <button
                 type="button"
