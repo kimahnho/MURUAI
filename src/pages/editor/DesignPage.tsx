@@ -23,11 +23,11 @@ const DesignPage = () => {
 
   return (
     <div className="flex h-full w-full overflow-hidden">
-      <Suspense fallback={<div className="w-20 shrink-0" />}>
-        <div className={isReadOnly ? "pointer-events-none opacity-50" : ""}>
+      {!isReadOnly && (
+        <Suspense fallback={<div className="w-20 shrink-0" />}>
           <SideBar />
-        </div>
-      </Suspense>
+        </Suspense>
+      )}
       <Suspense fallback={<div className="flex-1" />}>
         <MainSection key={loadedDocumentId ?? "new"} />
       </Suspense>

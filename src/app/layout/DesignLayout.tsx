@@ -437,7 +437,7 @@ const DesignLayout = () => {
             </div>
             )}
 
-            {!isFocusedMode && (<div className={isReadOnly ? "contents pointer-events-none opacity-50" : "contents"}>
+            {!isFocusedMode && (<div className={`flex items-center ${isReadOnly ? "pointer-events-none opacity-40" : ""}`}>
             <div className="flex shrink-0 h-full items-center justify-center gap-2 pr-3">
               <button
                 type="button"

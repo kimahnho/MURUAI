@@ -977,10 +977,11 @@ const MainSection = () => {
           <div
             className="absolute inset-0 z-50"
             style={{ cursor: "default" }}
+            tabIndex={-1}
             onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onContextMenu={(e) => { e.preventDefault(); }}
-            onWheel={(e) => { e.stopPropagation(); /* 줌/스크롤은 통과 */ }}
+            onKeyDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
           />
         )}
         {/* 포커스 모드: 클릭/드래그 차단, 스크롤은 통과 */}
