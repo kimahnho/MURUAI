@@ -1023,6 +1023,7 @@ const MainSection = () => {
             onMovePage={isReadOnly ? (() => {}) : handleMovePage}
             onDuplicatePage={isReadOnly ? (() => {}) : handleDuplicatePage}
             onVisiblePageIdsChange={setVisiblePageIds}
+            readOnly={isReadOnly}
           />
         </div>
         <TemplateChoiceDialog
