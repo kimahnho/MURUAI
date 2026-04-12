@@ -160,8 +160,8 @@ const WorksheetRightPanel = () => {
     }
   }, [selectedComponentId]);
 
-  // 패널 표시 조건: 명시적으로 열었거나 (직접 만들기 탭), 삽입된 컴포넌트가 있을 때
-  if (!isPanelVisible && insertedComponents.length === 0) return null;
+  // 패널 표시 조건: 명시적으로 열었을 때만 (직접 만들기 탭, 컴포넌트 클릭 등)
+  if (!isPanelVisible) return null;
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
