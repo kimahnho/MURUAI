@@ -28,6 +28,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
     null,
   );
   const [loadedDocumentId, setLoadedDocumentId] = useState<string | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   // 문서 저장 직후에는 동일 id 재요청을 막고, 필요 시 수동 clear 후 재로드를 허용한다.
   const clearLoadedDocument = useCallback(() => {
@@ -51,7 +52,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
       }
       const { data: row, error } = await supabase
         .from("user_made_n")
-        .select("id,name,canvas_data")
+        .select("id,name,canvas_data,user_id")
         .eq("id", docId)
         .single();
       if (!isMounted) return;
@@ -60,6 +61,23 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
         showToast("학습자료를 불러오지 못했어요.");
         return;
       }
+
+      // 소유권 체크: 본인 문서가 아닌 경우
+      const isOwner = row.user_id === user.id;
+      const role = useAuthStore.getState().role;
+      if (!isOwner) {
+        if (role === "admin") {
+          // admin은 조회만 허용 (readOnly)
+          setIsReadOnly(true);
+        } else {
+          // 일반 유저는 접근 차단
+          showToast("접근 권한이 없어요.");
+          return;
+        }
+      } else {
+        setIsReadOnly(false);
+      }
+
       let canvasData: unknown = row.canvas_data;
       if (typeof canvasData === "string") {
         try {
@@ -132,5 +150,6 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
     loadedDocument,
     loadedDocumentId,
     clearLoadedDocument,
+    isReadOnly,
   };
 };

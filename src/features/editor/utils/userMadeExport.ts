@@ -2,6 +2,7 @@
  * 사용자 문서를 이미지/PDF로 내보내는 렌더링 유틸리티 모듈.
  */
 import { supabase } from "@/shared/api/supabase";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 import { logPerf, measurePerf } from "./perfLogger";
 import { isCdnFont, loadCdnFont } from "@/shared/utils/cdnFontLoader";
 
@@ -86,10 +87,17 @@ export const updateUserMadeVersion = async ({
     updated_at: new Date().toISOString(),
   };
 
+  // 소유권 필터: 본인 문서만 수정 가능
+  const userId = useAuthStore.getState().user?.id;
+  if (!userId) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const { error } = await supabase
     .from("user_made_n")
     .update(payload)
-    .eq("id", docId);
+    .eq("id", docId)
+    .eq("user_id", userId);
 
   if (error) {
     console.error("updateUserMadeVersion failed", {
