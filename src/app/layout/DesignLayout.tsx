@@ -630,8 +630,8 @@ const DesignLayout = () => {
             {creditBalance !== null && (
               <CreditBadge balance={creditBalance} />
             )}
-            {/* 맞춤법 검사 버튼 */}
-            <div className="relative flex h-full items-center justify-center">
+            {/* 맞춤법 검사 버튼 — readOnly에서는 숨김 */}
+            {!isReadOnly && <div className="relative flex h-full items-center justify-center">
               <button
                 type="button"
                 onClick={handleSpellCheckClick}
@@ -669,7 +669,7 @@ const DesignLayout = () => {
                   </span>
                 ) : null;
               })()}
-            </div>
+            </div>}
             <div className="flex h-full items-center justify-center">
               <button
                 type="button"
