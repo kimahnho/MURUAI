@@ -134,6 +134,7 @@ const CanvasStage = ({
                 pageNumber={selectedPage.pageNumber}
                 background={selectedPage.background}
                 numbering={selectedPage.numbering}
+                coverData={selectedPage.coverData}
                 selectedIds={selectedIds}
                 editingTextId={editingTextId}
                 selectionRect={selectionRect}

@@ -62,10 +62,10 @@ export const useAutoSave = ({
       console.warn("Save blocked: No pages to save");
       return false;
     }
-    const hasAnyElements = pagesToSave.some(
-      (page) => page.elements && page.elements.length > 0,
+    const hasAnyContent = pagesToSave.some(
+      (page) => (page.elements && page.elements.length > 0) || page.coverData,
     );
-    if (!hasAnyElements) {
+    if (!hasAnyContent) {
       console.warn("Save blocked: All pages are empty");
       return false;
     }
@@ -74,7 +74,8 @@ export const useAutoSave = ({
       (sum, page) => sum + (page.elements?.length || 0),
       0,
     );
-    if (totalElements < 1) {
+    const hasCoverPage = pagesToSave.some((page) => page.coverData);
+    if (totalElements < 1 && !hasCoverPage) {
       console.warn("Save blocked: Total elements count is suspiciously low", {
         totalElements,
         pageCount: pagesToSave.length,
