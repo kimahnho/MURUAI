@@ -134,6 +134,9 @@ export const useCanvasStageSelection = ({
       // 빈 영역 클릭으로 처리해 기존 선택 해제 규칙을 유지한다.
       if (!isAdditive) {
         onClearSelection();
+        // 컴포넌트 편집 패널도 닫기
+        useWorksheetElementStore.getState().setSelectedComponentId(null);
+        useWorksheetElementStore.getState().hidePanel();
       }
       setPreviewSelectedIds(null);
       previewSelectedIdsRef.current = null;
