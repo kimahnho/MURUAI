@@ -25,7 +25,7 @@ const ALLOWED_CONFIG_KEYS = new Set([
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB
 
 export const config = {
-  maxDuration: 30,
+  maxDuration: 60,
 };
 
 export default async function handler(
