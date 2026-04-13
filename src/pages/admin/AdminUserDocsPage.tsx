@@ -135,6 +135,7 @@ const DocCard = ({
                 elements={previewPage.elements}
                 selectedIds={[]}
                 editingTextId={null}
+                background={previewPage.background}
                 readOnly
               />
             </div>

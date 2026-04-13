@@ -224,6 +224,7 @@ const RecentDocumentsSection = () => {
                           elements={previewElements}
                           selectedIds={[]}
                           editingTextId={null}
+                          background={previewPage?.background}
                           readOnly
                         />
                       </div>
