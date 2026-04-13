@@ -1,10 +1,11 @@
 /**
- * 페이지 배경/번호 표시 설정을 편집하는 사이드바 패널.
+ * 페이지 배경/번호 표시/표지 설정을 편집하는 사이드바 패널.
  */
-import { ImagePlus, Images, Loader2 } from "lucide-react";
+import { ImagePlus, Images, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { usePageSettingsStore } from "@/features/editor/store/pageSettingsStore";
+import { useCoverPageStore } from "@/features/editor/store/coverPageStore";
 import { useUploadListStore } from "@/features/editor/store/useUploadListStore";
 import type {
   PageBackground,
@@ -15,6 +16,10 @@ import type {
 import ColorPickerPopover from "@/features/editor/shared/ColorPickerPopover";
 import { useImageUploadToCloudinary } from "../hooks/useImageUploadToCloudinary";
 import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
+import type { CoverLayoutType } from "@/features/editor/covers/coverTypes";
+import { COVER_LAYOUT_LABELS } from "@/features/editor/covers/coverTypes";
+import { getCoverTemplatesByLayout } from "@/features/editor/covers/coverTemplateRegistry";
+import CoverRenderer from "@/features/editor/covers/CoverRenderer";
 
 type UploadedFile = {
   id: string;
@@ -318,11 +323,128 @@ const PageContent = () => {
           </div>
         )}
       </section>
+
+      <CoverSection />
     </div>
   );
 };
 
 export default PageContent;
+
+// ─── 표지 섹션 ───
+
+const COVER_FILTER_TABS: Array<{ key: CoverLayoutType | "all"; label: string }> = [
+  { key: "all", label: "전체" },
+  { key: "corner", label: COVER_LAYOUT_LABELS.corner },
+  { key: "scene", label: COVER_LAYOUT_LABELS.scene },
+  { key: "frame", label: COVER_LAYOUT_LABELS.frame },
+  { key: "character", label: COVER_LAYOUT_LABELS.character },
+  { key: "minimal", label: COVER_LAYOUT_LABELS.minimal },
+];
+
+const COVER_THUMB_W = 90;
+const COVER_THUMB_H = 127;
+const COVER_A4_W = 793.7;
+const COVER_A4_H = 1122.5;
+
+const CoverSection = () => {
+  const hasCover = useCoverPageStore((s) => s.hasCover);
+  const currentCoverData = useCoverPageStore((s) => s.currentCoverData);
+  const requestInsertCover = useCoverPageStore((s) => s.requestInsertCover);
+  const requestChangeCover = useCoverPageStore((s) => s.requestChangeCover);
+  const requestRemoveCover = useCoverPageStore((s) => s.requestRemoveCover);
+
+  const [activeFilter, setActiveFilter] = useState<CoverLayoutType | "all">("all");
+
+  const templates = getCoverTemplatesByLayout(
+    activeFilter === "all" ? undefined : activeFilter,
+  );
+
+  const handleSelect = (templateId: string) => {
+    const coverData = { templateId, title: "" };
+    if (hasCover) {
+      requestChangeCover(coverData);
+    } else {
+      requestInsertCover(coverData);
+    }
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="text-14-semibold text-black-90">표지</div>
+        {hasCover && (
+          <button
+            type="button"
+            onClick={requestRemoveCover}
+            className="flex items-center gap-1 text-12-semibold text-error-700 hover:text-error-700/80 transition"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            제거
+          </button>
+        )}
+      </div>
+
+      {/* 필터 탭 */}
+      <div className="flex gap-1 flex-wrap">
+        {COVER_FILTER_TABS.map((tab) => {
+          const isActive = activeFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveFilter(tab.key)}
+              className={`rounded-full border px-2.5 py-0.5 text-11-semibold transition ${
+                isActive
+                  ? "border-primary bg-primary-100 text-primary"
+                  : "border-black-25 text-black-60 hover:bg-black-5"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 썸네일 그리드 */}
+      <div className="grid grid-cols-3 gap-1.5">
+        {templates.map((entry) => {
+          const isSelected = currentCoverData?.templateId === entry.templateId;
+          return (
+            <button
+              key={entry.templateId}
+              type="button"
+              onClick={() => handleSelect(entry.templateId)}
+              className={`relative overflow-hidden rounded-lg border-2 transition ${
+                isSelected
+                  ? "border-primary ring-1 ring-primary-300"
+                  : "border-black-10 hover:border-black-30"
+              }`}
+              style={{ height: COVER_THUMB_H }}
+              title={entry.label}
+            >
+              <div
+                style={{
+                  width: COVER_A4_W,
+                  height: COVER_A4_H,
+                  transform: `scale(${COVER_THUMB_W / COVER_A4_W})`,
+                  transformOrigin: "top left",
+                  pointerEvents: "none",
+                }}
+              >
+                <CoverRenderer
+                  coverData={{ templateId: entry.templateId, title: "" }}
+                  pageWidth={COVER_A4_W}
+                  pageHeight={COVER_A4_H}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
 
 // ─── 서브 컴포넌트 ───
 

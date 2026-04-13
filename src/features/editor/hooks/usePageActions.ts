@@ -100,6 +100,8 @@ export const usePageActions = ({
         orientation: pageToDuplicate.orientation,
         elements: cloneElementsWithNewIds(pageToDuplicate.elements),
         rev: 0,
+        ...(pageToDuplicate.coverData && { coverData: { ...pageToDuplicate.coverData } }),
+        ...(pageToDuplicate.background && { background: pageToDuplicate.background }),
       };
 
       const newPages = [...pages];
@@ -145,6 +147,8 @@ export const usePageActions = ({
         orientation: sourcePage.orientation,
         elements: cloneElementsWithNewIds(sourcePage.elements),
         rev: 0,
+        ...(sourcePage.coverData && { coverData: { ...sourcePage.coverData } }),
+        ...(sourcePage.background && { background: sourcePage.background }),
       };
       const newPages = [...pages];
       newPages.splice(targetIndex + 1, 0, newPage);
@@ -208,6 +212,8 @@ export const usePageActions = ({
         orientation: sourcePage.orientation,
         elements: cloneElementsWithNewIds(sourcePage.elements),
         rev: 0 as const,
+        ...(sourcePage.coverData && { coverData: { ...sourcePage.coverData } }),
+        ...(sourcePage.background && { background: sourcePage.background }),
       }));
 
       const result = [...pages];
@@ -231,6 +237,7 @@ export const usePageActions = ({
             return bumpPageRevision({
               ...page,
               templateId: null,
+              coverData: undefined,
               background: { type: "none" as const },
               orientation: "vertical",
               elements: withLogoCanvasElements([]),
@@ -354,6 +361,7 @@ export const usePageActions = ({
             ? bumpPageRevision({
                 ...page,
                 templateId: null,
+                coverData: undefined,
                 background: { type: "none" as const },
                 elements: withLogoCanvasElements([]),
               })

@@ -27,6 +27,7 @@ import { useTemplateSubscription } from "./useTemplateSubscription";
 import { useBoardSubscriptions } from "./useBoardSubscriptions";
 import { useTemplateNotifications } from "./useTemplateNotifications";
 import { usePageSettingsSubscription } from "./usePageSettingsSubscription";
+import { useCoverPageSubscription } from "./useCoverPageSubscription";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 import { useTemplateStore } from "../store/templateStore";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
@@ -1079,6 +1080,13 @@ export const useEditorSubscriptions = ({
     selectedPageId,
     selectedPageIdRef,
     setPages,
+  });
+
+  useCoverPageSubscription({
+    pages,
+    setPages,
+    setActivePage,
+    recordHistory,
   });
 
   // AI 스토리라인 페이지 삽입 요청을 감지해 현재 페이지 목록 끝에 추가한다.
