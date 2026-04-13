@@ -77,10 +77,10 @@ const StorySequenceModal = ({
                   onChangeCount(event.target.value);
                 }}
                 className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
-                min={1}
+                min={4}
                 max={8}
               />
-              <span className="text-12-regular text-black-50">최대 8개</span>
+              <span className="text-12-regular text-black-50">4~8개</span>
             </div>
           </div>
 

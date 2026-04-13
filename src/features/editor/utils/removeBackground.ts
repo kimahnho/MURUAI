@@ -234,9 +234,25 @@ const uploadBgRemovedToCloudinary = async (
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id ?? "anonymous";
 
+  // PNG → WebP 변환 (투명도 유지)
+  const webpBlob = await new Promise<Blob>((resolve) => {
+    const cvs = document.createElement("canvas");
+    const bmpImg = new Image();
+    bmpImg.onload = () => {
+      cvs.width = bmpImg.width;
+      cvs.height = bmpImg.height;
+      const ctx = cvs.getContext("2d");
+      if (ctx) ctx.drawImage(bmpImg, 0, 0);
+      cvs.toBlob((b) => resolve(b ?? blob), "image/webp", 0.9);
+      URL.revokeObjectURL(bmpImg.src);
+    };
+    bmpImg.onerror = () => resolve(blob);
+    bmpImg.src = URL.createObjectURL(blob);
+  });
+
   const formData = new FormData();
   const publicId = crypto.randomUUID();
-  formData.append("file", blob);
+  formData.append("file", webpBlob);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", `muru-bg-removed/${userId}`);
   formData.append("public_id", publicId);

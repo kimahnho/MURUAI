@@ -419,13 +419,14 @@ export const addStoryBoardPage = ({
       id: newPageId,
       pageNumber: newPageNumber,
       templateId: null,
-      orientation: config.orientation,
+      // 6개 이상이면 가로 모드 강제 (storySequenceUtils와 동기화)
+      orientation: config.count >= 6 ? "horizontal" : config.orientation,
       elements: elementsWithLogo,
       rev: 0,
     };
     return [...prevPages, newPage];
   });
-  return { id: newPageId, orientation: config.orientation };
+  return { id: newPageId, orientation: config.count >= 6 ? "horizontal" : config.orientation };
 };
 
 export const addShapeElement = ({
