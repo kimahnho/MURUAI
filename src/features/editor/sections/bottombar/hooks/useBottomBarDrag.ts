@@ -33,6 +33,12 @@ export const useBottomBarDrag = ({
   const createDragHandlers = useCallback(
     (pageId: string) => ({
       onDragStart: (event: ReactDragEvent<HTMLDivElement>) => {
+        // 커버 페이지는 위치 0에 고정 — 드래그 불가
+        const page = pages.find((p) => p.id === pageId);
+        if (page?.coverData) {
+          event.preventDefault();
+          return;
+        }
         // 드래그 시작 페이지가 다중 선택에 포함되어 있으면 선택 전체를 이동
         const ids = selectedPageIdsRef.current.includes(pageId)
           ? selectedPageIdsRef.current

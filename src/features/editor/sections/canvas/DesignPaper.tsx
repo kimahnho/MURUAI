@@ -11,6 +11,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
+import type { CoverData } from "../../covers/coverTypes";
+import CoverRenderer from "../../covers/CoverRenderer";
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import WorksheetComponentOverlay, { getComponentBounds } from "./WorksheetComponentOverlay";
 import { useWorksheetElementStore } from "../../store/worksheetElementStore";
@@ -140,6 +142,7 @@ interface DesignPaperProps {
   showShadow?: boolean;
   onFileDropOnCanvas?: (file: File, x: number, y: number) => void;
   onDeleteElements?: (ids: string[]) => void;
+  coverData?: CoverData;
 }
 
 const MM_TO_PX = 3.7795;
@@ -170,6 +173,7 @@ const DesignPaper = ({
   showShadow = false,
   onFileDropOnCanvas,
   onDeleteElements,
+  coverData,
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
@@ -451,7 +455,7 @@ const DesignPaper = ({
   });
 
   useDesignPaperPaste({
-    readOnly,
+    readOnly: readOnly || Boolean(coverData),
     elements,
     onElementsChange,
     selectedIdsRef,
@@ -750,7 +754,7 @@ const DesignPaper = ({
         event.dataTransfer.dropEffect = "copy";
       }}
       onDrop={(event) => {
-        if (readOnly || !onElementsChange) return;
+        if (readOnly || !onElementsChange || coverData) return;
         event.preventDefault();
         event.stopPropagation();
         // 하위 요소(RoundBox 등)가 이미 드롭을 처리했으면 중복 삽입하지 않는다.
@@ -794,12 +798,17 @@ const DesignPaper = ({
       }}
       onContextMenu={openCanvasContextMenu}
     >
-      {!readOnly && (
+      {coverData && (
+        <CoverRenderer coverData={coverData} pageWidth={pageWidth} pageHeight={pageHeight} />
+      )}
+      {!coverData && !readOnly && (
         <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
       )}
-      {elements.map((element) => renderElement(element))}
+      {coverData
+        ? elements.filter((el) => el.locked && el.selectable === false).map((el) => renderElement(el))
+        : elements.map((element) => renderElement(element))}
       {/* 자유형 그리기 모드: 모든 기존 요소 위에 투명 오버레이를 덮어 hover/pointerEnter를 차단 */}
-      {isFreeformDrawing && (
+      {isFreeformDrawing && !coverData && (
         <div
           style={{
             position: "absolute",

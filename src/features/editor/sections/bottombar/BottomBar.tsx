@@ -223,6 +223,7 @@ const PageThumbnail = ({
                   orientation={page.orientation ?? "vertical"}
                   elements={page.elements}
                   background={page.background}
+                  coverData={page.coverData}
                   selectedIds={[]}
                   editingTextId={null}
                   readOnly
