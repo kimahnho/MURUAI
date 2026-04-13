@@ -94,21 +94,17 @@ const PageContent = () => {
     applySettings({ numbering: nextNumbering });
   };
 
+  // 탭은 UI 전환만, 실제 배경 적용은 유저가 색상/이미지를 선택할 때만
+  const [activeTab, setActiveTab] = useState<"none" | "color" | "image">(background.type);
+  // 외부에서 배경이 바뀌면(페이지 이동 등) 탭도 동기화
+  useEffect(() => { setActiveTab(background.type); }, [background.type]);
+
   const handleBackgroundTypeChange = (type: "none" | "color" | "image") => {
-    if (type === "none") {
+    setActiveTab(type);
+    // "없음"만 즉시 적용 — 배경 제거 의도가 명확하므로
+    if (type === "none" && background.type !== "none") {
       updateBackground({ type: "none" });
-      return;
     }
-    if (type === "color") {
-      const color = background.type === "color" ? background.color : "#FFFFFF";
-      updateBackground({ type: "color", color });
-      return;
-    }
-    if (background.type === "image") {
-      updateBackground(background);
-      return;
-    }
-    updateBackground({ type: "image", imageUrl: "" });
   };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +127,7 @@ const PageContent = () => {
             { key: "color", label: "색상" },
             { key: "image", label: "이미지" },
           ].map((option) => {
-            const isActive = background.type === option.key;
+            const isActive = activeTab === option.key;
             return (
               <button
                 key={option.key}
@@ -153,11 +149,11 @@ const PageContent = () => {
           })}
         </div>
 
-        {background.type === "color" && (
+        {activeTab === "color" && (
           <div className="flex items-center gap-2">
             <span className="text-13-regular text-black-70">배경 색상</span>
             <ColorPickerPopover
-              value={background.color}
+              value={background.type === "color" ? background.color : "#FFFFFF"}
               onChange={(value) => {
                 updateBackground({ type: "color", color: value });
               }}
@@ -166,9 +162,9 @@ const PageContent = () => {
           </div>
         )}
 
-        {background.type === "image" && (
+        {activeTab === "image" && (
           <div className="flex flex-col gap-2">
-            {!background.imageUrl ? (
+            {background.type !== "image" || !background.imageUrl ? (
               <>
                 {/* 이미지 미선택: 업로드 버튼 + 파일 목록 */}
                 <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-black-30 text-13-semibold text-black-80 hover:border-primary hover:text-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60">
@@ -200,10 +196,10 @@ const PageContent = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-12-semibold text-black-50 shrink-0 w-7">크기</span>
                     <EditableNumberInput
-                      value={Math.round((background.scale ?? 1) * 100)}
+                      value={background.type === "image" ? Math.round((background.scale ?? 1) * 100) : 100}
                       min={10}
                       max={150}
-                      onChange={(v) => { updateBackground({ ...background, scale: v / 100 }); }}
+                      onChange={(v) => { if (background.type === "image") updateBackground({ ...background, scale: v / 100 }); }}
                       className="w-16 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
                     />
                     <span className="text-12-semibold text-black-50 shrink-0">%</span>
@@ -212,14 +208,14 @@ const PageContent = () => {
                     <span className="text-12-semibold text-black-50 shrink-0 w-7">위치</span>
                     <span className="text-12-regular text-black-40 shrink-0">가로</span>
                     <EditableNumberInput
-                      value={background.offsetX ?? 0}
-                      onChange={(v) => { updateBackground({ ...background, offsetX: v }); }}
+                      value={background.type === "image" ? (background.offsetX ?? 0) : 0}
+                      onChange={(v) => { if (background.type === "image") updateBackground({ ...background, offsetX: v }); }}
                       className="w-14 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
                     />
                     <span className="text-12-regular text-black-40 shrink-0">세로</span>
                     <EditableNumberInput
-                      value={background.offsetY ?? 0}
-                      onChange={(v) => { updateBackground({ ...background, offsetY: v }); }}
+                      value={background.type === "image" ? (background.offsetY ?? 0) : 0}
+                      onChange={(v) => { if (background.type === "image") updateBackground({ ...background, offsetY: v }); }}
                       className="w-14 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
                     />
                   </div>
@@ -230,7 +226,7 @@ const PageContent = () => {
                   items={uploadedFileItems}
                   isFetching={isFetchingUploads}
                   isUploading={isUploading}
-                  activeImageUrl={background.imageUrl}
+                  activeImageUrl={background.type === "image" ? background.imageUrl : ""}
                   onSelect={(imageUrl) => { updateBackground({ type: "image", imageUrl }); }}
                   onUpload={handleImageUpload}
                 />
