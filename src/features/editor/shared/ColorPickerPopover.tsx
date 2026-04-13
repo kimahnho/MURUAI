@@ -4,7 +4,8 @@
  */
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, HelpCircle } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowRight, HelpCircle, Pipette } from "lucide-react";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 
 // 기본 색상 팔레트 — 범용 표준 색상
@@ -66,6 +67,13 @@ type ColorPickerPopoverProps = {
   allowTransparent?: boolean;
   isMixed?: boolean;
 };
+
+type EyeDropperResult = { sRGBHex: string };
+type EyeDropperInstance = { open: () => Promise<EyeDropperResult> };
+type EyeDropperConstructor = new () => EyeDropperInstance;
+
+const hasEyeDropper = () =>
+  typeof window !== "undefined" && "EyeDropper" in window;
 
 const normalizeHex = (input: string) => {
   const trimmed = input.trim();
@@ -181,7 +189,9 @@ const ColorPickerPopover = ({
   isMixed = false,
 }: ColorPickerPopoverProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const isTransparent = value === "transparent";
   const [hexInput, setHexInput] = useState(
     isTransparent ? "" : value.toUpperCase(),
@@ -201,12 +211,14 @@ const ColorPickerPopover = ({
     setIsOpen(false);
   }, [closeSignal]);
 
+  const popoverRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      // 버튼 또는 portal 팝오버 내부 클릭이면 무시
+      if (containerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     window.addEventListener("pointerdown", handlePointerDown);
     return () => {
@@ -232,6 +244,20 @@ const ColorPickerPopover = ({
     }
     setHexInput(normalized);
     addRecentColor(normalized);
+  };
+
+  const handleEyeDropper = async () => {
+    const EyeDropperApi = (window as Window & { EyeDropper?: EyeDropperConstructor }).EyeDropper;
+    if (!EyeDropperApi) return;
+    try {
+      const eyeDropper = new EyeDropperApi();
+      const result = await eyeDropper.open();
+      const color = result.sRGBHex.toUpperCase();
+      applyColor(color);
+      setHexInput(color);
+    } catch {
+      // 유저가 Esc로 취소
+    }
   };
 
   const handleSwatchClick = (color: string) => {
@@ -267,10 +293,25 @@ const ColorPickerPopover = ({
         onMouseDown={(event) => {
           event.preventDefault();
         }}
+        ref={buttonRef}
         onClick={() => {
           setIsOpen((prev) => {
             if (!prev) {
               setOriginalColor(value.toUpperCase());
+              // 버튼 위치 기준으로 팝오버 좌표 계산
+              const rect = buttonRef.current?.getBoundingClientRect();
+              if (rect) {
+                const POPOVER_W = 256;
+                const left = Math.min(rect.left, window.innerWidth - POPOVER_W - 12);
+                const top = rect.bottom + 8;
+                // 하단 공간 부족 시 위로
+                const spaceBelow = window.innerHeight - rect.bottom;
+                if (spaceBelow < 400) {
+                  setPopoverStyle({ position: "fixed", left, bottom: window.innerHeight - rect.top + 8 });
+                } else {
+                  setPopoverStyle({ position: "fixed", left, top });
+                }
+              }
             }
             return !prev;
           });
@@ -278,10 +319,12 @@ const ColorPickerPopover = ({
         className={`${buttonClassName} flex items-center justify-center rounded-full border border-black-30 bg-white-100 p-0`}
         style={isMixed ? CHECKERBOARD_BG : isTransparent ? CHECKERBOARD_BG : { backgroundColor: value }}
       />
-      {isOpen && (
+      {isOpen && createPortal(
         <div
+          ref={popoverRef}
           data-textbox-toolbar="true"
-          className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-black-15 bg-white-100 p-3.5 shadow-lg z-50"
+          className="w-64 rounded-xl border border-black-15 bg-white-100 p-3.5 shadow-lg"
+          style={{ ...popoverStyle, zIndex: 9999 }}
           onPointerDown={(event) => {
             event.stopPropagation();
           }}
@@ -419,6 +462,17 @@ const ColorPickerPopover = ({
                 placeholder={isTransparent ? "투명" : "#000000"}
                 className="min-w-0 flex-1 rounded-lg border border-black-20 px-2.5 py-1.5 text-12-regular text-black-90 uppercase focus:border-primary focus:outline-none transition-colors"
               />
+              {hasEyeDropper() && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); }}
+                  onClick={handleEyeDropper}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-black-20 text-black-60 hover:border-primary hover:text-primary transition-colors"
+                  aria-label="스포이드"
+                >
+                  <Pipette className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -452,7 +506,8 @@ const ColorPickerPopover = ({
                 </button>
               </div>
             )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
