@@ -5,7 +5,7 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, HelpCircle } from "lucide-react";
+import { ArrowRight, HelpCircle, Pipette } from "lucide-react";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
 
 // 기본 색상 팔레트 — 범용 표준 색상
@@ -67,6 +67,13 @@ type ColorPickerPopoverProps = {
   allowTransparent?: boolean;
   isMixed?: boolean;
 };
+
+type EyeDropperResult = { sRGBHex: string };
+type EyeDropperInstance = { open: () => Promise<EyeDropperResult> };
+type EyeDropperConstructor = new () => EyeDropperInstance;
+
+const hasEyeDropper = () =>
+  typeof window !== "undefined" && "EyeDropper" in window;
 
 const normalizeHex = (input: string) => {
   const trimmed = input.trim();
@@ -237,6 +244,20 @@ const ColorPickerPopover = ({
     }
     setHexInput(normalized);
     addRecentColor(normalized);
+  };
+
+  const handleEyeDropper = async () => {
+    const EyeDropperApi = (window as Window & { EyeDropper?: EyeDropperConstructor }).EyeDropper;
+    if (!EyeDropperApi) return;
+    try {
+      const eyeDropper = new EyeDropperApi();
+      const result = await eyeDropper.open();
+      const color = result.sRGBHex.toUpperCase();
+      applyColor(color);
+      setHexInput(color);
+    } catch {
+      // 유저가 Esc로 취소
+    }
   };
 
   const handleSwatchClick = (color: string) => {
@@ -441,6 +462,17 @@ const ColorPickerPopover = ({
                 placeholder={isTransparent ? "투명" : "#000000"}
                 className="min-w-0 flex-1 rounded-lg border border-black-20 px-2.5 py-1.5 text-12-regular text-black-90 uppercase focus:border-primary focus:outline-none transition-colors"
               />
+              {hasEyeDropper() && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); }}
+                  onClick={handleEyeDropper}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-black-20 text-black-60 hover:border-primary hover:text-primary transition-colors"
+                  aria-label="스포이드"
+                >
+                  <Pipette className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
