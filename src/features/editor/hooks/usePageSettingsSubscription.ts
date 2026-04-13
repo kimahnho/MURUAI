@@ -53,11 +53,11 @@ export const usePageSettingsSubscription = ({
             background: request.background,
           }));
         }
-        // 넘버링은 전체 페이지에 일괄 적용한다 (표지 페이지는 스킵).
+        // 넘버링은 전체 페이지에 일괄 적용한다.
         if (request.numbering) {
           nextPages = nextPages.map((page) => ({
             ...page,
-            numbering: page.coverData ? page.numbering : request.numbering,
+            numbering: request.numbering,
           }));
         }
         return nextPages;

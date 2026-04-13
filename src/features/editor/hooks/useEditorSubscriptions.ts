@@ -1084,8 +1084,9 @@ export const useEditorSubscriptions = ({
 
   useCoverPageSubscription({
     pages,
+    selectedPageId,
+    selectedPageIdRef,
     setPages,
-    setActivePage,
     recordHistory,
   });
 

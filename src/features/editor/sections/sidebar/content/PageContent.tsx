@@ -351,7 +351,6 @@ const CoverSection = () => {
   const hasCover = useCoverPageStore((s) => s.hasCover);
   const currentCoverData = useCoverPageStore((s) => s.currentCoverData);
   const requestInsertCover = useCoverPageStore((s) => s.requestInsertCover);
-  const requestChangeCover = useCoverPageStore((s) => s.requestChangeCover);
   const requestRemoveCover = useCoverPageStore((s) => s.requestRemoveCover);
 
   const [activeFilter, setActiveFilter] = useState<CoverLayoutType | "all">("all");
@@ -361,12 +360,7 @@ const CoverSection = () => {
   );
 
   const handleSelect = (templateId: string) => {
-    const coverData = { templateId, title: "" };
-    if (hasCover) {
-      requestChangeCover(coverData);
-    } else {
-      requestInsertCover(coverData);
-    }
+    requestInsertCover({ templateId, title: "" });
   };
 
   return (

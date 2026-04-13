@@ -455,7 +455,7 @@ const DesignPaper = ({
   });
 
   useDesignPaperPaste({
-    readOnly: readOnly || Boolean(coverData),
+    readOnly,
     elements,
     onElementsChange,
     selectedIdsRef,
@@ -754,7 +754,7 @@ const DesignPaper = ({
         event.dataTransfer.dropEffect = "copy";
       }}
       onDrop={(event) => {
-        if (readOnly || !onElementsChange || coverData) return;
+        if (readOnly || !onElementsChange) return;
         event.preventDefault();
         event.stopPropagation();
         // 하위 요소(RoundBox 등)가 이미 드롭을 처리했으면 중복 삽입하지 않는다.
@@ -801,14 +801,12 @@ const DesignPaper = ({
       {coverData && (
         <CoverRenderer coverData={coverData} pageWidth={pageWidth} pageHeight={pageHeight} />
       )}
-      {!coverData && !readOnly && (
+      {!readOnly && (
         <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
       )}
-      {coverData
-        ? elements.filter((el) => el.locked && el.selectable === false).map((el) => renderElement(el))
-        : elements.map((element) => renderElement(element))}
+      {elements.map((element) => renderElement(element))}
       {/* 자유형 그리기 모드: 모든 기존 요소 위에 투명 오버레이를 덮어 hover/pointerEnter를 차단 */}
-      {isFreeformDrawing && !coverData && (
+      {isFreeformDrawing && (
         <div
           style={{
             position: "absolute",
