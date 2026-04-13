@@ -47,7 +47,14 @@ export const useDragAndDrop = ({
     if (insertAtIndex === -1) return;
 
     const newPages = [...remaining];
-    newPages.splice(insertBefore ? insertAtIndex : insertAtIndex + 1, 0, ...draggedPages);
+    let spliceIndex = insertBefore ? insertAtIndex : insertAtIndex + 1;
+
+    // 커버 페이지(pages[0].coverData) 앞으로 드롭 방지 — 커버는 항상 위치 0 유지
+    if (spliceIndex === 0 && newPages[0]?.coverData) {
+      spliceIndex = 1;
+    }
+
+    newPages.splice(spliceIndex, 0, ...draggedPages);
 
     // 페이지 번호 재정렬
     const reorderedPages = newPages.map((page, index) => ({

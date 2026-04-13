@@ -152,9 +152,10 @@ export const useElementSubscription = ({
       state.requestId !== prevState.requestId && Boolean(state.requestedType),
     onChange: (state) => {
       const activePageId = selectedPageIdRef.current;
-      const getOrientation = () =>
-        pagesRef.current.find((page) => page.id === activePageId)
-          ?.orientation ?? null;
+      // 커버 페이지에서는 요소 생성 차단
+      const activePage = pagesRef.current.find((page) => page.id === activePageId);
+      if (activePage?.coverData) return;
+      const getOrientation = () => activePage?.orientation ?? null;
       // 스토어 요청 타입을 실제 요소 생성기로 매핑해
       // 구독 훅에서는 선택/편집 상태 전환만 담당한다.
       const result = createElementFromRequest(
