@@ -90,6 +90,7 @@ const TextBox = ({
     pendingWordSelectRef,
   });
 
+  // 다중 선택(그룹 리사이즈 등) 중에는 autoResize를 비활성화해 텍스트 튀는 현상을 방지
   useTextBoxAutoResize({
     isEditing,
     widthMode,
@@ -97,7 +98,7 @@ const TextBox = ({
     minWidth,
     minHeight,
     textAlign,
-    onRectChange,
+    onRectChange: selectionCount > 1 ? undefined : onRectChange,
     rect,
     richText,
     text,

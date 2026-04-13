@@ -63,10 +63,14 @@ export const getSelectionRenderState = ({
         elements.find((element) => element.id === id)?.groupId === renderGroupId
     );
 
-  const shouldShowIndividualBorder = (elementId: string) =>
-    // 그룹 렌더링 중에는 개별 테두리를 숨겨 "하나의 그룹 선택" 시각 피드백을 유지한다.
-    renderSelectedIds.includes(elementId) &&
-    (!isRenderGroupedSelection || renderSelectedIds.length === 1);
+  // groupId가 있는 요소는 개별 테두리를 숨기고 GroupSelectionOverlay가 대신 표시
+  const shouldShowIndividualBorder = (elementId: string) => {
+    if (!renderSelectedIds.includes(elementId)) return false;
+    const el = elements.find((e) => e.id === elementId);
+    // groupId가 있으면 항상 개별 테두리 숨김 — GroupSelectionOverlay가 바운딩 박스를 표시
+    if (el?.groupId) return false;
+    return true;
+  };
 
   return {
     renderSelectedIds,
