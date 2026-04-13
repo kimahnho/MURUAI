@@ -28,7 +28,6 @@ import type {
   DateNameFieldConfig,
   ClockFaceConfig,
   CalendarConfig,
-  TimetableConfig,
 } from "@/features/worksheet-editor/model/types";
 import {
   HeaderInstructionForm,
@@ -49,7 +48,6 @@ import {
   DateNameFieldForm,
   ClockFaceForm,
   CalendarForm,
-  TimetableForm,
 } from "@/features/worksheet-editor/sections/forms/EditorForms";
 import type { InsertedWorksheetComponent } from "@/features/editor/store/worksheetElementStore";
 
@@ -130,8 +128,6 @@ const renderForm = (
       return <ClockFaceForm config={comp.config as ClockFaceConfig} onUpdate={onUpdate} />;
     case "calendar":
       return <CalendarForm config={comp.config as CalendarConfig} onUpdate={onUpdate} />;
-    case "timetable":
-      return <TimetableForm config={comp.config as TimetableConfig} onUpdate={onUpdate} />;
     default:
       return null;
   }

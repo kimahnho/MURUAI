@@ -23,7 +23,6 @@ import type {
   PassageQuestionConfig,
   MatchingConnectConfig,
   CalendarConfig,
-  TimetableConfig,
 } from "@/features/worksheet-editor/model/types";
 import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
@@ -1196,113 +1195,6 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements
   return { elements: els, height: titleH + tableH };
 };
 
-// --- Timetable ---
-
-const buildTimetable = (config: TimetableConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
-  const w = CONTENT_W;
-  const { columns, rows: rowDefs } = config;
-
-  const titleH = config.title ? mmToPx(10) : 0;
-  const els: CanvasElement[] = [];
-
-  if (config.title) {
-    els.push(
-      textEl({
-        x, y, w, h: titleH,
-        text: config.title,
-        style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
-      }),
-    );
-  }
-
-  const headerRowH = mmToPx(8);
-  const rowHeaderW = mmToPx(config.row_header_style.width);
-  const dayColW = (w - rowHeaderW) / columns.length;
-
-  const totalCols = 1 + columns.length; // 행 헤더 열 + 데이터 열
-  const totalRows = 1 + rowDefs.length; // 열 헤더 행 + 데이터 행
-  const colWidths = [rowHeaderW, ...Array(columns.length).fill(dayColW)];
-  const rowHeights: number[] = [headerRowH];
-
-  for (const rd of rowDefs) {
-    rowHeights.push(rd.is_separator ? mmToPx(config.separator_style.height) : mmToPx(config.cell_style.min_height));
-  }
-
-  const tableH = rowHeights.reduce((a, b) => a + b, 0);
-
-  const cells: { text: string; style?: { fontSize: number; alignX: "left" | "center" | "right"; fontWeight?: "normal" | "bold"; color?: string; backgroundColor?: string } }[][] = [];
-
-  // 열 헤더 행
-  const headerRow: typeof cells[0] = [
-    { text: "", style: { fontSize: 11, alignX: "center", backgroundColor: config.column_header_style.background } },
-  ];
-  columns.forEach((col) => {
-    headerRow.push({
-      text: col.header,
-      style: {
-        fontSize: 12,
-        alignX: "center",
-        fontWeight: "bold",
-        color: config.column_header_style.text_color,
-        backgroundColor: config.column_header_style.background,
-      },
-    });
-  });
-  cells.push(headerRow);
-
-  // 데이터 행
-  rowDefs.forEach((rd, rowIdx) => {
-    const row: typeof cells[0] = [];
-    // 행 헤더
-    row.push({
-      text: rd.header,
-      style: {
-        fontSize: 11,
-        alignX: "center",
-        fontWeight: "bold",
-        color: config.row_header_style.text_color,
-        backgroundColor: rd.is_separator ? config.separator_style.background : config.row_header_style.background,
-      },
-    });
-    // 데이터 셀
-    columns.forEach((_, colIdx) => {
-      const cellData = config.cells[rowIdx]?.[colIdx];
-      row.push({
-        text: cellData?.text ?? "",
-        style: {
-          fontSize: config.cell_style.font_size,
-          alignX: config.cell_style.text_align === "top_left" ? "left" : config.cell_style.text_align,
-          backgroundColor: rd.is_separator ? config.separator_style.background : (cellData?.background ?? undefined),
-        },
-      });
-    });
-    cells.push(row);
-  });
-
-  const table: TableElement = {
-    id: uid(),
-    type: "table",
-    x,
-    y: y + titleH,
-    w,
-    h: tableH,
-    rows: totalRows,
-    cols: totalCols,
-    cells: cells as never,
-    colWidths,
-    rowHeights,
-    cellStyle: { fontSize: config.cell_style.font_size, alignX: "center" },
-    borderConfig: {
-      outer: { color: config.cell_style.border_color, width: 1, style: "solid" },
-      horizontal: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
-      vertical: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
-    },
-  };
-
-  els.push(table);
-  return { elements: els, height: titleH + tableH };
-};
-
 // --- Main builder ---
 
 const buildComponentElements = (
@@ -1343,8 +1235,6 @@ const buildComponentElements = (
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
     case "calendar":
       return buildCalendar(comp.config as CalendarConfig, x, y);
-    case "timetable":
-      return buildTimetable(comp.config as TimetableConfig, x, y);
     case "date_name_field":
     case "clock_face":
       // 자유 배치 요소 — pageFactory에서 직접 삽입

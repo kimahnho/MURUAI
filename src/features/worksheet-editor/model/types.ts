@@ -18,8 +18,7 @@ export type WorksheetComponentType =
   | "matching_connect"
   | "date_name_field"
   | "clock_face"
-  | "calendar"
-  | "timetable";
+  | "calendar";
 
 // --- Config types ---
 
@@ -204,38 +203,6 @@ export interface CalendarConfig {
   show_prev_next_month: boolean;
 }
 
-export interface TimetableCellData {
-  text: string | null;
-  background: string | null;
-}
-
-export interface TimetableConfig {
-  columns: { header: string }[];
-  rows: { header: string; is_separator: boolean }[];
-  cells: TimetableCellData[][];
-  preset: "school_5day" | "school_6day" | "daily_schedule" | "therapy_weekly" | null;
-  column_header_style: {
-    background: string;
-    text_color: string;
-  };
-  row_header_style: {
-    background: string;
-    text_color: string;
-    width: number;
-  };
-  cell_style: {
-    font_size: number;
-    min_height: number;
-    border_color: string;
-    text_align: "center" | "left" | "top_left";
-  };
-  separator_style: {
-    background: string;
-    height: number;
-  };
-  title: string | null;
-}
-
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -254,8 +221,7 @@ export type WorksheetConfig =
   | MatchingConnectConfig
   | DateNameFieldConfig
   | ClockFaceConfig
-  | CalendarConfig
-  | TimetableConfig;
+  | CalendarConfig;
 
 export interface WorksheetComponent {
   id: string;

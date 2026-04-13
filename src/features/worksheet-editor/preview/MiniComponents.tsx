@@ -12,7 +12,6 @@ import type {
   WritingPracticeConfig,
   ColoringAreaConfig,
   CalendarConfig,
-  TimetableConfig,
 } from "../model/types";
 import { NOTEBOOK_SPECS } from "../constants/defaults";
 import "../styles/worksheet-preview.css";
@@ -325,38 +324,3 @@ export const MiniCalendar = ({ config }: { config: CalendarConfig }) => {
     </div>
   );
 };
-
-// --- Timetable ---
-export const MiniTimetable = ({ config }: { config: TimetableConfig }) => (
-  <div style={{ fontSize: "4pt", lineHeight: 1.3 }}>
-    {config.title && (
-      <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "5pt", marginBottom: 2 }}>{config.title}</div>
-    )}
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={{ background: config.column_header_style.background, color: config.column_header_style.text_color, padding: "1px", fontSize: "3.5pt" }} />
-          {config.columns.map((col, i) => (
-            <th key={i} style={{ background: config.column_header_style.background, color: config.column_header_style.text_color, padding: "1px", fontSize: "3.5pt" }}>
-              {col.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {config.rows.map((row, ri) => (
-          <tr key={ri}>
-            <td style={{ background: row.is_separator ? config.separator_style.background : config.row_header_style.background, color: config.row_header_style.text_color, padding: "1px", fontWeight: "bold", fontSize: "3.5pt", whiteSpace: "nowrap" }}>
-              {row.header}
-            </td>
-            {config.columns.map((_, ci) => (
-              <td key={ci} style={{ border: "0.3px solid #eee", padding: "1px", height: row.is_separator ? 4 : 8, background: row.is_separator ? config.separator_style.background : undefined, textAlign: "center" }}>
-                {config.cells[ri]?.[ci]?.text ?? ""}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);

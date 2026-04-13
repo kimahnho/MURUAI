@@ -16,7 +16,6 @@ import type {
   WritingPracticeConfig,
   ColoringAreaConfig,
   CalendarConfig,
-  TimetableConfig,
 } from "../model/types";
 import {
   MiniHeader,
@@ -31,7 +30,6 @@ import {
   MiniWritingPractice,
   MiniColoringArea,
   MiniCalendar,
-  MiniTimetable,
 } from "../preview/MiniComponents";
 
 const renderMini = (comp: WorksheetComponent) => {
@@ -60,8 +58,6 @@ const renderMini = (comp: WorksheetComponent) => {
       return <MiniColoringArea config={comp.config as ColoringAreaConfig} />;
     case "calendar":
       return <MiniCalendar config={comp.config as CalendarConfig} />;
-    case "timetable":
-      return <MiniTimetable config={comp.config as TimetableConfig} />;
     default:
       return null;
   }
