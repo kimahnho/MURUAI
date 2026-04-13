@@ -202,7 +202,7 @@ const PageContent = () => {
                     <EditableNumberInput
                       value={Math.round((background.scale ?? 1) * 100)}
                       min={10}
-                      max={100}
+                      max={150}
                       onChange={(v) => { updateBackground({ ...background, scale: v / 100 }); }}
                       className="w-16 rounded border border-black-25 bg-white-100 px-2 py-1 text-13-regular text-black-90 text-center outline-none focus:border-primary"
                     />
