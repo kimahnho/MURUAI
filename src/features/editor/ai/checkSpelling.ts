@@ -33,7 +33,7 @@ type RawSpellResult = {
   corrections: SpellCorrection[];
 };
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 20;
 
 // ── 기존 Google AI lazy singleton ──
 // let genAiInstance: GoogleGenAI | null = null;
@@ -133,7 +133,7 @@ const callGemini = async (items: TextItem[]): Promise<SpellCheckResult[]> => {
   }
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite-preview",
     contents: buildPrompt(items),
     config: { responseModalities: ["Text"] },
   });
@@ -161,6 +161,11 @@ export const checkSpelling = async (
     batches.push(items.slice(i, i + BATCH_SIZE));
   }
 
-  const results = await Promise.all(batches.map(callGemini));
-  return results.flat();
+  // 순차 실행 — 서버 부담 방지
+  const results: SpellCheckResult[] = [];
+  for (const batch of batches) {
+    const batchResult = await callGemini(batch);
+    results.push(...batchResult);
+  }
+  return results;
 };
