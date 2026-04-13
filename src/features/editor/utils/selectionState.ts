@@ -63,10 +63,23 @@ export const getSelectionRenderState = ({
         elements.find((element) => element.id === id)?.groupId === renderGroupId
     );
 
+  // 선택된 요소 중 그룹에 속한 ID 집합 — 그룹 요소는 개별 테두리를 숨기고 GroupSelectionOverlay가 대신 표시
+  const groupedRenderIds = new Set<string>();
+  if (renderSelectedIds.length > 1) {
+    for (const id of renderSelectedIds) {
+      const el = elements.find((e) => e.id === id);
+      if (el?.groupId) {
+        // 같은 그룹의 다른 요소도 선택되어 있으면 그룹 렌더링 대상
+        const hasSameGroupPeer = renderSelectedIds.some(
+          (otherId) => otherId !== id && elements.find((e) => e.id === otherId)?.groupId === el.groupId,
+        );
+        if (hasSameGroupPeer) groupedRenderIds.add(id);
+      }
+    }
+  }
+
   const shouldShowIndividualBorder = (elementId: string) =>
-    // 그룹 렌더링 중에는 개별 테두리를 숨겨 "하나의 그룹 선택" 시각 피드백을 유지한다.
-    renderSelectedIds.includes(elementId) &&
-    (!isRenderGroupedSelection || renderSelectedIds.length === 1);
+    renderSelectedIds.includes(elementId) && !groupedRenderIds.has(elementId);
 
   return {
     renderSelectedIds,
