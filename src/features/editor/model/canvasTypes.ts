@@ -172,6 +172,7 @@ export type TableCellStyle = {
   fontSize: number;                      // 기본값 13
   fontFamily?: string;
   alignX: "left" | "center" | "right";  // 기본값 "center"
+  alignY?: "top" | "middle" | "bottom"; // 기본값 "middle" (세로 정렬)
   fontWeight?: "normal" | "bold" | number;
   color?: string;                        // 기본값 "#000000"
   italic?: boolean;

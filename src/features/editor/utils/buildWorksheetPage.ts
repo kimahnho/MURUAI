@@ -22,6 +22,8 @@ import type {
   SentenceFillConfig,
   PassageQuestionConfig,
   MatchingConnectConfig,
+  CalendarConfig,
+  TimetableConfig,
 } from "@/features/worksheet-editor/model/types";
 import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
@@ -939,6 +941,368 @@ const buildColoringArea = (config: ColoringAreaConfig, x: number, y: number): { 
   return { elements: els, height: h + mmToPx(2) };
 };
 
+// --- Calendar ---
+
+/** 달력 날짜 자동 계산 유틸 */
+const getCalendarData = (year: number, month: number, startDay: "sunday" | "monday") => {
+  const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
+  const offset = startDay === "sunday" ? firstDayOfMonth : (firstDayOfMonth + 6) % 7;
+  const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+  return { offset, daysInMonth, daysInPrevMonth, totalCells };
+};
+
+const WEEKDAY_LABELS_SUN = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAY_LABELS_MON = ["월", "화", "수", "목", "금", "토", "일"];
+
+const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const w = CONTENT_W;
+
+  if (config.mode === "monthly") {
+    // 타이틀 계산
+    let titleText = `${config.year}년 ${config.month}월`;
+    if (config.title_format === "month_only") titleText = `${config.month}월`;
+    if (config.title_format === "custom" && config.custom_title) titleText = config.custom_title;
+
+    const { offset, daysInMonth, daysInPrevMonth, totalCells } = getCalendarData(config.year, config.month, config.start_day);
+    const dataRows = totalCells / 7;
+    const headerRowH = mmToPx(8);
+    const cellH = mmToPx(config.cell_style.min_height);
+    const titleH = mmToPx(10);
+    const totalRows = 1 + dataRows; // 요일 헤더 + 날짜 행
+    const tableH = headerRowH + dataRows * cellH;
+    const totalH = titleH + tableH;
+
+    const weekdays = config.start_day === "sunday" ? WEEKDAY_LABELS_SUN : WEEKDAY_LABELS_MON;
+
+    // 타이틀 텍스트
+    const els: CanvasElement[] = [
+      textEl({
+        x, y, w, h: titleH,
+        text: titleText,
+        style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+      }),
+    ];
+
+    // 테이블 구성
+    const cols = 7;
+    const rows = totalRows;
+    const colW = w / 7;
+    const colWidths = Array(7).fill(colW);
+    const rowHeights = [headerRowH, ...Array(dataRows).fill(cellH)];
+
+    type CalCell = { text: string; style?: import("../model/canvasTypes").TableCellStyle };
+    const cells: CalCell[][] = [];
+
+    // 요일 헤더 행
+    const sundayIdx = config.start_day === "sunday" ? 0 : 6;
+    const saturdayIdx = config.start_day === "sunday" ? 6 : 5;
+    cells.push(
+      weekdays.map((day, i) => {
+        let textColor = config.day_header_style.text_color;
+        if (i === sundayIdx) textColor = config.day_header_style.sunday_color;
+        if (i === saturdayIdx) textColor = config.day_header_style.saturday_color;
+        return {
+          text: day,
+          style: {
+            fontSize: 14,
+            alignX: "center" as const,
+            fontWeight: "bold" as const,
+            color: textColor,
+            backgroundColor: config.day_header_style.background,
+          },
+        };
+      }),
+    );
+
+    // 날짜 행
+    for (let row = 0; row < dataRows; row++) {
+      const rowCells: CalCell[] = [];
+      for (let col = 0; col < 7; col++) {
+        const cellIndex = row * 7 + col;
+        const dayNum = cellIndex - offset + 1;
+
+        if (dayNum < 1) {
+          // 이전 달
+          const prevDay = daysInPrevMonth + dayNum;
+          rowCells.push({
+            text: config.show_prev_next_month ? `${prevDay}` : "",
+            style: { fontSize: 14, alignX: "left", alignY: "top", color: "#CCCCCC" },
+          });
+        } else if (dayNum > daysInMonth) {
+          // 다음 달
+          const nextDay = dayNum - daysInMonth;
+          rowCells.push({
+            text: config.show_prev_next_month ? `${nextDay}` : "",
+            style: { fontSize: 14, alignX: "left", alignY: "top", color: "#CCCCCC" },
+          });
+        } else {
+          // 현재 달
+          const cellText = `${dayNum}`;
+
+          // 일/토 색상 — 실제 요일 기반으로 계산
+          const actualDayOfWeek = new Date(config.year, config.month - 1, dayNum).getDay(); // 0=일, 6=토
+          let color = "#333333";
+          if (actualDayOfWeek === 0) color = config.day_header_style.sunday_color;
+          if (actualDayOfWeek === 6) color = config.day_header_style.saturday_color;
+
+          rowCells.push({
+            text: cellText,
+            style: {
+              fontSize: 14,
+              alignX: "left",
+              alignY: "top",
+              fontWeight: "bold",
+              color,
+            },
+          });
+        }
+      }
+      cells.push(rowCells);
+    }
+
+    const table: TableElement = {
+      id: uid(),
+      type: "table",
+      x,
+      y: y + titleH,
+      w,
+      h: tableH,
+      rows,
+      cols,
+      cells: cells as never,
+      colWidths,
+      rowHeights,
+      cellStyle: { fontSize: 14, alignX: "left", alignY: "top" },
+      borderConfig: {
+        outer: { color: config.cell_style.border_color, width: 1, style: "solid" },
+        horizontal: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+        vertical: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+      },
+    };
+
+    els.push(table);
+    return { elements: els, height: totalH };
+  }
+
+  // --- Weekly mode ---
+  const weekdays = config.start_day === "sunday" ? WEEKDAY_LABELS_SUN : WEEKDAY_LABELS_MON;
+  const weekOfMonth = config.week_of_month ?? 1;
+
+  // 주차 날짜 범위 계산
+  const { offset } = getCalendarData(config.year, config.month, config.start_day);
+  const weekStartDay = 1 + (weekOfMonth - 1) * 7 - offset;
+  const daysInMonth = new Date(config.year, config.month, 0).getDate();
+
+  let titleText = `${config.year}년 ${config.month}월 ${weekOfMonth}주차`;
+  if (config.title_format === "month_only") titleText = `${config.month}월 ${weekOfMonth}주차`;
+  if (config.title_format === "custom" && config.custom_title) titleText = config.custom_title;
+
+  const totalRows = 2; // 요일 헤더 + 날짜(내용) 행
+  const totalCols = 7;
+  const headerRowH = mmToPx(8);
+  const cellH = mmToPx(Math.max(config.cell_style.min_height, 30));
+  const titleH = mmToPx(10);
+  const tableH = headerRowH + cellH;
+
+  const dayColW = w / 7;
+  const colWidths = Array(7).fill(dayColW);
+  const rowHeights = [headerRowH, cellH];
+
+  const els: CanvasElement[] = [
+    textEl({
+      x, y, w, h: titleH,
+      text: titleText,
+      style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+    }),
+  ];
+
+  // 이전 달 마지막 날짜 (지난 달 날짜 표시용)
+  const daysInPrevMonth = new Date(config.year, config.month - 1, 0).getDate();
+
+  type WCalCell = { text: string; style?: import("../model/canvasTypes").TableCellStyle };
+  const cells: WCalCell[][] = [];
+
+  // 1행: 요일 헤더만
+  const sundayIdx = config.start_day === "sunday" ? 0 : 6;
+  const saturdayIdx = config.start_day === "sunday" ? 6 : 5;
+  const headerRow: WCalCell[] = [];
+  weekdays.forEach((day, i) => {
+    let textColor = config.day_header_style.text_color;
+    if (i === sundayIdx) textColor = config.day_header_style.sunday_color;
+    if (i === saturdayIdx) textColor = config.day_header_style.saturday_color;
+    headerRow.push({
+      text: day,
+      style: { fontSize: 14, alignX: "center", fontWeight: "bold", color: textColor, backgroundColor: config.day_header_style.background },
+    });
+  });
+  cells.push(headerRow);
+
+  // 2행: 날짜 (좌측 상단 정렬), 지난 달 날짜도 표시
+  const dateRow: WCalCell[] = [];
+  for (let i = 0; i < 7; i++) {
+    const dateNum = weekStartDay + i;
+    let displayText: string;
+    let color = "#333333";
+
+    if (dateNum < 1) {
+      // 이전 달 날짜
+      const prevDay = daysInPrevMonth + dateNum;
+      const prevMonth = config.month === 1 ? 12 : config.month - 1;
+      displayText = `${prevMonth}/${prevDay}`;
+      color = "#AAAAAA";
+    } else if (dateNum > daysInMonth) {
+      // 다음 달 날짜
+      const nextDay = dateNum - daysInMonth;
+      const nextMonth = config.month === 12 ? 1 : config.month + 1;
+      displayText = `${nextMonth}/${nextDay}`;
+      color = "#AAAAAA";
+    } else {
+      displayText = `${dateNum}`;
+      const actualDow = new Date(config.year, config.month - 1, dateNum).getDay();
+      if (actualDow === 0) color = config.day_header_style.sunday_color;
+      if (actualDow === 6) color = config.day_header_style.saturday_color;
+    }
+
+    dateRow.push({
+      text: displayText,
+      style: { fontSize: 14, alignX: "left", alignY: "top", fontWeight: "bold", color },
+    });
+  }
+  cells.push(dateRow);
+
+  const table: TableElement = {
+    id: uid(),
+    type: "table",
+    x,
+    y: y + titleH,
+    w,
+    h: tableH,
+    rows: totalRows,
+    cols: totalCols,
+    cells: cells as never,
+    colWidths,
+    rowHeights,
+    cellStyle: { fontSize: 14, alignX: "left", alignY: "top" },
+    borderConfig: {
+      outer: { color: config.cell_style.border_color, width: 1, style: "solid" },
+      horizontal: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+      vertical: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+    },
+  };
+
+  els.push(table);
+  return { elements: els, height: titleH + tableH };
+};
+
+// --- Timetable ---
+
+const buildTimetable = (config: TimetableConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const w = CONTENT_W;
+  const { columns, rows: rowDefs } = config;
+
+  const titleH = config.title ? mmToPx(10) : 0;
+  const els: CanvasElement[] = [];
+
+  if (config.title) {
+    els.push(
+      textEl({
+        x, y, w, h: titleH,
+        text: config.title,
+        style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
+      }),
+    );
+  }
+
+  const headerRowH = mmToPx(8);
+  const rowHeaderW = mmToPx(config.row_header_style.width);
+  const dayColW = (w - rowHeaderW) / columns.length;
+
+  const totalCols = 1 + columns.length; // 행 헤더 열 + 데이터 열
+  const totalRows = 1 + rowDefs.length; // 열 헤더 행 + 데이터 행
+  const colWidths = [rowHeaderW, ...Array(columns.length).fill(dayColW)];
+  const rowHeights: number[] = [headerRowH];
+
+  for (const rd of rowDefs) {
+    rowHeights.push(rd.is_separator ? mmToPx(config.separator_style.height) : mmToPx(config.cell_style.min_height));
+  }
+
+  const tableH = rowHeights.reduce((a, b) => a + b, 0);
+
+  const cells: { text: string; style?: { fontSize: number; alignX: "left" | "center" | "right"; fontWeight?: "normal" | "bold"; color?: string; backgroundColor?: string } }[][] = [];
+
+  // 열 헤더 행
+  const headerRow: typeof cells[0] = [
+    { text: "", style: { fontSize: 11, alignX: "center", backgroundColor: config.column_header_style.background } },
+  ];
+  columns.forEach((col) => {
+    headerRow.push({
+      text: col.header,
+      style: {
+        fontSize: 12,
+        alignX: "center",
+        fontWeight: "bold",
+        color: config.column_header_style.text_color,
+        backgroundColor: config.column_header_style.background,
+      },
+    });
+  });
+  cells.push(headerRow);
+
+  // 데이터 행
+  rowDefs.forEach((rd, rowIdx) => {
+    const row: typeof cells[0] = [];
+    // 행 헤더
+    row.push({
+      text: rd.header,
+      style: {
+        fontSize: 11,
+        alignX: "center",
+        fontWeight: "bold",
+        color: config.row_header_style.text_color,
+        backgroundColor: rd.is_separator ? config.separator_style.background : config.row_header_style.background,
+      },
+    });
+    // 데이터 셀
+    columns.forEach((_, colIdx) => {
+      const cellData = config.cells[rowIdx]?.[colIdx];
+      row.push({
+        text: cellData?.text ?? "",
+        style: {
+          fontSize: config.cell_style.font_size,
+          alignX: config.cell_style.text_align === "top_left" ? "left" : config.cell_style.text_align,
+          backgroundColor: rd.is_separator ? config.separator_style.background : (cellData?.background ?? undefined),
+        },
+      });
+    });
+    cells.push(row);
+  });
+
+  const table: TableElement = {
+    id: uid(),
+    type: "table",
+    x,
+    y: y + titleH,
+    w,
+    h: tableH,
+    rows: totalRows,
+    cols: totalCols,
+    cells: cells as never,
+    colWidths,
+    rowHeights,
+    cellStyle: { fontSize: config.cell_style.font_size, alignX: "center" },
+    borderConfig: {
+      outer: { color: config.cell_style.border_color, width: 1, style: "solid" },
+      horizontal: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+      vertical: { color: config.cell_style.border_color, width: 0.5, style: "solid" },
+    },
+  };
+
+  els.push(table);
+  return { elements: els, height: titleH + tableH };
+};
+
 // --- Main builder ---
 
 const buildComponentElements = (
@@ -977,6 +1341,10 @@ const buildComponentElements = (
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+    case "calendar":
+      return buildCalendar(comp.config as CalendarConfig, x, y);
+    case "timetable":
+      return buildTimetable(comp.config as TimetableConfig, x, y);
     case "date_name_field":
     case "clock_face":
       // 자유 배치 요소 — pageFactory에서 직접 삽입

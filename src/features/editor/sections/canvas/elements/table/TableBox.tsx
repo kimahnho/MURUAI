@@ -587,8 +587,11 @@ export const TableBox = ({
             const cellBgColor = cs?.backgroundColor ?? element.cellStyle?.backgroundColor;
             const cellFontStyle = cs?.italic ? "italic" : "normal";
             const cellTextDecoration = cs?.underline ? "underline" : "none";
+            const cellAlignY = cs?.alignY ?? element.cellStyle?.alignY ?? "middle";
             const cellJustifyContent =
               cellAlignX === "left" ? "flex-start" : cellAlignX === "right" ? "flex-end" : "center";
+            const cellAlignItems =
+              cellAlignY === "top" ? "flex-start" : cellAlignY === "bottom" ? "flex-end" : "center";
             const sharedTextStyle = {
               fontFamily: cellFontFamily,
               fontSize: cellFontSize,
@@ -607,7 +610,7 @@ export const TableBox = ({
                 style={{
                   overflow: "hidden",
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: cellAlignItems,
                   justifyContent: cellJustifyContent,
                   padding: "2px 4px",
                   boxSizing: "border-box",

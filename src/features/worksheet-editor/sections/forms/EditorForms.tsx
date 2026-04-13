@@ -18,6 +18,8 @@ import type {
   MatchingConnectConfig,
   DateNameFieldConfig,
   ClockFaceConfig,
+  CalendarConfig,
+  TimetableConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
 
@@ -1382,6 +1384,341 @@ export const ClockFaceForm = ({ config, onUpdate }: FormProps<ClockFaceConfig>) 
       <div className={chipGroupCls}>
         <Chip label="있음" isActive={config.show_answer_line} onClick={() => onUpdate((c) => ({ ...c, show_answer_line: true }))} />
         <Chip label="없음" isActive={!config.show_answer_line} onClick={() => onUpdate((c) => ({ ...c, show_answer_line: false }))} />
+      </div>
+    </div>
+  </>
+);
+
+// --- Calendar ---
+
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => 2020 + i);
+
+export const CalendarForm = ({ config, onUpdate }: FormProps<CalendarConfig>) => (
+  <>
+    {/* 모드 */}
+    <div className="mb-3">
+      <label className={labelCls}>모드</label>
+      <div className={chipGroupCls}>
+        <Chip label="월간" isActive={config.mode === "monthly"} onClick={() => onUpdate((c) => ({ ...c, mode: "monthly" }))} />
+        <Chip label="주간" isActive={config.mode === "weekly"} onClick={() => onUpdate((c) => ({ ...c, mode: "weekly" }))} />
+      </div>
+    </div>
+
+    {/* 연도/월 */}
+    <div className="flex gap-2 mb-3">
+      <div className="flex-1">
+        <label className={labelCls}>연도</label>
+        <select className={inputCls} value={config.year} onChange={(e) => onUpdate((c) => ({ ...c, year: Number(e.target.value) }))}>
+          {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}년</option>)}
+        </select>
+      </div>
+      <div className="flex-1">
+        <label className={labelCls}>월</label>
+        <select className={inputCls} value={config.month} onChange={(e) => onUpdate((c) => ({ ...c, month: Number(e.target.value) }))}>
+          {MONTH_OPTIONS.map((m) => <option key={m} value={m}>{m}월</option>)}
+        </select>
+      </div>
+    </div>
+
+    {/* 주간 모드 - 주차 */}
+    {config.mode === "weekly" && (
+      <div className="mb-3">
+        <label className={labelCls}>주차</label>
+        <select className={inputCls} value={config.week_of_month ?? 1} onChange={(e) => onUpdate((c) => ({ ...c, week_of_month: Number(e.target.value) }))}>
+          {[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w}주차</option>)}
+        </select>
+      </div>
+    )}
+
+    {/* 주 시작 요일 */}
+    <div className="mb-3">
+      <label className={labelCls}>주 시작 요일</label>
+      <div className={chipGroupCls}>
+        <Chip label="일요일" isActive={config.start_day === "sunday"} onClick={() => onUpdate((c) => ({ ...c, start_day: "sunday" }))} />
+        <Chip label="월요일" isActive={config.start_day === "monday"} onClick={() => onUpdate((c) => ({ ...c, start_day: "monday" }))} />
+      </div>
+    </div>
+
+    {/* 타이틀 형식 */}
+    <div className="mb-3">
+      <label className={labelCls}>타이틀</label>
+      <div className={chipGroupCls}>
+        <Chip label="연도+월" isActive={config.title_format === "year_month"} onClick={() => onUpdate((c) => ({ ...c, title_format: "year_month" }))} />
+        <Chip label="월만" isActive={config.title_format === "month_only"} onClick={() => onUpdate((c) => ({ ...c, title_format: "month_only" }))} />
+        <Chip label="직접 입력" isActive={config.title_format === "custom"} onClick={() => onUpdate((c) => ({ ...c, title_format: "custom" }))} />
+      </div>
+      {config.title_format === "custom" && (
+        <input
+          type="text"
+          className={`${inputCls} mt-2`}
+          value={config.custom_title ?? ""}
+          placeholder="타이틀을 입력하세요"
+          maxLength={30}
+          onChange={(e) => onUpdate((c) => ({ ...c, custom_title: e.target.value }))}
+        />
+      )}
+    </div>
+
+    {/* 이전/다음 달 표시 (월간만) */}
+    {config.mode === "monthly" && (
+      <div className="mb-3">
+        <label className={labelCls}>이전/다음 달 날짜 표시</label>
+        <div className={chipGroupCls}>
+          <Chip label="표시" isActive={config.show_prev_next_month} onClick={() => onUpdate((c) => ({ ...c, show_prev_next_month: true }))} />
+          <Chip label="숨기기" isActive={!config.show_prev_next_month} onClick={() => onUpdate((c) => ({ ...c, show_prev_next_month: false }))} />
+        </div>
+      </div>
+    )}
+  </>
+);
+
+// --- Timetable ---
+
+const TIMETABLE_PRESETS = [
+  { key: "school_5day", label: "학교 5일" },
+  { key: "school_6day", label: "학교 6일" },
+  { key: "daily_schedule", label: "일과표" },
+  { key: "therapy_weekly", label: "치료 스케줄" },
+] as const;
+
+const PRESET_DATA: Record<string, { columns: { header: string }[]; rows: { header: string; is_separator: boolean }[] }> = {
+  school_5day: {
+    columns: [{ header: "월" }, { header: "화" }, { header: "수" }, { header: "목" }, { header: "금" }],
+    rows: [
+      { header: "1교시", is_separator: false }, { header: "2교시", is_separator: false },
+      { header: "3교시", is_separator: false }, { header: "4교시", is_separator: false },
+      { header: "점심", is_separator: true },
+      { header: "5교시", is_separator: false }, { header: "6교시", is_separator: false },
+    ],
+  },
+  school_6day: {
+    columns: [{ header: "월" }, { header: "화" }, { header: "수" }, { header: "목" }, { header: "금" }, { header: "토" }],
+    rows: [
+      { header: "1교시", is_separator: false }, { header: "2교시", is_separator: false },
+      { header: "3교시", is_separator: false }, { header: "4교시", is_separator: false },
+      { header: "점심", is_separator: true },
+      { header: "5교시", is_separator: false }, { header: "6교시", is_separator: false },
+    ],
+  },
+  daily_schedule: {
+    columns: [{ header: "활동" }],
+    rows: Array.from({ length: 15 }, (_, i) => ({ header: `${7 + i}:00`, is_separator: false })),
+  },
+  therapy_weekly: {
+    columns: [{ header: "월" }, { header: "화" }, { header: "수" }, { header: "목" }, { header: "금" }],
+    rows: [{ header: "오전", is_separator: false }, { header: "오후", is_separator: false }],
+  },
+};
+
+export const TimetableForm = ({ config, onUpdate }: FormProps<TimetableConfig>) => (
+  <>
+    {/* 프리셋 */}
+    <div className="mb-3">
+      <label className={labelCls}>빠른 시작</label>
+      <div className={chipGroupCls}>
+        {TIMETABLE_PRESETS.map((p) => (
+          <Chip
+            key={p.key}
+            label={p.label}
+            isActive={config.preset === p.key}
+            onClick={() => {
+              const preset = PRESET_DATA[p.key];
+              const cells = Array.from({ length: preset.rows.length }, () =>
+                Array.from({ length: preset.columns.length }, () => ({ text: null, background: null })),
+              );
+              onUpdate(() => ({
+                ...config,
+                preset: p.key as TimetableConfig["preset"],
+                columns: preset.columns,
+                rows: preset.rows,
+                cells,
+              }));
+            }}
+          />
+        ))}
+      </div>
+    </div>
+
+    {/* 타이틀 */}
+    <div className="mb-3">
+      <label className={labelCls}>타이틀 (선택)</label>
+      <input
+        type="text"
+        className={inputCls}
+        value={config.title ?? ""}
+        placeholder="시간표 제목"
+        maxLength={30}
+        onChange={(e) => onUpdate((c) => ({ ...c, title: e.target.value || null }))}
+      />
+    </div>
+
+    {/* 열 헤더 */}
+    <div className="mb-3">
+      <label className={labelCls}>열 (가로)</label>
+      {config.columns.map((col, i) => (
+        <div key={i} className={itemRowCls}>
+          <input
+            type="text"
+            className={`${inputCls} flex-1`}
+            value={col.header}
+            maxLength={10}
+            onChange={(e) =>
+              onUpdate((c) => {
+                const columns = [...c.columns];
+                columns[i] = { ...columns[i], header: e.target.value };
+                return { ...c, columns, preset: null };
+              })
+            }
+          />
+          {config.columns.length > 2 && (
+            <button
+              type="button"
+              className={removeBtnCls}
+              onClick={() =>
+                onUpdate((c) => {
+                  const columns = c.columns.filter((_, j) => j !== i);
+                  const cells = c.cells.map((row) => row.filter((_, j) => j !== i));
+                  return { ...c, columns, cells, preset: null };
+                })
+              }
+            >
+              ×
+            </button>
+          )}
+        </div>
+      ))}
+      {config.columns.length < 8 && (
+        <button
+          type="button"
+          className={addBtnCls}
+          onClick={() =>
+            onUpdate((c) => ({
+              ...c,
+              columns: [...c.columns, { header: "" }],
+              cells: c.cells.map((row) => [...row, { text: null, background: null }]),
+              preset: null,
+            }))
+          }
+        >
+          + 열 추가
+        </button>
+      )}
+    </div>
+
+    {/* 행 헤더 */}
+    <div className="mb-3">
+      <label className={labelCls}>행 (세로)</label>
+      {config.rows.map((row, i) => (
+        <div key={i} className={itemRowCls}>
+          <input
+            type="text"
+            className={`${inputCls} flex-1`}
+            value={row.header}
+            maxLength={10}
+            onChange={(e) =>
+              onUpdate((c) => {
+                const rows = [...c.rows];
+                rows[i] = { ...rows[i], header: e.target.value };
+                return { ...c, rows, preset: null };
+              })
+            }
+          />
+          <button
+            type="button"
+            className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition ${
+              row.is_separator ? "border-warning-500 bg-warning-50 text-warning-700" : "border-black-25 bg-white-100 text-black-50 hover:border-warning-500"
+            }`}
+            title="구분행 토글"
+            onClick={() =>
+              onUpdate((c) => {
+                const rows = [...c.rows];
+                rows[i] = { ...rows[i], is_separator: !rows[i].is_separator };
+                return { ...c, rows, preset: null };
+              })
+            }
+          >
+            구분
+          </button>
+          {config.rows.length > 1 && (
+            <button
+              type="button"
+              className={removeBtnCls}
+              onClick={() =>
+                onUpdate((c) => {
+                  const rows = c.rows.filter((_, j) => j !== i);
+                  const cells = c.cells.filter((_, j) => j !== i);
+                  return { ...c, rows, cells, preset: null };
+                })
+              }
+            >
+              ×
+            </button>
+          )}
+        </div>
+      ))}
+      {config.rows.length < 12 && (
+        <button
+          type="button"
+          className={addBtnCls}
+          onClick={() =>
+            onUpdate((c) => ({
+              ...c,
+              rows: [...c.rows, { header: "", is_separator: false }],
+              cells: [...c.cells, Array.from({ length: c.columns.length }, () => ({ text: null, background: null }))],
+              preset: null,
+            }))
+          }
+        >
+          + 행 추가
+        </button>
+      )}
+    </div>
+
+    {/* 셀 내용 — 테이블 형태 인라인 에디터 */}
+    <div className="mb-3">
+      <label className={labelCls}>셀 내용</label>
+      <div className="overflow-x-auto rounded-lg border border-black-15">
+        <table className="w-full border-collapse text-[11px]">
+          <thead>
+            <tr>
+              <th className="p-1.5 bg-black-5 border-b border-r border-black-15 text-black-50 font-semibold" />
+              {config.columns.map((col, ci) => (
+                <th key={ci} className="p-1.5 bg-black-5 border-b border-r border-black-15 text-black-50 font-semibold">
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.map((row, ri) => (
+              <tr key={ri}>
+                <td className="p-1.5 bg-black-5 border-b border-r border-black-15 text-black-50 font-semibold whitespace-nowrap">
+                  {row.header}
+                </td>
+                {config.columns.map((_, ci) => (
+                  <td key={ci} className="p-0.5 border-b border-r border-black-15">
+                    <input
+                      type="text"
+                      className="w-full px-1.5 py-1 border-none bg-transparent text-[11px] text-center focus:outline-none focus:bg-primary-50 rounded"
+                      value={config.cells[ri]?.[ci]?.text ?? ""}
+                      maxLength={20}
+                      placeholder="·"
+                      onChange={(e) =>
+                        onUpdate((c) => {
+                          const cells = c.cells.map((r) => [...r]);
+                          if (!cells[ri]) cells[ri] = Array.from({ length: c.columns.length }, () => ({ text: null, background: null }));
+                          cells[ri][ci] = { ...cells[ri][ci], text: e.target.value || null };
+                          return { ...c, cells };
+                        })
+                      }
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   </>

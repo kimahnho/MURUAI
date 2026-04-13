@@ -70,6 +70,8 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     title: "시간 · 수",
     items: [
       { type: "clock_face", icon: "🕐", name: "시계", desc: "아날로그/전자 시계" },
+      { type: "calendar", icon: "📆", name: "달력", desc: "월간/주간 달력" },
+      { type: "timetable", icon: "📋", name: "시간표", desc: "학교/일과/치료 시간표" },
     ],
   },
 ];

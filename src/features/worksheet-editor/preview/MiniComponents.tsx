@@ -11,6 +11,8 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  CalendarConfig,
+  TimetableConfig,
 } from "../model/types";
 import { NOTEBOOK_SPECS } from "../constants/defaults";
 import "../styles/worksheet-preview.css";
@@ -235,3 +237,85 @@ export const MiniColoringArea = ({ config }: { config: ColoringAreaConfig }) => 
     </div>
   );
 };
+
+// --- Calendar ---
+const MINI_WEEKDAYS_SUN = ["일", "월", "화", "수", "목", "금", "토"];
+
+export const MiniCalendar = ({ config }: { config: CalendarConfig }) => {
+  let title = `${config.year}년 ${config.month}월`;
+  if (config.title_format === "month_only") title = `${config.month}월`;
+  if (config.title_format === "custom" && config.custom_title) title = config.custom_title;
+
+  const firstDay = new Date(config.year, config.month - 1, 1).getDay();
+  const daysInMonth = new Date(config.year, config.month, 0).getDate();
+  const offset = config.start_day === "sunday" ? firstDay : (firstDay + 6) % 7;
+  const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+  const weekdays = config.start_day === "sunday" ? MINI_WEEKDAYS_SUN : ["월", "화", "수", "목", "금", "토", "일"];
+
+  return (
+    <div style={{ fontSize: "4pt", lineHeight: 1.3 }}>
+      <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "5pt", marginBottom: 2 }}>{title}</div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            {weekdays.map((d) => (
+              <th key={d} style={{ background: config.day_header_style.background, color: config.day_header_style.text_color, padding: "1px", fontSize: "3.5pt" }}>
+                {d}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: totalCells / 7 }, (_, row) => (
+            <tr key={row}>
+              {Array.from({ length: 7 }, (_, col) => {
+                const idx = row * 7 + col;
+                const day = idx - offset + 1;
+                return (
+                  <td key={col} style={{ border: "0.3px solid #eee", padding: "1px", height: 8, verticalAlign: "top", color: day < 1 || day > daysInMonth ? "#ccc" : "#333" }}>
+                    {day >= 1 && day <= daysInMonth ? day : ""}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// --- Timetable ---
+export const MiniTimetable = ({ config }: { config: TimetableConfig }) => (
+  <div style={{ fontSize: "4pt", lineHeight: 1.3 }}>
+    {config.title && (
+      <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "5pt", marginBottom: 2 }}>{config.title}</div>
+    )}
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th style={{ background: config.column_header_style.background, color: config.column_header_style.text_color, padding: "1px", fontSize: "3.5pt" }} />
+          {config.columns.map((col, i) => (
+            <th key={i} style={{ background: config.column_header_style.background, color: config.column_header_style.text_color, padding: "1px", fontSize: "3.5pt" }}>
+              {col.header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {config.rows.map((row, ri) => (
+          <tr key={ri}>
+            <td style={{ background: row.is_separator ? config.separator_style.background : config.row_header_style.background, color: config.row_header_style.text_color, padding: "1px", fontWeight: "bold", fontSize: "3.5pt", whiteSpace: "nowrap" }}>
+              {row.header}
+            </td>
+            {config.columns.map((_, ci) => (
+              <td key={ci} style={{ border: "0.3px solid #eee", padding: "1px", height: row.is_separator ? 4 : 8, background: row.is_separator ? config.separator_style.background : undefined, textAlign: "center" }}>
+                {config.cells[ri]?.[ci]?.text ?? ""}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);

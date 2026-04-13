@@ -19,6 +19,8 @@ import type {
   MatchingConnectConfig,
   DateNameFieldConfig,
   ClockFaceConfig,
+  CalendarConfig,
+  TimetableConfig,
 } from "../model/types";
 
 export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = {
@@ -186,6 +188,73 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
     digital_format: "time_only",
     digital_color: "black_green",
   } satisfies ClockFaceConfig,
+
+  calendar: {
+    mode: "monthly",
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    week_of_month: null,
+    start_day: "sunday",
+    title_format: "year_month",
+    custom_title: null,
+    day_header_style: {
+      background: "#D6EAFF",
+      text_color: "#333333",
+      sunday_color: "#FF6B6B",
+      saturday_color: "#4A90D9",
+    },
+    cell_style: {
+      min_height: 22,
+      border_color: "#E0E0E0",
+    },
+    highlights: [],
+    weekly_row_headers: null,
+    weekly_rows: 1,
+    show_prev_next_month: false,
+  } satisfies CalendarConfig,
+
+  timetable: {
+    columns: [
+      { header: "월" },
+      { header: "화" },
+      { header: "수" },
+      { header: "목" },
+      { header: "금" },
+    ],
+    rows: [
+      { header: "1교시", is_separator: false },
+      { header: "2교시", is_separator: false },
+      { header: "3교시", is_separator: false },
+      { header: "4교시", is_separator: false },
+      { header: "점심", is_separator: true },
+      { header: "5교시", is_separator: false },
+      { header: "6교시", is_separator: false },
+    ],
+    cells: Array.from({ length: 7 }, () =>
+      Array.from({ length: 5 }, () => ({ text: null, background: null })),
+    ),
+    preset: "school_5day",
+    column_header_style: {
+      background: "#4A90D9",
+      text_color: "#FFFFFF",
+    },
+    row_header_style: {
+      background: "#F0F4F8",
+      text_color: "#333333",
+      width: 20,
+    },
+    cell_style: {
+      font_size: 13,
+      min_height: 18,
+      border_color: "#E0E0E0",
+      text_align: "center",
+    },
+    separator_style: {
+      background: "#FFF9E6",
+      height: 8,
+    },
+    title: null,
+  } satisfies TimetableConfig,
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
@@ -206,6 +275,8 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   matching_connect: { icon: "🔗", name: "의미 연결하기" },
   date_name_field: { icon: "📅", name: "날짜&이름" },
   clock_face: { icon: "🕐", name: "시계" },
+  calendar: { icon: "📆", name: "달력" },
+  timetable: { icon: "📋", name: "시간표" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {

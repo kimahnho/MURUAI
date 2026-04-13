@@ -17,7 +17,9 @@ export type WorksheetComponentType =
   | "passage_question"
   | "matching_connect"
   | "date_name_field"
-  | "clock_face";
+  | "clock_face"
+  | "calendar"
+  | "timetable";
 
 // --- Config types ---
 
@@ -172,6 +174,68 @@ export interface ClockFaceConfig {
   digital_color: "black_green" | "white_black" | "blue_dark";
 }
 
+export interface CalendarHighlight {
+  day: number;
+  label: string | null;
+  background: string | null;
+}
+
+export interface CalendarConfig {
+  mode: "monthly" | "weekly";
+  year: number;
+  month: number;
+  week_of_month: number | null;
+  start_day: "sunday" | "monday";
+  title_format: "year_month" | "month_only" | "custom";
+  custom_title: string | null;
+  day_header_style: {
+    background: string;
+    text_color: string;
+    sunday_color: string;
+    saturday_color: string;
+  };
+  cell_style: {
+    min_height: number;
+    border_color: string;
+  };
+  highlights: CalendarHighlight[];
+  weekly_row_headers: string[] | null;
+  weekly_rows: number;
+  show_prev_next_month: boolean;
+}
+
+export interface TimetableCellData {
+  text: string | null;
+  background: string | null;
+}
+
+export interface TimetableConfig {
+  columns: { header: string }[];
+  rows: { header: string; is_separator: boolean }[];
+  cells: TimetableCellData[][];
+  preset: "school_5day" | "school_6day" | "daily_schedule" | "therapy_weekly" | null;
+  column_header_style: {
+    background: string;
+    text_color: string;
+  };
+  row_header_style: {
+    background: string;
+    text_color: string;
+    width: number;
+  };
+  cell_style: {
+    font_size: number;
+    min_height: number;
+    border_color: string;
+    text_align: "center" | "left" | "top_left";
+  };
+  separator_style: {
+    background: string;
+    height: number;
+  };
+  title: string | null;
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -189,7 +253,9 @@ export type WorksheetConfig =
   | PassageQuestionConfig
   | MatchingConnectConfig
   | DateNameFieldConfig
-  | ClockFaceConfig;
+  | ClockFaceConfig
+  | CalendarConfig
+  | TimetableConfig;
 
 export interface WorksheetComponent {
   id: string;
