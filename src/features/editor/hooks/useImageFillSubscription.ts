@@ -53,8 +53,6 @@ export const useImageFillSubscription = ({
       const activePage = pagesRef.current.find(
         (page) => page.id === activePageId
       );
-      // 커버 페이지에서는 이미지 채우기 차단
-      if (activePage?.coverData) return;
       const baseSelectedIds = selectedIdsRef.current;
       const hasFillableSelection =
         shouldForceInsert &&

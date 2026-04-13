@@ -57,7 +57,7 @@ export const usePageSettingsSubscription = ({
         if (request.numbering) {
           nextPages = nextPages.map((page) => ({
             ...page,
-            numbering: page.coverData ? page.numbering : request.numbering,
+            numbering: request.numbering,
           }));
         }
         return nextPages;
