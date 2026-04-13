@@ -7,6 +7,7 @@ import type { StoryItem } from "../ai/generateEmotionStory";
 import type { BannerPhase } from "../store/emotionSceneStore";
 import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
 import type { WorksheetComponentType, WorksheetConfig } from "@/features/worksheet-editor/model/types";
+import type { CoverData } from "../covers/coverTypes";
 
 export type PageTemplateId = TemplateId | "aacBoard" | "aacBoardV2";
 
@@ -49,6 +50,8 @@ export interface Page {
   isSwapped?: boolean;
   /** 이 페이지에 삽입된 워크시트 컴포넌트 목록 — 기존 문서에 없으면 undefined */
   worksheetComponents?: PageWorksheetComponent[];
+  /** 표지 데이터 — 존재하면 DesignPaper가 커버 HTML을 렌더링 */
+  coverData?: CoverData;
 }
 
 export type EmotionSceneMeta = {

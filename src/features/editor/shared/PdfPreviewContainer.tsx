@@ -47,6 +47,7 @@ const PdfPreviewContainer = ({
             pageNumber={page.pageNumber}
             background={page.background}
             numbering={page.numbering}
+            coverData={page.coverData}
             selectedIds={[]}
             editingTextId={null}
             readOnly

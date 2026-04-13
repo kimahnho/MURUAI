@@ -608,6 +608,8 @@ const TemplateContent = () => {
           }`}
           onClick={() => {
             setActiveTab("templates");
+            useWorksheetElementStore.getState().hidePanel();
+            useWorksheetElementStore.getState().setSelectedComponentId(null);
           }}
         >
           미리 만든 템플릿

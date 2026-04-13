@@ -124,6 +124,10 @@ export const useDesignPaperSelectionContextMenu = ({
           setSelectedComponentId(matchedComp.id);
           showPanel();
         }
+      } else if (!wsMeta) {
+        // 컴포넌트가 아닌 요소 클릭 시 편집 패널 닫기
+        useWorksheetElementStore.getState().setSelectedComponentId(null);
+        useWorksheetElementStore.getState().hidePanel();
       }
       if (
         isEmotionSlotShape(selectedElement) ||

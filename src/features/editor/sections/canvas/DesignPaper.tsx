@@ -11,6 +11,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
+import type { CoverData } from "../../covers/coverTypes";
+import CoverRenderer from "../../covers/CoverRenderer";
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import WorksheetComponentOverlay, { getComponentBounds } from "./WorksheetComponentOverlay";
 import { useWorksheetElementStore } from "../../store/worksheetElementStore";
@@ -140,6 +142,7 @@ interface DesignPaperProps {
   showShadow?: boolean;
   onFileDropOnCanvas?: (file: File, x: number, y: number) => void;
   onDeleteElements?: (ids: string[]) => void;
+  coverData?: CoverData;
 }
 
 const MM_TO_PX = 3.7795;
@@ -170,6 +173,7 @@ const DesignPaper = ({
   showShadow = false,
   onFileDropOnCanvas,
   onDeleteElements,
+  coverData,
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
   const setFontPanel = useFontStore((state) => state.setPanelFont);
@@ -794,6 +798,9 @@ const DesignPaper = ({
       }}
       onContextMenu={openCanvasContextMenu}
     >
+      {coverData && (
+        <CoverRenderer coverData={coverData} pageWidth={pageWidth} pageHeight={pageHeight} />
+      )}
       {!readOnly && (
         <WorksheetComponentOverlay elements={elements} selectedIds={selectedIds} />
       )}
