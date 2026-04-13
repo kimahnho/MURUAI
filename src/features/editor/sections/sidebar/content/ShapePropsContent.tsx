@@ -58,13 +58,24 @@ const ShapePropsContent = () => {
   const commitWidth = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "");
     if (!digits) return;
-    updateElement(element.id, { w: Math.max(1, Number(digits)) });
+    const newW = Math.max(1, Number(digits));
+    const patch: Record<string, unknown> = { w: newW };
+    // 이미지 요소: 새 크기에 맞춰 imageBox를 cover로 재계산
+    if (isImageFill && element.imageBox) {
+      patch.imageBox = { x: 0, y: 0, w: newW, h: rect.height };
+    }
+    updateElement(element.id, patch);
   };
 
   const commitHeight = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "");
     if (!digits) return;
-    updateElement(element.id, { h: Math.max(1, Number(digits)) });
+    const newH = Math.max(1, Number(digits));
+    const patch: Record<string, unknown> = { h: newH };
+    if (isImageFill && element.imageBox) {
+      patch.imageBox = { x: 0, y: 0, w: rect.width, h: newH };
+    }
+    updateElement(element.id, patch);
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
