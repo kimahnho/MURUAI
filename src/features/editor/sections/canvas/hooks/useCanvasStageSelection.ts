@@ -153,8 +153,21 @@ export const useCanvasStageSelection = ({
       .filter((item) => rectsIntersect(nextRect, item.rect))
       .map((item) => item.id);
 
+    // 그룹 확장: 드래그로 잡힌 요소 중 groupId가 있으면 같은 그룹 전체를 선택
+    const expandedIds = new Set(hitIds);
+    for (const hitId of hitIds) {
+      const el = elements.find((e) => e.id === hitId);
+      if (el?.groupId) {
+        for (const other of elements) {
+          if (other.groupId === el.groupId && !other.locked && other.selectable !== false) {
+            expandedIds.add(other.id);
+          }
+        }
+      }
+    }
+
     const baseIds = isAdditive ? selectedIdsRef.current : [];
-    const nextSelectedIds = [...new Set([...baseIds, ...hitIds])];
+    const nextSelectedIds = [...new Set([...baseIds, ...expandedIds])];
     onSelectedIdsChange(nextSelectedIds);
     if (!isAdditive) {
       onEditingTextIdChange(null);
@@ -210,10 +223,23 @@ export const useCanvasStageSelection = ({
       .filter((item) => rectsIntersect(nextRect, item.rect))
       .map((item) => item.id);
 
+    // 그룹 확장: 드래그 프리뷰에서도 그룹 전체 하이라이트
+    const expandedIds = new Set(hitIds);
+    for (const hitId of hitIds) {
+      const el = elements.find((e) => e.id === hitId);
+      if (el?.groupId) {
+        for (const other of elements) {
+          if (other.groupId === el.groupId && !other.locked && other.selectable !== false) {
+            expandedIds.add(other.id);
+          }
+        }
+      }
+    }
+
     const baseIds = selectionAdditiveRef.current
       ? selectedIdsRef.current
       : [];
-    const nextPreviewIds = [...new Set([...baseIds, ...hitIds])];
+    const nextPreviewIds = [...new Set([...baseIds, ...expandedIds])];
 
     previewSelectedIdsRef.current = nextPreviewIds;
     // pointermove 빈도를 그대로 setState 하면 리렌더 비용이 커져 frame 단위로만 반영한다.
