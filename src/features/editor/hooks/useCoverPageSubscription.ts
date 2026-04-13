@@ -44,6 +44,8 @@ export const useCoverPageSubscription = ({
 
       if (request.type === "insert") {
         const template = getCoverTemplate(request.coverData.templateId);
+        // 기존 페이지의 orientation을 따라감
+        const docOrientation = pages[0]?.orientation ?? "vertical";
         const newPage: Page = {
           id: crypto.randomUUID(),
           pageNumber: 1,
@@ -58,7 +60,7 @@ export const useCoverPageSubscription = ({
             position: "bottom-center",
             startPage: 1,
           },
-          orientation: "vertical",
+          orientation: docOrientation,
           rev: 0,
         };
 
