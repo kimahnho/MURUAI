@@ -545,7 +545,7 @@ const TemplateContent = () => {
   };
 
   const handleStoryCountChange = (value: string) => {
-    const parsed = parseNumberInRange(value, 1, 8);
+    const parsed = parseNumberInRange(value, 4, 8);
     if (parsed === null) return;
     setStoryCount(parsed);
   };
