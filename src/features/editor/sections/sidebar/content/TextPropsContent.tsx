@@ -258,7 +258,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
       setFontSizeInput(String(style.fontSize));
       return;
     }
-    const clamped = clampFontSize(Math.round(parsed));
+    const clamped = clampFontSize(Math.round(parsed * 10) / 10);
     const { w, h } = calcNewRect(clamped);
     updateElement(element.id, {
       style: { ...style, fontSize: clamped },
@@ -270,7 +270,13 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
   };
 
   const handleFontSizeStep = (delta: number) => {
-    const next = clampFontSize(style.fontSize + delta);
+    // 소수점이면 가장 가까운 정수로, 이미 정수면 delta 적용
+    const isInteger = Number.isInteger(style.fontSize);
+    const next = clampFontSize(
+      isInteger
+        ? style.fontSize + delta
+        : delta > 0 ? Math.ceil(style.fontSize) : Math.floor(style.fontSize),
+    );
     const { w, h } = calcNewRect(next);
     updateElement(element.id, {
       style: { ...style, fontSize: next },
@@ -298,7 +304,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
             inputMode="numeric"
             pattern="[0-9]*"
             value={isFontSizeEditing ? fontSizeInput : String(style.fontSize)}
-            onChange={(e) => setFontSizeInput(e.target.value.replace(/[^0-9]/g, ""))}
+            onChange={(e) => setFontSizeInput(e.target.value.replace(/[^0-9.]/g, ""))}
             onFocus={(e) => { setFontSizeInput(String(style.fontSize)); setIsFontSizeEditing(true); e.target.select(); }}
             onBlur={() => { if (isFontSizeEditing) { setIsFontSizeEditing(false); commitFontSize(); } }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitFontSize(); setIsFontSizeEditing(false); e.currentTarget.blur(); } }}

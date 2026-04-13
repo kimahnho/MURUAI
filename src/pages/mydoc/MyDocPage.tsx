@@ -873,6 +873,7 @@ const MyDocPage = () => {
                                   elements={Array.isArray(previewPage.elements) ? previewPage.elements : []}
                                   selectedIds={[]}
                                   editingTextId={null}
+                                  background={previewPage.background}
                                   readOnly
                                 />
                               </div>

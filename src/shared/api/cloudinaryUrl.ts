@@ -40,7 +40,12 @@ export const getCloudinaryImageUrl = (path: string): string => {
 
   if (!UPLOAD_BASE) return trimmed;
 
-  // 상대 경로 → WebP URL 생성
+  // 이미 .webp 파일 — 그대로 URL 생성 (새로 업로드된 파일)
+  if (trimmed.endsWith(".webp")) {
+    return `${UPLOAD_BASE}${trimmed}`;
+  }
+
+  // 비WebP 상대 경로 → WebP 마이그레이션 URL 생성
   // "folder/uuid.png" → "folder/uuid_webp.webp"
   // "folder/uuid"     → "folder/uuid_webp.webp" (확장자 없음)
   const base = trimmed.replace(/\.\w+$/, "");

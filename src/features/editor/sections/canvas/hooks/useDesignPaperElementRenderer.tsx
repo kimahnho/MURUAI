@@ -589,6 +589,7 @@ export const useDesignPaperElementRenderer = ({
         textStyle={element.textStyle}
         isSelected={shouldShowIndividualBorder(element.id)}
         selectionCount={selectedIds.length}
+        isGrouped={!!element.groupId}
         isImageEditing={isImageEditing}
         isTextEditing={isShapeTextEditing}
         locked={readOnly || element.locked}
