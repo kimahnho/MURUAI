@@ -52,6 +52,7 @@ interface RoundBoxProps {
   children?: React.ReactNode;
   isSelected?: boolean;
   selectionCount?: number;
+  isGrouped?: boolean;
   isImageEditing?: boolean;
   isTextEditing?: boolean;
   locked?: boolean;
@@ -116,6 +117,7 @@ const RoundBox = ({
   children,
   isSelected = false,
   selectionCount = 0,
+  isGrouped = false,
   isImageEditing: isImageEditingProp,
   isTextEditing: isTextEditingProp,
   locked = false,
@@ -237,7 +239,9 @@ const RoundBox = ({
   }, []);
 
   const isActive = isSelected;
-  const showOutline = !locked && (isHovered || isActive);
+  // 그룹 요소는 hover 시 개별 outline/핸들을 표시하지 않음
+  const suppressHover = isGrouped;
+  const showOutline = !locked && (isActive || (isHovered && !suppressHover));
   const selectionColor = "var(--primary)";
   const borderStyle = border?.style ?? "solid";
   const isImageFill = fill.startsWith("url(") || fill.startsWith("data:");
@@ -320,7 +324,7 @@ const RoundBox = ({
     : "";
   const showResizeHandles =
     !locked &&
-    (isHovered || isActive) &&
+    (isActive || (isHovered && !suppressHover)) &&
     !isImageEditing &&
     selectionCount <= 1;
   const showImageHandles =
@@ -657,7 +661,7 @@ const RoundBox = ({
           {transform?.rotation ?? 0}°
         </div>
       )}
-      {showInlineMetrics && !isRotating && !locked && (isHovered || isActive) && (
+      {showInlineMetrics && !isRotating && !locked && (isActive || (isHovered && !suppressHover)) && (
         <div
           className="absolute left-1/2 top-full mt-1 w-32 -translate-x-1/2 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
           style={{ pointerEvents: "none" }}

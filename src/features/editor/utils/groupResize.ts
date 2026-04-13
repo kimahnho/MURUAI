@@ -260,7 +260,7 @@ export const applyGroupResizeSnapshot = (
         // 텍스트는 가로/세로 스케일 평균을 사용해 왜곡 대신 시각적 크기 감각을 유지한다.
         const nextFontSize = Math.max(
           6,
-          Math.round(baseFontSize * fontScale),
+          Math.round(baseFontSize * fontScale * 10) / 10,
         );
         return {
           ...element,
