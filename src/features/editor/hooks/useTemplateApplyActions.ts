@@ -70,18 +70,6 @@ export const useTemplateApplyActions = ({
     isApplyingTemplateRef.current = true;
 
     const currentPageId = selectedPageIdRef.current;
-    // 커버 페이지에는 템플릿 적용 차단 — setPages 콜백으로 현재 페이지 확인
-    let isCover = false;
-    setPages((prev) => {
-      const page = prev.find((p) => p.id === currentPageId);
-      if (page?.coverData) isCover = true;
-      return prev;
-    });
-    if (isCover) {
-      setTemplateChoiceDialog(null);
-      isApplyingTemplateRef.current = false;
-      return;
-    }
     const result = applyTemplateToCurrentPage({
       templateId,
       currentPageId,

@@ -1084,8 +1084,9 @@ export const useEditorSubscriptions = ({
 
   useCoverPageSubscription({
     pages,
+    selectedPageId,
+    selectedPageIdRef,
     setPages,
-    setActivePage,
     recordHistory,
   });
 
@@ -1172,17 +1173,6 @@ export const useEditorSubscriptions = ({
     },
     deps: [setPages, recordHistory, setActivePage, pagesRef],
   });
-
-  // 사이드바 메뉴가 template에서 벗어나면 컴포넌트 편집 패널 닫기
-  useEffect(() => {
-    const unsub = useSideBarStore.subscribe((state, prevState) => {
-      if (prevState.selectedMenu === "template" && state.selectedMenu !== "template") {
-        useWorksheetElementStore.getState().hidePanel();
-        useWorksheetElementStore.getState().setSelectedComponentId(null);
-      }
-    });
-    return unsub;
-  }, []);
 
   return { showEmotionInferenceToast };
 };
