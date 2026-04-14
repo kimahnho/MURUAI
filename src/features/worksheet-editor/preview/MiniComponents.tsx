@@ -11,6 +11,7 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  CalendarConfig,
 } from "../model/types";
 import { NOTEBOOK_SPECS } from "../constants/defaults";
 import "../styles/worksheet-preview.css";
@@ -232,6 +233,94 @@ export const MiniColoringArea = ({ config }: { config: ColoringAreaConfig }) => 
       <div className="ws-coloring-icon">🎨</div>
       <div>{config.image_description || "이미지 영역"}</div>
       <div style={{ fontSize: "4pt", color: "#ddd" }}>(라인아트 이미지)</div>
+    </div>
+  );
+};
+
+// --- Calendar ---
+const MINI_WEEKDAYS_SUN = ["일", "월", "화", "수", "목", "금", "토"];
+
+export const MiniCalendar = ({ config }: { config: CalendarConfig }) => {
+  const weekdays = config.start_day === "sunday" ? MINI_WEEKDAYS_SUN : ["월", "화", "수", "목", "금", "토", "일"];
+  const firstDay = new Date(config.year, config.month - 1, 1).getDay();
+  const daysInMonth = new Date(config.year, config.month, 0).getDate();
+  const daysInPrevMonth = new Date(config.year, config.month - 1, 0).getDate();
+  const offset = config.start_day === "sunday" ? firstDay : (firstDay + 6) % 7;
+
+  if (config.mode === "weekly") {
+    const weekOfMonth = config.week_of_month ?? 1;
+    const weekStartDay = 1 + (weekOfMonth - 1) * 7 - offset;
+    let title = `${config.month}월 ${weekOfMonth}주차`;
+    if (config.title_format === "year_month") title = `${config.year}년 ${title}`;
+    if (config.title_format === "custom" && config.custom_title) title = config.custom_title;
+    return (
+      <div style={{ fontSize: "4pt", lineHeight: 1.3 }}>
+        <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "5pt", marginBottom: 2 }}>{title}</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              {weekdays.map((d) => (
+                <th key={d} style={{ background: config.day_header_style.background, color: config.day_header_style.text_color, padding: "1px", fontSize: "3.5pt" }}>{d}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {Array.from({ length: 7 }, (_, i) => {
+                const dateNum = weekStartDay + i;
+                let txt: string;
+                let clr = "#333";
+                if (dateNum < 1) { txt = `${daysInPrevMonth + dateNum}`; clr = "#ccc"; }
+                else if (dateNum > daysInMonth) { txt = `${dateNum - daysInMonth}`; clr = "#ccc"; }
+                else { txt = `${dateNum}`; }
+                return <td key={i} style={{ border: "0.3px solid #eee", padding: "1px", height: 12, verticalAlign: "top", color: clr }}>{txt}</td>;
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // monthly
+  let title = `${config.year}년 ${config.month}월`;
+  if (config.title_format === "month_only") title = `${config.month}월`;
+  if (config.title_format === "custom" && config.custom_title) title = config.custom_title;
+  const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+
+  return (
+    <div style={{ fontSize: "4pt", lineHeight: 1.3 }}>
+      <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "5pt", marginBottom: 2 }}>{title}</div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            {weekdays.map((d) => (
+              <th key={d} style={{ background: config.day_header_style.background, color: config.day_header_style.text_color, padding: "1px", fontSize: "3.5pt" }}>
+                {d}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: totalCells / 7 }, (_, row) => (
+            <tr key={row}>
+              {Array.from({ length: 7 }, (_, col) => {
+                const idx = row * 7 + col;
+                const day = idx - offset + 1;
+                const isOutOfRange = day < 1 || day > daysInMonth;
+                let displayDay: number | string = "";
+                if (day >= 1 && day <= daysInMonth) displayDay = day;
+                else if (config.show_prev_next_month) displayDay = day < 1 ? daysInPrevMonth + day : day - daysInMonth;
+                return (
+                  <td key={col} style={{ border: "0.3px solid #eee", padding: "1px", height: 8, verticalAlign: "top", color: isOutOfRange ? "#ccc" : "#333" }}>
+                    {displayDay}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
