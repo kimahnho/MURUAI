@@ -15,9 +15,8 @@ export const getThumbnailUrl = (
 
   const width = options.width ?? 256;
   const height = options.height ?? 256;
-  const quality = options.quality ?? "auto";
-  const format = options.format ?? "auto";
-  const transform = `w_${width},h_${height},c_fit,q_${quality},f_${format}`;
+  // f_auto, q_auto 제거 — WebP 마이그레이션 완료로 포맷/품질 변환 불필요 (크레딧 절감)
+  const transform = `w_${width},h_${height},c_fit`;
 
   return url.replace("/image/upload/", `/image/upload/${transform}/`);
 };
