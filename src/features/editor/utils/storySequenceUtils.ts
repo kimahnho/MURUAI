@@ -2,7 +2,7 @@
  * 이야기 순서 맞추기 카드 생성 유틸.
  * 카드 수별 자동 최적화 레이아웃 + imageSlot + 번호 뱃지 + 화살표 자동 생성.
  */
-import type { TemplateElement } from "../model/canvasTypes";
+import type { CanvasElement } from "../model/canvasTypes";
 
 export type StoryDirection = "left-to-right" | "top-to-bottom";
 export type StoryCardRatio = "4:3" | "16:9";
@@ -147,18 +147,16 @@ const computeCardPositions = (
  */
 export const buildStorySequenceElements = (
   config: StorySequenceConfig,
-): TemplateElement[] => {
-  const { count, direction, orientation } = config;
+): CanvasElement[] => {
+  const { direction } = config;
   const paddingMm = 6;
   const titleHeightMm = 7;
   const titleGapMm = 3;
-  const badgeSizeMm = 5;
   const arrowPaddingMm = 1;
 
-  // 6개 이상이면 가로 모드 강제 — 카드 크기 최대화
-  const effectiveOrientation = count >= 6 ? "horizontal" : orientation;
-  const pageWidthMm = effectiveOrientation === "horizontal" ? 297 : 210;
-  const pageHeightMm = effectiveOrientation === "horizontal" ? 210 : 297;
+  // 무조건 가로 모드 — 카드 크기 최대화
+  const pageWidthMm = 297;
+  const pageHeightMm = 210;
   const contentWidthMm = pageWidthMm - paddingMm * 2;
   const contentHeightMm = pageHeightMm - paddingMm * 2 - titleHeightMm - titleGapMm;
   const startXmm = paddingMm;
@@ -166,10 +164,11 @@ export const buildStorySequenceElements = (
 
   const positions = computeCardPositions(config, contentWidthMm, contentHeightMm, startXmm, startYmm);
 
-  const elements: TemplateElement[] = [];
+  const elements: CanvasElement[] = [];
 
   // 타이틀
   elements.push({
+    id: crypto.randomUUID(),
     type: "text",
     x: mmToPx(paddingMm),
     y: mmToPx(paddingMm),
@@ -186,18 +185,21 @@ export const buildStorySequenceElements = (
     },
   });
 
-  // 카드 생성
+  // 카드 생성 — imageSlot + labelId로 연결된 번호 텍스트 (이미지 삽입 시 자동 클리어)
   for (const pos of positions) {
     const cardX = mmToPx(pos.x);
     const cardY = mmToPx(pos.y);
     const cardW = mmToPx(pos.w);
     const cardH = mmToPx(pos.h);
     const radius = Math.min(mmToPx(6), Math.min(cardW, cardH) / 2);
+    const labelId = crypto.randomUUID();
 
-    // 이미지 슬롯 (드래그 앤 드롭 대상)
+    // 이미지 슬롯 (드래그 앤 드롭 대상) — labelId로 번호 텍스트 연결
     elements.push({
+      id: crypto.randomUUID(),
       type: "roundRect",
       subType: "imageSlot",
+      labelId,
       x: cardX,
       y: cardY,
       w: cardW,
@@ -210,37 +212,23 @@ export const buildStorySequenceElements = (
         width: 2,
         style: "dashed",
       },
-    });
+    } as CanvasElement);
 
-    // 번호 뱃지 (좌상단)
-    const badgeSize = mmToPx(badgeSizeMm);
-    const badgeX = cardX + mmToPx(2);
-    const badgeY = cardY + mmToPx(2);
-
+    // 번호 텍스트 (카드 중앙, 이미지 삽입 시 자동 클리어)
     elements.push({
-      type: "ellipse",
-      x: badgeX,
-      y: badgeY,
-      w: badgeSize,
-      h: badgeSize,
-      fill: "#7C3AED",
-      locked: true,
-      selectable: false,
-    });
-
-    elements.push({
+      id: labelId,
       type: "text",
-      x: badgeX,
-      y: badgeY,
-      w: badgeSize,
-      h: badgeSize,
+      x: cardX,
+      y: cardY,
+      w: cardW,
+      h: cardH,
       text: String(pos.index + 1),
       locked: true,
       selectable: false,
       style: {
-        fontSize: Math.max(10, Math.min(14, badgeSize * 0.6)),
+        fontSize: Math.max(24, Math.min(48, cardH * 0.3)),
         fontWeight: "bold",
-        color: "#FFFFFF",
+        color: "#D1D5DB",
         underline: false,
         alignX: "center",
         alignY: "middle",
@@ -285,6 +273,7 @@ export const buildStorySequenceElements = (
     }
 
     elements.push({
+      id: crypto.randomUUID(),
       type: "arrow",
       start,
       end,

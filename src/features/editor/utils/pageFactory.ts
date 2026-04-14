@@ -407,26 +407,23 @@ export const addStoryBoardPage = ({
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
   const newPageId = crypto.randomUUID();
-  const elementsWithLogo = withLogoTemplateElements(
-    buildStorySequenceElements(config)
-  ).map((element) => ({
-    ...element,
-    id: crypto.randomUUID(),
-  }));
+  // buildStorySequenceElements가 ID 포함 CanvasElement[]를 반환하므로 로고만 추가
+  const rawElements = buildStorySequenceElements(config);
+  const elementsWithLogo = withLogoCanvasElements(rawElements);
   setPages((prevPages) => {
     const newPageNumber = prevPages.length + 1;
     const newPage: Page = {
       id: newPageId,
       pageNumber: newPageNumber,
       templateId: null,
-      // 6개 이상이면 가로 모드 강제 (storySequenceUtils와 동기화)
-      orientation: config.count >= 6 ? "horizontal" : config.orientation,
+      // 이야기 순서 맞추기는 무조건 가로 모드
+      orientation: "horizontal",
       elements: elementsWithLogo,
       rev: 0,
     };
     return [...prevPages, newPage];
   });
-  return { id: newPageId, orientation: config.count >= 6 ? "horizontal" : config.orientation };
+  return { id: newPageId, orientation: "horizontal" as const };
 };
 
 export const addShapeElement = ({
