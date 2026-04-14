@@ -15,6 +15,7 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  CalendarConfig,
 } from "../model/types";
 import {
   MiniHeader,
@@ -28,6 +29,7 @@ import {
   MiniOutlineTitle,
   MiniWritingPractice,
   MiniColoringArea,
+  MiniCalendar,
 } from "../preview/MiniComponents";
 
 const renderMini = (comp: WorksheetComponent) => {
@@ -54,6 +56,8 @@ const renderMini = (comp: WorksheetComponent) => {
       return <MiniWritingPractice config={comp.config as WritingPracticeConfig} />;
     case "coloring_area":
       return <MiniColoringArea config={comp.config as ColoringAreaConfig} />;
+    case "calendar":
+      return <MiniCalendar config={comp.config as CalendarConfig} />;
     default:
       return null;
   }

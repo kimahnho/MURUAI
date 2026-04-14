@@ -18,6 +18,7 @@ import type {
   MatchingConnectConfig,
   DateNameFieldConfig,
   ClockFaceConfig,
+  CalendarConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
 
@@ -1384,5 +1385,89 @@ export const ClockFaceForm = ({ config, onUpdate }: FormProps<ClockFaceConfig>) 
         <Chip label="없음" isActive={!config.show_answer_line} onClick={() => onUpdate((c) => ({ ...c, show_answer_line: false }))} />
       </div>
     </div>
+  </>
+);
+
+// --- Calendar ---
+
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => 2020 + i);
+
+export const CalendarForm = ({ config, onUpdate }: FormProps<CalendarConfig>) => (
+  <>
+    {/* 모드 */}
+    <div className="mb-3">
+      <label className={labelCls}>모드</label>
+      <div className={chipGroupCls}>
+        <Chip label="월간" isActive={config.mode === "monthly"} onClick={() => onUpdate((c) => ({ ...c, mode: "monthly" }))} />
+        <Chip label="주간" isActive={config.mode === "weekly"} onClick={() => onUpdate((c) => ({ ...c, mode: "weekly" }))} />
+      </div>
+    </div>
+
+    {/* 연도/월 */}
+    <div className="flex gap-2 mb-3">
+      <div className="flex-1">
+        <label className={labelCls}>연도</label>
+        <select className={inputCls} value={config.year} onChange={(e) => onUpdate((c) => ({ ...c, year: Number(e.target.value) }))}>
+          {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}년</option>)}
+        </select>
+      </div>
+      <div className="flex-1">
+        <label className={labelCls}>월</label>
+        <select className={inputCls} value={config.month} onChange={(e) => onUpdate((c) => ({ ...c, month: Number(e.target.value) }))}>
+          {MONTH_OPTIONS.map((m) => <option key={m} value={m}>{m}월</option>)}
+        </select>
+      </div>
+    </div>
+
+    {/* 주간 모드 - 주차 */}
+    {config.mode === "weekly" && (
+      <div className="mb-3">
+        <label className={labelCls}>주차</label>
+        <select className={inputCls} value={config.week_of_month ?? 1} onChange={(e) => onUpdate((c) => ({ ...c, week_of_month: Number(e.target.value) }))}>
+          {[1, 2, 3, 4, 5, 6].map((w) => <option key={w} value={w}>{w}주차</option>)}
+        </select>
+      </div>
+    )}
+
+    {/* 주 시작 요일 */}
+    <div className="mb-3">
+      <label className={labelCls}>주 시작 요일</label>
+      <div className={chipGroupCls}>
+        <Chip label="일요일" isActive={config.start_day === "sunday"} onClick={() => onUpdate((c) => ({ ...c, start_day: "sunday" }))} />
+        <Chip label="월요일" isActive={config.start_day === "monday"} onClick={() => onUpdate((c) => ({ ...c, start_day: "monday" }))} />
+      </div>
+    </div>
+
+    {/* 타이틀 형식 */}
+    <div className="mb-3">
+      <label className={labelCls}>타이틀</label>
+      <div className={chipGroupCls}>
+        <Chip label="연도+월" isActive={config.title_format === "year_month"} onClick={() => onUpdate((c) => ({ ...c, title_format: "year_month" }))} />
+        <Chip label="월만" isActive={config.title_format === "month_only"} onClick={() => onUpdate((c) => ({ ...c, title_format: "month_only" }))} />
+        <Chip label="직접 입력" isActive={config.title_format === "custom"} onClick={() => onUpdate((c) => ({ ...c, title_format: "custom" }))} />
+      </div>
+      {config.title_format === "custom" && (
+        <input
+          type="text"
+          className={`${inputCls} mt-2`}
+          value={config.custom_title ?? ""}
+          placeholder="타이틀을 입력하세요"
+          maxLength={30}
+          onChange={(e) => onUpdate((c) => ({ ...c, custom_title: e.target.value }))}
+        />
+      )}
+    </div>
+
+    {/* 이전/다음 달 표시 (월간만) */}
+    {config.mode === "monthly" && (
+      <div className="mb-3">
+        <label className={labelCls}>이전/다음 달 날짜 표시</label>
+        <div className={chipGroupCls}>
+          <Chip label="표시" isActive={config.show_prev_next_month} onClick={() => onUpdate((c) => ({ ...c, show_prev_next_month: true }))} />
+          <Chip label="숨기기" isActive={!config.show_prev_next_month} onClick={() => onUpdate((c) => ({ ...c, show_prev_next_month: false }))} />
+        </div>
+      </div>
+    )}
   </>
 );

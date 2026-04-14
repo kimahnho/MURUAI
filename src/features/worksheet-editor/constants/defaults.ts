@@ -19,6 +19,7 @@ import type {
   MatchingConnectConfig,
   DateNameFieldConfig,
   ClockFaceConfig,
+  CalendarConfig,
 } from "../model/types";
 
 export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = {
@@ -186,6 +187,30 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
     digital_format: "time_only",
     digital_color: "black_green",
   } satisfies ClockFaceConfig,
+
+  calendar: {
+    mode: "monthly",
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    week_of_month: null,
+    start_day: "sunday",
+    title_format: "year_month",
+    custom_title: null,
+    day_header_style: {
+      background: "#D6EAFF",
+      text_color: "#333333",
+      sunday_color: "#FF6B6B",
+      saturday_color: "#4A90D9",
+    },
+    cell_style: {
+      min_height: 22,
+      border_color: "#E0E0E0",
+    },
+    highlights: [],
+    weekly_row_headers: null,
+    weekly_rows: 1,
+    show_prev_next_month: false,
+  } satisfies CalendarConfig,
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
@@ -206,6 +231,7 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   matching_connect: { icon: "🔗", name: "의미 연결하기" },
   date_name_field: { icon: "📅", name: "날짜&이름" },
   clock_face: { icon: "🕐", name: "시계" },
+  calendar: { icon: "📆", name: "달력" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {
