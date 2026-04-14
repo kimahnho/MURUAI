@@ -18,6 +18,27 @@ import { ART_STYLE_PRESETS } from "../data/artStylePresets";
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
+/** 프리셋 미리보기 이미지를 fetch → base64로 변환 */
+const loadPreviewImageAsBase64 = async (previewPath: string): Promise<string | null> => {
+  try {
+    const res = await fetch(previewPath);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // "data:image/webp;base64,..." → base64 부분만 추출
+        resolve(result.split(",")[1] ?? null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
+
 const buildCharacterPrompt = (
   childInfo: ChildInfo,
   stylePrompt: string,
@@ -25,40 +46,40 @@ const buildCharacterPrompt = (
 ): string => {
   const age = childInfo.age;
   const genderStr = childInfo.gender === "male" ? "boy" : childInfo.gender === "female" ? "girl" : "child";
-  const isCustomStyle = customPrompt && !stylePrompt;
 
-  if (isCustomStyle) {
-    return `${customPrompt}
+  // 커스텀 그림체 (프리셋 없음, 유저 입력만)
+  if (customPrompt && !stylePrompt) {
+    return `Draw a ${age}-year-old Korean ${genderStr} for a children's picture book.
 
-If the user did not describe a specific character, draw an 8-year-old child.
+${customPrompt}
 
-Rules:
-- Single character, facing the viewer, friendly smile
-- Pure white (#FFFFFF) background
-- Empty hands — no objects, no props, no accessories unless the user described them
-- No extra decorations, patterns, or elements unless the user described them`;
+The child wears a plain single-color t-shirt and simple pants. Round face, big gentle eyes, soft smile.
+Whole body visible from head to toes, standing naturally, looking at the viewer.
+Solid white background. One character only.`;
   }
 
-  // 유저가 캐릭터를 직접 묘사한 경우: 유저 입력이 곧 캐릭터
+  // 유저가 캐릭터를 직접 묘사 + 프리셋 그림체
   if (customPrompt) {
-    return `${customPrompt}
+    return `Draw a character for a children's picture book.
+
+${customPrompt}
 
 Art style: ${stylePrompt}
-
-Full body, front-facing, white background. One character only.`;
+Whole body visible from head to toes, looking at the viewer.
+Solid white background. One character only.`;
   }
 
-  return `Create a single full-body character design of a ${age}-year-old Korean ${genderStr}.
+  // 기본: 프리셋 그림체로 아동 캐릭터 생성
+  return `Draw a ${age}-year-old Korean ${genderStr} for a children's picture book.
+
+The child has a round, soft face with big expressive eyes and a gentle smile.
+Simple hairstyle, natural black hair.
+Wearing a plain single-color t-shirt and simple pants — no patterns, no logos, no accessories.
+The body proportions are slightly chubby and cute, like a real young child.
+Arms relaxed at the sides, standing naturally, looking straight at the viewer.
 
 Art style: ${stylePrompt}
-
-The character should:
-- Face the viewer in a friendly, neutral standing pose
-- Show the full body from head to feet
-- Have a warm, gentle smile
-
-Background: pure white (#FFFFFF), no scenery.
-This is a character reference sheet — one character only, no text or labels.`;
+Solid white background. One character only.`;
 };
 
 /**
@@ -79,11 +100,21 @@ export const generateCharacterReference = async (
     throw new Error(`Unknown art style: ${artStyleId}`);
   }
 
-  // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
-  // custom이면 유저 입력이 곧 그림체 — 프리셋 프롬프트 사용 안 함
   const stylePrompt = preset?.promptTemplate ?? "";
   const prompt = buildCharacterPrompt(childInfo, stylePrompt, customPrompt);
+
+  // 프리셋 미리보기 이미지를 레퍼런스로 첨부 — 그림체 일관성 향상
+  const refBase64 = preset?.previewImage
+    ? await loadPreviewImageAsBase64(preset.previewImage)
+    : null;
+
+  const contents: unknown = refBase64
+    ? [
+        { inlineData: { mimeType: "image/webp" as const, data: refBase64 } },
+        { text: `The image above is the target art style reference. Draw a NEW character in this EXACT art style.\n\n${prompt}` },
+      ]
+    : prompt;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -92,7 +123,7 @@ export const generateCharacterReference = async (
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
-      contents: prompt,
+      contents,
       config: {
         responseModalities: ["Text", "Image"],
         imageConfig: {
