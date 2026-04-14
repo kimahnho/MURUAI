@@ -33,11 +33,12 @@ const fetchAllEmotionStickers = async (): Promise<EmotionSticker[]> => {
   }));
 };
 
-export const useEmotionStickers = () => {
+export const useEmotionStickers = (enabled = true) => {
   return useQuery({
     queryKey: ["emotion-stickers"],
     queryFn: fetchAllEmotionStickers,
     staleTime: Infinity,
     gcTime: Infinity,
+    enabled,
   });
 };

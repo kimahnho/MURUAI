@@ -39,11 +39,12 @@ const fetchAllAacCards = async (): Promise<AacCard[]> => {
   }));
 };
 
-export const useAacCards = () => {
+export const useAacCards = (enabled = true) => {
   return useQuery({
     queryKey: ["aac-cards"],
     queryFn: fetchAllAacCards,
-    staleTime: Infinity, // 정적 리소스 성격이라 세션 내 재검증을 생략한다.
-    gcTime: Infinity, // 사이드바 재진입 시 즉시 재사용하도록 캐시를 유지한다.
+    staleTime: Infinity,
+    gcTime: Infinity,
+    enabled,
   });
 };
