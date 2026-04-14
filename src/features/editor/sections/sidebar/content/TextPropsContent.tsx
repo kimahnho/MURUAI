@@ -4,6 +4,7 @@
  * 비편집 모드에서는 요소 레벨 스타일 변경을 제공한다.
  */
 import { useState } from "react";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -267,6 +268,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
       w, h, widthMode: "fixed",
     });
     setFontSizeInput(String(clamped));
+    trackInteraction({ category: "editor", action: "font_size_change", metadata: { fontSize: clamped } });
   };
 
   const handleFontSizeStep = (delta: number) => {
@@ -287,6 +289,7 @@ const StaticTextPanel = ({ element, updateElement }: { element: TextPanelData["e
       w, h, widthMode: "fixed",
     });
     setFontSizeInput(String(next));
+    trackInteraction({ category: "editor", action: "font_size_change", metadata: { fontSize: next } });
   };
 
   return (

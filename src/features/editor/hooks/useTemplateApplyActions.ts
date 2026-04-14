@@ -14,6 +14,7 @@ import { TEMPLATE_REGISTRY, type TemplateId } from "../templates/templateRegistr
 import type { ReadonlyRef } from "../model/refTypes";
 import { trackTemplateUsageEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 type ApplyTemplateToCurrentPage = (args: {
   templateId: TemplateId;
@@ -87,6 +88,7 @@ export const useTemplateApplyActions = ({
       template_name: TEMPLATE_REGISTRY[templateId].label,
       target: "current_page",
     });
+    trackInteraction({ category: "template", action: "template_apply", target: templateId, metadata: { template_name: TEMPLATE_REGISTRY[templateId].label } });
 
     if (recordTimeoutRef.current) {
       clearTimeout(recordTimeoutRef.current);
@@ -133,6 +135,7 @@ export const useTemplateApplyActions = ({
       template_name: TEMPLATE_REGISTRY[templateId].label,
       target: "new_page",
     });
+    trackInteraction({ category: "template", action: "template_apply", target: templateId, metadata: { template_name: TEMPLATE_REGISTRY[templateId].label } });
 
     if (recordTimeoutRef.current) {
       clearTimeout(recordTimeoutRef.current);

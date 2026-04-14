@@ -4,6 +4,7 @@
 import { create } from "zustand";
 import type { ElementType } from "../model/canvasTypes";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 type TextPreset = {
   text: string;
@@ -34,6 +35,7 @@ export const useElementStore = create<ElementStore>((set) => ({
   requestedSyllableBox: false,
   requestElement: (type) =>
     { mp.track("요소 생성", { element_type: type });
+      trackInteraction({ category: "editor", action: "element_create", target: type });
       set((state) => ({
       requestId: state.requestId + 1,
       requestedType: type,

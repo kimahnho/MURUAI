@@ -2,6 +2,7 @@
  * 페이지 배경/번호 표시/표지 설정을 편집하는 사이드바 패널.
  */
 import { ImagePlus, Images, Loader2, Trash2 } from "lucide-react";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/shared/api/supabase";
 import { usePageSettingsStore } from "@/features/editor/store/pageSettingsStore";
@@ -93,6 +94,7 @@ const PageContent = () => {
 
   const updateBackground = (nextBackground: PageBackground) => {
     applySettings({ background: nextBackground });
+    trackInteraction({ category: "editor", action: "background_change", metadata: { type: nextBackground.type } });
   };
 
   const updateNumbering = (nextNumbering: PageNumbering) => {

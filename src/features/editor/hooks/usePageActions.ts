@@ -6,6 +6,7 @@ import { withLogoCanvasElements } from "../utils/logoElement";
 import { cloneElementsWithNewIds } from "../utils/elementClone";
 import type { Page } from "../model/pageTypes";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 import { bumpPageRevision } from "../utils/pageRevision";
 import { isImageFillElement } from "../utils/imageBoxScaling";
 
@@ -42,6 +43,7 @@ export const usePageActions = ({
     setPages([...pages, newPage]);
     setActivePage(newPage.id, newPage.orientation);
     mp.track("페이지 추가");
+    trackInteraction({ category: "editor", action: "page_add" });
   }, [pages, setActivePage, setPages]);
 
   const handleAddPageAtIndex = useCallback(
@@ -115,6 +117,7 @@ export const usePageActions = ({
       setPages(reorderedPages);
       setActivePage(newPage.id, newPage.orientation);
       mp.track("페이지 복제");
+      trackInteraction({ category: "editor", action: "page_duplicate" });
     },
     [pages, setActivePage, setPages],
   );
@@ -229,6 +232,7 @@ export const usePageActions = ({
   const handleDeletePage = useCallback(
     (pageId: string) => {
       mp.track("페이지 삭제");
+      trackInteraction({ category: "editor", action: "page_delete" });
       // 페이지가 1개만 있으면 템플릿을 제거하고 빈 페이지로 만듦
       if (pages.length <= 1) {
         setPages((prevPages) =>
