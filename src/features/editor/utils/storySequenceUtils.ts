@@ -55,11 +55,9 @@ const computeCardPositions = (
   startXmm: number,
   startYmm: number,
 ): CardPosition[] => {
-  const { count, direction, ratio } = config;
-  const gapMm = 6;
+  const { count, direction } = config;
+  const gapMm = 4;
   const cappedCount = Math.max(4, Math.min(count, 8));
-  const ratioValue = ratio === "16:9" ? 16 / 9 : 4 / 3;
-
   if (direction === "left-to-right") {
     const rowLayout = LAYOUTS_LTR[cappedCount] ?? [cappedCount];
     const maxCols = Math.max(...rowLayout);
@@ -68,8 +66,8 @@ const computeCardPositions = (
     const cellWidthMm = (contentWidthMm - gapMm * (maxCols - 1)) / maxCols;
     const cellHeightMm = (contentHeightMm - gapMm * (numRows - 1)) / numRows;
 
-    const cardWidthMm = Math.min(cellWidthMm, cellHeightMm * ratioValue);
-    const cardHeightMm = cardWidthMm / ratioValue;
+    const cardWidthMm = cellWidthMm * 0.9;
+    const cardHeightMm = cellHeightMm * 0.9;
 
     const gridWidthMm = maxCols * cellWidthMm + (maxCols - 1) * gapMm;
     const gridHeightMm = numRows * cellHeightMm + (numRows - 1) * gapMm;
@@ -109,8 +107,8 @@ const computeCardPositions = (
   const cellWidthMm = (contentWidthMm - gapMm * (numCols - 1)) / numCols;
   const cellHeightMm = (contentHeightMm - gapMm * (maxRows - 1)) / maxRows;
 
-  const cardWidthMm = Math.min(cellWidthMm, cellHeightMm * ratioValue);
-  const cardHeightMm = cardWidthMm / ratioValue;
+  const cardWidthMm = cellWidthMm * 0.9;
+  const cardHeightMm = cellHeightMm * 0.9;
 
   const gridWidthMm = numCols * cellWidthMm + (numCols - 1) * gapMm;
   const gridHeightMm = maxRows * cellHeightMm + (maxRows - 1) * gapMm;
@@ -149,9 +147,9 @@ export const buildStorySequenceElements = (
   config: StorySequenceConfig,
 ): CanvasElement[] => {
   const { direction } = config;
-  const paddingMm = 6;
-  const titleHeightMm = 7;
-  const titleGapMm = 3;
+  const paddingMm = 4;
+  const titleHeightMm = 6;
+  const titleGapMm = 2;
   const arrowPaddingMm = 1;
 
   // 무조건 가로 모드 — 카드 크기 최대화
@@ -253,9 +251,9 @@ export const buildStorySequenceElements = (
         start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h / 2 };
         end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h / 2 };
       } else {
-        // 행 전환: ↓
-        start = { x: currPx.x + currPx.w / 2, y: currPx.y + currPx.h + pad };
-        end = { x: nextPx.x + nextPx.w / 2, y: nextPx.y - pad };
+        // 행 전환: 현재 행 마지막 카드 좌하단 → 다음 행 첫 카드 우상단
+        start = { x: currPx.x, y: currPx.y + currPx.h + pad };
+        end = { x: nextPx.x + nextPx.w, y: nextPx.y - pad };
       }
     } else {
       if (sameCol) {
@@ -263,9 +261,9 @@ export const buildStorySequenceElements = (
         start = { x: currPx.x + currPx.w / 2, y: currPx.y + currPx.h + pad };
         end = { x: nextPx.x + nextPx.w / 2, y: nextPx.y - pad };
       } else {
-        // 열 전환: →
-        start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h / 2 };
-        end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h / 2 };
+        // 열 전환: 마지막 카드 우측 중앙 → 첫 카드 좌측 중앙 (↗ 큰 대각선)
+        start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h * 0.7 };
+        end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h * 0.3 };
       }
     }
 
@@ -274,7 +272,7 @@ export const buildStorySequenceElements = (
       type: "arrow",
       start,
       end,
-      stroke: { color: "#9CA3AF", width: 2, style: "solid" },
+      stroke: { color: "#9CA3AF", width: 3, style: "solid" },
       marker: { start: false, end: true },
     });
   }

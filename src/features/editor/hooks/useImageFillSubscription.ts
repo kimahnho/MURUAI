@@ -10,6 +10,7 @@ import { bumpPageRevision } from "../utils/pageRevision";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import {
   calculateCoverImageBox,
+  calculateFitImageBox,
   findLabelElementId,
   getNextAacCardId,
   getNextAacCardV2Id,
@@ -222,10 +223,12 @@ export const useImageFillSubscription = ({
               return element;
             }
             hasChanges = true;
-            // 이미지 박스가 없는 레거시 요소도 동일한 채우기 규칙을 적용해
-            // 템플릿/신규 요소 간 보이는 결과를 맞춘다.
-            const baseImageBox = element.imageBox ??
-              calculateCoverImageBox(element.w, element.h, state.width, state.height);
+            const isImageSlot = (element as { subType?: string }).subType === "imageSlot";
+            // imageSlot: fit 방식 (이미지 전체 보임, 잘림 없음)
+            // 일반 도형: cover 방식 (빈칸 없음, 잘릴 수 있음)
+            const baseImageBox = isImageSlot && state.width && state.height
+              ? calculateFitImageBox(element.w, element.h, state.width, state.height)
+              : (element.imageBox ?? calculateCoverImageBox(element.w, element.h, state.width, state.height));
             const isAacCard = isAacCardElement(page.elements, element);
             // AAC 카드는 라벨 영역을 고려해 이미지를 위로 5px 올린다.
             const nextImageBox = isAacCard
@@ -238,7 +241,6 @@ export const useImageFillSubscription = ({
               ((element as { subType?: string }).subType === "imageSlot" &&
                 typeof element.text === "string" &&
                 element.text.trim().length > 0);
-            const isImageSlot = (element as { subType?: string }).subType === "imageSlot";
             return {
               ...element,
               fill: normalizedUrl,

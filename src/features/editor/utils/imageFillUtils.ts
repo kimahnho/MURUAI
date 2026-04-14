@@ -196,6 +196,32 @@ export const isEmotionInferenceCard = (
  * "채우기(cover)" 방식으로 imageBox 계산.
  * 이미지 비율을 유지하면서 요소를 완전히 채운다 (잘림 발생 가능).
  */
+/** fit 방식: 이미지 전체가 보이도록 요소 안에 맞춤 (잘림 없음, 여백 가능) */
+export const calculateFitImageBox = (
+  elementW: number,
+  elementH: number,
+  imageW: number,
+  imageH: number,
+): { x: number; y: number; w: number; h: number } => {
+  const elementRatio = elementW / elementH;
+  const imageRatio = imageW / imageH;
+  let boxW: number;
+  let boxH: number;
+  if (imageRatio > elementRatio) {
+    // 이미지가 더 넓음 → 너비 기준 맞춤
+    boxW = elementW;
+    boxH = elementW / imageRatio;
+  } else {
+    // 이미지가 더 높음 → 높이 기준 맞춤
+    boxH = elementH;
+    boxW = elementH * imageRatio;
+  }
+  const x = (elementW - boxW) / 2;
+  const y = (elementH - boxH) / 2;
+  return { x, y, w: boxW, h: boxH };
+};
+
+/** cover 방식: 요소를 완전히 채움 (빈칸 없음, 잘릴 수 있음) */
 export const calculateCoverImageBox = (
   elementW: number,
   elementH: number,
