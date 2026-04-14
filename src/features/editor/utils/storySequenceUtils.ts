@@ -192,31 +192,9 @@ export const buildStorySequenceElements = (
     const cardW = mmToPx(pos.w);
     const cardH = mmToPx(pos.h);
     const radius = Math.min(mmToPx(6), Math.min(cardW, cardH) / 2);
-    const labelId = crypto.randomUUID();
-
-    // 이미지 슬롯 (드래그 앤 드롭 대상) — labelId로 번호 텍스트 연결
+    // 번호 텍스트 (카드 중앙, 이미지 삽입 시 이미지가 위에 덮어서 가려짐)
     elements.push({
       id: crypto.randomUUID(),
-      type: "roundRect",
-      subType: "imageSlot",
-      labelId,
-      x: cardX,
-      y: cardY,
-      w: cardW,
-      h: cardH,
-      fill: "#F3F4F6",
-      radius,
-      border: {
-        enabled: true,
-        color: "#D1D5DB",
-        width: 2,
-        style: "dashed",
-      },
-    } as CanvasElement);
-
-    // 번호 텍스트 (카드 중앙, 이미지 삽입 시 자동 클리어)
-    elements.push({
-      id: labelId,
       type: "text",
       x: cardX,
       y: cardY,
@@ -234,6 +212,25 @@ export const buildStorySequenceElements = (
         alignY: "middle",
       },
     });
+
+    // 이미지 슬롯 (번호 텍스트 위에 렌더링 — 이미지 삽입 시 번호가 자연스럽게 가려짐)
+    elements.push({
+      id: crypto.randomUUID(),
+      type: "roundRect",
+      subType: "imageSlot",
+      x: cardX,
+      y: cardY,
+      w: cardW,
+      h: cardH,
+      fill: "#F3F4F6",
+      radius,
+      border: {
+        enabled: true,
+        color: "#D1D5DB",
+        width: 2,
+        style: "dashed",
+      },
+    } as CanvasElement);
   }
 
   // 화살표 자동 생성 (연속 카드 사이)
