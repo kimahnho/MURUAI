@@ -17,18 +17,6 @@ function colorDist(r: number, g: number, b: number, br: number, bg: number, bb: 
   return Math.sqrt((r - br) ** 2 + (g - bg) ** 2 + (b - bb) ** 2);
 }
 
-function despillWhite(r: number, g: number, b: number): [number, number, number] {
-  const avg = (r + g + b) / 3;
-  const minCh = Math.min(r, g, b);
-  const spill = Math.max(0, minCh - avg * 0.88);
-  if (spill <= 6) return [r, g, b];
-  const reduction = spill * 0.7;
-  return [
-    Math.round(Math.max(0, r - reduction)),
-    Math.round(Math.max(0, g - reduction)),
-    Math.round(Math.max(0, b - reduction)),
-  ];
-}
 
 /**
  * Canvas flood-fill로 배경을 제거한다.
@@ -145,7 +133,7 @@ function removeBackgroundFromImage(img: HTMLImageElement): Blob | null {
     }
   }
 
-  // 4. alpha 적용 + Despill
+  // 4. alpha 적용 (배경 투명화 + 경계 페더링)
   for (let i = 0; i < W * H; i++) {
     const pi = i * 4;
     if (bgMask[i] === 1) {
@@ -153,10 +141,6 @@ function removeBackgroundFromImage(img: HTMLImageElement): Blob | null {
     } else if (featherDist[i] <= FEATHER_RADIUS) {
       const alpha = Math.round(255 * (featherDist[i] / FEATHER_RADIUS));
       data[pi + 3] = alpha;
-      const [r, g, b] = despillWhite(data[pi], data[pi + 1], data[pi + 2]);
-      data[pi] = r;
-      data[pi + 1] = g;
-      data[pi + 2] = b;
     }
   }
 
@@ -177,10 +161,35 @@ function removeBackgroundFromImage(img: HTMLImageElement): Blob | null {
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
+    // 1차: crossOrigin으로 시도 (canvas getImageData 허용)
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("이미지를 불러올 수 없어요."));
+    img.onerror = () => {
+      // 2차: crossOrigin 없이 재시도
+      const img2 = new Image();
+      img2.onload = () => resolve(img2);
+      img2.onerror = () => {
+        // 3차: fetch → blob URL로 시도
+        fetch(src)
+          .then((res) => res.blob())
+          .then((blob) => {
+            const blobUrl = URL.createObjectURL(blob);
+            const img3 = new Image();
+            img3.onload = () => {
+              resolve(img3);
+              URL.revokeObjectURL(blobUrl);
+            };
+            img3.onerror = () => {
+              URL.revokeObjectURL(blobUrl);
+              reject(new Error("이미지를 불러올 수 없어요."));
+            };
+            img3.src = blobUrl;
+          })
+          .catch(() => reject(new Error("이미지를 불러올 수 없어요.")));
+      };
+      img2.src = src;
+    };
     img.src = src;
   });
 }
