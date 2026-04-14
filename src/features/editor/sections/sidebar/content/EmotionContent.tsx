@@ -9,7 +9,7 @@ import {
   Smile,
   User,
 } from "lucide-react";
-import { useState, type DragEvent as ReactDragEvent } from "react";
+import { useState, useEffect, type DragEvent as ReactDragEvent } from "react";
 import type { ReactNode } from "react";
 import { useEmotionPhotos } from "../hooks/useEmotionPhotos";
 import { useEmotionEmojis, type EmotionEmoji } from "../hooks/useEmotionEmojis";
@@ -115,11 +115,24 @@ const EmotionList = ({
   emotions: EmotionEmoji[];
   onSelectEmotion: (url: string, label: string) => void;
 }) => {
+  const [visibleCount, setVisibleCount] = useState(10);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [emotions]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      setVisibleCount(prev => prev + 10);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
+    <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0" onScroll={handleScroll}>
       {emotions.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">
-          {emotions.map((emotion) => (
+          {emotions.slice(0, visibleCount).map((emotion) => (
             <button
               key={emotion.id}
               draggable
@@ -295,6 +308,7 @@ const PhotoEmotionContent = ({
   const gender = useSideBarStore((s) => s.emotionGender);
   const setGender = useSideBarStore((s) => s.setEmotionGender);
   const [searchTerm, setSearchTerm] = useState("");
+  const [visibleCount, setVisibleCount] = useState(10);
   const { data: allEmotionPhotos, isLoading } = useEmotionPhotos();
 
   const genderEmotions = (allEmotionPhotos ?? []).filter(
@@ -305,18 +319,35 @@ const PhotoEmotionContent = ({
     matchesQuery(emotion.label, query)
   );
 
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setVisibleCount(10);
+  };
+
+  const handleGenderChange = (nextGender: "boy" | "girl") => {
+    setGender(nextGender);
+    setVisibleCount(10);
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      setVisibleCount(prev => prev + 10);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full h-full gap-3">
-      <GenderToggle gender={gender} onGenderChange={setGender} />
-      {!hasExternalSearch && <SearchInput value={searchTerm} onChange={setSearchTerm} />}
-      <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
+      <GenderToggle gender={gender} onGenderChange={handleGenderChange} />
+      {!hasExternalSearch && <SearchInput value={searchTerm} onChange={handleSearchChange} />}
+      <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0" onScroll={handleScroll}>
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
             불러오는 중입니다
           </div>
         ) : filteredEmotions.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
-            {filteredEmotions.map((emotion) => (
+            {filteredEmotions.slice(0, visibleCount).map((emotion) => (
               <button
                 key={emotion.id}
                 draggable
@@ -329,6 +360,7 @@ const PhotoEmotionContent = ({
                     src={emotion.url}
                     alt={emotion.label}
                     className="w-full h-full object-contain"
+                    loading="lazy"
                   />
                 </div>
                 <span className="text-14-semibold text-black-90 group-hover:text-primary transition-colors">

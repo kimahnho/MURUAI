@@ -7,16 +7,8 @@ type ThumbnailOptions = {
 
 export const getThumbnailUrl = (
   url: string,
-  options: ThumbnailOptions = {}
+  _options: ThumbnailOptions = {}
 ) => {
-  const isCloudinary =
-    url.includes("res.cloudinary.com") && url.includes("/image/upload/");
-  if (!isCloudinary) return url;
-
-  const width = options.width ?? 256;
-  const height = options.height ?? 256;
-  // f_auto, q_auto 제거 — WebP 마이그레이션 완료로 포맷/품질 변환 불필요 (크레딧 절감)
-  const transform = `w_${width},h_${height},c_fit`;
-
-  return url.replace("/image/upload/", `/image/upload/${transform}/`);
+  // Cloudinary 변환 제거 — 크레딧 소모 방지. CSS object-fit으로 축소 표시.
+  return url;
 };

@@ -1,7 +1,7 @@
 /**
  * AAC 카드 검색/선택/삽입 동작을 제공하는 패널 컴포넌트.
  */
-import { type DragEvent as ReactDragEvent } from "react";
+import { useState, useEffect, type DragEvent as ReactDragEvent } from "react";
 import { Search } from "lucide-react";
 import { useAacContentState } from "../hooks/useAacContentState";
 
@@ -69,6 +69,19 @@ const AACContent = ({ externalSearch }: { externalSearch?: string }) => {
     externalSearch,
   });
 
+  const [visibleCount, setVisibleCount] = useState(10);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [selectedCategory, searchQuery]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      setVisibleCount(prev => prev + 10);
+    }
+  };
+
   const handleImageError = (
     event: React.SyntheticEvent<HTMLImageElement>,
     emoji: string
@@ -123,7 +136,7 @@ const AACContent = ({ externalSearch }: { externalSearch?: string }) => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4">
+      <div className="flex-1 overflow-y-auto min-h-0 pt-2 pb-4" onScroll={handleScroll}>
         {/* 이미지 선택/드래그 모두 같은 삽입 액션으로 연결된다. */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
@@ -131,7 +144,7 @@ const AACContent = ({ externalSearch }: { externalSearch?: string }) => {
           </div>
         ) : filteredImages.length > 0 ? (
           <div className="grid grid-cols-2 gap-3">
-            {filteredImages.map((image) => (
+            {filteredImages.slice(0, visibleCount).map((image) => (
               <button
                 key={image.id}
                 draggable

@@ -33,11 +33,12 @@ const fetchAllEmotionEmojis = async (): Promise<EmotionEmoji[]> => {
   }));
 };
 
-export const useEmotionEmojis = () => {
+export const useEmotionEmojis = (enabled = true) => {
   return useQuery({
     queryKey: ["emotion-emojis"],
     queryFn: fetchAllEmotionEmojis,
     staleTime: Infinity,
     gcTime: Infinity,
+    enabled,
   });
 };

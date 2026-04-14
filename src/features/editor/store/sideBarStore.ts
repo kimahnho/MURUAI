@@ -62,7 +62,7 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
       return { selectedMenu: menu };
     }); },
 
-  emotionAacTab: "all",
+  emotionAacTab: "emotion",
   setEmotionAacTab: (tab) => { set({ emotionAacTab: tab }); },
   emotionType: "photo",
   setEmotionType: (type) => { set({ emotionType: type }); },
