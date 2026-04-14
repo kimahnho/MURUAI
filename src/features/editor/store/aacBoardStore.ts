@@ -4,6 +4,7 @@
 import { create } from "zustand";
 import type { AacBoardConfig } from "../utils/aacBoardUtils";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 interface AacBoardStore {
   requestId: number;
@@ -16,6 +17,7 @@ export const useAacBoardStore = create<AacBoardStore>((set) => ({
   config: null,
   requestBoard: (config) =>
     { mp.track("AAC 보드 생성", { rows: config.rows, columns: config.columns });
+      trackInteraction({ category: "template", action: "aac_board_apply", metadata: { rows: config.rows, columns: config.columns } });
       set((state) => ({
       requestId: state.requestId + 1,
       config,

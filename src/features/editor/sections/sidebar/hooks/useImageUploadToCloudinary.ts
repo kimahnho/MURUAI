@@ -7,6 +7,7 @@ import { supabase } from "@/shared/api/supabase";
 import { getCloudinaryImageUrl } from "@/shared/api/cloudinaryUrl";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { mp } from "@/shared/utils/mixpanel";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
   | string
@@ -120,6 +121,7 @@ export const useImageUploadToCloudinary = () => {
         }
 
         mp.track("이미지 업로드", { file_type: file.type });
+        trackInteraction({ category: "editor", action: "image_upload", metadata: { file_type: file.type } });
         return getCloudinaryImageUrl(imagePath);
       } catch (error) {
         captureSentryError(error, "이미지 업로드");

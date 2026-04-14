@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, HelpCircle, Pipette } from "lucide-react";
 import { useRecentColorStore } from "@/features/editor/store/recentColorStore";
+import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 // 기본 색상 팔레트 — 범용 표준 색상
 const BASIC_SWATCHES = [
@@ -231,6 +232,7 @@ const ColorPickerPopover = ({
     if (color !== "transparent") {
       addRecentColor(color);
     }
+    trackInteraction({ category: "editor", action: "color_change", metadata: { color } });
   };
 
   const commitHexInput = () => {
