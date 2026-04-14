@@ -2,7 +2,7 @@
  * 이야기 순서 맞추기 카드 생성 유틸.
  * 카드 수별 자동 최적화 레이아웃 + imageSlot + 번호 뱃지 + 화살표 자동 생성.
  */
-import type { TemplateElement } from "../model/canvasTypes";
+import type { CanvasElement } from "../model/canvasTypes";
 
 export type StoryDirection = "left-to-right" | "top-to-bottom";
 export type StoryCardRatio = "4:3" | "16:9";
@@ -55,11 +55,9 @@ const computeCardPositions = (
   startXmm: number,
   startYmm: number,
 ): CardPosition[] => {
-  const { count, direction, ratio } = config;
-  const gapMm = 6;
+  const { count, direction } = config;
+  const gapMm = 4;
   const cappedCount = Math.max(4, Math.min(count, 8));
-  const ratioValue = ratio === "16:9" ? 16 / 9 : 4 / 3;
-
   if (direction === "left-to-right") {
     const rowLayout = LAYOUTS_LTR[cappedCount] ?? [cappedCount];
     const maxCols = Math.max(...rowLayout);
@@ -68,8 +66,8 @@ const computeCardPositions = (
     const cellWidthMm = (contentWidthMm - gapMm * (maxCols - 1)) / maxCols;
     const cellHeightMm = (contentHeightMm - gapMm * (numRows - 1)) / numRows;
 
-    const cardWidthMm = Math.min(cellWidthMm, cellHeightMm * ratioValue);
-    const cardHeightMm = cardWidthMm / ratioValue;
+    const cardWidthMm = cellWidthMm * 0.9;
+    const cardHeightMm = cellHeightMm * 0.9;
 
     const gridWidthMm = maxCols * cellWidthMm + (maxCols - 1) * gapMm;
     const gridHeightMm = numRows * cellHeightMm + (numRows - 1) * gapMm;
@@ -109,8 +107,8 @@ const computeCardPositions = (
   const cellWidthMm = (contentWidthMm - gapMm * (numCols - 1)) / numCols;
   const cellHeightMm = (contentHeightMm - gapMm * (maxRows - 1)) / maxRows;
 
-  const cardWidthMm = Math.min(cellWidthMm, cellHeightMm * ratioValue);
-  const cardHeightMm = cardWidthMm / ratioValue;
+  const cardWidthMm = cellWidthMm * 0.9;
+  const cardHeightMm = cellHeightMm * 0.9;
 
   const gridWidthMm = numCols * cellWidthMm + (numCols - 1) * gapMm;
   const gridHeightMm = maxRows * cellHeightMm + (maxRows - 1) * gapMm;
@@ -147,18 +145,16 @@ const computeCardPositions = (
  */
 export const buildStorySequenceElements = (
   config: StorySequenceConfig,
-): TemplateElement[] => {
-  const { count, direction, orientation } = config;
-  const paddingMm = 6;
-  const titleHeightMm = 7;
-  const titleGapMm = 3;
-  const badgeSizeMm = 5;
+): CanvasElement[] => {
+  const { direction } = config;
+  const paddingMm = 4;
+  const titleHeightMm = 6;
+  const titleGapMm = 2;
   const arrowPaddingMm = 1;
 
-  // 6개 이상이면 가로 모드 강제 — 카드 크기 최대화
-  const effectiveOrientation = count >= 6 ? "horizontal" : orientation;
-  const pageWidthMm = effectiveOrientation === "horizontal" ? 297 : 210;
-  const pageHeightMm = effectiveOrientation === "horizontal" ? 210 : 297;
+  // 무조건 가로 모드 — 카드 크기 최대화
+  const pageWidthMm = 297;
+  const pageHeightMm = 210;
   const contentWidthMm = pageWidthMm - paddingMm * 2;
   const contentHeightMm = pageHeightMm - paddingMm * 2 - titleHeightMm - titleGapMm;
   const startXmm = paddingMm;
@@ -166,10 +162,11 @@ export const buildStorySequenceElements = (
 
   const positions = computeCardPositions(config, contentWidthMm, contentHeightMm, startXmm, startYmm);
 
-  const elements: TemplateElement[] = [];
+  const elements: CanvasElement[] = [];
 
   // 타이틀
   elements.push({
+    id: crypto.randomUUID(),
     type: "text",
     x: mmToPx(paddingMm),
     y: mmToPx(paddingMm),
@@ -186,16 +183,37 @@ export const buildStorySequenceElements = (
     },
   });
 
-  // 카드 생성
+  // 카드 생성 — imageSlot + labelId로 연결된 번호 텍스트 (이미지 삽입 시 자동 클리어)
   for (const pos of positions) {
     const cardX = mmToPx(pos.x);
     const cardY = mmToPx(pos.y);
     const cardW = mmToPx(pos.w);
     const cardH = mmToPx(pos.h);
     const radius = Math.min(mmToPx(6), Math.min(cardW, cardH) / 2);
-
-    // 이미지 슬롯 (드래그 앤 드롭 대상)
+    // 번호 텍스트 (카드 중앙, 이미지 삽입 시 이미지가 위에 덮어서 가려짐)
     elements.push({
+      id: crypto.randomUUID(),
+      type: "text",
+      x: cardX,
+      y: cardY,
+      w: cardW,
+      h: cardH,
+      text: String(pos.index + 1),
+      locked: true,
+      selectable: false,
+      style: {
+        fontSize: Math.max(24, Math.min(48, cardH * 0.3)),
+        fontWeight: "bold",
+        color: "#D1D5DB",
+        underline: false,
+        alignX: "center",
+        alignY: "middle",
+      },
+    });
+
+    // 이미지 슬롯 (번호 텍스트 위에 렌더링 — 이미지 삽입 시 번호가 자연스럽게 가려짐)
+    elements.push({
+      id: crypto.randomUUID(),
       type: "roundRect",
       subType: "imageSlot",
       x: cardX,
@@ -210,42 +228,7 @@ export const buildStorySequenceElements = (
         width: 2,
         style: "dashed",
       },
-    });
-
-    // 번호 뱃지 (좌상단)
-    const badgeSize = mmToPx(badgeSizeMm);
-    const badgeX = cardX + mmToPx(2);
-    const badgeY = cardY + mmToPx(2);
-
-    elements.push({
-      type: "ellipse",
-      x: badgeX,
-      y: badgeY,
-      w: badgeSize,
-      h: badgeSize,
-      fill: "#7C3AED",
-      locked: true,
-      selectable: false,
-    });
-
-    elements.push({
-      type: "text",
-      x: badgeX,
-      y: badgeY,
-      w: badgeSize,
-      h: badgeSize,
-      text: String(pos.index + 1),
-      locked: true,
-      selectable: false,
-      style: {
-        fontSize: Math.max(10, Math.min(14, badgeSize * 0.6)),
-        fontWeight: "bold",
-        color: "#FFFFFF",
-        underline: false,
-        alignX: "center",
-        alignY: "middle",
-      },
-    });
+    } as CanvasElement);
   }
 
   // 화살표 자동 생성 (연속 카드 사이)
@@ -268,9 +251,9 @@ export const buildStorySequenceElements = (
         start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h / 2 };
         end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h / 2 };
       } else {
-        // 행 전환: ↓
-        start = { x: currPx.x + currPx.w / 2, y: currPx.y + currPx.h + pad };
-        end = { x: nextPx.x + nextPx.w / 2, y: nextPx.y - pad };
+        // 행 전환: 현재 행 마지막 카드 좌하단 → 다음 행 첫 카드 우상단
+        start = { x: currPx.x, y: currPx.y + currPx.h + pad };
+        end = { x: nextPx.x + nextPx.w, y: nextPx.y - pad };
       }
     } else {
       if (sameCol) {
@@ -278,17 +261,18 @@ export const buildStorySequenceElements = (
         start = { x: currPx.x + currPx.w / 2, y: currPx.y + currPx.h + pad };
         end = { x: nextPx.x + nextPx.w / 2, y: nextPx.y - pad };
       } else {
-        // 열 전환: →
-        start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h / 2 };
-        end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h / 2 };
+        // 열 전환: 마지막 카드 우측 중앙 → 첫 카드 좌측 중앙 (↗ 큰 대각선)
+        start = { x: currPx.x + currPx.w + pad, y: currPx.y + currPx.h * 0.7 };
+        end = { x: nextPx.x - pad, y: nextPx.y + nextPx.h * 0.3 };
       }
     }
 
     elements.push({
+      id: crypto.randomUUID(),
       type: "arrow",
       start,
       end,
-      stroke: { color: "#9CA3AF", width: 2, style: "solid" },
+      stroke: { color: "#9CA3AF", width: 3, style: "solid" },
       marker: { start: false, end: true },
     });
   }

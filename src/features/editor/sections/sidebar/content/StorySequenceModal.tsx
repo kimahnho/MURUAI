@@ -14,7 +14,6 @@ interface StorySequenceModalProps {
   isOpen: boolean;
   count: number;
   direction: StoryDirection;
-  orientation: "vertical" | "horizontal";
   ratio: StoryCardRatio;
   preview: {
     elements: CanvasElement[];
@@ -24,7 +23,6 @@ interface StorySequenceModalProps {
   onChangeCount: (value: string) => void;
   onSelectDirection: (value: StoryDirection) => void;
   onSelectRatio: (value: StoryCardRatio) => void;
-  onSelectOrientation: (value: "vertical" | "horizontal") => void;
   onApply: () => void;
 }
 
@@ -32,14 +30,12 @@ const StorySequenceModal = ({
   isOpen,
   count,
   direction,
-  orientation,
   ratio,
   preview,
   onClose,
   onChangeCount,
   onSelectDirection,
   onSelectRatio,
-  onSelectOrientation,
   onApply,
 }: StorySequenceModalProps) => {
   if (!isOpen) return null;
@@ -141,35 +137,12 @@ const StorySequenceModal = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-14-semibold text-black-90">용지 방향</span>
-            {/* 용지 방향 전환은 미리보기 캔버스 크기와 실제 생성 페이지 orientation을 함께 바꾼다. */}
-            <div className="flex gap-2">
-              {(["vertical", "horizontal"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => {
-                    onSelectOrientation(value);
-                  }}
-                  className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
-                    orientation === value
-                      ? "border-primary bg-primary-50 text-primary"
-                      : "border-black-25 text-black-70 hover:border-black-40"
-                  }`}
-                >
-                  {value === "vertical" ? "세로" : "가로"}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="flex flex-col gap-3">
             <span className="text-14-semibold text-black-90">미리보기</span>
             {/* 카드 개수/비율/방향 조합을 적용 결과와 동일한 레이아웃으로 사전 확인한다. */}
             <PreviewCanvas
               pageId="story-preview"
-              orientation={orientation}
+              orientation="horizontal"
               elements={preview.elements}
               metrics={preview.metrics}
             />

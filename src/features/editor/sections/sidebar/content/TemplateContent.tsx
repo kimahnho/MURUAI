@@ -490,9 +490,7 @@ const TemplateContent = () => {
   const [storyCount, setStoryCount] = useState(4);
   const [storyDirection, setStoryDirection] =
     useState<StoryDirection>("left-to-right");
-  const [storyOrientation, setStoryOrientation] = useState<
-    "vertical" | "horizontal"
-  >("vertical");
+  const storyOrientation = "horizontal" as const;
   const [storyRatio, setStoryRatio] = useState<StoryCardRatio>("4:3");
   const {
     requestAacBoard,
@@ -710,7 +708,6 @@ const TemplateContent = () => {
         isOpen={isStoryModalOpen}
         count={storyCount}
         direction={storyDirection}
-        orientation={storyOrientation}
         ratio={storyRatio}
         preview={{
           elements: storyPreviewElements,
@@ -722,7 +719,6 @@ const TemplateContent = () => {
         onChangeCount={handleStoryCountChange}
         onSelectDirection={setStoryDirection}
         onSelectRatio={setStoryRatio}
-        onSelectOrientation={setStoryOrientation}
         onApply={handleApplyStoryBoard}
       />
 
