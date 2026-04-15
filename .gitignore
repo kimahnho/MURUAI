@@ -46,3 +46,4 @@ cloudinary-backup/
 cloudinary-webp/
 migration/
 supabase-backup/
+.vercel
