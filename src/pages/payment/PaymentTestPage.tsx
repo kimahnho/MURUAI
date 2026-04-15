@@ -2,6 +2,12 @@
  * 크레딧 구매 페이지.
  * 패키지 선택 → 서버에 주문 생성 → 나이스페이 결제창 호출.
  * 금액은 서버에서 결정 — 클라이언트 변조 불가.
+ *
+ * 엣지케이스 대응:
+ * - 더블클릭: useRef 동기 플래그로 방지 (React 배칭과 무관)
+ * - 언마운트: isMountedRef로 setState 방지
+ * - fetch 타임아웃: 10초 AbortController
+ * - 세션 만료: getSession 에러 핸들링
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -60,7 +66,19 @@ const PaymentTestPage = () => {
   const [selectedId, setSelectedId] = useState("credit-100");
   const [isOrdering, setIsOrdering] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
+
   const scriptRef = useRef(false);
+  // 더블클릭 방지: React 배칭보다 빠른 동기 플래그
+  const isSubmittingRef = useRef(false);
+  // 언마운트 후 setState 방지
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // 비로그인 시 홈으로
   useEffect(() => {
@@ -82,25 +100,33 @@ const PaymentTestPage = () => {
 
     const script = document.createElement("script");
     script.src = SDK_URL;
-    script.onload = () => setSdkLoaded(true);
+    script.onload = () => {
+      if (isMountedRef.current) setSdkLoaded(true);
+    };
     document.head.appendChild(script);
   }, []);
 
   const handlePayment = useCallback(async () => {
+    // 더블클릭 방지 (동기 체크)
+    if (isSubmittingRef.current) return;
     if (!window.AUTHNICE) return;
+    isSubmittingRef.current = true;
 
-    setIsOrdering(true);
+    if (isMountedRef.current) setIsOrdering(true);
+
     try {
       // JWT 토큰 가져오기
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const sessionResult = await supabase.auth.getSession();
+      const session = sessionResult.data?.session;
       if (!session?.access_token) {
-        navigate("/", { replace: true });
+        if (isMountedRef.current) navigate("/", { replace: true });
         return;
       }
 
-      // 서버에 주문 생성 요청
+      // 서버에 주문 생성 요청 (10초 타임아웃)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: {
@@ -108,7 +134,9 @@ const PaymentTestPage = () => {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ productId: selectedId }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "주문 생성 실패" }));
@@ -131,10 +159,15 @@ const PaymentTestPage = () => {
           alert(`결제 오류: ${result.errorMsg}`);
         },
       });
-    } catch {
-      alert("결제 요청 중 오류가 발생했어요.");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        alert("서버 응답이 느려요. 잠시 후 다시 시도해주세요.");
+      } else {
+        alert("결제 요청 중 오류가 발생했어요.");
+      }
     } finally {
-      setIsOrdering(false);
+      isSubmittingRef.current = false;
+      if (isMountedRef.current) setIsOrdering(false);
     }
   }, [selectedId, navigate]);
 
