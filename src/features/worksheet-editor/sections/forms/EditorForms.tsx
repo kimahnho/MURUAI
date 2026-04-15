@@ -19,8 +19,11 @@ import type {
   DateNameFieldConfig,
   ClockFaceConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "../../model/types";
 import { NOTEBOOK_SPECS } from "../../constants/defaults";
+import { generateMindMapNodes, MIND_MAP_THEMES, MIND_MAP_THEME_LABELS } from "../../utils/mindMapLayout";
+import type { MindMapColorTheme, MindMapNodeShape } from "../../model/types";
 
 // 공용 스타일 상수
 const labelCls = "block text-[10.5px] font-semibold text-black-55 uppercase tracking-wider mb-1";
@@ -1471,3 +1474,108 @@ export const CalendarForm = ({ config, onUpdate }: FormProps<CalendarConfig>) =>
     )}
   </>
 );
+
+// --- Mind Map ---
+export const MindMapForm = ({ config, onUpdate }: FormProps<MindMapConfig>) => {
+  // 실제 노드 수를 계산 (캔버스에서 삭제되었을 수 있으므로)
+  const actualL1 = config.nodes.filter((n) => n.level === 1).length;
+  const l1Nodes = config.nodes.filter((n) => n.level === 1);
+  // 1차 노드당 2차 노드 수의 최빈값 (동기화용)
+  const l2Counts = l1Nodes.map((l1) => config.nodes.filter((n) => n.level === 2 && n.parent_id === l1.id).length);
+  const actualL2PerNode = l2Counts.length > 0 ? Math.max(...l2Counts) : 0;
+
+  const handleLevel1Change = (count: number) => {
+    const clamped = Math.max(1, Math.min(6, count));
+    onUpdate((prev) => {
+      const newNodes = generateMindMapNodes(clamped, prev.level2_count_per_node, prev.nodes);
+      return { ...prev, level1_count: clamped, nodes: newNodes };
+    });
+  };
+
+  const handleLevel2Change = (count: number) => {
+    const clamped = Math.max(0, Math.min(4, count));
+    onUpdate((prev) => {
+      const newNodes = generateMindMapNodes(prev.level1_count, clamped, prev.nodes);
+      return { ...prev, level2_count_per_node: clamped, nodes: newNodes };
+    });
+  };
+
+  return (
+    <>
+      <div className="mb-3 px-2.5 py-2 bg-primary-50 rounded-lg text-[11px] text-primary-700 leading-relaxed">
+        ✨ 노드를 더블클릭해서 이동하고, 텍스트를 입력해 보세요.
+      </div>
+      <div className="mb-3">
+        <label className={labelCls}>1차 노드 수</label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={6}
+            value={config.level1_count}
+            onChange={(e) => handleLevel1Change(Number(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-14-semibold text-black-90 w-6 text-center">{config.level1_count}</span>
+        </div>
+        {actualL1 !== config.level1_count && (
+          <div className="text-[10px] text-warning-700 mt-1">
+            실제 노드 {actualL1}개 (캔버스에서 삭제됨)
+          </div>
+        )}
+      </div>
+
+      <div className="mb-3">
+        <label className={labelCls}>2차 노드 수 (1차당)</label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={4}
+            value={config.level2_count_per_node}
+            onChange={(e) => handleLevel2Change(Number(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-14-semibold text-black-90 w-6 text-center">{config.level2_count_per_node}</span>
+        </div>
+        {actualL2PerNode !== config.level2_count_per_node && config.level2_count_per_node > 0 && (
+          <div className="text-[10px] text-warning-700 mt-1">
+            실제 최대 {actualL2PerNode}개/1차 노드
+          </div>
+        )}
+      </div>
+
+      <div className="mb-3">
+        <label className={labelCls}>컬러 테마</label>
+        <div className="flex gap-1.5 flex-wrap">
+          {(Object.keys(MIND_MAP_THEMES) as MindMapColorTheme[]).map((key) => {
+            const t = MIND_MAP_THEMES[key];
+            const isActive = (config.color_theme ?? "gray") === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                title={MIND_MAP_THEME_LABELS[key]}
+                onClick={() => onUpdate((c) => ({ ...c, color_theme: key }))}
+                className={`w-7 h-7 rounded-lg border-[2px] transition flex items-center justify-center ${
+                  isActive ? "border-primary ring-2 ring-primary-200" : "border-black-25 hover:border-primary-300"
+                }`}
+                style={{ background: `linear-gradient(135deg, ${t.fill[0]} 0%, ${t.fill[1]} 50%, ${t.fill[2]} 100%)` }}
+              />
+            );
+          })}
+        </div>
+        <div className="text-[10px] text-black-45 mt-1">{MIND_MAP_THEME_LABELS[config.color_theme ?? "gray"]}</div>
+      </div>
+
+      <div className="mb-3">
+        <label className={labelCls}>노드 모양</label>
+        <div className={chipGroupCls}>
+          <Chip label="원형" isActive={(config.node_shape ?? "circle") === "circle"} onClick={() => onUpdate((c) => ({ ...c, node_shape: "circle" as MindMapNodeShape }))} />
+          <Chip label="둥근 사각형" isActive={config.node_shape === "rounded_rect"} onClick={() => onUpdate((c) => ({ ...c, node_shape: "rounded_rect" as MindMapNodeShape }))} />
+        </div>
+      </div>
+
+    </>
+  );
+};

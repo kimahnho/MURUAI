@@ -1,4 +1,6 @@
 /** 미니 프리뷰 렌더러 — A4 미리보기에서 각 컴포넌트를 축소 렌더링 */
+import { useRef } from "react";
+
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
@@ -12,7 +14,9 @@ import type {
   WritingPracticeConfig,
   ColoringAreaConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "../model/types";
+import { computeDynamicSizes, MIND_MAP_CONTENT, MIND_MAP_THEMES } from "../utils/mindMapLayout";
 import { NOTEBOOK_SPECS } from "../constants/defaults";
 import "../styles/worksheet-preview.css";
 
@@ -234,6 +238,143 @@ export const MiniColoringArea = ({ config }: { config: ColoringAreaConfig }) => 
       <div>{config.image_description || "이미지 영역"}</div>
       <div style={{ fontSize: "4pt", color: "#ddd" }}>(라인아트 이미지)</div>
     </div>
+  );
+};
+
+// --- Mind Map ---
+const MIND_MAP_FONT_SIZE = { 0: 7, 1: 5.5, 2: 4.5 } as const;
+
+interface MiniMindMapProps {
+  config: MindMapConfig;
+  onNodeMove?: (nodeId: string, x: number, y: number) => void;
+}
+
+export const MiniMindMap = ({ config, onNodeMove }: MiniMindMapProps) => {
+  const { nodes } = config;
+  const { w: contentW, h: contentH } = MIND_MAP_CONTENT;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  // 동적 노드 크기 (mm)
+  const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
+  const diameterByLevel = { 0: sizes.d0, 1: sizes.d1, 2: sizes.d2 } as const;
+
+  // 연결선: 부모→자식 중심 직선
+  const connections = nodes
+    .filter((n) => n.parent_id !== null)
+    .map((n) => {
+      const parent = nodes.find((p) => p.id === n.parent_id);
+      if (!parent) return null;
+      return { key: `${parent.id}-${n.id}`, x1: parent.position.x * contentW, y1: parent.position.y * contentH, x2: n.position.x * contentW, y2: n.position.y * contentH };
+    })
+    .filter(Boolean) as { key: string; x1: number; y1: number; x2: number; y2: number }[];
+
+  // SVG 좌표 변환: 마우스 클라이언트 좌표 → SVG viewBox 좌표
+  const clientToSvg = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    const scaleX = contentW / rect.width;
+    const scaleY = contentH / rect.height;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
+    if (!onNodeMove) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const svgPt = clientToSvg(e.clientX, e.clientY);
+    dragRef.current = { nodeId, startX: svgPt.x, startY: svgPt.y, origX: node.position.x * contentW, origY: node.position.y * contentH };
+    (e.target as SVGElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current || !onNodeMove) return;
+    const { nodeId, startX, startY, origX, origY } = dragRef.current;
+    const svgPt = clientToSvg(e.clientX, e.clientY);
+    const dx = svgPt.x - startX;
+    const dy = svgPt.y - startY;
+    // 경계 클램핑: 노드 반지름만큼 안쪽
+    const node = nodes.find((n) => n.id === nodeId);
+    const r = node ? diameterByLevel[node.level] / 2 : 10;
+    const nx = Math.max(r, Math.min(contentW - r, origX + dx));
+    const ny = Math.max(r, Math.min(contentH - r, origY + dy));
+    onNodeMove(nodeId, nx / contentW, ny / contentH);
+  };
+
+  const handlePointerUp = () => {
+    dragRef.current = null;
+  };
+
+  const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
+  const shape = config.node_shape ?? "circle";
+
+  return (
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${contentW} ${contentH}`}
+      style={{ width: "100%", height: "auto", display: "block" }}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+    >
+      {/* 연결선 레이어 (뒤) */}
+      <g>
+        {connections.map((c) => (
+          <line key={c.key} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke={theme.line} strokeWidth={0.35} />
+        ))}
+      </g>
+      {/* 노드 레이어 (앞) */}
+      <g>
+        {nodes.map((n) => {
+          const cx = n.position.x * contentW;
+          const cy = n.position.y * contentH;
+          const r = diameterByLevel[n.level] / 2;
+          const fs = MIND_MAP_FONT_SIZE[n.level];
+          const fill = theme.fill[n.level];
+          const stroke = theme.stroke[n.level];
+          return (
+            <g
+              key={n.id}
+              onPointerDown={(e) => handlePointerDown(e, n.id)}
+              style={{ cursor: onNodeMove ? "grab" : "default" }}
+            >
+              {shape === "circle" ? (
+                <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={0.35} />
+              ) : (
+                <rect
+                  x={cx - r}
+                  y={cy - r * 0.75}
+                  width={r * 2}
+                  height={r * 1.5}
+                  rx={r * 0.3}
+                  ry={r * 0.3}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={0.35}
+                />
+              )}
+              {n.text && (
+                <text
+                  x={cx}
+                  y={cy}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={fs}
+                  fill={theme.text}
+                  fontFamily="inherit"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {n.text}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </g>
+    </svg>
   );
 };
 

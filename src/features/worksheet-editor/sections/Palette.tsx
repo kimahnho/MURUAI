@@ -38,6 +38,12 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     ],
   },
   {
+    title: "사고 · 연상",
+    items: [
+      { type: "mind_map", icon: "🧠", iconBg: "bg-violet-50", name: "마인드맵", desc: "중심어 연상 방사형 구조", badge: "new" },
+    ],
+  },
+  {
     title: "기록",
     items: [
       { type: "checklist_table", icon: "📊", iconBg: "bg-teal-50", name: "체크리스트", desc: "어휘 목록/기록표", badge: "text" },

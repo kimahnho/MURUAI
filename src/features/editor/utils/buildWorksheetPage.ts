@@ -23,7 +23,9 @@ import type {
   PassageQuestionConfig,
   MatchingConnectConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "@/features/worksheet-editor/model/types";
+import { MIND_MAP_THEMES, computeDynamicSizes } from "@/features/worksheet-editor/utils/mindMapLayout";
 import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
 import { withLogoCanvasElements } from "./logoElement";
@@ -1195,6 +1197,92 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements
   return { elements: els, height: titleH + tableH };
 };
 
+// --- Mind Map ---
+
+const buildMindMap = (config: MindMapConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+  const els: CanvasElement[] = [];
+  const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
+  const isRect = (config.node_shape ?? "circle") === "rounded_rect";
+
+  // 콘텐츠 영역 크기 (px)
+  const areaW = CONTENT_W;
+  const areaH = CONTENT_W * (257 / 170); // A4 비율 유지
+
+  // 동적 노드 크기 (mm → px)
+  const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
+  const dPxByLevel = {
+    0: mmToPx(sizes.d0),
+    1: mmToPx(sizes.d1),
+    2: mmToPx(sizes.d2),
+  };
+
+  // 연결선 (뒤쪽 레이어 — 먼저 추가)
+  for (const node of config.nodes) {
+    if (!node.parent_id) continue;
+    const parent = config.nodes.find((n) => n.id === node.parent_id);
+    if (!parent) continue;
+
+    const x1 = x + parent.position.x * areaW;
+    const y1 = y + parent.position.y * areaH;
+    const x2 = x + node.position.x * areaW;
+    const y2 = y + node.position.y * areaH;
+
+    els.push({
+      id: uid(),
+      type: "line",
+      start: { x: x1, y: y1 },
+      end: { x: x2, y: y2 },
+      stroke: { color: theme.line, width: 1, style: "solid" },
+      locked: false,
+    } as CanvasElement);
+  }
+
+  // 노드 (앞쪽 레이어)
+  for (const node of config.nodes) {
+    const cx = x + node.position.x * areaW;
+    const cy = y + node.position.y * areaH;
+    const dPx = dPxByLevel[node.level];
+    const rPx = dPx / 2;
+    const fs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
+
+    // worksheetMeta에 mindMapNodeId 저장 — 연결선 동기화에 사용
+    const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id };
+
+    if (isRect) {
+      const w = dPx;
+      const h = dPx * 0.75;
+      els.push({ ...shapeEl({
+        x: cx - w / 2,
+        y: cy - h / 2,
+        w,
+        h,
+        type: "roundRect",
+        fill: theme.fill[node.level],
+        border: { enabled: true, color: theme.stroke[node.level], width: 1, style: "solid" },
+        radius: rPx * 0.3,
+        locked: false,
+        text: node.text || "",
+        textStyle: { fontSize: fs, fontWeight: node.level === 0 ? "bold" : "normal", color: theme.text },
+      }), worksheetMeta: { ...meta } as never });
+    } else {
+      els.push({ ...shapeEl({
+        x: cx - rPx,
+        y: cy - rPx,
+        w: dPx,
+        h: dPx,
+        type: "ellipse",
+        fill: theme.fill[node.level],
+        border: { enabled: true, color: theme.stroke[node.level], width: 1, style: "solid" },
+        locked: false,
+        text: node.text || "",
+        textStyle: { fontSize: fs, fontWeight: node.level === 0 ? "bold" : "normal", color: theme.text },
+      }), worksheetMeta: { ...meta } as never });
+    }
+  }
+
+  return { elements: els, height: areaH };
+};
+
 // --- Main builder ---
 
 const buildComponentElements = (
@@ -1233,6 +1321,8 @@ const buildComponentElements = (
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+    case "mind_map":
+      return buildMindMap(comp.config as MindMapConfig, x, y);
     case "calendar":
       return buildCalendar(comp.config as CalendarConfig, x, y);
     case "date_name_field":
@@ -1286,7 +1376,7 @@ export const buildWorksheetComponentElementsFromConfig = (
  * 각 컴포넌트의 내부 요소 상대 위치는 유지하고, 컴포넌트 간 COMP_GAP 간격을 보장.
  */
 /** XY 완전 자유 배치 — reflow에서 완전 제외 */
-const FREE_POSITION_TYPES = new Set<string>(["date_name_field", "clock_face"]);
+const FREE_POSITION_TYPES = new Set<string>(["date_name_field", "clock_face", "mind_map"]);
 /** Y 자유 + X 중앙 정렬 — Y는 사용자 설정값 유지, 아래 컴포넌트는 이 컴포넌트 하단부터 스택 */
 export const Y_FREE_TYPES = new Set<string>(["header_instruction"]);
 
@@ -1349,6 +1439,11 @@ export const reflowWorksheetComponents = (
           const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
           if (bottom > compMaxBottom) compMaxBottom = bottom;
         }
+        if ("start" in el && "end" in el) {
+          const s = el as { start: { y: number }; end: { y: number } };
+          if (s.start.y > compMaxBottom) compMaxBottom = s.start.y;
+          if (s.end.y > compMaxBottom) compMaxBottom = s.end.y;
+        }
       }
       curY = compMaxBottom + COMP_GAP;
       continue;
@@ -1395,6 +1490,11 @@ export const reflowWorksheetComponents = (
           const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
           if (bottom > maxBottom) maxBottom = bottom;
         }
+        if ("start" in el && "end" in el) {
+          const s = el as { start: { y: number }; end: { y: number } };
+          if (s.start.y > maxBottom) maxBottom = s.start.y;
+          if (s.end.y > maxBottom) maxBottom = s.end.y;
+        }
       }
       curY = maxBottom + COMP_GAP;
       continue;
@@ -1406,6 +1506,12 @@ export const reflowWorksheetComponents = (
       if ("y" in el) {
         const y = (el as { y: number }).y;
         if (y < minY) minY = y;
+      }
+      // line 요소: start/end에서 최소 Y 추출
+      if ("start" in el && "end" in el) {
+        const s = el as { start: { x: number; y: number }; end: { x: number; y: number } };
+        if (s.start.y < minY) minY = s.start.y;
+        if (s.end.y < minY) minY = s.end.y;
       }
     }
     if (minY === Infinity) minY = curY;
@@ -1427,6 +1533,14 @@ export const reflowWorksheetComponents = (
           const right = (el as { x: number; w: number }).x + (el as { x: number; w: number }).w;
           if (right > maxRight) maxRight = right;
         }
+        // line 요소: start/end에서 X 범위 추출
+        if ("start" in el && "end" in el) {
+          const s = el as { start: { x: number }; end: { x: number } };
+          if (s.start.x < minX) minX = s.start.x;
+          if (s.end.x < minX) minX = s.end.x;
+          if (s.start.x > maxRight) maxRight = s.start.x;
+          if (s.end.x > maxRight) maxRight = s.end.x;
+        }
       }
       if (minX !== Infinity && maxRight !== -Infinity) {
         const compWidth = maxRight - minX;
@@ -1437,13 +1551,24 @@ export const reflowWorksheetComponents = (
 
     const shifted = (deltaY !== 0 || deltaX !== 0)
       ? compElements.map((el) => {
-          const hasX = "x" in el;
-          const hasY = "y" in el;
-          if (hasX && hasY) {
-            return { ...el, x: (el as { x: number }).x + deltaX, y: (el as { y: number }).y + deltaY };
+          // line/arrow 요소: start/end 좌표 이동
+          if ("start" in el && "end" in el) {
+            const s = el as { start: { x: number; y: number }; end: { x: number; y: number } };
+            return {
+              ...el,
+              start: { x: s.start.x + deltaX, y: s.start.y + deltaY },
+              end: { x: s.end.x + deltaX, y: s.end.y + deltaY },
+            };
           }
-          if (hasY) return { ...el, y: (el as { y: number }).y + deltaY };
-          if (hasX) return { ...el, x: (el as { x: number }).x + deltaX };
+          // line/arrow: start/end 이동 (위에서 이미 처리됨, 여기는 shape/text 등)
+          const asAny = el as Record<string, unknown>;
+          const hasX = "x" in asAny;
+          const hasY = "y" in asAny;
+          if (hasX && hasY) {
+            return { ...asAny, x: (asAny.x as number) + deltaX, y: (asAny.y as number) + deltaY } as typeof el;
+          }
+          if (hasY) return { ...asAny, y: (asAny.y as number) + deltaY } as typeof el;
+          if (hasX) return { ...asAny, x: (asAny.x as number) + deltaX } as typeof el;
           return el;
         })
       : compElements;
@@ -1457,6 +1582,12 @@ export const reflowWorksheetComponents = (
       if ("y" in el && "h" in el) {
         const bottom = (el as { y: number; h: number }).y + (el as { y: number; h: number }).h;
         if (bottom > maxBottom) maxBottom = bottom;
+      }
+      // line 요소: start/end에서 최대 Y 추출
+      if ("start" in el && "end" in el) {
+        const s = el as { start: { y: number }; end: { y: number } };
+        if (s.start.y > maxBottom) maxBottom = s.start.y;
+        if (s.end.y > maxBottom) maxBottom = s.end.y;
       }
     }
     curY = maxBottom + COMP_GAP;
