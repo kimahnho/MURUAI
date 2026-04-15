@@ -2,17 +2,17 @@
 @import "tailwindcss";
 
 :root {
-  /* Primary (violet-600 기반) */
-  --primary-50: #f5f3ff;
-  --primary-100: #ede9fe;
-  --primary-200: #ddd6fe;
-  --primary-300: #c4b5fd;
-  --primary-400: #a78bfa;
-  --primary-500: #8b5cf6;
-  --primary: #7C3AED;
-  --primary-700: #6d28d9;
-  --primary-800: #5b21b6;
-  --primary-900: #4c1d95;
+  /* Primary (#5500ff 기반) */
+  --primary-50: #f3eeff;
+  --primary-100: #e4d9ff;
+  --primary-200: #c9b3ff;
+  --primary-300: #a980ff;
+  --primary-400: #8a4dff;
+  --primary-500: #6e1aff;
+  --primary: #5500ff;
+  --primary-700: #4400cc;
+  --primary-800: #330099;
+  --primary-900: #220066;
 
   /* Black Color */
   --black-100: #000000;
@@ -610,5 +610,24 @@ input[type="color"].color-input::-moz-color-swatch {
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* 쇼케이스 마키 애니메이션 */
+@keyframes marquee-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes marquee-right {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0);
   }
 }

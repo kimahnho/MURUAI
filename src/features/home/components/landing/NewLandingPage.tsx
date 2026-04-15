@@ -1,23 +1,22 @@
 /**
- * 랜딩 페이지 — 히어로 + 이미지 갤러리 + 에디터 소개 + 선택 이유 + CTA.
+ * 랜딩 페이지 — 히어로 + 에스컬레이터 + 기능 소개 + 에디터 소개 + CTA.
  */
 import HeroSection from "./HeroSection";
-import ImageGallerySection from "./ImageGallerySection";
-import EditorIntroSection from "./EditorIntroSection";
+import ShowcaseMarqueeSection from "./ShowcaseMarqueeSection";
 import ReasonsSection from "./ReasonsSection";
+import EditorIntroSection from "./EditorIntroSection";
 import CtaSection from "./CtaSection";
 
 interface NewLandingPageProps {
-  onImageClick: (imageUrl: string) => void;
   onStartClick: () => void;
 }
 
-const NewLandingPage = ({ onImageClick, onStartClick }: NewLandingPageProps) => (
+const NewLandingPage = ({ onStartClick }: NewLandingPageProps) => (
   <>
     <HeroSection onStartClick={onStartClick} />
-    <ImageGallerySection onImageClick={onImageClick} />
-    <EditorIntroSection />
+    <ShowcaseMarqueeSection />
     <ReasonsSection />
+    <EditorIntroSection />
     <CtaSection />
   </>
 );

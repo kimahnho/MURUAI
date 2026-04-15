@@ -142,7 +142,7 @@ const Header = () => {
             <button
               type="button"
               onClick={openAuthModal}
-              className="flex items-center px-3 py-1 md:px-4 rounded-xl bg-primary-800 cursor-pointer hover:bg-[#4c1d95] transition"
+              className="flex items-center px-3 py-1 md:px-4 rounded-xl bg-primary cursor-pointer hover:bg-primary-700 transition"
             >
               <span className="text-14-semibold text-white-100 whitespace-nowrap">가입하기</span>
             </button>

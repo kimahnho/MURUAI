@@ -1,49 +1,71 @@
 /**
- * 히어로 섹션 — 메인 카피 + 서브 카피 + 시작 버튼.
+ * 히어로 섹션 — 배경 이미지 위에 좌측 텍스트 오버레이.
+ * 좌측은 블러+그라데이션으로 텍스트 가독성 확보.
  */
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface HeroSectionProps {
   onStartClick?: () => void;
 }
 
 const HeroSection = ({ onStartClick }: HeroSectionProps) => (
-  <section className="flex w-full flex-col items-center bg-linear-to-b from-[#FDFCFF] to-[#f5f3ff] px-4 pb-10 pt-16 md:px-10 md:pb-16 md:pt-28">
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="flex max-w-3xl flex-col items-center gap-5 text-center md:gap-6"
-    >
-      {/* 뱃지 */}
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-white/60 px-4 py-1.5 text-13-bold text-primary backdrop-blur-sm">
-        <Sparkles className="h-3.5 w-3.5" />
-        특수치료 전문 이미지 라이브러리
-      </span>
+  <section className="relative flex w-full overflow-hidden md:min-h-[520px]">
+    {/* 배경 이미지 — 우측 정렬, 사람이 작게 보이도록 contain 느낌 */}
+    <img
+      src="/hero-image.webp"
+      alt=""
+      className="absolute inset-0 h-full w-full object-cover object-[70%_30%]"
+      draggable={false}
+    />
 
-      {/* 메인 카피 */}
-      <h1 className="text-headline-32-bold text-black-90 md:text-headline-42-bold">
-        특수치료를 위한
-        <br />
-        교육 이미지 라이브러리
-      </h1>
+    {/* 좌측 블러 + 그라데이션 오버레이 */}
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          "linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.97) 30%, rgba(255,255,255,0.85) 45%, rgba(255,255,255,0.4) 65%, transparent 80%)",
+      }}
+    />
 
-      {/* 서브 카피 */}
-      <p className="text-14-regular text-black-70 md:text-title-18-bold">
-        3,000+ 이상의 고퀄리티 이미지를 지금 사용해보세요.
-      </p>
-
-      {/* 시작 버튼 */}
-      <button
-        type="button"
-        onClick={onStartClick}
-        className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-title-16-semibold text-white-100 transition hover:bg-primary-700"
+    {/* 콘텐츠 */}
+    <div className="relative z-10 flex w-full items-end justify-center px-4 py-14 md:px-10 md:pb-28 md:pt-20">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="flex w-full max-w-6xl"
       >
-        바로 시작해보기
-        <ArrowRight className="h-4.5 w-4.5" />
-      </button>
-    </motion.div>
+        <div className="flex max-w-lg flex-col gap-5">
+          <span className="text-13-bold tracking-wide text-primary">
+            AI-POWERED THERAPY MATERIALS
+          </span>
+
+          <h1 className="text-headline-32-bold leading-tight text-black-100 md:text-headline-42-bold md:leading-tight">
+            전문성으로 설계하고,
+            <br />
+            AI로 완성하세요.
+          </h1>
+
+          <p className="text-14-regular leading-relaxed text-black-55 md:text-title-16-semibold">
+            감정추론, 스토리북, 어휘카드까지.
+            <br />
+            5분만에 전문 학습자료를 만들어 보세요.
+          </p>
+
+          <div>
+            <button
+              type="button"
+              onClick={onStartClick}
+              className="flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-14-semibold text-white-100 transition hover:bg-primary-700"
+            >
+              무료로 시작하기
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   </section>
 );
 
