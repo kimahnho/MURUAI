@@ -4,6 +4,7 @@
 // import { GoogleGenAI } from "@google/genai";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 
 export type StoryItem = {
   title: string;
@@ -247,6 +248,7 @@ export const generateEmotionStory = async (
   // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
 
+  const startMs = Date.now();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: buildPrompt(topic, availableLabels, count),
@@ -261,5 +263,7 @@ export const generateEmotionStory = async (
   const textPart = parts.find((part) => part.text);
   if (!textPart?.text) throw new Error("텍스트 응답이 없습니다.");
 
-  return parseStoryResponse(textPart.text, count);
+  const stories = parseStoryResponse(textPart.text, count);
+  aiPipelineLogger.addStep("story_ai_response", { durationMs: Date.now() - startMs, storyCount: stories.length });
+  return stories;
 };

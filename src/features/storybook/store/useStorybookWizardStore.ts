@@ -4,6 +4,7 @@
 import { create } from "zustand";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import { mp } from "@/shared/utils/mixpanel";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 
 import type {
   ChildInfo,
@@ -103,6 +104,11 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const next = nextStep(currentStep);
       if (!next) return;
       if (!canAdvance(currentStep, formData)) return;
+
+      // Step 4 확정 시 스타일 선택 기록
+      if (currentStep === 4) {
+        aiPipelineLogger.addStep("style_select", { artStyle: formData.artStyle, layout: formData.layout });
+      }
 
       // 저장된 캐릭터가 선택된 경우 Step 4.5(참고 이미지)를 스킵
       const shouldSkip45 = next === 45 && formData.selectedCharacterId && formData.referenceImageBase64;
@@ -204,6 +210,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
     selectProposal: (id) => {
       const { formData } = get();
       const proposal = formData.proposals.find((p) => p.id === id) ?? null;
+      const selectedIndex = formData.proposals.findIndex((p) => p.id === id);
       set((s) => ({
         formData: {
           ...s.formData,
@@ -213,6 +220,7 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
             : null,
         },
       }));
+      aiPipelineLogger.addStep("proposal_select", { selectedIndex, selectedTitle: proposal?.title });
       mp.track("AI 스토리북 기획서 선택");
       // 캐스팅 분석은 generateBook()에서 editedProposal 기반으로 실행 (사용자 수정 반영)
     },
@@ -243,12 +251,16 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
       const { formData } = get();
       if (!formData.childInfo) return;
 
+      aiPipelineLogger.start("storybook");
+      aiPipelineLogger.addStep("topic_input", { topic: formData.topic, age: formData.childInfo?.age });
+
       set({ isLoading: true, error: null });
       try {
         const proposals = await generateStoryProposals(
           formData.childInfo,
           formData.topic,
         );
+        aiPipelineLogger.addStep("proposal_generate", { proposalCount: proposals.length });
         set((s) => ({
           formData: {
             ...s.formData,
@@ -348,6 +360,8 @@ export const useStorybookWizardStore = create<StorybookWizardState>(
           layout: formData.layout,
           sub_character_count: subCount,
         });
+        aiPipelineLogger.addStep("confirm", { pageCount: book.pages.length });
+        void aiPipelineLogger.flush({ editedPages: [] });
 
         // 이미지 크레딧 차감 (성공 후)
         void recordAiCreditUsage("storybook", book.pages.length);

@@ -29,6 +29,7 @@ import {
 } from "@/features/editor/store/emotionSceneStore";
 import { useToastStore } from "@/features/editor/store/toastStore";
 import { mp } from "@/shared/utils/mixpanel";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
 import {
   updateAiGenerationImageStyle,
@@ -201,6 +202,7 @@ const EmotionSceneBanner = ({
         }),
       );
       mp.track("[AI템플릿] 감정추론 카드 성별 변경", { style: nextStyle });
+      aiPipelineLogger.addStep("style_select", { cardStyle: nextStyle });
     } catch (error) {
       captureSentryError(error, "감정 카드 이미지 로드");
       useToastStore
@@ -473,6 +475,8 @@ const EmotionSceneBanner = ({
       sessionStorage.removeItem("aiGenerationLogId");
     }
 
+    aiPipelineLogger.addStep("confirm", { imageStyle, cardStyle });
+    void aiPipelineLogger.flush();
     mp.track("[AI템플릿] 감정추론 확정", {
       card_style: cardStyle,
       image_style: imageStyle,

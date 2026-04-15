@@ -4,6 +4,7 @@
  */
 import type { GenAIClient } from "@/shared/api/genai";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 
 import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
@@ -283,6 +284,7 @@ export const generateStoryImages = async (
       .map((s) => ({ role: s.role, data: s.data }));
 
     const sceneAnchor = sceneGroupAnchors.get(group);
+    const imageStartMs = Date.now();
     const base64 = await generateSingleImage(
       ai,
       imagePrompt,
@@ -291,6 +293,7 @@ export const generateStoryImages = async (
       pageSubRefs.length > 0 ? pageSubRefs : undefined,
       sceneAnchor,
     );
+    aiPipelineLogger.addStep("image_generate", { pageIndex: i, durationMs: Date.now() - imageStartMs });
 
     // sceneGroup 첫 페이지만 앵커로 저장 (품질 유지 — AI 출력물 반복 열화 방지)
     if (isFirstOfGroup) {
