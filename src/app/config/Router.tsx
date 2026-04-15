@@ -17,6 +17,17 @@ const AuthCallbackPage = lazy(() => import("@/pages/auth/AuthCallbackPage"));
 const WorksheetEditorPage = lazy(
   () => import("@/pages/worksheet-editor/WorksheetEditorPage"),
 );
+const TermsPage = lazy(() => import("@/pages/terms/TermsPage"));
+const PrivacyPage = lazy(() => import("@/pages/privacy/PrivacyPage"));
+const PaymentTestPage = lazy(
+  () => import("@/pages/payment/PaymentTestPage"),
+);
+const PaymentSuccessPage = lazy(
+  () => import("@/pages/payment/PaymentSuccessPage"),
+);
+const PaymentFailPage = lazy(
+  () => import("@/pages/payment/PaymentFailPage"),
+);
 
 const withSuspense = (element: React.ReactElement) => (
   <Suspense fallback={null}>{element}</Suspense>
@@ -54,6 +65,26 @@ export const router = createBrowserRouter([
       {
         path: "worksheet-editor",
         element: withSuspense(<WorksheetEditorPage />),
+      },
+      {
+        path: "terms",
+        element: withSuspense(<TermsPage />),
+      },
+      {
+        path: "privacy",
+        element: withSuspense(<PrivacyPage />),
+      },
+      {
+        path: "payment-test",
+        element: withSuspense(<PaymentTestPage />),
+      },
+      {
+        path: "payment-success",
+        element: withSuspense(<PaymentSuccessPage />),
+      },
+      {
+        path: "payment-fail",
+        element: withSuspense(<PaymentFailPage />),
       },
       {
         path: "admin",

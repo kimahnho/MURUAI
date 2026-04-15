@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const Footer = () => {
   return (
     <div className="flex w-full px-13 flex-col items-center justify-center border-t border-black-25">
@@ -12,8 +14,12 @@ const Footer = () => {
           </div>
         </div>
         <div className="flex gap-4 text-title-14-semibold text-black-90">
-          <div className="flex">서비스 이용약관</div>
-          <div className="flex">개인정보 처리방침</div>
+          <Link to="/terms" target="_blank" className="hover:text-primary transition-colors">
+            서비스 이용약관
+          </Link>
+          <Link to="/privacy" target="_blank" className="hover:text-primary transition-colors">
+            개인정보 처리방침
+          </Link>
         </div>
       </footer>
     </div>
