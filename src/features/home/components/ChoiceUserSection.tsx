@@ -50,24 +50,14 @@ const ChoiceUserSection = () => {
   const visibleItems = items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <section className={`flex flex-col w-full gap-4 rounded-2xl border bg-white-100 p-3 md:p-5 shadow-sm transition-colors ${
-      lessonType === "individual" ? "border-primary-200" : "border-emerald-200"
-    }`}>
+    <section className="flex w-full flex-col gap-4">
       {/* 블록 헤더 */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="icon-s text-primary" />
-          <span className="text-title-22-semibold text-black-90">내 학습자</span>
-        </div>
+        <h2 className="text-title-18-semibold text-black-90">내 학습자</h2>
         <button
           type="button"
           onClick={handleAddClick}
-          className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-13-semibold text-white-100 transition cursor-pointer shadow-sm hover:opacity-90"
-          style={{
-            background: lessonType === "individual"
-              ? "linear-gradient(135deg, #7C3AED, #8b5cf6)"
-              : "linear-gradient(135deg, #059669, #10b981)",
-          }}
+          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-13-semibold text-white-100 transition hover:bg-primary-700 cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
           추가

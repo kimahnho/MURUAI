@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { captureSentryError } from "@/shared/utils/sentryUtils";
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { mp } from "@/shared/utils/mixpanel";
@@ -73,7 +73,7 @@ const RecentDocumentsSection = () => {
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
-        .limit(4);
+        .limit(6);
 
       if (cancelled) return;
 
@@ -113,15 +113,12 @@ const RecentDocumentsSection = () => {
   const previewScale = 0.15;
 
   return (
-    <section className="flex flex-col w-full gap-5 rounded-2xl border border-black-20 bg-white-100 p-3 md:p-5 shadow-sm">
+    <section className="flex w-full flex-col gap-4">
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileText className="icon-s text-primary" />
-          <span className="text-title-22-semibold text-black-90">
-            최근 작업한 학습자료
-          </span>
-        </div>
+        <h2 className="text-title-18-semibold text-black-90">
+          최근 학습자료
+        </h2>
         <button
           type="button"
           onClick={() => navigate("/mydoc")}
@@ -134,37 +131,25 @@ const RecentDocumentsSection = () => {
 
       {/* 카드 그리드 */}
       {isLoading ? (
-        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className={`flex flex-col gap-2 rounded-xl border border-black-20 bg-white-100 p-2 shadow-sm`}
-            >
-              <div className="aspect-3/4 w-full animate-pulse rounded-xl bg-black-10" />
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex w-40 shrink-0 flex-col gap-2 rounded-xl border border-black-15 bg-white p-2 md:w-44">
+              <div className="aspect-3/4 w-full animate-pulse rounded-lg bg-black-10" />
               <div className="flex flex-col gap-1">
-                <div className="h-5 w-3/4 animate-pulse rounded bg-black-10" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-black-10" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-black-10" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-black-10" />
               </div>
             </div>
           ))}
         </div>
       ) : docs.length === 0 ? (
-        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className={`flex flex-col gap-2 rounded-xl border border-dashed border-black-20 bg-black-5 p-2`}
-            >
-              <div className="aspect-3/4 w-full rounded-xl bg-black-10" />
-              <div className="flex flex-col gap-1">
-                <div className="h-5 w-3/4 rounded bg-black-10" />
-                <div className="h-4 w-1/2 rounded bg-black-10" />
-              </div>
-            </div>
-          ))}
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-black-20 bg-black-5 py-10">
+            <span className="text-14-regular text-black-40">아직 만든 자료가 없어요</span>
+          </div>
         </div>
       ) : (
-        <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
           {docs.map((doc) => {
             const previewPage = doc.canvasData?.pages?.[0];
             const rawOrientation = previewPage?.orientation;
@@ -196,7 +181,7 @@ const RecentDocumentsSection = () => {
                     navigate(`/${doc.id}/edit`);
                   }
                 }}
-                className={`flex cursor-pointer flex-col gap-2 rounded-xl border border-black-20 bg-white-100 p-2 shadow-sm transition hover:border-primary hover:shadow-md`}
+                className="flex w-40 shrink-0 cursor-pointer flex-col gap-2 rounded-xl border border-black-15 bg-white p-2 transition hover:border-primary-200 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] md:w-44"
               >
                 {/* 미리보기 */}
                 <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
