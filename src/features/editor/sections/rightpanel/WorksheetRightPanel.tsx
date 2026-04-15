@@ -28,6 +28,7 @@ import type {
   DateNameFieldConfig,
   ClockFaceConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "@/features/worksheet-editor/model/types";
 import {
   HeaderInstructionForm,
@@ -48,6 +49,7 @@ import {
   DateNameFieldForm,
   ClockFaceForm,
   CalendarForm,
+  MindMapForm,
 } from "@/features/worksheet-editor/sections/forms/EditorForms";
 import type { InsertedWorksheetComponent } from "@/features/editor/store/worksheetElementStore";
 
@@ -128,6 +130,8 @@ const renderForm = (
       return <ClockFaceForm config={comp.config as ClockFaceConfig} onUpdate={onUpdate} />;
     case "calendar":
       return <CalendarForm config={comp.config as CalendarConfig} onUpdate={onUpdate} />;
+    case "mind_map":
+      return <MindMapForm config={comp.config as MindMapConfig} onUpdate={onUpdate} />;
     default:
       return null;
   }

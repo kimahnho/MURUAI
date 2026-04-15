@@ -312,12 +312,20 @@ export const useDesignPaperInteraction = ({
         targetElement.type === "ellipse" ||
         targetElement.type === "mosaic" ||
         targetElement.type === "circleMosaic") &&
-      targetElement.labelId &&
       onElementsChange
     ) {
       const deltaX = nextRect.x - targetElement.x;
       const deltaY = nextRect.y - targetElement.y;
-      if (deltaX !== 0 || deltaY !== 0) {
+
+      // labelId 연동 또는 마인드맵 노드 연결선 추종
+      const meta = (targetElement as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+      const hasMindMap = !!meta?.mindMapNodeId;
+      const hasLabel = !!(targetElement as { labelId?: string }).labelId;
+
+      if ((hasLabel || hasMindMap) && (deltaX !== 0 || deltaY !== 0)) {
+        const nodeCenterX = nextRect.x + nextRect.width / 2;
+        const nodeCenterY = nextRect.y + nextRect.height / 2;
+
         const nextElements = elements.map((element) => {
           if (element.id === elementId) {
             return {
@@ -328,12 +336,33 @@ export const useDesignPaperInteraction = ({
               h: nextRect.height,
             };
           }
-          if (element.id === targetElement.labelId && element.type === "text") {
+          // labelId 연동 (기존 로직)
+          if (hasLabel && element.id === (targetElement as { labelId: string }).labelId && element.type === "text") {
             return {
               ...element,
               x: element.x + deltaX,
               y: element.y + deltaY,
             };
+          }
+          // 마인드맵 연결선 추종: 같은 컴포넌트의 line만 매칭 (인접 마인드맵 간 간섭 방지)
+          if (hasMindMap && (element.type === "line" || element.type === "arrow") &&
+            element.worksheetMeta?.componentId === targetElement.worksheetMeta?.componentId) {
+            const line = element as { start: { x: number; y: number }; end: { x: number; y: number } };
+            const oldCenterX = targetElement.x + targetElement.w / 2;
+            const oldCenterY = targetElement.y + targetElement.h / 2;
+            const tolerance = Math.max(targetElement.w, targetElement.h) / 2;
+            let changed = false;
+            let newStart = line.start;
+            let newEnd = line.end;
+            if (Math.abs(line.start.x - oldCenterX) < tolerance && Math.abs(line.start.y - oldCenterY) < tolerance) {
+              newStart = { x: nodeCenterX, y: nodeCenterY };
+              changed = true;
+            }
+            if (Math.abs(line.end.x - oldCenterX) < tolerance && Math.abs(line.end.y - oldCenterY) < tolerance) {
+              newEnd = { x: nodeCenterX, y: nodeCenterY };
+              changed = true;
+            }
+            if (changed) return { ...element, start: newStart, end: newEnd };
           }
           return element;
         });

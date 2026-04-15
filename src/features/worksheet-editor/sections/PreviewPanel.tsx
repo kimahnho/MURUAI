@@ -16,6 +16,7 @@ import type {
   WritingPracticeConfig,
   ColoringAreaConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "../model/types";
 import {
   MiniHeader,
@@ -30,6 +31,7 @@ import {
   MiniWritingPractice,
   MiniColoringArea,
   MiniCalendar,
+  MiniMindMap,
 } from "../preview/MiniComponents";
 
 const renderMini = (comp: WorksheetComponent) => {
@@ -58,6 +60,8 @@ const renderMini = (comp: WorksheetComponent) => {
       return <MiniColoringArea config={comp.config as ColoringAreaConfig} />;
     case "calendar":
       return <MiniCalendar config={comp.config as CalendarConfig} />;
+    case "mind_map":
+      return <MiniMindMap config={comp.config as MindMapConfig} />;
     default:
       return null;
   }
@@ -66,6 +70,7 @@ const renderMini = (comp: WorksheetComponent) => {
 const PreviewPanel = () => {
   const components = useWorksheetStore((s) => s.components);
   const activeIndex = useWorksheetStore((s) => s.activeIndex);
+  const updateConfig = useWorksheetStore((s) => s.updateConfig);
   const wrapRef = useRef<HTMLDivElement>(null);
   const scalerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -90,9 +95,29 @@ const PreviewPanel = () => {
     return () => ro.disconnect();
   }, []);
 
+  // 마인드맵 노드 드래그 시 config.nodes 업데이트
+  const handleMindMapNodeMove = (compIndex: number, nodeId: string, x: number, y: number) => {
+    updateConfig<MindMapConfig>(compIndex, (prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, position: { x, y } } : n)),
+    }));
+  };
+
+  const renderMiniWithInteraction = (comp: WorksheetComponent, index: number) => {
+    if (comp.type === "mind_map") {
+      return (
+        <MiniMindMap
+          config={comp.config as MindMapConfig}
+          onNodeMove={(nodeId, x, y) => handleMindMapNodeMove(index, nodeId, x, y)}
+        />
+      );
+    }
+    return renderMini(comp);
+  };
+
   const previewContent = components.map((comp, i) => (
     <div key={comp.id} className={`ws-comp ${i === activeIndex ? "ws-active" : ""}`}>
-      {renderMini(comp)}
+      {renderMiniWithInteraction(comp, i)}
     </div>
   ));
 

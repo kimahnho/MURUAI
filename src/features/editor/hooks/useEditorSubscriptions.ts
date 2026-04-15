@@ -42,6 +42,7 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
+import { MIND_MAP_THEMES } from "@/features/worksheet-editor/utils/mindMapLayout";
 import { addDateNameFieldElement, addClockFaceElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
@@ -172,6 +173,9 @@ export const useEditorSubscriptions = ({
 
   // 워크시트 컴포넌트 사용 분석 (독립 훅 — 추적 실패가 에디터에 영향 없음)
   useWorksheetAnalytics(docId ?? null, selectedPageId);
+
+  // 마인드맵 연결선 추종은 useDesignPaperInteraction.handleRectChange에서 실시간 처리
+  // (별도 동기화 훅 불필요 — line 재생성 시 ID 불일치로 분리 발생)
 
   // imageFillStore에 현재 문서 ID를 동기화하여 이미지 사용 추적 시 문서 ID를 포함한다.
   useEffect(() => {
@@ -442,10 +446,14 @@ export const useEditorSubscriptions = ({
       // 컴포넌트 ID 생성
       const wsCompId = crypto.randomUUID();
 
-      // worksheetMeta 스탬프 (groupId 없음 → 개별 요소 클릭/편집 가능)
+      // worksheetMeta 스탬프 — buildMindMap 등이 설정한 기존 meta(mindMapNodeId)를 보존
       const stampedElements = newElements.map((el) => ({
         ...el,
-        worksheetMeta: { componentId: wsCompId, componentType: compType },
+        worksheetMeta: {
+          ...(el as { worksheetMeta?: Record<string, unknown> }).worksheetMeta,
+          componentId: wsCompId,
+          componentType: compType,
+        },
       }));
 
       const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
@@ -596,6 +604,97 @@ export const useEditorSubscriptions = ({
       const activePageId = selectedPageIdRef.current;
       const page = pagesRef.current.find((p) => p.id === activePageId);
       if (!page) return;
+
+      // 마인드맵: 색상/모양 변경은 in-place 패치, 노드 수 변경 시만 재빌드 (텍스트 보존)
+      if (comp.type === "mind_map") {
+        const mmConfig = comp.config as import("@/features/worksheet-editor/model/types").MindMapConfig;
+        const oldIds = new Set(comp.elementIds);
+        const oldShapes = page.elements.filter((el) => oldIds.has(el.id) && el.type !== "line" && el.type !== "arrow");
+
+        // 노드 수가 바뀌었는지 확인
+        const needsRebuild = oldShapes.length !== mmConfig.nodes.length;
+
+        if (needsRebuild) {
+          // 재빌드 전: 현재 캔버스 요소의 텍스트를 config.nodes에 동기화
+          for (const shape of oldShapes) {
+            const meta = (shape as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+            if (!meta?.mindMapNodeId) continue;
+            const configNode = mmConfig.nodes.find((n) => n.id === meta.mindMapNodeId);
+            if (!configNode) continue;
+            // 텍스트 동기화
+            if ("text" in shape && typeof (shape as { text?: string }).text === "string") {
+              configNode.text = (shape as { text: string }).text;
+            }
+          }
+          // config 업데이트를 store에 반영 (silent — 재빌드 트리거 안 함)
+          useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
+
+          const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
+          const newElements = buildWorksheetComponentElementsFromConfig(
+            comp.type, mmConfig, 56.7,
+          ).map((el) => ({
+            ...el,
+            worksheetMeta: {
+              ...(el as { worksheetMeta?: Record<string, unknown> }).worksheetMeta,
+              componentId: comp.id, componentType: comp.type,
+            },
+          }));
+          const store = useWorksheetElementStore.getState();
+          store.updateElementIds(comp.id, newElements.map((el) => el.id));
+          setPages((prev) =>
+            prev.map((p) => {
+              if (p.id !== activePageId) return p;
+              const finalComps = useWorksheetElementStore.getState().insertedComponents;
+              return { ...p, elements: cleaned.concat(newElements as typeof cleaned),
+                worksheetComponents: finalComps.map((c) => ({ id: c.id, type: c.type, config: c.config, elementIds: c.elementIds })),
+              };
+            }),
+          );
+        } else {
+          // 색상 + 모양 in-place 패치 — 텍스트/위치 보존
+          const theme = MIND_MAP_THEMES[mmConfig.color_theme ?? "gray"];
+          const targetShape = mmConfig.node_shape ?? "circle";
+
+          const patched = page.elements.map((el): typeof el => {
+            if (!oldIds.has(el.id)) return el;
+            // line: stroke 색상만 변경
+            if (el.type === "line" || el.type === "arrow") {
+              return { ...el, stroke: { ...el.stroke, color: theme.line } };
+            }
+            // shape: fill/stroke/textStyle 색상 + type(모양) 변경
+            const meta = (el as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+            if (!meta?.mindMapNodeId) return el;
+            const node = mmConfig.nodes.find((n) => n.id === meta.mindMapNodeId);
+            const level = node?.level ?? 1;
+            const shape = el as import("../model/canvasTypes").ShapeElement;
+            const newType = targetShape === "rounded_rect" ? "roundRect" as const : "ellipse" as const;
+            // 모양 변경 시 크기 비율 조정 (원형: w=h, 둥근사각형: h=w*0.75)
+            let newW = shape.w;
+            let newH = shape.h;
+            if (newType === "roundRect" && shape.type === "ellipse") {
+              newH = newW * 0.75;
+            } else if (newType === "ellipse" && shape.type === "roundRect") {
+              newH = newW; // 정원
+            }
+            const dy = (shape.h - newH) / 2; // 중심 유지
+            return {
+              ...shape,
+              type: newType,
+              y: shape.y + dy,
+              h: newH,
+              radius: newType === "roundRect" ? (newW / 2) * 0.3 : undefined,
+              fill: theme.fill[level],
+              border: { enabled: true, color: theme.stroke[level], width: 1, style: "solid" as const },
+              textStyle: { ...shape.textStyle, color: theme.text },
+            } as typeof el;
+          });
+
+          setPages((prev) =>
+            prev.map((p) => (p.id === activePageId ? { ...p, elements: patched } : p)),
+          );
+        }
+        return;
+      }
 
       // 날짜&이름 칸: 자유 배치 — 기존 위치 유지 + reflow 없이 직접 재생성
       if (comp.type === "date_name_field") {
@@ -769,8 +868,9 @@ export const useEditorSubscriptions = ({
       let insertY = 56.7;
       for (const el of page.elements) {
         if (oldElementIdSet.has(el.id)) {
-          if ("y" in el) insertY = (el as { y: number }).y;
-          break;
+          if ("y" in el) { insertY = (el as { y: number }).y; break; }
+          // line 요소는 start.y로 폴백
+          if ("start" in el) { insertY = (el as { start: { y: number } }).start.y; break; }
         }
       }
 

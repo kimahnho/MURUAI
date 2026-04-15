@@ -109,12 +109,35 @@ export const useCanvasStageSelection = ({
       (nextRect.width < dragThreshold && nextRect.height < dragThreshold);
     if (isClick) {
       // 워크시트 컴포넌트 바운딩 박스 안이면 전체 컴포넌트 선택
+      // 단, mind_map은 개별 노드(shape) 클릭 시 해당 노드만 선택
       if (!isAdditive && startPoint) {
         const wsComps = useWorksheetElementStore.getState().insertedComponents;
         const pageElements = selectedPage?.elements ?? [];
         for (const comp of wsComps) {
           const bounds = getComponentBounds(pageElements, comp.elementIds);
           if (bounds && startPoint.x >= bounds.x - 4 && startPoint.x <= bounds.x + bounds.w + 4 && startPoint.y >= bounds.y - 4 && startPoint.y <= bounds.y + bounds.h + 4) {
+            // mind_map: 개별 shape 노드를 직접 클릭했으면 해당 노드만 선택
+            if (comp.type === "mind_map") {
+              const compIdSet = new Set(comp.elementIds);
+              const hitNode = pageElements.find((el) => {
+                if (!compIdSet.has(el.id)) return false;
+                if (el.type === "line" || el.type === "arrow") return false;
+                if (!("x" in el && "y" in el && "w" in el && "h" in el)) return false;
+                const s = el as { x: number; y: number; w: number; h: number };
+                return startPoint.x >= s.x && startPoint.x <= s.x + s.w && startPoint.y >= s.y && startPoint.y <= s.y + s.h;
+              });
+              if (hitNode) {
+                // 개별 노드만 선택
+                onSelectedIdsChange([hitNode.id]);
+                useWorksheetElementStore.getState().setSelectedComponentId(comp.id);
+                useWorksheetElementStore.getState().showPanel();
+                setPreviewSelectedIds(null);
+                previewSelectedIdsRef.current = null;
+                return;
+              }
+              // 빈 공간/line 클릭: 전체 컴포넌트 선택 (아래로 fall through)
+            }
+
             const compIds = pageElements
               .filter((el) => el.worksheetMeta?.componentId === comp.id && !el.locked && el.selectable !== false)
               .map((el) => el.id);

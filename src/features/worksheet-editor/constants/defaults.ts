@@ -20,7 +20,9 @@ import type {
   DateNameFieldConfig,
   ClockFaceConfig,
   CalendarConfig,
+  MindMapConfig,
 } from "../model/types";
+import { generateMindMapNodes } from "../utils/mindMapLayout";
 
 export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = {
   header_instruction: {
@@ -211,6 +213,15 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
     weekly_rows: 1,
     show_prev_next_month: false,
   } satisfies CalendarConfig,
+
+  mind_map: {
+    level1_count: 4,
+    level2_count_per_node: 0,
+    line_style: "straight",
+    color_theme: "gray",
+    node_shape: "circle",
+    nodes: generateMindMapNodes(4, 0),
+  } satisfies MindMapConfig,
 };
 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
@@ -232,6 +243,7 @@ export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   date_name_field: { icon: "📅", name: "날짜&이름" },
   clock_face: { icon: "🕐", name: "시계" },
   calendar: { icon: "📆", name: "달력" },
+  mind_map: { icon: "🧠", name: "마인드맵" },
 };
 
 export const NOTEBOOK_SPECS: Record<string, { cols: number; cellSize: string; fs: string; maxRows: number }> = {
