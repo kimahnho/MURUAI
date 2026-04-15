@@ -12,7 +12,7 @@ import {
   ChevronLeft,
   Copy,
   FileText,
-  FolderOpen,
+  FolderOpen as FolderOpenIcon,
   Plus,
   Search,
   Trash2,
@@ -21,8 +21,23 @@ import {
 import { supabase } from "@/shared/api/supabase";
 import { mp } from "@/shared/utils/mixpanel";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+import useToastStore from "@/shared/store/useToastStore";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import Spinner from "@/shared/ui/Spinner";
+import DocContextMenu from "@/features/mydoc/components/DocContextMenu";
+import FolderSidebar from "@/features/mydoc/components/FolderSidebar";
+import FolderCreateModal from "@/features/mydoc/components/FolderCreateModal";
+import AddDocsToChildModal from "@/features/mydoc/components/AddDocsToChildModal";
+import AddDocsToFolderModal from "@/features/mydoc/components/AddDocsToFolderModal";
+import { useFolderStore } from "@/features/mydoc/store/useFolderStore";
+import {
+  createFolder,
+  deleteFolder,
+  fetchFolderTree,
+  fetchUnfiledDocCount,
+  moveDocumentsToFolder,
+  renameFolder,
+} from "@/features/mydoc/data/folderApi";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
@@ -35,6 +50,7 @@ type DocMeta = {
   created_at: string | null;
   updated_at: string | null;
   canvas_data?: unknown | null;
+  folder_id?: string | null;
 };
 
 type TargetRow = {
@@ -167,6 +183,9 @@ const MyDocPage = () => {
   const [students, setStudents] = useState<SimpleTarget[]>([]);
   const [groups, setGroups] = useState<SimpleTarget[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<DocTarget | null>(null);
+  // 아동/그룹별 문서 개수 — 전체 기준, 폴더 필터와 무관
+  const [childDocCounts, setChildDocCounts] = useState<Map<string, number>>(new Map());
+  const [groupDocCounts, setGroupDocCounts] = useState<Map<string, number>>(new Map());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingDuplicateDoc, setPendingDuplicateDoc] = useState<DocItem | null>(null);
@@ -177,6 +196,28 @@ const MyDocPage = () => {
   const [sortOption, setSortOption] = useState<SortOption>(readSavedSort);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const { isCreatingDoc, createAndOpenDocument } = useCreateDocumentNavigation();
+
+  // 폴더 관련 state
+  const folders = useFolderStore((s) => s.folders);
+  const setFolders = useFolderStore((s) => s.setFolders);
+  const folderFilter = useFolderStore((s) => s.filter);
+  const setFolderFilter = useFolderStore((s) => s.setFilter);
+  const setUnfiledCount = useFolderStore((s) => s.setUnfiledCount);
+  const setFolderLoading = useFolderStore((s) => s.setLoading);
+
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [createFolderParentId, setCreateFolderParentId] = useState<string | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+  const [pendingDeleteFolderId, setPendingDeleteFolderId] = useState<string | null>(null);
+  const [pendingDeleteFolderName, setPendingDeleteFolderName] = useState("");
+  const [isAddToFolderOpen, setIsAddToFolderOpen] = useState(false);
+  const [isAddToChildOpen, setIsAddToChildOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    docId: string;
+    targets: DocTarget[];
+    position: { x: number; y: number };
+  } | null>(null);
 
   const handleSortChange = (next: SortOption) => {
     if (next === sortOption) {
@@ -247,12 +288,125 @@ const MyDocPage = () => {
       setStudents((studentsResult.data as SimpleTarget[] | null) ?? []);
       setGroups((groupsResult.data as SimpleTarget[] | null) ?? []);
       setTotalCount(countResult.count ?? 0);
+      await reloadTargetCounts(user.id);
       setIsFiltersLoading(false);
     };
 
     void loadFilters();
     return () => { cancelled = true; };
   }, [isAuthenticated, isAuthLoading]);
+
+  // 아동/그룹별 문서 개수 — RPC 1회로 전체 기준 계산
+  const reloadTargetCounts = async (userId: string) => {
+    const { data } = await supabase.rpc("get_target_document_counts", {
+      p_user_id: userId,
+    });
+
+    const childMap = new Map<string, number>();
+    const groupMap = new Map<string, number>();
+
+    for (const row of (data ?? []) as { target_type: string; target_id: string; doc_count: number }[]) {
+      if (row.target_type === "child") {
+        childMap.set(row.target_id, Number(row.doc_count));
+      } else if (row.target_type === "group") {
+        groupMap.set(row.target_id, Number(row.doc_count));
+      }
+    }
+
+    setChildDocCounts(childMap);
+    setGroupDocCounts(groupMap);
+  };
+
+  // 폴더 트리 + 카운트 로드
+  const reloadFolders = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    try {
+      const [tree, unfiled, countResult] = await Promise.all([
+        fetchFolderTree(user.id),
+        fetchUnfiledDocCount(user.id),
+        supabase
+          .from("user_made_n")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .is("deleted_at", null),
+      ]);
+      setFolders(tree);
+      setUnfiledCount(unfiled);
+      setTotalCount(countResult.count ?? totalCount);
+      await reloadTargetCounts(user.id);
+    } catch {
+      // 폴더 로드 실패는 무시 — 기존 기능에 영향 없음
+    }
+    setFolderLoading(false);
+  };
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated) return;
+    void reloadFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAuthLoading]);
+
+  // 폴더 핸들러
+  const handleCreateFolder = async (name: string, parentId: string | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("로그인이 필요해요.");
+    await createFolder(user.id, { name, parentId });
+    await reloadFolders();
+  };
+
+  const handleRenameFolder = async (name: string) => {
+    if (!editingFolderId) return;
+    await renameFolder(editingFolderId, name);
+    await reloadFolders();
+  };
+
+  const handleConfirmDeleteFolder = async () => {
+    if (!pendingDeleteFolderId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await deleteFolder(pendingDeleteFolderId, user.id);
+    // 삭제된 폴더가 현재 선택된 폴더면 전체로 리셋
+    if (folderFilter.type === "folder" && folderFilter.folderId === pendingDeleteFolderId) {
+      setFolderFilter({ type: "all" });
+    }
+    setPendingDeleteFolderId(null);
+    await reloadFolders();
+  };
+
+  // 문서 목록 재조회 트리거
+  const [docsVersion, setDocsVersion] = useState(0);
+  const reloadDocs = () => setDocsVersion((v) => v + 1);
+
+  const handleAddDocsToFolder = async (docIds: string[]) => {
+    if (folderFilter.type !== "folder") return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const success = await moveDocumentsToFolder(docIds, folderFilter.folderId, user.id);
+    if (success) {
+      useToastStore.getState().showToast(`${docIds.length}개 자료를 추가했어요.`);
+      await reloadFolders();
+      reloadDocs();
+    } else {
+      useToastStore.getState().showToast("추가에 실패했어요.");
+    }
+  };
+
+  // 폴더에서 자료 빼기
+  const handleRemoveFromFolder = async (docId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase
+      .from("user_made_n")
+      .update({ folder_id: null })
+      .eq("id", docId)
+      .eq("user_id", user.id);
+    if (!error) {
+      useToastStore.getState().showToast("폴더에서 뺐어요.");
+      await reloadFolders();
+      reloadDocs();
+    }
+  };
 
   // 2단계: 문서 목록 (canvas_data 제외, 페이지네이션)
   useEffect(() => {
@@ -283,11 +437,20 @@ const MyDocPage = () => {
       }
 
       const field = getSortField(sortOption);
-      const { data, error } = await supabase
+      let query = supabase
         .from("user_made_n")
-        .select("id,name,created_at,updated_at,canvas_data")
+        .select("id,name,created_at,updated_at,canvas_data,folder_id")
         .eq("user_id", user.id)
-        .is("deleted_at", null)
+        .is("deleted_at", null);
+
+      // 폴더 필터 적용
+      if (folderFilter.type === "folder") {
+        query = query.eq("folder_id", folderFilter.folderId);
+      } else if (folderFilter.type === "unfiled") {
+        query = query.is("folder_id", null);
+      }
+
+      const { data, error } = await query
         .order(field, { ascending: false })
         .limit(PAGE_SIZE + 1);
 
@@ -333,6 +496,7 @@ const MyDocPage = () => {
           ...doc,
           targets: targetsByDoc.get(doc.id) ?? [],
           canvasData: parseCanvasData(doc.canvas_data),
+          folder_id: (doc as DocMeta).folder_id ?? null, // DB에서 조회한 folder_id 유지
         })),
       );
       setIsLoading(false);
@@ -340,7 +504,7 @@ const MyDocPage = () => {
 
     void loadDocs();
     return () => { cancelled = true; };
-  }, [isAuthenticated, isAuthLoading, sortOption]);
+  }, [isAuthenticated, isAuthLoading, sortOption, folderFilter, docsVersion]);
 
   // 더 불러오기
   const loadMore = async () => {
@@ -358,11 +522,19 @@ const MyDocPage = () => {
 
     const field = getSortField(sortOption);
     const cursorValue = sortOption === "created" ? lastDoc.created_at! : lastDoc.updated_at!;
-    const { data, error } = await supabase
+    let moreQuery = supabase
       .from("user_made_n")
-      .select("id,name,created_at,updated_at,canvas_data")
+      .select("id,name,created_at,updated_at,canvas_data,folder_id")
       .eq("user_id", user.id)
-      .is("deleted_at", null)
+      .is("deleted_at", null);
+
+    if (folderFilter.type === "folder") {
+      moreQuery = moreQuery.eq("folder_id", folderFilter.folderId);
+    } else if (folderFilter.type === "unfiled") {
+      moreQuery = moreQuery.is("folder_id", null);
+    }
+
+    const { data, error } = await moreQuery
       .order(field, { ascending: false })
       .lt(field, cursorValue)
       .limit(PAGE_SIZE + 1);
@@ -420,8 +592,9 @@ const MyDocPage = () => {
       )
     : filteredDocs;
 
+  // 전체 기준 카운트 — 폴더 필터와 무관하게 항상 동일
   const countDocsForTarget = (type: "child" | "group", id: string) =>
-    filteredDocs.filter((doc) => doc.targets.some((t) => t.type === type && t.id === id)).length;
+    (type === "child" ? childDocCounts : groupDocCounts).get(id) ?? 0;
 
   // ─── 삭제/복제 핸들러 ───
 
@@ -572,12 +745,33 @@ const MyDocPage = () => {
             </>
           ) : (
             <>
+              {/* 폴더 사이드바 */}
+              <FolderSidebar
+                totalDocCount={totalCount}
+                onCreateFolder={(parentId) => {
+                  setCreateFolderParentId(parentId ?? null);
+                  setIsCreateFolderOpen(true);
+                }}
+                onRenameFolder={(id, name) => {
+                  setEditingFolderId(id);
+                  setEditingFolderName(name);
+                }}
+                onDeleteFolder={(id, name) => {
+                  setPendingDeleteFolderId(id);
+                  setPendingDeleteFolderName(name);
+                }}
+                onFolderSelected={() => setSelectedTarget(null)}
+              />
+
+              <div className="my-2 border-t border-black-15" />
+
+              {/* 기존 아동/그룹 필터 */}
               <FilterItem
-                label="전체"
+                label="전체 (아동/그룹)"
                 count={searchTerm.trim() ? filteredDocs.length : totalCount}
-                isActive={selectedTarget === null}
-                onClick={() => setSelectedTarget(null)}
-                icon={<FolderOpen className="h-4 w-4" />}
+                isActive={selectedTarget === null && folderFilter.type === "all"}
+                onClick={() => { setSelectedTarget(null); setFolderFilter({ type: "all" }); }}
+                icon={<FolderOpenIcon className="h-4 w-4" />}
               />
 
               {students.length > 0 && (
@@ -599,13 +793,14 @@ const MyDocPage = () => {
                         label={s.name}
                         count={countDocsForTarget("child", s.id)}
                         isActive={selectedTarget?.type === "child" && selectedTarget.id === s.id}
-                        onClick={() =>
+                        onClick={() => {
+                          setFolderFilter({ type: "all" });
                           setSelectedTarget((prev) =>
                             prev?.type === "child" && prev.id === s.id
                               ? null
                               : { type: "child", id: s.id, name: s.name },
-                          )
-                        }
+                          );
+                        }}
                       />
                     ))}
                 </div>
@@ -630,13 +825,14 @@ const MyDocPage = () => {
                         label={g.name}
                         count={countDocsForTarget("group", g.id)}
                         isActive={selectedTarget?.type === "group" && selectedTarget.id === g.id}
-                        onClick={() =>
+                        onClick={() => {
+                          setFolderFilter({ type: "all" });
                           setSelectedTarget((prev) =>
                             prev?.type === "group" && prev.id === g.id
                               ? null
                               : { type: "group", id: g.id, name: g.name },
-                          )
-                        }
+                          );
+                        }}
                       />
                     ))}
                 </div>
@@ -655,17 +851,44 @@ const MyDocPage = () => {
         {/* 콘텐츠 영역 */}
         <main className="flex flex-1 flex-col min-w-0 overflow-y-auto">
           <div className="flex flex-col gap-6 px-4 md:px-8 py-6">
-            {/* 모바일 필터 드롭다운 */}
-            {hasFilters && (
-              <div className="md:hidden">
+            {/* 모바일 필터 드롭다운 — 폴더 + 아동/그룹 통합 */}
+            <div className="flex flex-col gap-2 md:hidden">
+              {/* 폴더 선택 */}
+              {folders.length > 0 && (
+                <select
+                  value={
+                    folderFilter.type === "folder" ? `folder:${folderFilter.folderId}` :
+                    folderFilter.type === "unfiled" ? "unfiled" : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) { setFolderFilter({ type: "all" }); return; }
+                    if (val === "unfiled") { setFolderFilter({ type: "unfiled" }); return; }
+                    const fid = val.replace("folder:", "");
+                    setFolderFilter({ type: "folder", folderId: fid });
+                  }}
+                  className="w-full rounded-xl border border-black-25 px-4 py-3 text-14-regular text-black-90 focus:border-primary focus:outline-none"
+                >
+                  <option value="">전체 폴더</option>
+                  {folders.map((f) => (
+                    <optgroup key={f.id} label={f.name}>
+                      <option value={`folder:${f.id}`}>{f.name}</option>
+                      {f.children.map((c) => (
+                        <option key={c.id} value={`folder:${c.id}`}>　{c.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value="unfiled">미분류</option>
+                </select>
+              )}
+
+              {/* 아동/그룹 선택 */}
+              {hasFilters && (
                 <select
                   value={selectedTarget ? `${selectedTarget.type}:${selectedTarget.id}` : ""}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (!val) {
-                      setSelectedTarget(null);
-                      return;
-                    }
+                    if (!val) { setSelectedTarget(null); return; }
                     const [type, id] = val.split(":");
                     const list = type === "child" ? students : groups;
                     const item = list.find((x) => x.id === id);
@@ -675,7 +898,7 @@ const MyDocPage = () => {
                   }}
                   className="w-full rounded-xl border border-black-25 px-4 py-3 text-14-regular text-black-90 focus:border-primary focus:outline-none"
                 >
-                  <option value="">전체 ({totalCount})</option>
+                  <option value="">전체 아동/그룹</option>
                   {students.length > 0 && (
                     <optgroup label="아동">
                       {students.map((s) => (
@@ -695,8 +918,8 @@ const MyDocPage = () => {
                     </optgroup>
                   )}
                 </select>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* 검색 바 + 정렬 */}
             <div className="flex items-center gap-3">
@@ -752,13 +975,53 @@ const MyDocPage = () => {
             )}
 
             {/* 섹션 타이틀 */}
-            <div className="flex items-center gap-2">
-              <span className="text-title-18-semibold md:text-title-20-semibold text-black-90">
-                {selectedTarget ? `${selectedTarget.name}의 학습자료` : "전체 학습자료"}
-              </span>
-              <span className="text-14-regular text-black-50">
-                ({selectedTarget || searchTerm.trim() ? visibleDocs.length : totalCount}개)
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-title-18-semibold md:text-title-20-semibold text-black-90">
+                  {folderFilter.type === "folder"
+                    ? (() => {
+                        const findFolder = (nodes: typeof folders): string => {
+                          for (const f of nodes) {
+                            if (f.id === (folderFilter as { folderId: string }).folderId) return f.name;
+                            const child = findFolder(f.children);
+                            if (child) return child;
+                          }
+                          return "";
+                        };
+                        return findFolder(folders) || "폴더";
+                      })()
+                    : folderFilter.type === "unfiled"
+                      ? "미분류 자료"
+                      : selectedTarget
+                        ? `${selectedTarget.name}의 학습자료`
+                        : "전체 학습자료"}
+                </span>
+                <span className="text-14-regular text-black-50">
+                  ({folderFilter.type !== "all" || selectedTarget || searchTerm.trim() ? visibleDocs.length : totalCount}개)
+                </span>
+              </div>
+
+              {/* 폴더/아동 뷰일 때 "자료 추가하기" 버튼 */}
+              {folderFilter.type === "folder" && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddToFolderOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary bg-primary-50 px-3 py-2 text-13-semibold text-primary transition hover:bg-primary-100"
+                >
+                  <Plus className="h-4 w-4" />
+                  자료 추가하기
+                </button>
+              )}
+              {selectedTarget?.type === "child" && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddToChildOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary bg-primary-50 px-3 py-2 text-13-semibold text-primary transition hover:bg-primary-100"
+                >
+                  <Plus className="h-4 w-4" />
+                  자료 배정하기
+                </button>
+              )}
             </div>
 
             {/* 그리드 */}
@@ -774,6 +1037,8 @@ const MyDocPage = () => {
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50">
                     {searchTerm.trim() ? (
                       <Search className="h-7 w-7 text-primary-300" />
+                    ) : folderFilter.type === "folder" || folderFilter.type === "unfiled" ? (
+                      <FolderOpenIcon className="h-7 w-7 text-primary-300" />
                     ) : (
                       <FileText className="h-7 w-7 text-primary-300" />
                     )}
@@ -782,26 +1047,43 @@ const MyDocPage = () => {
                     <span className="text-title-16-semibold text-black-80">
                       {searchTerm.trim()
                         ? "검색 결과가 없습니다"
-                        : selectedTarget
-                          ? `${selectedTarget.name}의 학습자료가 없습니다`
-                          : "등록된 학습자료가 없습니다"}
+                        : folderFilter.type === "folder"
+                          ? "폴더가 비어있어요"
+                          : folderFilter.type === "unfiled"
+                            ? "미분류 자료가 없어요"
+                            : selectedTarget
+                              ? `${selectedTarget.name}의 학습자료가 없습니다`
+                              : "등록된 학습자료가 없습니다"}
                     </span>
                     <span className="text-14-regular text-black-50">
                       {searchTerm.trim()
                         ? "다른 키워드로 검색해보세요."
-                        : "새 학습자료를 만들어보세요."}
+                        : folderFilter.type === "folder"
+                          ? "아래 버튼으로 자료를 추가해보세요."
+                          : "새 학습자료를 만들어보세요."}
                     </span>
                   </div>
                   {!searchTerm.trim() && (
-                    <button
-                      type="button"
-                      onClick={handleCreateDoc}
-                      disabled={isCreatingDoc}
-                      className="flex items-center gap-2 rounded-xl border border-primary px-5 py-2.5 text-14-semibold text-primary transition hover:bg-primary-50 cursor-pointer"
-                    >
-                      <Plus className="h-4 w-4" />
-                      학습자료 만들기
-                    </button>
+                    folderFilter.type === "folder" ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddToFolderOpen(true)}
+                        className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-14-semibold text-white-100 transition hover:bg-primary-700 cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                        자료 추가하기
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCreateDoc}
+                        disabled={isCreatingDoc}
+                        className="flex items-center gap-2 rounded-xl border border-primary px-5 py-2.5 text-14-semibold text-primary transition hover:bg-primary-50 cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                        학습자료 만들기
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -814,6 +1096,14 @@ const MyDocPage = () => {
                       role="button"
                       tabIndex={0}
                       onClick={() => navigate(`/${doc.id}/edit`)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({
+                          docId: doc.id,
+                          targets: doc.targets,
+                          position: { x: e.clientX, y: e.clientY },
+                        });
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -825,6 +1115,21 @@ const MyDocPage = () => {
                       {/* 미리보기 + 액션 */}
                       <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
                         <div className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                          {/* 폴더 뷰: 폴더에서 빼기 */}
+                          {folderFilter.type === "folder" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleRemoveFromFolder(doc.id);
+                              }}
+                              className="flex h-7 w-7 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-warning-500 hover:text-warning-700"
+                              aria-label="폴더에서 빼기"
+                              title="폴더에서 빼기"
+                            >
+                              <FolderOpenIcon className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -962,6 +1267,82 @@ const MyDocPage = () => {
         cancelLabel="취소"
         isLoading={isDuplicating}
       />
+
+      {/* 폴더 만들기 모달 */}
+      <FolderCreateModal
+        isOpen={isCreateFolderOpen}
+        onClose={() => setIsCreateFolderOpen(false)}
+        onSubmit={handleCreateFolder}
+        defaultParentId={createFolderParentId}
+        topLevelFolders={folders}
+      />
+
+      {/* 폴더 이름 변경 모달 */}
+      <FolderCreateModal
+        isOpen={Boolean(editingFolderId)}
+        onClose={() => setEditingFolderId(null)}
+        onSubmit={async (name) => { await handleRenameFolder(name); }}
+        editingName={editingFolderName}
+        topLevelFolders={[]}
+      />
+
+      {/* 폴더 삭제 확인 */}
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteFolderId)}
+        onClose={() => setPendingDeleteFolderId(null)}
+        onConfirm={() => { void handleConfirmDeleteFolder(); }}
+        title="폴더 삭제"
+        description={`"${pendingDeleteFolderName}" 폴더와 하위폴더가 삭제되고, 안의 자료는 미분류로 이동합니다.`}
+        confirmLabel="삭제하기"
+        cancelLabel="취소"
+        variant="danger"
+      />
+
+      {/* 우클릭 아동 배정 메뉴 */}
+      {contextMenu && (
+        <DocContextMenu
+          docId={contextMenu.docId}
+          docTargets={contextMenu.targets}
+          students={students}
+          position={contextMenu.position}
+          onClose={() => setContextMenu(null)}
+          onTargetsChanged={reloadDocs}
+        />
+      )}
+
+      {/* 아동 자료 배정 모달 */}
+      {selectedTarget?.type === "child" && (
+        <AddDocsToChildModal
+          isOpen={isAddToChildOpen}
+          onClose={() => setIsAddToChildOpen(false)}
+          childId={selectedTarget.id}
+          childName={selectedTarget.name}
+          onDone={reloadDocs}
+        />
+      )}
+
+      {/* 폴더 자료 추가 모달 */}
+      {folderFilter.type === "folder" && (
+        <AddDocsToFolderModal
+          isOpen={isAddToFolderOpen}
+          onClose={() => setIsAddToFolderOpen(false)}
+          onAdd={handleAddDocsToFolder}
+          folderId={folderFilter.folderId}
+          folderName={
+            (() => {
+              const findName = (nodes: typeof folders): string => {
+                for (const f of nodes) {
+                  if (f.id === (folderFilter as { folderId: string }).folderId) return f.name;
+                  const child = findName(f.children);
+                  if (child) return child;
+                }
+                return "";
+              };
+              return findName(folders) || "폴더";
+            })()
+          }
+        />
+      )}
     </div>
   );
 };
