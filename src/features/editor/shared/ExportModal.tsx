@@ -13,6 +13,7 @@ import {
 } from "../utils/userMadeExport";
 import { trackDownloadEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { trackInteraction } from "@/shared/utils/trackInteraction";
 
 type TargetType = "child" | "group";
@@ -224,8 +225,12 @@ const ExportModal = ({
         onProgress: setPdfProgress,
       });
       void trackDownloadEvent(userId, userMadeId);
+      const pageCount = pageIds ? pageIds.length : canvasPages.length;
+      const exportMode = pdfPageMode;
       mp.track("PDF 다운로드", { page_mode: pdfPageMode });
-      trackInteraction({ category: "export", action: "pdf_download", metadata: { page_count: pageIds ? pageIds.length : canvasPages.length } });
+      trackInteraction({ category: "export", action: "pdf_download", metadata: { page_count: pageCount } });
+      aiPipelineLogger.addStep("pdf_export", { pageCount, exportMode });
+      void aiPipelineLogger.flush();
       downloadBlob(blob, `${name}.pdf`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {

@@ -7,6 +7,7 @@ import { BookOpen, Brain, Sparkles, Zap, Send, CheckCircle } from "lucide-react"
 import type { LucideIcon } from "lucide-react";
 
 import { mp } from "@/shared/utils/mixpanel";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import useToastStore from "@/shared/store/useToastStore";
 import type { Template } from "@/features/editor/model/canvasTypes";
 import { generateEmotionStory } from "@/features/editor/ai/generateEmotionStory";
@@ -227,6 +228,8 @@ const AiTemplateContent = () => {
         }}
         onSelectAi={async (topic: string) => {
           // 텍스트 생성은 무료 — 크레딧 체크/차감 없음
+          aiPipelineLogger.start("emotion");
+          aiPipelineLogger.addStep("topic_input", { topic });
           setIsAiGenerating(true);
           try {
             const emotionImageMap = await fetchEmotionImageMap("photo-boy");

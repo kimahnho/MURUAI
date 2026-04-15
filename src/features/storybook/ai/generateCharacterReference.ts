@@ -6,6 +6,7 @@
 
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 
 import type { ArtStyleId, ChildInfo } from "../model/storybookTypes";
 import { convertToWebP } from "@/shared/utils/imageConvert";
@@ -134,7 +135,10 @@ export const generateCharacterReference = async (
 
     const parts = response.candidates?.[0]?.content?.parts;
     const imagePart = parts?.find((part) => part.inlineData);
-    if (imagePart?.inlineData?.data) return imagePart.inlineData.data;
+    if (imagePart?.inlineData?.data) {
+      aiPipelineLogger.addStep("character_generate", { artStyleId, attempt: attempt + 1 });
+      return imagePart.inlineData.data;
+    }
   }
 
   throw new Error("캐릭터 이미지 생성에 실패했습니다.");

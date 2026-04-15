@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Check, Pencil } from "lucide-react";
 
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 
 const ProposalStep = () => {
@@ -82,6 +83,13 @@ const ProposalStep = () => {
                     page.pageNumber,
                     e.target.value,
                   );
+                }}
+                onBlur={(e) => {
+                  const originalText = proposals.find((p) => p.id === editedProposal.id)?.pages.find((pg) => pg.pageNumber === page.pageNumber)?.textContent ?? "";
+                  const editedText = e.target.value;
+                  if (editedText !== originalText) {
+                    aiPipelineLogger.addStep("proposal_edit", { pageIndex: page.pageNumber - 1, originalText, editedText });
+                  }
                 }}
                 rows={2}
                 className="w-full resize-none rounded border border-black-20 px-2 py-1.5 text-13-regular focus:border-primary focus:outline-none"

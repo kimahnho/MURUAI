@@ -5,6 +5,7 @@
 
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
 import { getGenAI } from "@/shared/api/genai";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 
 import type { ChildInfo, StoryProposal, StoryPageOutline } from "../model/storybookTypes";
 import { STORYBOOK_PAGE_COUNT } from "../model/storybookTypes";
@@ -212,6 +213,7 @@ export const generateStoryProposals = async (
   // const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
   const ai = getGenAI();
 
+  const startMs = Date.now();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite-preview",
     contents: buildProposalPrompt(childInfo, topic),
@@ -222,6 +224,8 @@ export const generateStoryProposals = async (
 
   const textPart = parts.find((part) => part.text);
   if (!textPart?.text) throw new Error("텍스트 응답이 없습니다.");
+
+  aiPipelineLogger.addStep("proposal_ai_response", { durationMs: Date.now() - startMs, responseLength: textPart.text.length });
 
   return parseProposalResponse(textPart.text);
 };

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bookmark, Loader2, RefreshCw, Upload } from "lucide-react";
 
 import { supabase } from "@/shared/api/supabase";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { useStorybookWizardStore } from "../../store/useStorybookWizardStore";
 import { saveCharacter } from "../../api/savedCharacterApi";
 
@@ -51,6 +52,7 @@ const ReferenceImageStep = () => {
   const handleRegenerate = () => {
     setCharacterPrompt(localPrompt);
     setSaveSuccess(false);
+    aiPipelineLogger.addStep("character_regenerate", { customPrompt: localPrompt });
     void generateCharacterRef();
   };
 

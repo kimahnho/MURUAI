@@ -6,6 +6,7 @@
 import type { GenAIClient } from "@/shared/api/genai";
 
 import { captureSentryError } from "@/shared/utils/sentryUtils";
+import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { convertToWebP } from "@/shared/utils/imageConvert";
 import { supabase } from "@/shared/api/supabase";
 // import { sanitizeEnvKey } from "@/shared/utils/sanitizeEnvKey";
@@ -308,6 +309,7 @@ export const generateEmotionSceneImages = async (
     const needsReset =
       i === 0 || stories[i].sceneGroup !== stories[i - 1].sceneGroup;
 
+    const startMs = Date.now();
     let base64: string;
     if (needsReset) {
       base64 = await generateSingleSceneImage(ai, scene, characterBase64, true, gender, signal);
@@ -317,6 +319,7 @@ export const generateEmotionSceneImages = async (
 
     currentAnchor = base64;
     base64Images[i] = base64;
+    aiPipelineLogger.addStep("image_generate", { pageIndex: i, durationMs: Date.now() - startMs });
     onProgress?.(i + 1, stories.length);
   }
 
