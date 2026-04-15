@@ -14,6 +14,7 @@ import type {
   OutlineTitleConfig,
   WritingPracticeConfig,
   ColoringAreaConfig,
+  MindMapConfig,
   WorksheetConfig,
 } from "../model/types";
 import {
@@ -28,6 +29,7 @@ import {
   OutlineTitleForm,
   WritingPracticeForm,
   ColoringAreaForm,
+  MindMapForm,
 } from "./forms/EditorForms";
 
 const renderForm = (
@@ -58,6 +60,8 @@ const renderForm = (
       return <WritingPracticeForm config={comp.config as WritingPracticeConfig} {...props} />;
     case "coloring_area":
       return <ColoringAreaForm config={comp.config as ColoringAreaConfig} {...props} />;
+    case "mind_map":
+      return <MindMapForm config={comp.config as MindMapConfig} {...props} />;
     default:
       return null;
   }

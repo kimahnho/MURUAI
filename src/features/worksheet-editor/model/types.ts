@@ -18,7 +18,8 @@ export type WorksheetComponentType =
   | "matching_connect"
   | "date_name_field"
   | "clock_face"
-  | "calendar";
+  | "calendar"
+  | "mind_map";
 
 // --- Config types ---
 
@@ -203,6 +204,26 @@ export interface CalendarConfig {
   show_prev_next_month: boolean;
 }
 
+export interface MindMapNode {
+  id: string;
+  level: 0 | 1 | 2;
+  parent_id: string | null;
+  text: string;
+  position: { x: number; y: number };
+}
+
+export type MindMapColorTheme = "gray" | "pastel" | "pink" | "blue" | "mint" | "yellow" | "lavender";
+export type MindMapNodeShape = "circle" | "rounded_rect";
+
+export interface MindMapConfig {
+  level1_count: number;
+  level2_count_per_node: number;
+  line_style: "straight";
+  color_theme: MindMapColorTheme;
+  node_shape: MindMapNodeShape;
+  nodes: MindMapNode[];
+}
+
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
@@ -221,7 +242,8 @@ export type WorksheetConfig =
   | MatchingConnectConfig
   | DateNameFieldConfig
   | ClockFaceConfig
-  | CalendarConfig;
+  | CalendarConfig
+  | MindMapConfig;
 
 export interface WorksheetComponent {
   id: string;

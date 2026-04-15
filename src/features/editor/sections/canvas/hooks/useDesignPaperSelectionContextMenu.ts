@@ -87,10 +87,16 @@ export const useDesignPaperSelectionContextMenu = ({
           compElementIds.length > 0 &&
           compElementIds.every((id) => currentSelectedIds.includes(id));
 
-        if (isAlreadyComponentSelected) {
+        // mind_map: 개별 노드가 이미 선택된 상태에서 같은 컴포넌트의 다른 노드 클릭 → 해당 노드만 선택
+        const isMindMap = wsMeta.componentType === "mind_map";
+        const isIndividualInSameComp = isMindMap &&
+          currentSelectedIds.length === 1 &&
+          compElementIds.includes(currentSelectedIds[0]);
+
+        if (isAlreadyComponentSelected || isIndividualInSameComp) {
           nextSelectedIds = [elementId];
         } else {
-          nextSelectedIds = compElementIds;
+          nextSelectedIds = isMindMap ? [elementId] : compElementIds;
         }
       } else {
         // 기존 groupId 로직
