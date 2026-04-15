@@ -20,17 +20,23 @@ const PENDING_START_KEY = "pendingStartClick";
 const HomePage = () => {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const role = useAuthStore((s) => s.role);
   const openAuthModal = useModalStore((s) => s.openAuthModal);
   const { createAndOpenDocument } = useCreateDocumentNavigation();
   const executingRef = useRef(false);
 
-  // tester 유저는 /image-gen으로 리다이렉트
+  // 인증 사용자 리다이렉트 — pending 작업이 있으면 스킵
   useEffect(() => {
-    if (isAuthenticated && role === "tester") {
+    if (isLoading || !isAuthenticated) return;
+    if (sessionStorage.getItem(PENDING_START_KEY)) return;
+
+    if (role === "tester") {
       navigate("/image-gen", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, role, navigate]);
+  }, [isLoading, isAuthenticated, role, navigate]);
 
   // 비인증 → 로그인 완료 후 대기 중인 시작 버튼 자동 실행
   useEffect(() => {
