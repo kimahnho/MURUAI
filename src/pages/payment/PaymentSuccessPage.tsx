@@ -10,39 +10,46 @@ const PaymentSuccessPage = () => {
   const [params] = useSearchParams();
 
   const orderId = params.get("orderId") ?? "-";
-  const tid = params.get("tid") ?? "-";
   const amount = params.get("amount") ?? "0";
-  const cardName = params.get("cardName") ?? "-";
+  const credits = params.get("credits") ?? "0";
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl border border-black-15 bg-white p-8">
         <CircleCheck className="h-16 w-16 text-success-500" />
 
         <div className="text-center">
           <h1 className="text-title-22-semibold text-black-90">
-            결제가 완료되었어요
+            크레딧이 충전되었어요
           </h1>
-          <p className="mt-1 text-14-regular text-black-50">
-            샌드박스 테스트 결제입니다
+          <p className="mt-2 text-title-16-semibold text-primary">
+            +{Number(credits).toLocaleString()} 크레딧
           </p>
         </div>
 
         <div className="flex w-full flex-col gap-2 rounded-xl bg-black-5 p-4">
-          <Row label="주문번호" value={orderId} />
-          <Row label="거래 ID" value={tid} />
           <Row label="결제 금액" value={`${Number(amount).toLocaleString()}원`} />
-          <Row label="카드사" value={cardName} />
+          <Row label="주문번호" value={orderId.slice(0, 8) + "..."} />
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          fullWidth
-          onClick={() => (window.location.href = "/payment-test")}
-        >
-          다시 테스트하기
-        </Button>
+        <div className="flex w-full flex-col gap-2">
+          <Button
+            variant="primary"
+            size="md"
+            fullWidth
+            onClick={() => (window.location.href = "/dashboard")}
+          >
+            대시보드로 이동
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            fullWidth
+            onClick={() => (window.location.href = "/payment-test")}
+          >
+            추가 충전하기
+          </Button>
+        </div>
       </div>
     </div>
   );
