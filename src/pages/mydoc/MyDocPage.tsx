@@ -616,6 +616,7 @@ const MyDocPage = () => {
     }
     mp.track("문서 삭제");
     setDocs((prev) => prev.filter((doc) => doc.id !== docId));
+    void reloadFolders();
   };
 
   const handleDuplicateDoc = async (doc: DocItem) => {
