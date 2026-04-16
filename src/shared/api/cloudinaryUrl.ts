@@ -40,11 +40,12 @@ export const getCloudinaryImageUrl = (path: string): string => {
 
   if (!UPLOAD_BASE) return trimmed;
 
-  // 확장자가 있으면 그대로 사용 (새로 업로드된 .webp, .png 등)
-  // 확장자가 없으면 _webp.webp 추가 (마이그레이션된 감정/AAC 카드 등)
-  const hasExtension = /\.\w+$/.test(trimmed);
-  if (hasExtension) {
+  // .webp 파일 — 새로 업로드된 파일, 그대로 URL 생성
+  if (trimmed.endsWith(".webp")) {
     return `${UPLOAD_BASE}${trimmed}`;
   }
-  return `${UPLOAD_BASE}${trimmed}_webp.webp`;
+
+  // .png/.jpg/확장자 없음 — 마이그레이션된 파일, _webp.webp로 변환
+  const base = trimmed.replace(/\.\w+$/, "");
+  return `${UPLOAD_BASE}${base}_webp.webp`;
 };
