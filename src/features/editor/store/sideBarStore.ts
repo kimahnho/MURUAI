@@ -44,8 +44,6 @@ interface SideBarStore {
   setEmotionType: (type: EmotionType) => void;
   emotionGender: EmotionGender;
   setEmotionGender: (gender: EmotionGender) => void;
-  templateCarouselPages: Record<string, number>;
-  setTemplateCarouselPage: (key: string, page: number) => void;
   recentImagesExpanded: boolean;
   setRecentImagesExpanded: (expanded: boolean) => void;
   imageSearchQuery: string;
@@ -68,8 +66,6 @@ export const useSideBarStore = create<SideBarStore>((set) => ({
   setEmotionType: (type) => { set({ emotionType: type }); },
   emotionGender: "boy",
   setEmotionGender: (gender) => { set({ emotionGender: gender }); },
-  templateCarouselPages: {},
-  setTemplateCarouselPage: (key, page) => { set((s) => ({ templateCarouselPages: { ...s.templateCarouselPages, [key]: page } })); },
   recentImagesExpanded: false,
   setRecentImagesExpanded: (expanded) => { set({ recentImagesExpanded: expanded }); },
   imageSearchQuery: "",
