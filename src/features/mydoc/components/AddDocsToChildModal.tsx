@@ -41,8 +41,7 @@ const SORT_LABELS: Record<SortOption, string> = {
   name: "이름순",
 };
 
-// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지
-};
+// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지)
 
 interface AddDocsToChildModalProps {
   isOpen: boolean;
