@@ -183,10 +183,7 @@ const AdminUserDocsPage = () => {
   const [hasMoreDocs, setHasMoreDocs] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [manualSelectedUserId, setManualSelectedUserId] = useState<
-    string | null
-  >(null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -347,14 +344,9 @@ const AdminUserDocsPage = () => {
 
   const activeUserId = useMemo(() => {
     if (userEntries.length === 0) return null;
-    if (paramUserId && userEntryMap.has(paramUserId)) {
-      return paramUserId;
-    }
-    if (manualSelectedUserId && userEntryMap.has(manualSelectedUserId)) {
-      return manualSelectedUserId;
-    }
+    if (paramUserId && userEntryMap.has(paramUserId)) return paramUserId;
     return userEntries[0]?.userId ?? null;
-  }, [manualSelectedUserId, paramUserId, userEntries, userEntryMap]);
+  }, [paramUserId, userEntries, userEntryMap]);
 
   useEffect(() => {
     activeUserIdRef.current = activeUserId;
@@ -486,12 +478,12 @@ const AdminUserDocsPage = () => {
                       key={entry.userId}
                       type="button"
                       onClick={() => {
-                        setManualSelectedUserId(entry.userId);
+                        setSearchParams({ userId: entry.userId }, { replace: true });
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          setManualSelectedUserId(entry.userId);
+                          setSearchParams({ userId: entry.userId }, { replace: true });
                         }
                       }}
                       className={`flex flex-col gap-2 rounded-xl border px-3 py-3 text-left transition ${
