@@ -9,7 +9,7 @@ const PrivacyPage = () => {
         개인정보 처리방침
       </h1>
       <p className="text-14-regular text-black-50 mb-12">
-        시행일: 2026년 ○월 ○일
+        시행일: 2026년 5월 20일
       </p>
 
       <p className="text-15-regular text-black-70 mb-10 leading-relaxed">
@@ -476,7 +476,7 @@ const PrivacyPage = () => {
       <div className="mt-12 border-t border-black-15 pt-8">
         <h2 className="text-title-18-bold text-black-90 mb-3">부칙</h2>
         <p className="text-15-regular text-black-70">
-          본 개인정보 처리방침은 2026년 ○월 ○일부터 시행합니다.
+          본 개인정보 처리방침은 2026년 5월 20일부터 시행합니다.
         </p>
       </div>
     </div>

@@ -9,7 +9,7 @@ const TermsPage = () => {
         무루아이(muru.ai) 서비스 이용약관
       </h1>
 
-      <p className="text-14-regular text-black-50 mb-12">시행일: 2026년 ○월 ○일</p>
+      <p className="text-14-regular text-black-50 mb-12">시행일: 2026년 5월 20일</p>
 
       {/* 제1장 */}
       <Chapter title="제1장 총칙">
@@ -835,7 +835,7 @@ const TermsPage = () => {
       <div className="mt-12 border-t border-black-15 pt-8">
         <h2 className="text-title-18-bold text-black-90 mb-3">부칙</h2>
         <p className="text-15-regular text-black-70">
-          본 약관은 2026년 5월 1일부터 시행합니다.
+          본 약관은 2026년 5월 20일부터 시행합니다.
         </p>
       </div>
     </div>

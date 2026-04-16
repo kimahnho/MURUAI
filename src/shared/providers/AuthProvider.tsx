@@ -4,6 +4,8 @@ import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { trackActivityEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
+import { CURRENT_TERMS_VERSION } from "@/shared/constants/terms";
+import TermsConsentGate from "@/shared/ui/TermsConsentGate";
 
 const setSentryUser = (user: { id: string; email?: string } | null) => {
   if (user) {
@@ -16,24 +18,38 @@ const setSentryUser = (user: { id: string; email?: string } | null) => {
   }
 };
 
-const fetchUserRole = async (userId: string) => {
+// role + 약관 동의 상태를 한 번에 조회
+const fetchUserProfile = async (userId: string) => {
   const { data } = await supabase
     .from("user_profiles")
-    .select("role")
+    .select("role, terms_accepted_at, terms_version")
     .eq("id", userId)
     .single();
-  return (data?.role as "user" | "admin") ?? "user";
+  return {
+    role: (data?.role as "user" | "admin") ?? "user",
+    termsAccepted: data?.terms_version === CURRENT_TERMS_VERSION,
+  };
 };
 
-// role 조회를 별도 비동기로 분리 — getSession lock과 충돌 방지
-const loadUserRole = (userId: string, setRole: (role: "user" | "admin" | null) => void) => {
-  fetchUserRole(userId)
-    .then((role) => { setRole(role); })
-    .catch(() => { setRole("user"); });
+// 프로필 조회를 별도 비동기로 분리 — getSession lock과 충돌 방지
+const loadUserProfile = (
+  userId: string,
+  setRole: (role: "user" | "admin" | null) => void,
+  setTermsAccepted: (accepted: boolean | null) => void,
+) => {
+  fetchUserProfile(userId)
+    .then(({ role, termsAccepted }) => {
+      setRole(role);
+      setTermsAccepted(termsAccepted);
+    })
+    .catch(() => {
+      setRole("user");
+      setTermsAccepted(false);
+    });
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { setUser, setRole, setLoading, isLoading } = useAuthStore();
+  const { user, setUser, setRole, setTermsAccepted, setLoading, isLoading, termsAccepted } = useAuthStore();
 
   useEffect(() => {
     // 현재 세션 확인 — 동기 콜백으로 setLoading(false)를 즉시 호출
@@ -42,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSentryUser(session?.user ?? null);
       setLoading(false);
       if (session?.user?.id) {
-        loadUserRole(session.user.id, setRole);
+        loadUserProfile(session.user.id, setRole, setTermsAccepted);
         mp.identify(session.user.id);
         mp.setUserProfile({ email: session.user.email ?? "" });
         void trackActivityEvent("session_start", session.user.id);
@@ -60,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
       if (_event === "SIGNED_IN" && session?.user) {
-        loadUserRole(session.user.id, setRole);
+        loadUserProfile(session.user.id, setRole, setTermsAccepted);
         mp.identify(session.user.id);
         mp.setUserProfile({ email: session.user.email ?? "" });
         void trackActivityEvent("login", session.user.id);
@@ -72,11 +88,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => { subscription.unsubscribe(); };
-  }, [setUser, setRole, setLoading]);
+  }, [setUser, setRole, setTermsAccepted, setLoading]);
 
   // 로딩 중일 때는 빈 화면 또는 로딩 스피너 표시
   if (isLoading) {
     return null;
+  }
+
+  // 인증 유저 중 약관 미동의 시 게이트 표시
+  if (user && termsAccepted === false) {
+    return (
+      <TermsConsentGate
+        userId={user.id}
+        onAccepted={() => setTermsAccepted(true)}
+      />
+    );
   }
 
   return <>{children}</>;
