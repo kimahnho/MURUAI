@@ -4,6 +4,7 @@
 import { supabase } from "@/shared/api/supabase";
 import { EXCLUDED_USER_ID_LIST, EXCLUDED_USER_IDS } from "../constants/excludedUsers";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 
 export type AdminDateRange = {
   start: string;
@@ -161,22 +162,7 @@ type UserMadeRow = {
   canvas_data?: unknown | null;
 };
 
-const parseCanvasData = (value: unknown): CanvasDocument | null => {
-  if (!value) return null;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as CanvasDocument;
-      return Array.isArray(parsed.pages) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const data = value as CanvasDocument;
-    return Array.isArray(data.pages) ? data : null;
-  }
-  return null;
-};
+// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지)
 
 const toDateKey = (value: Date) => {
   const year = value.getFullYear();
@@ -309,7 +295,7 @@ export const fetchAdminMetrics = async (
         }
       }
 
-      const canvas = parseCanvasData(doc.canvas_data);
+      const canvas = decompressCanvasData(doc.canvas_data);
       const pages = canvas?.pages ?? [];
       if (pages.length === 0) return;
 

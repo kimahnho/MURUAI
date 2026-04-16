@@ -3,6 +3,7 @@
  */
 import { supabase } from "@/shared/api/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+import { compressCanvasData } from "@/shared/utils/canvasDataCompression";
 import { logPerf, measurePerf } from "./perfLogger";
 import { isCdnFont, loadCdnFont } from "@/shared/utils/cdnFontLoader";
 
@@ -36,7 +37,7 @@ export const saveUserMadeVersion = async ({
   const payload = {
     user_id: userId,
     name,
-    canvas_data: canvasData,
+    canvas_data: compressCanvasData(canvasData),
   };
 
   const { data, error } = await supabase
@@ -83,7 +84,7 @@ export const updateUserMadeVersion = async ({
 
   const payload = {
     name,
-    canvas_data: canvasData,
+    canvas_data: compressCanvasData(canvasData),
     updated_at: new Date().toISOString(),
   };
 

@@ -40,6 +40,7 @@ import {
 } from "@/features/mydoc/data/folderApi";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 import { useCreateDocumentNavigation } from "@/features/editor/hooks/useCreateDocumentNavigation";
 
 // ─── 타입 ───
@@ -111,23 +112,7 @@ const formatDate = (value: string | null) => {
   return date.toLocaleDateString("ko-KR");
 };
 
-const parseCanvasData = (value: unknown): CanvasDocument | null => {
-  if (!value) return null;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as CanvasDocument;
-      return Array.isArray(parsed.pages) ? parsed : null;
-    } catch (error) {
-      captureSentryError(error, "MyDocPage canvas_data 파싱");
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const data = value as CanvasDocument;
-    return Array.isArray(data.pages) ? data : null;
-  }
-  return null;
-};
+// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지)
 
 // ─── 사이드바 필터 항목 ───
 
@@ -495,7 +480,7 @@ const MyDocPage = () => {
         pageDocs.map((doc) => ({
           ...doc,
           targets: targetsByDoc.get(doc.id) ?? [],
-          canvasData: parseCanvasData(doc.canvas_data),
+          canvasData: decompressCanvasData(doc.canvas_data),
           folder_id: (doc as DocMeta).folder_id ?? null, // DB에서 조회한 folder_id 유지
         })),
       );
@@ -566,7 +551,7 @@ const MyDocPage = () => {
         ...pageDocs.map((doc) => ({
           ...doc,
           targets: targetsByDoc.get(doc.id) ?? [],
-          canvasData: parseCanvasData(doc.canvas_data),
+          canvasData: decompressCanvasData(doc.canvas_data),
         })),
       ]);
     }
@@ -684,7 +669,7 @@ const MyDocPage = () => {
     }
 
     mp.track("문서 복제");
-    setDocs((prev) => [{ ...data, targets: nextTargets, canvasData: parseCanvasData(data.canvas_data) }, ...prev]);
+    setDocs((prev) => [{ ...data, targets: nextTargets, canvasData: decompressCanvasData(data.canvas_data) }, ...prev]);
     return true;
   };
 
