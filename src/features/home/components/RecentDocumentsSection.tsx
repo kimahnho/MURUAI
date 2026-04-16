@@ -10,6 +10,7 @@ import { useAuthStore } from "@/shared/store/useAuthStore";
 import { mp } from "@/shared/utils/mixpanel";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 
 type RecentDoc = {
   id: string;
@@ -17,24 +18,6 @@ type RecentDoc = {
   created_at: string | null;
   canvas_data?: unknown | null;
   canvasData: CanvasDocument | null;
-};
-
-const parseCanvasData = (value: unknown): CanvasDocument | null => {
-  if (!value) return null;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as CanvasDocument;
-      return Array.isArray(parsed.pages) ? parsed : null;
-    } catch (error) {
-      captureSentryError(error, "최근 학습자료 파싱");
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const data = value as CanvasDocument;
-    return Array.isArray(data.pages) ? data : null;
-  }
-  return null;
 };
 
 const formatDate = (value: string | null) => {
@@ -95,7 +78,7 @@ const RecentDocumentsSection = () => {
       setDocs(
         rows.map((row) => ({
           ...row,
-          canvasData: parseCanvasData(row.canvas_data),
+          canvasData: decompressCanvasData(row.canvas_data),
         })),
       );
       setIsLoading(false);

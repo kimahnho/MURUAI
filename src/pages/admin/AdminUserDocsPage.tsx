@@ -4,6 +4,7 @@ import { ChevronLeft, Search, Shield } from "lucide-react";
 import { supabase } from "@/shared/api/supabase";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 import { EXCLUDED_USER_IDS } from "@/features/admin/constants/excludedUsers";
 
 type UserEntry = {
@@ -47,22 +48,7 @@ const formatDate = (value: string | null) => {
 
 const getInitial = (value: string) => value.trim().slice(0, 1) || "?";
 
-const parseCanvasData = (value: unknown): CanvasDocument | null => {
-  if (!value) return null;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as CanvasDocument;
-      return Array.isArray(parsed.pages) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const data = value as CanvasDocument;
-    return Array.isArray(data.pages) ? data : null;
-  }
-  return null;
-};
+// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지)
 
 const DOCS_PAGE_SIZE = 24;
 
@@ -310,7 +296,7 @@ const AdminUserDocsPage = () => {
         created_at: row.created_at,
         canvas_data: row.canvas_data ?? null,
         targets: targetsMap.get(row.id) ?? [],
-        canvasData: parseCanvasData(row.canvas_data),
+        canvasData: decompressCanvasData(row.canvas_data),
       }));
 
       setDocs((prev) => (append ? [...prev, ...nextDocs] : nextDocs));

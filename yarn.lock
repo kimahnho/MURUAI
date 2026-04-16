@@ -2699,7 +2699,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/pako@npm:^2.0.3":
+"@types/pako@npm:^2.0.3, @types/pako@npm:^2.0.4":
   version: 2.0.4
   resolution: "@types/pako@npm:2.0.4"
   checksum: 10c0/5765bf8bc7e77ee141c454118f03e544b8f6cb51eb257d82dc5830feeab8cd00818af3a1eabefdfbe8dd3ae9916ed5403937bf1031a0ee51deea27fdf4dccdfb
@@ -5730,6 +5730,7 @@ __metadata:
     "@tailwindcss/vite": "npm:^4.1.18"
     "@tanstack/react-query": "npm:^5.90.16"
     "@types/node": "npm:^24.10.1"
+    "@types/pako": "npm:^2.0.4"
     "@types/react": "npm:^19.2.5"
     "@types/react-dom": "npm:^19.2.3"
     "@vercel/analytics": "npm:^1.6.1"
@@ -5752,6 +5753,7 @@ __metadata:
     jspdf: "npm:^4.0.0"
     lucide-react: "npm:^0.562.0"
     mixpanel-browser: "npm:^2.74.0"
+    pako: "npm:^2.1.0"
     react: "npm:^19.2.0"
     react-dom: "npm:^19.2.0"
     react-router-dom: "npm:^7.11.0"

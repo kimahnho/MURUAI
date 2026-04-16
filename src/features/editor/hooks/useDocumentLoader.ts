@@ -9,6 +9,7 @@ import { mp } from "@/shared/utils/mixpanel";
 import { useOrientationStore } from "../store/orientationStore";
 import { useToastStore } from "../store/toastStore";
 import type { CanvasDocument } from "../model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 import { useSideBarStore } from "../store/sideBarStore";
@@ -78,17 +79,8 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
         setIsReadOnly(false);
       }
 
-      let canvasData: unknown = row.canvas_data;
-      if (typeof canvasData === "string") {
-        try {
-          canvasData = JSON.parse(canvasData);
-        } catch {
-          showToast("학습자료 형식이 올바르지 않아요.");
-          return;
-        }
-      }
-      // canvas_data는 DB에 문자열/JSON 혼재 가능성이 있어 런타임 검증 후에만 상태로 반영한다.
-      if (!canvasData || !Array.isArray((canvasData as CanvasDocument).pages)) {
+      const canvasData = decompressCanvasData(row.canvas_data);
+      if (!canvasData) {
         showToast("학습자료 형식이 올바르지 않아요.");
         return;
       }
@@ -96,7 +88,7 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
 
       // 기존 문서의 로고 fill을 현재 고정 URL로 교체 (빌드 해시 변경 대응)
       migrateLogoFill((canvasData as CanvasDocument).pages);
-      // 비WebP Cloudinary URL을 WebP 버전으로 자동 교체
+      // 확장자 없는 기존 Cloudinary URL을 WebP 버전으로 교체
       migrateCloudinaryToWebp((canvasData as CanvasDocument).pages);
 
       setLoadedDocument(canvasData as CanvasDocument);

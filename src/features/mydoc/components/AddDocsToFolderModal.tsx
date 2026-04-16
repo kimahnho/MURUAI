@@ -11,6 +11,7 @@ import Button from "@/shared/ui/Button";
 import Spinner from "@/shared/ui/Spinner";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
 import type { CanvasDocument } from "@/features/editor/model/pageTypes";
+import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 
 interface DocPreview {
   id: string;
@@ -33,22 +34,7 @@ const PAGE_HEIGHT_PX = 297 * 3.7795;
 const THUMB_SCALE = 0.12;
 const ITEMS_PER_PAGE = 12;
 
-const parseCanvasData = (value: unknown): CanvasDocument | null => {
-  if (!value) return null;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as CanvasDocument;
-      return Array.isArray(parsed.pages) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const data = value as CanvasDocument;
-    return Array.isArray(data.pages) ? data : null;
-  }
-  return null;
-};
+// canvas_data 파싱은 decompressCanvasData로 통합 (gzip 압축/비압축 자동 감지)
 
 interface AddDocsToFolderModalProps {
   isOpen: boolean;
@@ -230,7 +216,7 @@ const AddDocsToFolderModal = ({
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {pagedDocs.map((doc) => {
                 const isSelected = selectedIds.has(doc.id);
-                const canvasData = parseCanvasData(doc.canvas_data);
+                const canvasData = decompressCanvasData(doc.canvas_data);
                 const firstPage = canvasData?.pages?.[0];
                 const orientation =
                   firstPage?.orientation === "horizontal"
