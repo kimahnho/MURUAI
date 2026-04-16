@@ -149,6 +149,7 @@ const WorksheetRightPanel = () => {
   const prevCountRef = useRef(insertedComponents.length);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragIndexRef = useRef<number | null>(null);
+  const cardRefsMap = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // 새 컴포넌트 삽입 시 자동 펼침
   useEffect(() => {
@@ -161,10 +162,14 @@ const WorksheetRightPanel = () => {
     prevCountRef.current = insertedComponents.length;
   }, [insertedComponents]);
 
-  // 캔버스 클릭으로 selectedComponentId가 바뀌면 해당 카드 자동 펼침
+  // 선택된 컴포넌트 카드 자동 펼침 + 스크롤
   useEffect(() => {
     if (selectedComponentId) {
       setExpandedIds((prev) => new Set([...prev, selectedComponentId]));
+      requestAnimationFrame(() => {
+        const el = cardRefsMap.current.get(selectedComponentId);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [selectedComponentId]);
 
@@ -213,6 +218,10 @@ const WorksheetRightPanel = () => {
           return (
             <div
               key={comp.id}
+              ref={(node) => {
+                if (node) cardRefsMap.current.set(comp.id, node);
+                else cardRefsMap.current.delete(comp.id);
+              }}
               draggable
               onDragStart={() => { dragIndexRef.current = idx; }}
               onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx); }}
