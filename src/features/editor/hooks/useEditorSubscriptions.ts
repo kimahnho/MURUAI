@@ -615,15 +615,14 @@ export const useEditorSubscriptions = ({
           // config 업데이트를 store에 반영 (silent — 재빌드 트리거 안 함)
           useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
 
-          // 기존 요소의 Y좌표를 읽어 재빌드 위치 결정 (자유 배치 — 원래 위치 유지)
+          // 마인드맵: worksheetMeta.mindMapAreaTop에서 원래 영역 시작점(y)을 복원
+          // 요소의 절대 Y좌표를 사용하면 ratio*areaH가 누적되어 아래로 밀림
           let rebuildY = 56.7;
           for (const el of page.elements) {
-            if (oldIds.has(el.id) && "y" in el) {
-              rebuildY = (el as { y: number }).y;
-              break;
-            }
-            if (oldIds.has(el.id) && "start" in el) {
-              rebuildY = (el as { start: { y: number } }).start.y;
+            if (!oldIds.has(el.id)) continue;
+            const meta = (el as { worksheetMeta?: { mindMapAreaTop?: number } }).worksheetMeta;
+            if (meta?.mindMapAreaTop != null) {
+              rebuildY = meta.mindMapAreaTop;
               break;
             }
           }

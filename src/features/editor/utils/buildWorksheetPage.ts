@@ -1208,8 +1208,8 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, o
     const rawFs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
     const fs = Math.max(9, rawFs * fitScale);
 
-    // worksheetMeta에 mindMapNodeId 저장 — 연결선 동기화에 사용
-    const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id };
+    // worksheetMeta에 mindMapNodeId + 영역 시작점 저장 — 연결선 동기화 + 재빌드 Y 복원에 사용
+    const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id, mindMapAreaTop: y };
 
     if (isRect) {
       const w = dPx;
