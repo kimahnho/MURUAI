@@ -51,10 +51,10 @@ const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
 const CLOUDINARY_BASE = "https://res.cloudinary.com/dabbfycew/image/upload";
-const TRAIN_TEMPLATE_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_1`;
-const TRAIN_TEMPLATE_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_2`;
-const TRAIN_TEMPLATE2_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_1`;
-const TRAIN_TEMPLATE2_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_2`;
+const TRAIN_TEMPLATE_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_1_webp.webp`;
+const TRAIN_TEMPLATE_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template/page_2_webp.webp`;
+const TRAIN_TEMPLATE2_BG_1 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_1_webp.webp`;
+const TRAIN_TEMPLATE2_BG_2 = `${CLOUDINARY_BASE}/muru-templates/admin/train-template-2/page_2_webp.webp`;
 
 const getTemplateBackground = (
   templateId: TemplateId,
