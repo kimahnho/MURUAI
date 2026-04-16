@@ -10,7 +10,6 @@ import BaseModal from "@/shared/ui/BaseModal";
 import Button from "@/shared/ui/Button";
 import Spinner from "@/shared/ui/Spinner";
 import DesignPaper from "@/features/editor/sections/canvas/DesignPaper";
-import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 
 interface DocPreview {
