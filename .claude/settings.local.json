@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(node -e ':*)",
+      "Bash(xargs grep:*)",
+      "Bash(git stash:*)",
+      "Bash(yarn build:*)",
+      "Bash(npx --no-install vite build)",
+      "Bash(git config:*)",
+      "Bash(gh auth:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create --repo kimahnho/MURUAI --base main --head feat/remove-sequential-repeat --title 'feat: 반복 연습\\(sequential_repeat\\) 컴포넌트 삭제' --body ':*)",
+      "Bash(gh pr create --repo muruai/MURUAI_FE --base main --head feat/remove-sequential-repeat --title 'feat: 반복 연습\\(sequential_repeat\\) 컴포넌트 삭제' --body ':*)",
+      "Bash(gh pr create --repo kimahnho/MURUAI --base main --head feat/scroll-to-edit-panel --title 'feat: 컴포넌트 클릭 시 우측 편집 패널 자동 스크롤' --body ':*)",
+      "Bash(gh pr create --repo muruai/MURUAI_FE --base main --head feat/scroll-to-edit-panel --title 'feat: 컴포넌트 클릭 시 우측 편집 패널 자동 스크롤' --body ':*)",
+      "Bash(gh pr create --repo kimahnho/MURUAI --base main --head feat/worksheet-orientation-support --title 'feat: 워크시트 컴포넌트 가로/세로 캔버스 최적화' --body ':*)",
+      "Bash(gh pr create --repo muruai/MURUAI_FE --base main --head feat/worksheet-orientation-support --title 'feat: 워크시트 컴포넌트 가로/세로 캔버스 최적화' --body ':*)",
+      "Bash(gh pr:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)"
+    ]
+  }
+}
