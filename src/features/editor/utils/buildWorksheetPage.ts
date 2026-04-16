@@ -33,10 +33,30 @@ import { withLogoCanvasElements } from "./logoElement";
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
-const PAGE_W = mmToPx(210);
+const PAGE_W_VERTICAL = mmToPx(210);
+const PAGE_W_HORIZONTAL = mmToPx(297);
+const PAGE_H_VERTICAL = mmToPx(297);
+const PAGE_H_HORIZONTAL = mmToPx(210);
 const MARGIN = mmToPx(15);
-const CONTENT_W = PAGE_W - MARGIN * 2;
 const COMP_GAP = mmToPx(10);
+
+type Orientation = "vertical" | "horizontal";
+
+/** 방향에 따른 페이지 너비 */
+const getPageW = (orientation?: Orientation | null) =>
+  orientation === "horizontal" ? PAGE_W_HORIZONTAL : PAGE_W_VERTICAL;
+
+/** 방향에 따른 콘텐츠 영역 너비 (= 페이지 너비 - 양쪽 마진) */
+const getContentW = (orientation?: Orientation | null) =>
+  getPageW(orientation) - MARGIN * 2;
+
+/** 방향에 따른 페이지 높이 */
+const getPageH = (orientation?: Orientation | null) =>
+  orientation === "horizontal" ? PAGE_H_HORIZONTAL : PAGE_H_VERTICAL;
+
+// 하위 호환: 기존 코드에서 사용하는 상수 (세로 기준)
+const PAGE_W = PAGE_W_VERTICAL;
+const CONTENT_W = PAGE_W - MARGIN * 2;
 
 const uid = () => crypto.randomUUID();
 
@@ -220,9 +240,10 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
 
 const BLANK_MM_PER_UNDERSCORE = 5; // 밑줄 1개당 5mm, ___ = 15mm, ______ = 30mm
 
-const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number, orientation?: Orientation | null): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
+  const contentW = getContentW(orientation);
 
   // Word bank 칩 영역 — 칩 너비가 단어 길이에 따라 동적, 배경도 자동 늘어남
   if (config.word_bank && config.word_bank.length > 0) {
@@ -242,7 +263,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
       // 글자 수에 비례한 너비 (최소 10mm)
       const chipW = Math.max(mmToPx(10), mmToPx(4) + word.length * mmToPx(3.5));
       // 줄 넘김
-      if (rowX + chipW > CONTENT_W - padX && rowX > labelW + padX) {
+      if (rowX + chipW > contentW - padX && rowX > labelW + padX) {
         rowX = labelW + padX;
         rowY += chipH + chipGap;
         rowCount++;
@@ -254,7 +275,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     // 배경 높이: 칩 줄 수에 따라 동적
     const bgH = padY * 2 + rowCount * chipH + (rowCount - 1) * chipGap;
     els.push(shapeEl({
-      type: "roundRect", x, y: curY, w: CONTENT_W, h: bgH,
+      type: "roundRect", x, y: curY, w: contentW, h: bgH,
       fill: "#fafafa", radius: 4,
       border: { enabled: true, color: "#e0e0e0", width: 1, style: "solid" },
     }));
@@ -295,35 +316,52 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     // 밑줄이 없으면 텍스트만
     if (parts.length <= 1) {
       els.push(textEl({
-        x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: lineH,
+        x: x + mmToPx(2), y: curY, w: contentW - mmToPx(4), h: lineH,
         text: fullText,
+        widthMode: "fixed",
         style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
       }));
     } else {
       // 밑줄이 있으면 분할 렌더
+      // 1단계: 각 파트의 크기를 먼저 계산하여 전체 필요 너비를 파악
+      const partInfos: { kind: "text" | "blank"; text?: string; w: number }[] = [];
       let isFirst = true;
       for (const part of parts) {
         if (part.match(/^_{3,}$/)) {
-          // 밑줄 도형 — 밑줄 개수에 비례 (최소 15mm)
           const blankW = mmToPx(Math.max(15, part.length * BLANK_MM_PER_UNDERSCORE));
-          els.push(shapeEl({
-            type: "rect", x: partX, y: curY + lineH - mmToPx(1.5), w: blankW, h: 1.5,
-            fill: "#999999",
-          }));
-          partX += blankW + mmToPx(1);
+          partInfos.push({ kind: "blank", w: blankW });
         } else if (part) {
-          // 텍스트 조각 (첫 조각에만 번호 붙임)
           const txt = isFirst ? `${num}${part}` : part;
           isFirst = false;
-          // 글자 수 기반 대략적 너비
-          const approxW = Math.max(mmToPx(5), txt.length * config.font_size * 0.6);
+          // 한국어(CJK)는 글자당 ~1em, 영문/숫자는 ~0.6em. 혼용 시 0.85 사용
+          const approxW = Math.max(mmToPx(5), txt.length * config.font_size * 0.85);
+          partInfos.push({ kind: "text", text: txt, w: approxW });
+        }
+      }
+
+      // 2단계: 총 필요 너비가 contentW를 초과하면 비례 축소
+      const GAP_PX = mmToPx(1);
+      const totalNeeded = partInfos.reduce((sum, p) => sum + p.w, 0) + (partInfos.length - 1) * GAP_PX;
+      const availableW = contentW - mmToPx(4);
+      const scale = totalNeeded > availableW ? availableW / totalNeeded : 1;
+
+      // 3단계: 실제 배치
+      for (const info of partInfos) {
+        const w = info.w * scale;
+        if (info.kind === "blank") {
+          els.push(shapeEl({
+            type: "rect", x: partX, y: curY + lineH - mmToPx(1.5), w, h: 1.5,
+            fill: "#999999",
+          }));
+        } else {
           els.push(textEl({
-            x: partX, y: curY, w: approxW, h: lineH,
-            text: txt,
+            x: partX, y: curY, w, h: lineH,
+            text: info.text!,
+            widthMode: "fixed",
             style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
           }));
-          partX += approxW;
         }
+        partX += w + GAP_PX;
       }
     }
     curY += lineH;
@@ -520,13 +558,14 @@ const shuffleWithSeed = <T>(arr: T[], seed: number): T[] => {
 
 const CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
 
-const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number, orientation?: Orientation | null): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
+  const contentW = getContentW(orientation);
   const pairCount = config.pairs.length;
   const connectRatio = 0.25;
-  const sideW = (CONTENT_W * (1 - connectRatio)) / 2;
-  const connectW = CONTENT_W * connectRatio;
+  const sideW = (contentW * (1 - connectRatio)) / 2;
+  const connectW = contentW * connectRatio;
   const leftX = x;
   const rightX = x + sideW + connectW;
   const fs = config.item_style.font_size;
@@ -574,7 +613,9 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
 
     // 좌측 항목 박스
     const leftNum = config.numbering ? `${CIRCLED_NUMS[i] || `${i + 1}.`} ` : "";
-    const boxW = sideW - mmToPx(4);
+    // 가로 캔버스에서는 박스 너비를 280px로 제한 (과도한 넓이 방지)
+    const rawBoxW = sideW - mmToPx(4);
+    const boxW = orientation === "horizontal" ? Math.min(rawBoxW, 280) : rawBoxW;
     const textPad = mmToPx(3);
     els.push(shapeEl({
       type: "roundRect",
@@ -625,7 +666,7 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
   if (config.show_answer_key && config.answer_key_text) {
     curY += mmToPx(2);
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      x, y: curY, w: contentW, h: mmToPx(5),
       text: `정답: ${config.answer_key_text}`,
       widthMode: "fixed",
       style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
@@ -1199,14 +1240,17 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements
 
 // --- Mind Map ---
 
-const buildMindMap = (config: MindMapConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?: Orientation | null): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
   const isRect = (config.node_shape ?? "circle") === "rounded_rect";
 
-  // 콘텐츠 영역 크기 (px)
-  const areaW = CONTENT_W;
-  const areaH = CONTENT_W * (257 / 170); // A4 비율 유지
+  // 콘텐츠 영역 크기 (px) — 방향에 따라 페이지 크기 기반으로 계산
+  const contentW = getContentW(orientation);
+  const pageH = getPageH(orientation);
+  const areaW = contentW;
+  // 페이지 높이에서 마진을 빼고 삽입 Y 오프셋을 고려한 가용 높이
+  const areaH = pageH - MARGIN * 2;
 
   // 동적 노드 크기 (mm → px)
   const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
@@ -1289,6 +1333,7 @@ const buildComponentElements = (
   comp: WorksheetComponent,
   x: number,
   y: number,
+  orientation?: Orientation | null,
 ): { elements: CanvasElement[]; height: number } => {
   switch (comp.type) {
     case "header_instruction":
@@ -1314,15 +1359,15 @@ const buildComponentElements = (
     case "coloring_area":
       return buildColoringArea(comp.config as ColoringAreaConfig, x, y);
     case "sentence_completion":
-      return buildSentenceCompletion(comp.config as SentenceCompletionConfig, x, y);
+      return buildSentenceCompletion(comp.config as SentenceCompletionConfig, x, y, orientation);
     case "sentence_fill":
       return buildSentenceFill(comp.config as SentenceFillConfig, x, y);
     case "passage_question":
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
     case "matching_connect":
-      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y, orientation);
     case "mind_map":
-      return buildMindMap(comp.config as MindMapConfig, x, y);
+      return buildMindMap(comp.config as MindMapConfig, x, y, orientation);
     case "calendar":
       return buildCalendar(comp.config as CalendarConfig, x, y);
     case "date_name_field":
@@ -1341,9 +1386,10 @@ const buildComponentElements = (
 export const buildWorksheetComponentElements = (
   componentType: WorksheetComponentType,
   insertY: number,
+  orientation?: Orientation | null,
 ): CanvasElement[] => {
   const config = structuredClone(DEFAULT_CONFIGS[componentType]);
-  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY);
+  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY, orientation);
 };
 
 /**
@@ -1354,6 +1400,7 @@ export const buildWorksheetComponentElementsFromConfig = (
   componentType: WorksheetComponentType,
   config: WorksheetConfig,
   insertY: number,
+  orientation?: Orientation | null,
 ): CanvasElement[] => {
   const comp: WorksheetComponent = {
     id: crypto.randomUUID(),
@@ -1361,7 +1408,7 @@ export const buildWorksheetComponentElementsFromConfig = (
     config,
     collapsed: false,
   };
-  const { elements } = buildComponentElements(comp, MARGIN, insertY);
+  const { elements } = buildComponentElements(comp, MARGIN, insertY, orientation);
   return elements;
 };
 
@@ -1387,6 +1434,8 @@ export const reflowWorksheetComponents = (
   skipComponentId?: string,
   /** true면 드롭 시 X를 MARGIN으로 리셋 (기본 false — 드래그 중에는 X 건드리지 않음) */
   resetX = false,
+  /** 페이지 방향 — X 중앙 정렬에 사용 */
+  orientation?: Orientation | null,
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
@@ -1411,6 +1460,7 @@ export const reflowWorksheetComponents = (
     (el) => !managedElementIds.has(el.id),
   );
 
+  const pageW = getPageW(orientation);
   let curY = MARGIN;
   const allReflowed: CanvasElement[] = [...nonWorksheetElements];
   const updatedElementIds = new Map<string, string[]>();
@@ -1468,7 +1518,7 @@ export const reflowWorksheetComponents = (
         }
         if (minX !== Infinity && maxRight !== -Infinity) {
           const compWidth = maxRight - minX;
-          const targetMinX = (PAGE_W - compWidth) / 2;
+          const targetMinX = (pageW - compWidth) / 2;
           deltaX = targetMinX - minX;
         }
       }
@@ -1519,7 +1569,7 @@ export const reflowWorksheetComponents = (
     const deltaY = curY - minY;
 
     // X 중앙 정렬: 드롭 시에만 적용 (드래그 중에는 X를 건드리지 않음)
-    // 컴포넌트 바운딩 박스의 중심을 페이지 중심(PAGE_W/2)에 맞춤
+    // 컴포넌트 바운딩 박스의 중심을 페이지 중심(pageW/2)에 맞춤
     let deltaX = 0;
     if (resetX) {
       let minX = Infinity;
@@ -1544,7 +1594,7 @@ export const reflowWorksheetComponents = (
       }
       if (minX !== Infinity && maxRight !== -Infinity) {
         const compWidth = maxRight - minX;
-        const targetMinX = (PAGE_W - compWidth) / 2;
+        const targetMinX = (pageW - compWidth) / 2;
         deltaX = targetMinX - minX;
       }
     }

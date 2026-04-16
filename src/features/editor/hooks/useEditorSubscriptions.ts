@@ -440,7 +440,7 @@ export const useEditorSubscriptions = ({
       }
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
-      const newElements = buildWorksheetComponentElements(compType, insertY);
+      const newElements = buildWorksheetComponentElements(compType, insertY, page.orientation);
       if (newElements.length === 0) return;
 
       // 컴포넌트 ID 생성
@@ -518,7 +518,7 @@ export const useEditorSubscriptions = ({
       let curY = maxY > MARGIN_PX ? maxY + GAP : MARGIN_PX;
 
       for (const comp of state.requestedBatch) {
-        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY);
+        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY, page.orientation);
 
         const wsCompId = crypto.randomUUID();
         const stampedElements = elements.map((el) => ({
@@ -588,6 +588,7 @@ export const useEditorSubscriptions = ({
           insertedComponents.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
           undefined,
           true,
+          page.orientation,
         );
         setPages((prev) =>
           prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
@@ -631,7 +632,7 @@ export const useEditorSubscriptions = ({
 
           const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
           const newElements = buildWorksheetComponentElementsFromConfig(
-            comp.type, mmConfig, 56.7,
+            comp.type, mmConfig, 56.7, page.orientation,
           ).map((el) => ({
             ...el,
             worksheetMeta: {
@@ -880,6 +881,7 @@ export const useEditorSubscriptions = ({
         comp.type,
         comp.config,
         insertY,
+        page.orientation,
       ).map((el) => ({
         ...el,
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
@@ -924,6 +926,7 @@ export const useEditorSubscriptions = ({
         latestComps.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
         undefined,
         true,
+        page.orientation,
       );
 
       // reflow 후 elementIds 동기화
