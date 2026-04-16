@@ -6,7 +6,7 @@ import type {
   WorksheetComponent,
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -21,7 +21,7 @@ import type {
 import {
   MiniHeader,
   MiniArrowTransform,
-  MiniSequentialRepeat,
+
   MiniSelectionSentence,
   MiniRewardTracker,
   MiniGrid,
@@ -40,8 +40,7 @@ const renderMini = (comp: WorksheetComponent) => {
       return <MiniHeader config={comp.config as HeaderInstructionConfig} />;
     case "arrow_transform":
       return <MiniArrowTransform config={comp.config as ArrowTransformConfig} />;
-    case "sequential_repeat":
-      return <MiniSequentialRepeat config={comp.config as SequentialRepeatConfig} />;
+
     case "selection_sentence":
       return <MiniSelectionSentence config={comp.config as SelectionSentenceConfig} />;
     case "grid_NxM":

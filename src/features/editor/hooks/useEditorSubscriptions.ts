@@ -41,7 +41,7 @@ import {
   buildVocabTracingPages,
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
-import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
+import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig } from "../utils/buildWorksheetPage";
 import { MIND_MAP_THEMES } from "@/features/worksheet-editor/utils/mindMapLayout";
 import { addDateNameFieldElement, addClockFaceElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
@@ -440,7 +440,8 @@ export const useEditorSubscriptions = ({
       }
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
-      const newElements = buildWorksheetComponentElements(compType, insertY, page.orientation);
+      const orientation = page.orientation ?? "vertical";
+      const newElements = buildWorksheetComponentElements(compType, insertY, orientation);
       if (newElements.length === 0) return;
 
       // 컴포넌트 ID 생성
@@ -516,9 +517,10 @@ export const useEditorSubscriptions = ({
       const GAP = 38;
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       let curY = maxY > MARGIN_PX ? maxY + GAP : MARGIN_PX;
+      const batchOrientation = page.orientation ?? "vertical";
 
       for (const comp of state.requestedBatch) {
-        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY, page.orientation);
+        const elements = buildWorksheetComponentElementsFromConfig(comp.type, comp.config, curY, batchOrientation);
 
         const wsCompId = crypto.randomUUID();
         const stampedElements = elements.map((el) => ({
@@ -577,25 +579,8 @@ export const useEditorSubscriptions = ({
     onChange: () => {
       const { insertedComponents, lastChangedComponentId } = useWorksheetElementStore.getState();
 
-      // 순서 변경 → 전체 reflow만 수행 (재빌드 불필요)
+      // 순서 변경 → 자유 배치이므로 reflow 없이 무시 (캔버스 위치 유지)
       if (lastChangedComponentId === "__reorder__") {
-        const activePageId = selectedPageIdRef.current;
-        const page = pagesRef.current.find((p) => p.id === activePageId);
-        if (!page) return;
-
-        const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
-          page.elements,
-          insertedComponents.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
-          undefined,
-          true,
-          page.orientation,
-        );
-        setPages((prev) =>
-          prev.map((p) => (p.id === activePageId ? { ...p, elements: reflowedElements } : p)),
-        );
-        for (const [compId, newIds] of updatedElementIds) {
-          useWorksheetElementStore.getState().updateElementIds(compId, newIds);
-        }
         return;
       }
 
@@ -630,9 +615,22 @@ export const useEditorSubscriptions = ({
           // config 업데이트를 store에 반영 (silent — 재빌드 트리거 안 함)
           useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
 
+          // 기존 요소의 Y좌표를 읽어 재빌드 위치 결정 (자유 배치 — 원래 위치 유지)
+          let rebuildY = 56.7;
+          for (const el of page.elements) {
+            if (oldIds.has(el.id) && "y" in el) {
+              rebuildY = (el as { y: number }).y;
+              break;
+            }
+            if (oldIds.has(el.id) && "start" in el) {
+              rebuildY = (el as { start: { y: number } }).start.y;
+              break;
+            }
+          }
+
           const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
           const newElements = buildWorksheetComponentElementsFromConfig(
-            comp.type, mmConfig, 56.7, page.orientation,
+            comp.type, mmConfig, rebuildY, page.orientation ?? "vertical",
           ).map((el) => ({
             ...el,
             worksheetMeta: {
@@ -881,7 +879,7 @@ export const useEditorSubscriptions = ({
         comp.type,
         comp.config,
         insertY,
-        page.orientation,
+        page.orientation ?? "vertical",
       ).map((el) => ({
         ...el,
         worksheetMeta: { componentId: comp.id, componentType: comp.type },
@@ -915,33 +913,18 @@ export const useEditorSubscriptions = ({
         .filter((el) => !oldElementIdSet.has(el.id))
         .concat(newElements);
 
-      // 변경된 elementIds를 먼저 업데이트 (reflow에서 참조)
+      // 변경된 elementIds 업데이트
       const store = useWorksheetElementStore.getState();
       store.updateElementIds(comp.id, newElements.map((el) => el.id));
 
-      // 전체 워크시트 컴포넌트 자동 레이아웃 (겹침 방지 + 간격 유지)
-      const latestComps = useWorksheetElementStore.getState().insertedComponents;
-      const { elements: reflowedElements, updatedElementIds } = reflowWorksheetComponents(
-        updatedElements,
-        latestComps.map((c) => ({ id: c.id, type: c.type, elementIds: c.elementIds })),
-        undefined,
-        true,
-        page.orientation,
-      );
-
-      // reflow 후 elementIds 동기화
-      for (const [compId, newIds] of updatedElementIds) {
-        useWorksheetElementStore.getState().updateElementIds(compId, newIds);
-      }
-
-      // 페이지에 반영 (elements + worksheetComponents 둘 다)
+      // 자유 배치 — reflow 없이 제자리 재빌드만 반영
       const finalComps = useWorksheetElementStore.getState().insertedComponents;
       setPages((prev) =>
         prev.map((p) =>
           p.id === activePageId
             ? {
                 ...p,
-                elements: reflowedElements,
+                elements: updatedElements,
                 worksheetComponents: finalComps.map((c) => ({
                   id: c.id,
                   type: c.type,

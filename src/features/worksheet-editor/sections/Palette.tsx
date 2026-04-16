@@ -24,7 +24,7 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     title: "조음 · 음운",
     items: [
       { type: "arrow_transform", icon: "🔄", iconBg: "bg-orange-50", name: "변환 쌍", desc: "간→갈 발음 변화", badge: "text" },
-      { type: "sequential_repeat", icon: "🔁", iconBg: "bg-green-50", name: "반복 연습", desc: "바바바 교대운동", badge: "text" },
+
       { type: "selection_sentence", icon: "✋", iconBg: "bg-pink-50", name: "문장 선택", desc: "[A / B] 골라 읽기", badge: "text" },
       { type: "grid_NxM", icon: "⊞", iconBg: "bg-purple-50", name: "단어 카드", desc: "이미지+텍스트 카드 배열" },
     ],
