@@ -40,8 +40,11 @@ export const getCloudinaryImageUrl = (path: string): string => {
 
   if (!UPLOAD_BASE) return trimmed;
 
-  // 상대 경로 → full URL 생성 (확장자 그대로 유지)
-  // 마이그레이션된 파일은 DB에서 이미 _webp.webp URL로 교체 완료
-  // 새로 업로드된 파일은 원본 확장자 그대로 사용
-  return `${UPLOAD_BASE}${trimmed}`;
+  // 확장자가 있으면 그대로 사용 (새로 업로드된 .webp, .png 등)
+  // 확장자가 없으면 _webp.webp 추가 (마이그레이션된 감정/AAC 카드 등)
+  const hasExtension = /\.\w+$/.test(trimmed);
+  if (hasExtension) {
+    return `${UPLOAD_BASE}${trimmed}`;
+  }
+  return `${UPLOAD_BASE}${trimmed}_webp.webp`;
 };
