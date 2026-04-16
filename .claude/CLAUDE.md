@@ -2,6 +2,10 @@
 
 MuruAI: 교육 자료 제작을 위한 캔버스 기반 디자인 에디터 (React 19, TypeScript, Vite, Zustand, Supabase)
 
+## 설명 수준
+
+코드 주석, 커밋 메시지, 사용자 안내 문구 등 모든 설명은 **초~중학생이 읽어도 바로 이해할 수 있는 쉬운 말**로 작성한다. 전문 용어를 써야 하면 괄호 안에 풀어서 설명을 덧붙인다.
+
 ## 명령어
 
 ```bash
@@ -102,6 +106,7 @@ src/
 26. **Studio 접근 제어**: `/studio` 경로는 `role === "tester" || role === "admin"` 만 접근 가능. `UserRole` 타입에 `"tester"` 포함. 에디터 사이드바 치료 탭도 동일 조건
 27. **Studio 크레딧 미적용**: 치료 AI 사용에 크레딧을 차감하지 않음. 기존 크레딧 시스템 건드리지 않음
 28. **Studio 기존 영향 금지**: `shared/` 오염 금지 (`useAuthStore` UserRole 확장만 예외), 기존 API 엔드포인트 변경 금지
+29. **약관 동의 시스템**: `CURRENT_TERMS_VERSION` 상수(`src/shared/constants/terms.ts`)로 버전 관리. OAuth 로그인 시 sessionStorage(`TERMS_STORAGE_KEY`)로 동의 정보 전달 → `AuthCallbackPage`에서 `user_profiles` UPDATE (리트라이 3회). 미동의 유저는 `AuthProvider`의 `TermsConsentGate`가 차단. 약관 업데이트 시 `CURRENT_TERMS_VERSION` 변경 → 기존 동의자도 재동의 필요
 
 ## 지침 모듈화 원칙
 

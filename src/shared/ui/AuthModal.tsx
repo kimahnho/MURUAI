@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { images } from "@/shared/assets";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { CURRENT_TERMS_VERSION, TERMS_STORAGE_KEY } from "@/shared/constants/terms";
 
 const AuthModal = () => {
   const { openModal, closeModal } = useModalStore();
@@ -19,6 +20,7 @@ const AuthModal = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [termsAgreed, setTermsAgreed] = useState(false);
 
   const isOpen = openModal === "auth";
 
@@ -40,6 +42,7 @@ const AuthModal = () => {
     setEmail("");
     setPassword("");
     setIsLoginMode(true);
+    setTermsAgreed(false);
   };
 
   const handleClose = () => {
@@ -62,11 +65,26 @@ const AuthModal = () => {
     }
   };
 
+  // OAuth 리다이렉트 전 약관 동의 정보를 sessionStorage에 저장
+  const saveTermsConsent = () => {
+    sessionStorage.setItem(
+      TERMS_STORAGE_KEY,
+      JSON.stringify({
+        termsAcceptedAt: new Date().toISOString(),
+        termsVersion: CURRENT_TERMS_VERSION,
+      }),
+    );
+  };
+
   const handleGoogleLogin = async () => {
+    if (!termsAgreed) return;
+    saveTermsConsent();
     await signInWithGoogle();
   };
 
   const handleKakaoLogin = async () => {
+    if (!termsAgreed) return;
+    saveTermsConsent();
     await signInWithKakao();
   };
 
@@ -130,13 +148,45 @@ const AuthModal = () => {
             </div>
           )}
 
+          {/* 약관 동의 체크박스 */}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={termsAgreed}
+              onChange={(e) => setTermsAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-black-30 accent-primary"
+            />
+            <span className="text-13-regular text-black-60 leading-snug">
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                서비스 이용약관
+              </a>
+              {" 및 "}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                개인정보 처리방침
+              </a>
+              에 동의합니다.
+            </span>
+          </label>
+
           {/* 소셜 로그인 버튼 */}
           <div className="flex flex-col gap-3">
             {/* Google 로그인 버튼 - Google Brand Guidelines */}
             <button
               type="button"
               onClick={handleGoogleLogin}
-              disabled={loading}
+              disabled={loading || !termsAgreed}
               className="flex h-11 items-center justify-center gap-3 rounded-md bg-white-100 border border-[#dadce0] py-0 px-3 text-14-medium text-[#3c4043] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
@@ -171,7 +221,7 @@ const AuthModal = () => {
             <button
               type="button"
               onClick={handleKakaoLogin}
-              disabled={loading}
+              disabled={loading || !termsAgreed}
               className="flex h-11 items-center justify-center gap-2 rounded-md bg-[#FEE500] py-0 px-3 text-15-semibold text-black-100 opacity-[0.85] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg

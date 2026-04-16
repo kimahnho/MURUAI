@@ -25,7 +25,7 @@
 | `ai_template_usage` | AI 이미지 크레딧 사용량 추적 (`image_count` 컬럼으로 이미지 단위 차감) | `user_id` | — |
 | `ai_generation_logs` | AI 생성 이력 추적 (4단계: 주제→결과→이미지→확정) | `user_id` | — |
 | `ai_credit_requests` | AI 크레딧 추가 요청 (`status`: pending/approved/rejected, `reviewed_at`, `reviewed_by`) | `user_id` | — |
-| `user_profiles` | 유저 role 관리 (`role`: user/admin). 신규 가입 시 `handle_new_user()` 트리거로 자동 생성 | `id` (= auth.users.id) | — |
+| `user_profiles` | 유저 role 관리 (`role`: user/admin) + 약관 동의 기록 (`terms_accepted_at`, `terms_version`). 신규 가입 시 `handle_new_user()` 트리거로 자동 생성 | `id` (= auth.users.id) | — |
 | `user_credits` | AI 크레딧 잔량 추적 (`balance`, `total_used`, `refill_count`). 신규 가입 시 자동 생성 (balance=30) | `user_id` | — |
 | `template_images` | 템플릿 이미지 (배경/요소). `user_id`/`user_role`(admin\|user)로 업로더 추적. RLS 전체 read 허용, 쓰기는 서비스키/관리자만. Cloudinary 폴더: `muru-templates/admin/{template-name}/` | `user_id` | — |
 | `image_usage_events` | 에디터 이미지 사용 빈도 추적 (`image_url`, `source`, `label`). 관리자 대시보드에서 인기 이미지 집계용 | `user_id` | — |
