@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -155,71 +155,6 @@ export const ArrowTransformForm = ({ config, onUpdate }: FormProps<ArrowTransfor
       + 변환 쌍 추가
     </button>
   </div>
-);
-
-// --- Sequential Repeat ---
-export const SequentialRepeatForm = ({ config, onUpdate }: FormProps<SequentialRepeatConfig>) => (
-  <>
-    <div className="mb-3">
-      <label className={labelCls}>섹션 제목</label>
-      <input
-        type="text"
-        className={inputCls}
-        value={config.section_title || ""}
-        onChange={(e) => onUpdate((c) => ({ ...c, section_title: e.target.value }))}
-      />
-    </div>
-    <div>
-      <label className={labelCls}>반복 음절</label>
-      {config.rows.map((r, j) => (
-        <div key={j} className={itemRowCls}>
-          <input
-            type="text"
-            className={`${inputCls} flex-1 min-w-16`}
-            value={r.syllable}
-            placeholder="바"
-            onChange={(e) =>
-              onUpdate((c) => ({
-                ...c,
-                rows: c.rows.map((rr, i) => (i === j ? { ...rr, syllable: e.target.value } : rr)),
-              }))
-            }
-          />
-          <input
-            type="number"
-            className={`${inputCls} w-11`}
-            value={r.repeat}
-            min={3}
-            max={10}
-            onChange={(e) =>
-              onUpdate((c) => ({
-                ...c,
-                rows: c.rows.map((rr, i) =>
-                  i === j ? { ...rr, repeat: parseInt(e.target.value) || 5 } : rr,
-                ),
-              }))
-            }
-          />
-          <button
-            type="button"
-            className={removeBtnCls}
-            onClick={() => onUpdate((c) => ({ ...c, rows: c.rows.filter((_, i) => i !== j) }))}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        className={addBtnCls}
-        onClick={() =>
-          onUpdate((c) => ({ ...c, rows: [...c.rows, { syllable: "", repeat: 5 }] }))
-        }
-      >
-        + 음절 추가
-      </button>
-    </div>
-  </>
 );
 
 // --- Selection Sentence ---
