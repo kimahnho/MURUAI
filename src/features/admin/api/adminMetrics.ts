@@ -3,7 +3,6 @@
  */
 import { supabase } from "@/shared/api/supabase";
 import { EXCLUDED_USER_ID_LIST, EXCLUDED_USER_IDS } from "../constants/excludedUsers";
-import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 
 export type AdminDateRange = {
