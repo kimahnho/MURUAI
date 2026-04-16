@@ -1193,19 +1193,28 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?:
   const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
   const isRect = (config.node_shape ?? "circle") === "rounded_rect";
 
-  // 콘텐츠 영역 크기 (px) — 방향에 따라 페이지 크기 기반으로 계산
+  // 콘텐츠 영역 크기 (px)
+  // mindMapLayout.ts의 비율 좌표 기준 영역 (170×257mm)을 페이지에 맞게 균일 스케일링
+  const LAYOUT_W_PX = mmToPx(170);
+  const LAYOUT_H_PX = mmToPx(257);
   const contentW = getContentW(orientation);
-  const pageH = getPageH(orientation);
-  const areaW = contentW;
-  // 페이지 높이에서 마진을 빼고 삽입 Y 오프셋을 고려한 가용 높이
-  const areaH = pageH - MARGIN * 2;
+  const availH = getPageH(orientation) - MARGIN * 2;
 
-  // 동적 노드 크기 (mm → px)
+  // 비율 유지하며 페이지에 맞는 스케일 계산 (겹침 방지)
+  const fitScale = Math.min(contentW / LAYOUT_W_PX, availH / LAYOUT_H_PX);
+  const areaW = LAYOUT_W_PX * fitScale;
+  const areaH = LAYOUT_H_PX * fitScale;
+
+  // 페이지 내 중앙 정렬 오프셋
+  const offsetX = (contentW - areaW) / 2;
+  const offsetY = (availH - areaH) / 2;
+
+  // 동적 노드 크기 (mm → px) — 스케일 적용
   const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
   const dPxByLevel = {
-    0: mmToPx(sizes.d0),
-    1: mmToPx(sizes.d1),
-    2: mmToPx(sizes.d2),
+    0: mmToPx(sizes.d0) * fitScale,
+    1: mmToPx(sizes.d1) * fitScale,
+    2: mmToPx(sizes.d2) * fitScale,
   };
 
   // 연결선 (뒤쪽 레이어 — 먼저 추가)
@@ -1214,10 +1223,10 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?:
     const parent = config.nodes.find((n) => n.id === node.parent_id);
     if (!parent) continue;
 
-    const x1 = x + parent.position.x * areaW;
-    const y1 = y + parent.position.y * areaH;
-    const x2 = x + node.position.x * areaW;
-    const y2 = y + node.position.y * areaH;
+    const x1 = x + offsetX + parent.position.x * areaW;
+    const y1 = y + offsetY + parent.position.y * areaH;
+    const x2 = x + offsetX + node.position.x * areaW;
+    const y2 = y + offsetY + node.position.y * areaH;
 
     els.push({
       id: uid(),
@@ -1231,11 +1240,12 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?:
 
   // 노드 (앞쪽 레이어)
   for (const node of config.nodes) {
-    const cx = x + node.position.x * areaW;
-    const cy = y + node.position.y * areaH;
+    const cx = x + offsetX + node.position.x * areaW;
+    const cy = y + offsetY + node.position.y * areaH;
     const dPx = dPxByLevel[node.level];
     const rPx = dPx / 2;
-    const fs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
+    const rawFs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
+    const fs = Math.max(9, rawFs * fitScale);
 
     // worksheetMeta에 mindMapNodeId 저장 — 연결선 동기화에 사용
     const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id };
@@ -1272,7 +1282,7 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?:
     }
   }
 
-  return { elements: els, height: areaH };
+  return { elements: els, height: offsetY * 2 + areaH };
 };
 
 // --- Main builder ---
