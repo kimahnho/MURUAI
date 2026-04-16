@@ -38,11 +38,17 @@ const MARGIN = mmToPx(15);
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const COMP_GAP = mmToPx(10);
 
+type Orientation = "vertical" | "horizontal";
+
 /** orientation에 따른 콘텐츠 영역 너비 계산 */
-export const getContentWidth = (orientation: "vertical" | "horizontal" = "vertical") => {
+export const getContentWidth = (orientation: Orientation = "vertical") => {
   const pageW = orientation === "horizontal" ? mmToPx(297) : mmToPx(210);
   return pageW - MARGIN * 2;
 };
+
+/** 방향에 따른 페이지 높이 (마인드맵 스케일링에 사용) */
+const getPageH = (orientation: Orientation = "vertical") =>
+  orientation === "horizontal" ? mmToPx(210) : mmToPx(297);
 
 const uid = () => crypto.randomUUID();
 
@@ -195,8 +201,6 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
   return { elements: els, height: curY - y };
 };
 
-const BLANK_MM_PER_UNDERSCORE = 5; // 밑줄 1개당 5mm, ___ = 15mm, ______ = 30mm
-
 const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
@@ -258,51 +262,19 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     curY += bgH + mmToPx(3);
   }
 
-  // 문장 렌더링 — 항상 단일 칼럼, 번호는 텍스트에 직접 포함, ___를 밑줄 도형으로 치환
+  // 문장 렌더링 — 단일 TextElement로 전체 문장을 렌더링 (분할 없이)
   const lineH = mmToPx(10);
   for (let i = 0; i < config.sentences.length; i++) {
     const s = config.sentences[i];
     const num = `${i + 1}. `;
-
-    // ___ 패턴을 분리해서 텍스트 + 밑줄 도형으로 교차 배치
-    const parts = s.template.split(/(_{3,})/);
-    let partX = x + mmToPx(2);
     const fullText = `${num}${s.template}`;
 
-    // 밑줄이 없으면 텍스트만
-    if (parts.length <= 1) {
-      els.push(textEl({
-        x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: lineH,
-        text: fullText,
-        style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
-      }));
-    } else {
-      // 밑줄이 있으면 분할 렌더
-      let isFirst = true;
-      for (const part of parts) {
-        if (part.match(/^_{3,}$/)) {
-          // 밑줄 도형 — 밑줄 개수에 비례 (최소 15mm)
-          const blankW = mmToPx(Math.max(15, part.length * BLANK_MM_PER_UNDERSCORE));
-          els.push(shapeEl({
-            type: "rect", x: partX, y: curY + lineH - mmToPx(1.5), w: blankW, h: 1.5,
-            fill: "#999999",
-          }));
-          partX += blankW + mmToPx(1);
-        } else if (part) {
-          // 텍스트 조각 (첫 조각에만 번호 붙임)
-          const txt = isFirst ? `${num}${part}` : part;
-          isFirst = false;
-          // 글자 수 기반 대략적 너비
-          const approxW = Math.max(mmToPx(5), txt.length * config.font_size * 0.6);
-          els.push(textEl({
-            x: partX, y: curY, w: approxW, h: lineH,
-            text: txt,
-            style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
-          }));
-          partX += approxW;
-        }
-      }
-    }
+    els.push(textEl({
+      x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: lineH,
+      text: fullText,
+      widthMode: "fixed",
+      style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
     curY += lineH;
   }
 
@@ -497,11 +469,12 @@ const shuffleWithSeed = <T>(arr: T[], seed: number): T[] => {
 
 const CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
 
-const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
+const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number, cw: number, orientation?: Orientation): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
   const pairCount = config.pairs.length;
-  const connectRatio = 0.25;
+  // 가로 캔버스에서는 중간 연결 영역을 넓혀서 좌우 박스가 적절한 크기(~280px)로 배치
+  const connectRatio = orientation === "horizontal" ? 0.42 : 0.25;
   const sideW = (cw * (1 - connectRatio)) / 2;
   const connectW = cw * connectRatio;
   const leftX = x;
@@ -1176,21 +1149,32 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number, cw: number)
 
 // --- Mind Map ---
 
-const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
+const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, orientation?: Orientation): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
   const isRect = (config.node_shape ?? "circle") === "rounded_rect";
 
-  // 콘텐츠 영역 크기 (px)
-  const areaW = cw;
-  const areaH = cw * (257 / 170); // A4 비율 유지
+  // mindMapLayout.ts의 비율 좌표 기준 영역 (170×257mm)을 페이지에 맞게 균일 스케일링
+  const LAYOUT_W_PX = mmToPx(170);
+  const LAYOUT_H_PX = mmToPx(257);
+  const availH = getPageH(orientation) - MARGIN * 2;
 
-  // 동적 노드 크기 (mm → px)
+  // 비율 유지하며 페이지에 맞는 스케일 계산 (겹침 방지)
+  // 1.0 캡: 세로 모드에서 원래 디자인 크기보다 확대되지 않도록 방지
+  const fitScale = Math.min(cw / LAYOUT_W_PX, availH / LAYOUT_H_PX, 1.0);
+  const areaW = LAYOUT_W_PX * fitScale;
+  const areaH = LAYOUT_H_PX * fitScale;
+
+  // 페이지 내 중앙 정렬 오프셋
+  const offsetX = (cw - areaW) / 2;
+  const offsetY = (availH - areaH) / 2;
+
+  // 동적 노드 크기 (mm → px) — 스케일 적용
   const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
   const dPxByLevel = {
-    0: mmToPx(sizes.d0),
-    1: mmToPx(sizes.d1),
-    2: mmToPx(sizes.d2),
+    0: mmToPx(sizes.d0) * fitScale,
+    1: mmToPx(sizes.d1) * fitScale,
+    2: mmToPx(sizes.d2) * fitScale,
   };
 
   // 연결선 (뒤쪽 레이어 — 먼저 추가)
@@ -1199,10 +1183,10 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number): 
     const parent = config.nodes.find((n) => n.id === node.parent_id);
     if (!parent) continue;
 
-    const x1 = x + parent.position.x * areaW;
-    const y1 = y + parent.position.y * areaH;
-    const x2 = x + node.position.x * areaW;
-    const y2 = y + node.position.y * areaH;
+    const x1 = x + offsetX + parent.position.x * areaW;
+    const y1 = y + offsetY + parent.position.y * areaH;
+    const x2 = x + offsetX + node.position.x * areaW;
+    const y2 = y + offsetY + node.position.y * areaH;
 
     els.push({
       id: uid(),
@@ -1216,11 +1200,12 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number): 
 
   // 노드 (앞쪽 레이어)
   for (const node of config.nodes) {
-    const cx = x + node.position.x * areaW;
-    const cy = y + node.position.y * areaH;
+    const cx = x + offsetX + node.position.x * areaW;
+    const cy = y + offsetY + node.position.y * areaH;
     const dPx = dPxByLevel[node.level];
     const rPx = dPx / 2;
-    const fs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
+    const rawFs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
+    const fs = Math.max(9, rawFs * fitScale);
 
     // worksheetMeta에 mindMapNodeId 저장 — 연결선 동기화에 사용
     const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id };
@@ -1257,7 +1242,7 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number): 
     }
   }
 
-  return { elements: els, height: areaH };
+  return { elements: els, height: offsetY * 2 + areaH };
 };
 
 // --- Main builder ---
@@ -1267,6 +1252,7 @@ const buildComponentElements = (
   x: number,
   y: number,
   cw: number = CONTENT_W,
+  orientation?: Orientation,
 ): { elements: CanvasElement[]; height: number } => {
   switch (comp.type) {
     case "header_instruction":
@@ -1296,9 +1282,9 @@ const buildComponentElements = (
     case "passage_question":
       return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y, cw);
     case "matching_connect":
-      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y, cw);
+      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y, cw, orientation);
     case "mind_map":
-      return buildMindMap(comp.config as MindMapConfig, x, y, cw);
+      return buildMindMap(comp.config as MindMapConfig, x, y, cw, orientation);
     case "calendar":
       return buildCalendar(comp.config as CalendarConfig, x, y, cw);
     case "date_name_field":
@@ -1340,7 +1326,7 @@ export const buildWorksheetComponentElementsFromConfig = (
     config,
     collapsed: false,
   };
-  const { elements } = buildComponentElements(comp, MARGIN, insertY, cw);
+  const { elements } = buildComponentElements(comp, MARGIN, insertY, cw, orientation);
   return elements;
 };
 
