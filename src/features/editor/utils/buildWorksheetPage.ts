@@ -1201,7 +1201,8 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, orientation?:
   const availH = getPageH(orientation) - MARGIN * 2;
 
   // 비율 유지하며 페이지에 맞는 스케일 계산 (겹침 방지)
-  const fitScale = Math.min(contentW / LAYOUT_W_PX, availH / LAYOUT_H_PX);
+  // 1.0 캡: 세로 모드에서 원래 디자인 크기보다 확대되지 않도록 방지
+  const fitScale = Math.min(contentW / LAYOUT_W_PX, availH / LAYOUT_H_PX, 1.0);
   const areaW = LAYOUT_W_PX * fitScale;
   const areaH = LAYOUT_H_PX * fitScale;
 
