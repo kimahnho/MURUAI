@@ -238,8 +238,6 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
   return { elements: els, height: curY - y };
 };
 
-const BLANK_MM_PER_UNDERSCORE = 5; // 밑줄 1개당 5mm, ___ = 15mm, ______ = 30mm
-
 const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number, orientation?: Orientation | null): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
@@ -302,68 +300,19 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     curY += bgH + mmToPx(3);
   }
 
-  // 문장 렌더링 — 항상 단일 칼럼, 번호는 텍스트에 직접 포함, ___를 밑줄 도형으로 치환
+  // 문장 렌더링 — 단일 TextElement로 전체 문장을 렌더링 (분할 없이)
   const lineH = mmToPx(10);
   for (let i = 0; i < config.sentences.length; i++) {
     const s = config.sentences[i];
     const num = `${i + 1}. `;
-
-    // ___ 패턴을 분리해서 텍스트 + 밑줄 도형으로 교차 배치
-    const parts = s.template.split(/(_{3,})/);
-    let partX = x + mmToPx(2);
     const fullText = `${num}${s.template}`;
 
-    // 밑줄이 없으면 텍스트만
-    if (parts.length <= 1) {
-      els.push(textEl({
-        x: x + mmToPx(2), y: curY, w: contentW - mmToPx(4), h: lineH,
-        text: fullText,
-        widthMode: "fixed",
-        style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
-      }));
-    } else {
-      // 밑줄이 있으면 분할 렌더
-      // 1단계: 각 파트의 크기를 먼저 계산하여 전체 필요 너비를 파악
-      const partInfos: { kind: "text" | "blank"; text?: string; w: number }[] = [];
-      let isFirst = true;
-      for (const part of parts) {
-        if (part.match(/^_{3,}$/)) {
-          const blankW = mmToPx(Math.max(15, part.length * BLANK_MM_PER_UNDERSCORE));
-          partInfos.push({ kind: "blank", w: blankW });
-        } else if (part) {
-          const txt = isFirst ? `${num}${part}` : part;
-          isFirst = false;
-          // 한국어(CJK)는 글자당 ~1em, 영문/숫자는 ~0.6em. 혼용 시 0.85 사용
-          const approxW = Math.max(mmToPx(5), txt.length * config.font_size * 0.85);
-          partInfos.push({ kind: "text", text: txt, w: approxW });
-        }
-      }
-
-      // 2단계: 총 필요 너비가 contentW를 초과하면 비례 축소
-      const GAP_PX = mmToPx(1);
-      const totalNeeded = partInfos.reduce((sum, p) => sum + p.w, 0) + (partInfos.length - 1) * GAP_PX;
-      const availableW = contentW - mmToPx(4);
-      const scale = totalNeeded > availableW ? availableW / totalNeeded : 1;
-
-      // 3단계: 실제 배치
-      for (const info of partInfos) {
-        const w = info.w * scale;
-        if (info.kind === "blank") {
-          els.push(shapeEl({
-            type: "rect", x: partX, y: curY + lineH - mmToPx(1.5), w, h: 1.5,
-            fill: "#999999",
-          }));
-        } else {
-          els.push(textEl({
-            x: partX, y: curY, w, h: lineH,
-            text: info.text!,
-            widthMode: "fixed",
-            style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
-          }));
-        }
-        partX += w + GAP_PX;
-      }
-    }
+    els.push(textEl({
+      x: x + mmToPx(2), y: curY, w: contentW - mmToPx(4), h: lineH,
+      text: fullText,
+      widthMode: "fixed",
+      style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
+    }));
     curY += lineH;
   }
 
@@ -563,7 +512,8 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
   let curY = y;
   const contentW = getContentW(orientation);
   const pairCount = config.pairs.length;
-  const connectRatio = 0.25;
+  // 가로 캔버스에서는 중간 연결 영역을 넓혀서 좌우 박스가 적절한 크기(~280px)로 배치
+  const connectRatio = orientation === "horizontal" ? 0.42 : 0.25;
   const sideW = (contentW * (1 - connectRatio)) / 2;
   const connectW = contentW * connectRatio;
   const leftX = x;
@@ -613,9 +563,7 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
 
     // 좌측 항목 박스
     const leftNum = config.numbering ? `${CIRCLED_NUMS[i] || `${i + 1}.`} ` : "";
-    // 가로 캔버스에서는 박스 너비를 280px로 제한 (과도한 넓이 방지)
-    const rawBoxW = sideW - mmToPx(4);
-    const boxW = orientation === "horizontal" ? Math.min(rawBoxW, 280) : rawBoxW;
+    const boxW = sideW - mmToPx(4);
     const textPad = mmToPx(3);
     els.push(shapeEl({
       type: "roundRect",
