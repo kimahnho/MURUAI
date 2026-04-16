@@ -1165,9 +1165,10 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, o
   const areaW = LAYOUT_W_PX * fitScale;
   const areaH = LAYOUT_H_PX * fitScale;
 
-  // 페이지 내 중앙 정렬 오프셋
+  // X축 중앙 정렬 오프셋 (가로 캔버스에서 수평 센터링)
+  // Y축 offset은 적용하지 않음 — 노드 비율 좌표(center=0.5)가 areaH 내 자체 중앙 배치를 보장하며,
+  // 재빌드 시 rebuildY에 offset이 누적되어 마인드맵이 아래로 밀리는 것을 방지
   const offsetX = (cw - areaW) / 2;
-  const offsetY = (availH - areaH) / 2;
 
   // 동적 노드 크기 (mm → px) — 스케일 적용
   const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
@@ -1184,9 +1185,9 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, o
     if (!parent) continue;
 
     const x1 = x + offsetX + parent.position.x * areaW;
-    const y1 = y + offsetY + parent.position.y * areaH;
+    const y1 = y + parent.position.y * areaH;
     const x2 = x + offsetX + node.position.x * areaW;
-    const y2 = y + offsetY + node.position.y * areaH;
+    const y2 = y + node.position.y * areaH;
 
     els.push({
       id: uid(),
@@ -1201,14 +1202,14 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, o
   // 노드 (앞쪽 레이어)
   for (const node of config.nodes) {
     const cx = x + offsetX + node.position.x * areaW;
-    const cy = y + offsetY + node.position.y * areaH;
+    const cy = y + node.position.y * areaH;
     const dPx = dPxByLevel[node.level];
     const rPx = dPx / 2;
     const rawFs = node.level === 0 ? Math.max(12, sizes.d0 * 0.45) : node.level === 1 ? Math.max(10, sizes.d1 * 0.55) : Math.max(9, sizes.d2 * 0.55);
     const fs = Math.max(9, rawFs * fitScale);
 
-    // worksheetMeta에 mindMapNodeId 저장 — 연결선 동기화에 사용
-    const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id };
+    // worksheetMeta에 mindMapNodeId + 영역 시작점 저장 — 연결선 동기화 + 재빌드 Y 복원에 사용
+    const meta = { mindMapNodeId: node.id, mindMapParentId: node.parent_id, mindMapAreaTop: y };
 
     if (isRect) {
       const w = dPx;
@@ -1242,7 +1243,7 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number, o
     }
   }
 
-  return { elements: els, height: offsetY * 2 + areaH };
+  return { elements: els, height: areaH };
 };
 
 // --- Main builder ---
