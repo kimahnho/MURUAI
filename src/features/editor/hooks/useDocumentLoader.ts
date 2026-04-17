@@ -11,6 +11,7 @@ import { useToastStore } from "../store/toastStore";
 import type { CanvasDocument } from "../model/pageTypes";
 import { decompressCanvasData } from "@/shared/utils/canvasDataCompression";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
+import { useStorybookSceneStore } from "@/features/storybook/store/storybookSceneStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { migrateLogoFill } from "../utils/logoElement";
@@ -94,6 +95,14 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
       setLoadedDocument(canvasData as CanvasDocument);
       setLoadedDocumentId(row.id);
 
+      // 다른 문서에서 열었던 pending generation이 이 문서로 새어나오지 않도록 초기화 (E2)
+      useStorybookSceneStore.setState({
+        pendingGenerations: [],
+        generatingProgress: null,
+        pageMetaBySet: {},
+        imagePatchRequest: null,
+      });
+
       // 감정추론 배너 상태 복원
       const doc = canvasData as CanvasDocument;
       if (doc.emotionSceneMeta?.length) {
@@ -108,6 +117,28 @@ export const useDocumentLoader = ({ docId }: DocumentLoaderParams) => {
               storyPageIds: meta.storyPageIds,
               bannerPhase: meta.bannerPhase === "generating" ? "ready" : meta.bannerPhase,
             });
+          }
+        }
+      }
+
+      // 스토리북 배너 상태 복원
+      if (doc.storybookSceneMeta?.length) {
+        const sbStore = useStorybookSceneStore.getState();
+        for (const meta of doc.storybookSceneMeta) {
+          const exists = sbStore.pendingGenerations.some((pg) => pg.setKey === meta.setKey);
+          if (exists) continue;
+          sbStore.addPendingGeneration({
+            setKey: meta.setKey,
+            storyPageIds: meta.storyPageIds,
+            bannerPhase: meta.bannerPhase === "generating" ? "completed" : meta.bannerPhase,
+            bookTitle: meta.bookTitle,
+            characterImageUrl: meta.characterImageUrl,
+            artStyleId: meta.artStyleId,
+            customPromptTemplate: meta.customPromptTemplate,
+            layout: meta.layout,
+          });
+          if (meta.pageMeta?.length) {
+            sbStore.setPageMetaForSet(meta.setKey, meta.pageMeta);
           }
         }
       }

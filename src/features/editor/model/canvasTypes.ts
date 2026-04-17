@@ -123,6 +123,7 @@ export type ShapeElement = ElementBase & {
   };
   labelId?: string;
   mosaicLevel?: number;
+  opacity?: number;
   isStandaloneImage?: boolean;
   transform?: {
     flipX?: boolean;
@@ -225,6 +226,7 @@ export type AacCardElement = ElementBase & {
     h: number;
   };
   radius?: number;
+  opacity?: number;
   border?: {
     enabled: boolean;
     color: string;
@@ -258,6 +260,7 @@ export type EmotionCardElement = ElementBase & {
     h: number;
   };
   radius?: number;
+  opacity?: number;
   border?: {
     enabled: boolean;
     color: string;

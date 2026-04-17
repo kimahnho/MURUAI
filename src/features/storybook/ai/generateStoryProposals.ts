@@ -41,7 +41,7 @@ const buildDiagnosisGuide = (childInfo: ChildInfo): string => {
   - 학습 목표가 있으면 주인공이 해당 목표를 달성하는 과정을 자연스럽게 보여주기`;
 };
 
-const buildProposalPrompt = (childInfo: ChildInfo, topic: string): string => {
+const buildProposalPrompt = (childInfo: ChildInfo, topic: string, pageCount: number): string => {
   const safeTopic = sanitizeTopic(topic);
   const childContext = buildChildContext(childInfo);
   const diagnosisGuide = buildDiagnosisGuide(childInfo);
@@ -153,7 +153,7 @@ JSON만 출력:
     "summary": "기획서 요약 (50자 이내)",
     "pages": [
       { "pageNumber": 1, "sceneDescription": "5요소 장면 묘사", "textContent": "본문" },
-      ...${STORYBOOK_PAGE_COUNT}페이지
+      ...${pageCount}페이지
     ]
   },
   { ...두 번째 기획서 }
@@ -170,7 +170,7 @@ const isValidPage = (item: unknown): item is StoryPageOutline => {
   );
 };
 
-const parseProposalResponse = (raw: string): StoryProposal[] => {
+const parseProposalResponse = (raw: string, pageCount: number): StoryProposal[] => {
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.");
 
@@ -194,7 +194,7 @@ const parseProposalResponse = (raw: string): StoryProposal[] => {
     title: item.title,
     summary: item.summary,
     pages: item.pages
-      .slice(0, STORYBOOK_PAGE_COUNT)
+      .slice(0, pageCount)
       .map((p, i) => ({
         pageNumber: i + 1,
         sceneDescription: p.sceneDescription,
@@ -206,6 +206,7 @@ const parseProposalResponse = (raw: string): StoryProposal[] => {
 export const generateStoryProposals = async (
   childInfo: ChildInfo,
   topic: string,
+  pageCount: number = STORYBOOK_PAGE_COUNT,
 ): Promise<StoryProposal[]> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -216,7 +217,7 @@ export const generateStoryProposals = async (
   const startMs = Date.now();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite-preview",
-    contents: buildProposalPrompt(childInfo, topic),
+    contents: buildProposalPrompt(childInfo, topic, pageCount),
   });
 
   const parts = response.candidates?.[0]?.content?.parts;
@@ -227,5 +228,5 @@ export const generateStoryProposals = async (
 
   aiPipelineLogger.addStep("proposal_ai_response", { durationMs: Date.now() - startMs, responseLength: textPart.text.length });
 
-  return parseProposalResponse(textPart.text);
+  return parseProposalResponse(textPart.text, pageCount);
 };

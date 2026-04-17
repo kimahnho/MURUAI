@@ -31,6 +31,7 @@ import { useCoverPageSubscription } from "./useCoverPageSubscription";
 import { useStoreSubscription } from "../shared/hooks/useStoreSubscription";
 import { useTemplateStore } from "../store/templateStore";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
+import { useStorybookSceneStore } from "@/features/storybook/store/storybookSceneStore";
 import { useVocabTracingStore } from "../store/vocabTracingStore";
 import { useToastStore } from "../store/toastStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
@@ -1198,9 +1199,19 @@ export const useEditorSubscriptions = ({
       state.insertPagesRequest !== prevState.insertPagesRequest,
     onChange: (state) => {
       if (!state.insertPagesRequest) return;
-      const { pages: newPages } = state.insertPagesRequest;
+      const { pages: newPages, afterPageId } = state.insertPagesRequest;
       setPages((prev) => {
-        const combined = [...prev, ...newPages];
+        // afterPageId가 있으면 해당 페이지 바로 뒤에 삽입, 없으면 끝에 추가
+        let insertIdx = prev.length;
+        if (afterPageId) {
+          const foundIdx = prev.findIndex((p) => p.id === afterPageId);
+          if (foundIdx >= 0) insertIdx = foundIdx + 1;
+        }
+        const combined = [
+          ...prev.slice(0, insertIdx),
+          ...newPages,
+          ...prev.slice(insertIdx),
+        ];
         return combined.map((p, i) => ({ ...p, pageNumber: i + 1 }));
       });
       recordHistory("AI 스토리라인 생성");
@@ -1221,6 +1232,48 @@ export const useEditorSubscriptions = ({
       setPages((prev) => patchHeroImagesOnPages(prev, heroImageUrls));
       recordHistory("AI 장면 이미지 생성");
       useEmotionSceneStore.getState().clearHeroImageRequest();
+    },
+    deps: [setPages, recordHistory],
+  });
+
+  // 스토리북 페이지별 재생성 — 이미지 패치 요청을 감지해 해당 페이지의 standalone image 요소 fill을 새 URL로 교체
+  useStoreSubscription({
+    subscribe: useStorybookSceneStore.subscribe,
+    shouldHandle: (state, prevState) =>
+      state.imagePatchRequest !== null &&
+      state.imagePatchRequest !== prevState.imagePatchRequest,
+    onChange: (state) => {
+      if (!state.imagePatchRequest) return;
+      const { urlByPageId } = state.imagePatchRequest;
+      setPages((prev) =>
+        prev.map((page) => {
+          const newUrl = urlByPageId[page.id];
+          if (!newUrl) return page;
+          return {
+            ...page,
+            elements: page.elements.map((el) => {
+              if (
+                el.type === "rect" &&
+                "isStandaloneImage" in el &&
+                el.isStandaloneImage === true
+              ) {
+                // placeholder 상태의 "생성 중" 텍스트 제거 + locked 해제 — 이후 유저가 자기 이미지로 교체 가능
+                return {
+                  ...el,
+                  fill: `url(${newUrl})`,
+                  imageBox: { x: 0, y: 0, w: el.w, h: el.h },
+                  text: undefined,
+                  textStyle: undefined,
+                  locked: false,
+                };
+              }
+              return el;
+            }),
+          };
+        }),
+      );
+      recordHistory("스토리북 페이지 재생성");
+      useStorybookSceneStore.getState().clearImagePatchRequest();
     },
     deps: [setPages, recordHistory],
   });

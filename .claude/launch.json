@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "muruai-dev",
-      "runtimeExecutable": "/opt/homebrew/bin/yarn",
+      "runtimeExecutable": "yarn",
       "runtimeArgs": ["dev"],
       "port": 5173
     }

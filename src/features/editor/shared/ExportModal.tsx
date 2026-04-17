@@ -15,6 +15,7 @@ import { trackDownloadEvent } from "@/shared/utils/trackEvents";
 import { mp } from "@/shared/utils/mixpanel";
 import { aiPipelineLogger } from "@/shared/utils/aiPipelineLogger";
 import { trackInteraction } from "@/shared/utils/trackInteraction";
+import { useStorybookSceneStore } from "@/features/storybook/store/storybookSceneStore";
 
 type TargetType = "child" | "group";
 
@@ -102,6 +103,10 @@ const ExportModal = ({
   const [targetId, setTargetId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  // 스토리북 생성 중이면 PDF 출력 비활성화 — placeholder 회색박스가 그대로 PDF에 들어가지 않게
+  const isStorybookGenerating = useStorybookSceneStore(
+    (s) => s.pendingGenerations.some((pg) => pg.bannerPhase === "generating"),
+  );
   const [pdfProgress, setPdfProgress] = useState<{
     current: number;
     total: number;
@@ -418,10 +423,15 @@ const ExportModal = ({
           <button
             type="button"
             onClick={handleDownloadPdf}
-            disabled={isDownloading}
+            disabled={isDownloading || isStorybookGenerating}
+            title={isStorybookGenerating ? "스토리북 생성이 끝난 뒤 다운로드할 수 있어요" : undefined}
             className="w-full rounded-lg border border-black-25 py-3 text-14-semibold text-black-90 transition hover:border-black-40 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isDownloading ? "PDF 생성 중..." : "PDF 다운로드"}
+            {isDownloading
+              ? "PDF 생성 중..."
+              : isStorybookGenerating
+                ? "스토리북 생성 중..."
+                : "PDF 다운로드"}
           </button>
           {isDownloading && (
             <button

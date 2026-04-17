@@ -1,12 +1,18 @@
 /**
  * 문서 저장 payload 구성과 신규/기존 저장 API 호출을 공통화한 모듈.
  */
-import type { Page, CanvasDocument, EmotionSceneMeta } from "../model/pageTypes";
+import type {
+  Page,
+  CanvasDocument,
+  EmotionSceneMeta,
+  StorybookSceneMeta,
+} from "../model/pageTypes";
 import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
 import { resolvePagesForPersistence } from "./persistPages";
 import { saveUserMadeVersion, updateUserMadeVersion } from "./userMadeExport";
 import { useEmotionSceneStore } from "../store/emotionSceneStore";
 import { useAiGenerationModeStore } from "../store/aiGenerationModeStore";
+import { useStorybookSceneStore } from "@/features/storybook/store/storybookSceneStore";
 
 /**
  * 저장 전에 페이지를 영속화 가능한 구조로 정규화한다.
@@ -26,6 +32,27 @@ export const buildPersistPayload = async (
         }))
       : undefined;
 
+  // 스토리북 배너 메타 직렬화 — 완료된 세트만 저장 (생성 중인 세트는 재접속 시 유효하지 않음)
+  const storybookState = useStorybookSceneStore.getState();
+  const storybookSceneMeta: StorybookSceneMeta[] | undefined = (() => {
+    const completed = storybookState.pendingGenerations.filter(
+      (pg) => pg.bannerPhase === "completed" && pg.storyPageIds.length > 0,
+    );
+    if (completed.length === 0) return undefined;
+    return completed.map((pg) => ({
+      setKey: pg.setKey,
+      storyPageIds: pg.storyPageIds,
+      bannerPhase: pg.bannerPhase,
+      bookTitle: pg.bookTitle,
+      characterImageUrl: pg.characterImageUrl,
+      artStyleId: pg.artStyleId,
+      customPromptTemplate: pg.customPromptTemplate,
+      layout: pg.layout,
+      // pageMeta의 base64 앵커는 용량이 커서 재생성 시 사용. 저장 OK (세트당 몇 MB 수준)
+      pageMeta: storybookState.pageMetaBySet[pg.setKey] ?? [],
+    }));
+  })();
+
   // 포커스 모드 상태 직렬화
   const aiGenState = useAiGenerationModeStore.getState();
   const focusedAiMode: FocusedAiModeMeta | undefined = aiGenState.isActive
@@ -42,6 +69,7 @@ export const buildPersistPayload = async (
   return {
     pages: persistedPages,
     ...(emotionSceneMeta && { emotionSceneMeta }),
+    ...(storybookSceneMeta && { storybookSceneMeta }),
     ...(focusedAiMode && { focusedAiMode }),
   };
 };

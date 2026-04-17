@@ -56,6 +56,7 @@ interface AacCardBoxProps {
   onImageDrop?: (imageUrl: string) => void;
   onFileDrop?: (file: File) => void;
   onLabelChange?: (text: string) => void;
+  opacity?: number;
   isImageEditing?: boolean;
   onImageEditingChange?: (isEditing: boolean) => void;
   transform?: { flipX?: boolean; flipY?: boolean; rotation?: number };
@@ -90,6 +91,7 @@ const AacCardBox = ({
   onImageDrop,
   onFileDrop,
   onLabelChange,
+  opacity,
   isImageEditing,
   onImageEditingChange,
   transform,
@@ -198,6 +200,7 @@ const AacCardBox = ({
       minHeight={80}
       fill={fill}
       backgroundColor={backgroundColor}
+      opacity={opacity}
       imageBox={adjustedImageBox}
       borderRadius={borderRadius}
       border={border}

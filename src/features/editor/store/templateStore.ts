@@ -10,12 +10,12 @@ interface TemplateStore {
   selectedPageIndices: number[] | null;
   templateRequestId: number;
   previewTemplate: TemplateId | null;
-  insertPagesRequest: { pages: Page[]; requestId: number } | null;
+  insertPagesRequest: { pages: Page[]; afterPageId?: string; requestId: number } | null;
   requestTemplate: (templateId: TemplateId, pageIndices?: number[]) => void;
   setSelectedTemplate: (templateId: TemplateId | null) => void;
   openPreview: (templateId: TemplateId) => void;
   closePreview: () => void;
-  requestInsertPages: (pages: Page[]) => void;
+  requestInsertPages: (pages: Page[], afterPageId?: string) => void;
   clearInsertPagesRequest: () => void;
 }
 
@@ -34,10 +34,11 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
   setSelectedTemplate: (templateId) => { set({ selectedTemplate: templateId }); },
   openPreview: (templateId) => { set({ previewTemplate: templateId }); },
   closePreview: () => { set({ previewTemplate: null }); },
-  requestInsertPages: (pages) =>
+  requestInsertPages: (pages, afterPageId) =>
     { set((state) => ({
       insertPagesRequest: {
         pages,
+        afterPageId,
         requestId: (state.insertPagesRequest?.requestId ?? 0) + 1,
       },
     })); },

@@ -20,6 +20,7 @@ import {
   TEMPLATE_REGISTRY,
 } from "@/features/editor/templates/templateRegistry";
 import StorybookWizardModal from "@/features/storybook/components/StorybookWizardModal";
+import { useStorybookWizardStore } from "@/features/storybook/store/useStorybookWizardStore";
 import {
   fetchCreditBalance,
   requestMoreCredits,
@@ -62,6 +63,9 @@ const AiTemplateContent = () => {
     sessionStorage.removeItem("pendingEditorIntent");
 
     if (intent.feature === "storybook") {
+      // 현재 선택된 페이지 뒤에 결과를 삽입하도록 위자드 스토어에 전달
+      const pageId = sessionStorage.getItem("editorSelectedPageId");
+      if (pageId) useStorybookWizardStore.getState().setInsertAfterPageId(pageId);
       setIsStorybookModalOpen(true);
     } else if (intent.feature === "emotion") {
       setIsEmotionChoiceModalOpen(true);
@@ -186,7 +190,12 @@ const AiTemplateContent = () => {
             hoverBgColor="rgba(139, 92, 246, 0.08)"
             title="AI 스토리북"
             description="아동 맞춤형 10페이지 그림책 자동 생성"
-            onClick={() => { mp.track("AI 스토리북 시작"); setIsStorybookModalOpen(true); }}
+            onClick={() => {
+              mp.track("AI 스토리북 시작");
+              const pageId = sessionStorage.getItem("editorSelectedPageId");
+              if (pageId) useStorybookWizardStore.getState().setInsertAfterPageId(pageId);
+              setIsStorybookModalOpen(true);
+            }}
           />
         </div>
 

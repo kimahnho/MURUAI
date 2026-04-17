@@ -327,6 +327,26 @@ const EmotionCardPropsContent = () => {
         </div>
       </div>
 
+      {/* 투명도 — 이미지가 채워져 있을 때만 표시 */}
+      {isImageFill && (
+        <div className="flex flex-col gap-2">
+          <div className="text-14-semibold text-black-90">투명도</div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round((element.opacity ?? 1) * 100)}
+              onChange={(e) => updateElement(element.id, { opacity: Number(e.target.value) / 100 })}
+              className="flex-1"
+            />
+            <span className="w-10 text-center text-14-regular text-black-70">
+              {Math.round((element.opacity ?? 1) * 100)}%
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 테두리 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">테두리</div>

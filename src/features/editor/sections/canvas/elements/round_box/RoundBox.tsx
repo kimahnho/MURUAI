@@ -97,6 +97,7 @@ interface RoundBoxProps {
   onRotationChange?: (angle: number) => void;
   showInlineMetrics?: boolean;
   backgroundColor?: string;
+  opacity?: number;
   enableCrop?: boolean;
   cropKeepFrame?: boolean;
 }
@@ -143,6 +144,7 @@ const RoundBox = ({
   onRotationChange,
   showInlineMetrics = true,
   backgroundColor,
+  opacity,
   enableCrop = false,
   cropKeepFrame = false,
 }: RoundBoxProps) => {
@@ -431,6 +433,7 @@ const RoundBox = ({
         touchAction: "none",
         pointerEvents: selectable ? "auto" : "none",
         overflow: "visible",
+        opacity: opacity != null && opacity < 1 ? opacity : undefined,
         transform: elementTransformStyle,
         transformOrigin: "center center",
       }}

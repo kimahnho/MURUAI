@@ -19,6 +19,7 @@ import { applyCorrections } from "../utils/applySpellCorrections";
 import { useSpellCheckStore } from "../store/spellCheckStore";
 import CanvasStage from "../sections/canvas/CanvasStage";
 import EmotionSceneBanner from "../sections/canvas/EmotionSceneBanner";
+import StorybookBanner from "@/features/storybook/components/StorybookBanner";
 import VocabTracingBanner from "../sections/canvas/VocabTracingBanner";
 import SpellCheckPanel from "./SpellCheckPanel";
 import SpellCheckToast from "./SpellCheckToast";
@@ -159,6 +160,11 @@ const MainSection = () => {
   useSyncedRef(pagesRef, pages);
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
+
+  // 현재 선택 페이지 ID를 sessionStorage에 동기화 — 스토리북 등 외부 feature에서 삽입 위치로 사용
+  useEffect(() => {
+    if (selectedPageId) sessionStorage.setItem("editorSelectedPageId", selectedPageId);
+  }, [selectedPageId]);
 
   // 페이지 요소의 폰트 변경을 감지해 "사용중인 글꼴" 목록을 갱신하고 CDN 폰트를 사전 로드한다.
   useEffect(() => {
@@ -998,6 +1004,11 @@ const MainSection = () => {
       {!isReadOnly && (
         <div className={isFocusedMode ? "hidden" : ""}>
           <EmotionSceneBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
+        </div>
+      )}
+      {!isReadOnly && (
+        <div className={isFocusedMode ? "hidden" : ""}>
+          <StorybookBanner pages={pages} selectedPageId={selectedPageId} setPages={setPages} />
         </div>
       )}
       {!isReadOnly && <VocabTracingBanner pages={pages} selectedPageId={selectedPageId} />}

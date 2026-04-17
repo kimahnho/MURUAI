@@ -6,6 +6,11 @@ import type { TemplateId } from "../templates/templateRegistry";
 import type { StoryItem } from "../ai/generateEmotionStory";
 import type { BannerPhase } from "../store/emotionSceneStore";
 import type { FocusedAiModeMeta } from "../store/aiGenerationModeStore";
+import type {
+  StorybookBannerPhase,
+  StorybookPageMeta,
+  StorybookPendingGeneration,
+} from "@/features/storybook/store/storybookSceneStore";
 import type { WorksheetComponentType, WorksheetConfig } from "@/features/worksheet-editor/model/types";
 import type { CoverData } from "../covers/coverTypes";
 
@@ -60,9 +65,23 @@ export type EmotionSceneMeta = {
   bannerPhase: BannerPhase;
 };
 
+/** canvas_data에 저장할 스토리북 세트 메타 — 새로고침/재접속 시 배너 복원용 */
+export type StorybookSceneMeta = {
+  setKey: string;
+  storyPageIds: string[];
+  bannerPhase: StorybookBannerPhase;
+  bookTitle: string;
+  characterImageUrl: string;
+  artStyleId: StorybookPendingGeneration["artStyleId"];
+  customPromptTemplate?: string;
+  layout: StorybookPendingGeneration["layout"];
+  pageMeta: StorybookPageMeta[];
+};
+
 export type CanvasDocument = {
   pages: Page[];
   swappedPageIds?: string[];
   emotionSceneMeta?: EmotionSceneMeta[];
+  storybookSceneMeta?: StorybookSceneMeta[];
   focusedAiMode?: FocusedAiModeMeta;
 };

@@ -1,5 +1,8 @@
 /**
- * 위자드 단계별 유효성 검사 함수.
+ * 2단계 재구성된 위자드의 스텝별 유효성 검사.
+ *
+ * Step 1 (설정): 나이 + 주제 + 그림체(+커스텀) 필수
+ * Step 2 (주인공 확인): 기획서(편집본) + 주인공 레퍼런스 이미지 필수
  */
 import type {
   ChildInfo,
@@ -28,19 +31,37 @@ export const validateTopic = (topic: string): string | null => {
 export const validateProposal = (
   proposal: StoryProposal | null,
 ): string | null => {
-  if (!proposal) return "기획서를 선택해 주세요.";
+  if (!proposal) return "기획서가 아직 준비되지 않았어요.";
   const emptyPage = proposal.pages.find((p) => !p.textContent.trim());
   if (emptyPage)
     return `${emptyPage.pageNumber}페이지의 텍스트가 비어 있어요.`;
   return null;
 };
 
-export const validateArtStyle = (style: ArtStyleId | null, customPromptTemplate?: string): string | null => {
+export const validateArtStyle = (
+  style: ArtStyleId | null,
+  customPromptTemplate?: string,
+): string | null => {
   if (!style) return "그림체를 선택해 주세요.";
   if (style === "custom" && (!customPromptTemplate || !customPromptTemplate.trim())) {
     return "커스텀 그림체 프롬프트를 입력해 주세요.";
   }
   return null;
+};
+
+/** Step 1 (설정) — 나이 + 주제 + 그림체 전부 유효해야 진행 가능 */
+const canAdvanceStep1 = (formData: WizardFormData): boolean => {
+  if (validateChildInfo(formData.childInfo) !== null) return false;
+  if (validateTopic(formData.topic) !== null) return false;
+  if (validateArtStyle(formData.artStyle, formData.customPromptTemplate) !== null) return false;
+  return true;
+};
+
+/** Step 2 (주인공 확인) — 주인공 이미지 + 편집된 기획서 필요 */
+const canAdvanceStep2 = (formData: WizardFormData): boolean => {
+  if (!formData.referenceImageBase64) return false;
+  const proposal = formData.editedProposal ?? findSelectedProposal(formData);
+  return validateProposal(proposal) === null;
 };
 
 /** 현재 단계에서 다음으로 진행 가능한지 검사 */
@@ -50,17 +71,9 @@ export const canAdvance = (
 ): boolean => {
   switch (step) {
     case 1:
-      return validateChildInfo(formData.childInfo) === null;
+      return canAdvanceStep1(formData);
     case 2:
-      return validateTopic(formData.topic) === null;
-    case 3: {
-      const activeProposal = formData.editedProposal ?? findSelectedProposal(formData);
-      return validateProposal(activeProposal) === null;
-    }
-    case 4:
-      return validateArtStyle(formData.artStyle, formData.customPromptTemplate) === null;
-    case 45:
-      return true; // 기본 캐릭터 이미지가 자동 설정되므로 항상 통과
+      return canAdvanceStep2(formData);
     case 5:
       return false; // 생성 중 — 자동 전환
     case 6:
@@ -70,7 +83,6 @@ export const canAdvance = (
   }
 };
 
-/** formData에서 선택된 기획서를 찾는 헬퍼 */
 const findSelectedProposal = (
   formData: WizardFormData,
 ): StoryProposal | null => {

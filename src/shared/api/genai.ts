@@ -1,13 +1,13 @@
 /**
  * GenAI 클라이언트.
- * - 개발 모드 + VITE_VERTEX_PROXY_URL 존재 시: 로컬 Vertex 프록시 경유 (GCP 크레딧)
- * - 그 외(프로덕션 + 개발): /api/genai/* 서버 프록시 경유로 API 키 보호
- *
- * VITE_GOOGLE_API_KEY는 프로덕션 번들에 포함되어 키 탈취 위험이 있으므로 사용하지 않는다.
+ * - 개발 모드 + VITE_GOOGLE_API_KEY: 브라우저에서 Gemini 직접 호출
+ * - 개발 모드 + VITE_VERTEX_PROXY_URL: 로컬 Vertex 프록시 경유 (GCP 크레딧)
+ * - 프로덕션: /api/genai/* 서버 프록시 경유로 API 키 보호
  *
  * 기존 호출 코드(`getGenAI().models.generateContent(...)`)와
  * 동일한 인터페이스를 유지한다.
  */
+import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/api/supabase";
 
 /** 텍스트 모델: 우선 3.1 flash lite, 503 시 2.5 flash 폴백 */
@@ -103,20 +103,31 @@ const createProxyClient = (): GenAIClient => ({
   },
 });
 
-/** 503/429 에러 시 폴백 모델로 자동 재시도하는 래퍼 */
+/** 서버 에러(503/429/500 등) 감지 */
+const isRetryableError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message;
+  const status = (error as { status?: number }).status;
+  return (
+    msg.includes("503") || msg.includes("429") || msg.includes("500") ||
+    msg.includes("UNAVAILABLE") || msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("overloaded") || msg.includes("Service Unavailable") ||
+    status === 503 || status === 429 || status === 500
+  );
+};
+
+/** 텍스트 모델(이미지 아닌 것)이면 503/429 시 폴백 모델로 자동 재시도 */
 const withTextModelFallback = (client: GenAIClient): GenAIClient => {
   const original = client.models.generateContent.bind(client.models);
   return {
     models: {
       generateContent: async (params) => {
+        const isImageModel = params.model.includes("image");
         try {
           return await original(params);
         } catch (error) {
-          const isTextModel = params.model === TEXT_MODEL_PRIMARY;
-          const isServerError = error instanceof Error &&
-            (error.message.includes("503") || error.message.includes("429") || error.message.includes("UNAVAILABLE"));
-          if (isTextModel && isServerError) {
-            console.warn(`${TEXT_MODEL_PRIMARY} 실패, ${TEXT_MODEL_FALLBACK}으로 폴백`);
+          if (!isImageModel && isRetryableError(error)) {
+            console.warn(`${params.model} 실패, ${TEXT_MODEL_FALLBACK}으로 폴백`);
             return original({ ...params, model: TEXT_MODEL_FALLBACK });
           }
           throw error;
@@ -126,14 +137,35 @@ const withTextModelFallback = (client: GenAIClient): GenAIClient => {
   };
 };
 
+// 개발 모드 + API 키: 브라우저에서 Gemini SDK 직접 호출
+const createDirectClient = (apiKey: string): GenAIClient => {
+  const ai = new GoogleGenAI({ apiKey });
+  return {
+    models: {
+      generateContent: async (params) => {
+        const response = await ai.models.generateContent({
+          model: params.model,
+          contents: params.contents as string,
+          config: params.config as Record<string, unknown> | undefined,
+        });
+        return response as unknown as GenAIResponse;
+      },
+    },
+  };
+};
+
 let instance: GenAIClient | null = null;
 
 export const getGenAI = (): GenAIClient => {
   if (!instance) {
+    const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
     const vertexProxy = import.meta.env.VITE_VERTEX_PROXY_URL as string | undefined;
 
     let base: GenAIClient;
-    if (vertexProxy && import.meta.env.DEV) {
+    if (import.meta.env.DEV && googleApiKey) {
+      // 개발 모드: 브라우저에서 Gemini 직접 호출 (API 프록시 불필요)
+      base = createDirectClient(googleApiKey);
+    } else if (vertexProxy && import.meta.env.DEV) {
       base = createVertexProxyClient(vertexProxy);
     } else {
       base = createProxyClient();

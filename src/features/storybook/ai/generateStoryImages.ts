@@ -24,9 +24,27 @@ const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env
   .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
+// 레이아웃별 이미지 영역 비율을 Gemini aspectRatio 값으로 매핑
+export const getAspectRatioForLayout = (layout: PageLayout): string => {
+  switch (layout) {
+    case "vertical":
+      return "16:9";
+    case "horizontal":
+    case "text-left":
+      return "3:4";
+    case "fullscreen-bottom":
+    case "fullscreen-top":
+      return "3:4";
+    case "text-top":
+      return "1:1";
+    default:
+      return "16:9";
+  }
+};
+
 // ─── Cloudinary 업로드 (useAiImageGeneration 패턴 복사) ───
 
-const getCloudinaryUrl = (path: string): string => {
+export const getCloudinaryUrl = (path: string): string => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
@@ -36,7 +54,7 @@ const getCloudinaryUrl = (path: string): string => {
   return path;
 };
 
-const uploadToCloudinary = async (
+export const uploadToCloudinary = async (
   base64Data: string,
   userId: string,
 ): Promise<string> => {
@@ -78,7 +96,7 @@ const uploadToCloudinary = async (
 
 // ─── 한→영 번역 (10개 장면 일괄) ───
 
-const translateScenesToEnglish = async (
+export const translateScenesToEnglish = async (
   ai: GenAIClient,
   scenes: string[],
 ): Promise<string[]> => {
@@ -124,7 +142,7 @@ const COMMON_RULES = `RULES:
 - Materials behave realistically: fabric drapes, stones sit on ground, wood has weight.`;
 
 
-const generateSingleImage = async (
+export const generateSingleImage = async (
   ai: GenAIClient,
   imagePrompt: string,
   aspectRatio: string,
@@ -190,10 +208,27 @@ const generateSingleImage = async (
 // ─── 메인 함수 ───
 
 /**
- * 10페이지 삽화를 순차 생성하여 Cloudinary URL 배열을 반환한다.
- * Phase 1: 모든 이미지를 base64로 수집 (하나라도 실패 시 throw — Cloudinary 비용 발생 안 함)
- * Phase 2: 전부 성공 후 일괄 Cloudinary 업로드
+ * N페이지 삽화를 순차 생성. 장당 실패해도 계속 진행하여 성공한 것만 업로드·반환.
+ * Phase 1: 장별 Gemini 호출 (실패 시 failedIndices에 기록, 나머지 진행)
+ * Phase 2: 성공한 base64만 Cloudinary 업로드
  */
+/** 페이지별 재생성용 메타 — generateStoryImages 결과를 배너에 저장 */
+export interface StoryImageGenerationMeta {
+  pageIndex: number;
+  sceneGroup: number;
+  isGroupFirst: boolean;
+  /** sceneGroup의 첫 페이지 이미지(WebP base64). 후속 페이지 재생성 시 앵커로 전달 */
+  groupAnchorBase64: string | null;
+  /** 생성 시점의 영문 번역된 scene — 재생성 시 사용자가 한국어 수정 시 다시 번역해야 함 */
+  englishScene: string;
+}
+
+/** generateStoryImages 반환 — 실패한 페이지의 url은 null */
+export interface StoryImagesResult {
+  urls: Array<string | null>;
+  failedIndices: number[];
+}
+
 export const generateStoryImages = async (
   pages: Array<{ sceneDescription: string; sceneGroup: number; text: string }>,
   artStyleId: ArtStyleId,
@@ -202,7 +237,8 @@ export const generateStoryImages = async (
   onProgress?: (current: number, total: number) => void,
   customPromptTemplate?: string,
   subCharacters?: CastCharacter[],
-): Promise<string[]> => {
+  onMeta?: (meta: StoryImageGenerationMeta[]) => void,
+): Promise<StoryImagesResult> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
   // }
@@ -235,7 +271,8 @@ export const generateStoryImages = async (
 
   // 프롬프트 조합: [영문 장면] + ", " + [promptTemplate]
   const stylePostfix = customPromptTemplate ?? preset?.promptTemplate ?? "";
-  const aspectRatio = layout === "horizontal" ? "3:4" : "16:9";
+  // 레이아웃별 이미지 영역 비율에 맞춰 Gemini aspectRatio 선택
+  const aspectRatio = getAspectRatioForLayout(layout);
 
   // ── Phase 1: 듀얼 레퍼런스로 base64 수집 ──
   // 캐릭터 레퍼런스: 항상 원본 고정 (외형 일관성)
@@ -244,9 +281,11 @@ export const generateStoryImages = async (
     ? (await convertToWebP(referenceImageBase64)).data
     : undefined;
 
-  const base64Images: string[] = new Array(pages.length);
+  const base64Images: Array<string | undefined> = new Array(pages.length);
   const sceneGroupAnchors = new Map<number, string>();
   const sceneGroupFirstDesc = new Map<number, string>();
+  const metaList: Array<StoryImageGenerationMeta | undefined> = new Array(pages.length);
+  const failedIndices: number[] = [];
   const castCharacters = subCharacters ?? [];
 
   // 서브캐릭터 ref를 WebP로 압축
@@ -285,34 +324,70 @@ export const generateStoryImages = async (
 
     const sceneAnchor = sceneGroupAnchors.get(group);
     const imageStartMs = Date.now();
-    const base64 = await generateSingleImage(
-      ai,
-      imagePrompt,
-      aspectRatio,
-      compressedMainRef,
-      pageSubRefs.length > 0 ? pageSubRefs : undefined,
-      sceneAnchor,
-    );
-    aiPipelineLogger.addStep("image_generate", { pageIndex: i, durationMs: Date.now() - imageStartMs });
 
-    // sceneGroup 첫 페이지만 앵커로 저장 (품질 유지 — AI 출력물 반복 열화 방지)
-    if (isFirstOfGroup) {
-      const { data: compressedAnchor } = await convertToWebP(base64);
-      sceneGroupAnchors.set(group, compressedAnchor);
+    // ── 부분 실패 지원: 장당 실패해도 계속 진행 ──
+    try {
+      const base64 = await generateSingleImage(
+        ai,
+        imagePrompt,
+        aspectRatio,
+        compressedMainRef,
+        pageSubRefs.length > 0 ? pageSubRefs : undefined,
+        sceneAnchor,
+      );
+      aiPipelineLogger.addStep("image_generate", { pageIndex: i, durationMs: Date.now() - imageStartMs });
+
+      // sceneGroup 첫 페이지만 앵커로 저장
+      if (isFirstOfGroup) {
+        const { data: compressedAnchor } = await convertToWebP(base64);
+        sceneGroupAnchors.set(group, compressedAnchor);
+      }
+
+      metaList[i] = {
+        pageIndex: i,
+        sceneGroup: group,
+        isGroupFirst: isFirstOfGroup,
+        groupAnchorBase64: isFirstOfGroup ? null : (sceneAnchor ?? null),
+        englishScene: scene,
+      };
+
+      base64Images[i] = base64;
+    } catch (error) {
+      console.error(`Story image page ${i + 1} failed:`, error);
+      captureSentryError(error, `스토리북 이미지 생성 (${i + 1}페이지)`);
+      failedIndices.push(i);
+      aiPipelineLogger.addStep("image_generate_failed", { pageIndex: i, durationMs: Date.now() - imageStartMs });
+      // metaList[i] 는 null 상태로 남기고 루프 계속
     }
-
-    base64Images[i] = base64;
     onProgress?.(i + 1, pages.length);
   }
 
-  // ── Phase 2: 일괄 Cloudinary 업로드 ──
-  const imageUrls: string[] = [];
+  // sceneGroup 첫 페이지들은 자기 자신의 anchor를 가져야 재생성 시 일관성 유지
+  for (let i = 0; i < metaList.length; i++) {
+    const m = metaList[i];
+    if (!m) continue;
+    if (m.isGroupFirst) {
+      m.groupAnchorBase64 = sceneGroupAnchors.get(m.sceneGroup) ?? null;
+    }
+  }
+  onMeta?.(metaList.filter((m): m is StoryImageGenerationMeta => m !== undefined));
 
-  for (const base64 of base64Images) {
-    const imagePath = await uploadToCloudinary(base64, userId);
-    const imageUrl = getCloudinaryUrl(imagePath);
-    imageUrls.push(imageUrl);
+  // ── Phase 2: 성공한 base64만 Cloudinary 업로드 (실패는 null 유지) ──
+  const imageUrls: Array<string | null> = new Array(pages.length).fill(null);
+
+  for (let i = 0; i < base64Images.length; i++) {
+    const base64 = base64Images[i];
+    if (!base64) continue; // 실패 페이지 건너뜀
+    try {
+      const imagePath = await uploadToCloudinary(base64, userId);
+      imageUrls[i] = getCloudinaryUrl(imagePath);
+    } catch (error) {
+      console.error(`Cloudinary upload page ${i + 1} failed:`, error);
+      captureSentryError(error, `스토리북 이미지 업로드 (${i + 1}페이지)`);
+      failedIndices.push(i);
+      // imageUrls[i] = null 유지
+    }
   }
 
-  return imageUrls;
+  return { urls: imageUrls, failedIndices };
 };

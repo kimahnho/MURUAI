@@ -145,6 +145,7 @@ export const generateStorybook = async (
   topic?: string,
   castingNote?: CastingNote | null,
   onSubCharProgress?: (current: number, total: number) => void,
+  onImageMeta?: (meta: import("./generateStoryImages").StoryImageGenerationMeta[]) => void,
 ): Promise<StoryBook> => {
   // if (!GOOGLE_API_KEY) {
   //   throw new Error("Google API key is not configured");
@@ -205,9 +206,11 @@ export const generateStorybook = async (
     }
   }
 
+  let failedIndices: number[] = [];
   try {
-    const imageUrls = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress, customPromptTemplate, subCharacters);
-    pages = pages.map((p, i) => ({ ...p, imageUrl: imageUrls[i] ?? "" }));
+    const result = await generateStoryImages(pages, artStyle, layout, referenceImageBase64, onImageProgress, customPromptTemplate, subCharacters, onImageMeta);
+    pages = pages.map((p, i) => ({ ...p, imageUrl: result.urls[i] ?? "" }));
+    failedIndices = result.failedIndices;
   } catch (error) {
     console.error("Story image generation failed:", error);
     captureSentryError(error, "스토리북 이미지 생성");
@@ -223,5 +226,6 @@ export const generateStorybook = async (
     fontFamily,
     pages,
     createdAt: new Date().toISOString(),
+    failedIndices,
   };
 };
