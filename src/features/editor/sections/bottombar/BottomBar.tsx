@@ -8,9 +8,11 @@ import {
   ChevronUp,
   Clipboard,
   Copy,
+  Loader2,
   Plus,
   Trash2,
 } from "lucide-react";
+import { useStorybookSceneStore } from "@/features/storybook/store/storybookSceneStore";
 import {
   useEffect,
   useMemo,
@@ -22,7 +24,7 @@ import {
 import type { Page } from "../../model/pageTypes";
 import { useSpellCheckStore, buildCorrectionKey } from "../../store/spellCheckStore";
 import DesignPaper from "../canvas/DesignPaper";
-import { useBottomBarDrag } from "./hooks/useBottomBarDrag";
+import { useBottomBarDrag, type PageDragHandlers } from "./hooks/useBottomBarDrag";
 import { useBottomBarScroll } from "./hooks/useBottomBarScroll";
 
 const MM_TO_PX = 3.7795;
@@ -78,29 +80,30 @@ type PageThumbnailProps = {
   page: Page;
   isSelected: boolean;
   isDragging: boolean;
+  isPartOfActiveDrag: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
+  readOnly?: boolean;
   spellErrorCount?: number;
+  isStorybookGenerating?: boolean;
   onSelect: (pageId: string, shiftKey: boolean, metaKey: boolean) => void;
   onDuplicate?: (pageId: string) => void;
   onDelete: (pageId: string) => void;
   onMovePage?: (pageId: string, direction: "left" | "right") => void;
   onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
-  dragHandlers: {
-    onDragStart: (event: ReactDragEvent<HTMLDivElement>) => void;
-    onDragOver: (event: ReactDragEvent<HTMLDivElement>) => void;
-    onDrop: (event: ReactDragEvent<HTMLDivElement>) => void;
-    onDragEnd: () => void;
-  };
+  dragHandlers: PageDragHandlers;
 };
 
 const PageThumbnail = ({
   page,
   isSelected,
   isDragging,
+  isPartOfActiveDrag,
   canMoveLeft,
   canMoveRight,
+  readOnly,
   spellErrorCount,
+  isStorybookGenerating,
   onSelect,
   onDuplicate,
   onDelete,
@@ -124,9 +127,12 @@ const PageThumbnail = ({
     };
   }, []);
 
+  // 드래그 묶음에 포함된 썸네일은 이동 중임을 표현하기 위해 흐리게
+  const dragFadeClass = isDragging && isPartOfActiveDrag ? "opacity-50" : "";
+
   return (
     <div
-      draggable
+      draggable={!readOnly}
       onDragStart={(event) => {
         if (thumbRef.current) {
           // button을 클론해 배경색만 제거하고 border/radius는 유지한 ghost image로 사용
@@ -138,6 +144,28 @@ const PageThumbnail = ({
           clone.style.width = `${rect.width}px`;
           clone.style.height = `${rect.height}px`;
           clone.style.background = "transparent";
+          // 다중 선택 묶음을 드래그할 때는 우상단에 개수 뱃지 추가
+          if (dragHandlers.isPartOfSelection && dragHandlers.selectedCount > 1) {
+            const badge = document.createElement("span");
+            badge.textContent = String(dragHandlers.selectedCount);
+            badge.style.position = "absolute";
+            badge.style.top = "-8px";
+            badge.style.right = "-8px";
+            badge.style.minWidth = "22px";
+            badge.style.height = "22px";
+            badge.style.padding = "0 6px";
+            badge.style.display = "inline-flex";
+            badge.style.alignItems = "center";
+            badge.style.justifyContent = "center";
+            badge.style.borderRadius = "9999px";
+            badge.style.background = "#7C3AED";
+            badge.style.color = "#ffffff";
+            badge.style.fontSize = "12px";
+            badge.style.fontWeight = "700";
+            badge.style.boxShadow = "0 2px 6px rgba(124,58,237,0.35)";
+            clone.style.position = "fixed";
+            clone.appendChild(badge);
+          }
           document.body.appendChild(clone);
           ghostRef.current = clone;
           event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top);
@@ -151,11 +179,19 @@ const PageThumbnail = ({
         }
         dragHandlers.onDragStart(event);
       }}
-      onDragOver={dragHandlers.onDragOver}
+      onDragOver={(event) => {
+        // 드래그 중인 페이지가 자기 자신(또는 묶음 내부)이면 금지 피드백
+        if (isPartOfActiveDrag) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "none";
+          return;
+        }
+        dragHandlers.onDragOver(event);
+      }}
       onDrop={dragHandlers.onDrop}
       onDragEnd={dragHandlers.onDragEnd}
       onContextMenu={onContextMenu}
-      className="group flex shrink-0 flex-col items-center gap-1 cursor-move"
+      className={`group flex shrink-0 flex-col items-center gap-1 ${readOnly ? "cursor-pointer" : "cursor-move"} ${dragFadeClass} ${isDragging && isPartOfActiveDrag ? "cursor-grabbing" : ""}`}
       style={{ width: `${isHorizontal ? PREVIEW_BOX.horizontal.width : PREVIEW_BOX.vertical.width}px` }}
     >
       <div className="flex items-center justify-center gap-1 h-5">
@@ -246,6 +282,14 @@ const PageThumbnail = ({
             {spellErrorCount}
           </span>
         )}
+        {isStorybookGenerating && (
+          <span
+            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white-100 shadow-sm"
+            title="이미지 생성 중"
+          >
+            <Loader2 className="h-3 w-3 animate-spin" />
+          </span>
+        )}
       </div>
       <div className="flex items-center justify-center gap-1 h-5">
         {!isDragging && (
@@ -284,6 +328,17 @@ type PageInsertDividerProps = {
   onDrop?: (e: ReactDragEvent<HTMLDivElement>) => void;
 };
 
+// 드롭 위치 강조용 인디케이터: 두꺼운 파란 바 + 상단 원형 캡 + 옅은 글로우
+const DropIndicator = () => (
+  <div className="relative flex items-center justify-center h-full pb-5">
+    <div
+      className="w-1.5 h-full bg-primary rounded-full"
+      style={{ boxShadow: "0 0 0 3px var(--color-primary-100, #ede9fe)" }}
+    />
+    <div className="absolute -top-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-primary shadow" />
+  </div>
+);
+
 const PageInsertDivider = ({ isVisible, onAdd, onDragOver, onDrop }: PageInsertDividerProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -302,10 +357,12 @@ const PageInsertDivider = ({ isVisible, onAdd, onDragOver, onDrop }: PageInsertD
       {isVisible && (
         <div
           className={`flex items-center justify-center h-full pb-5 transition-all ${
-            isDragOver ? "w-1 bg-primary rounded" : "w-1 group-hover:w-8"
+            isDragOver ? "w-2" : "w-1 group-hover:w-8"
           }`}
         >
-          {!isDragOver && (
+          {isDragOver ? (
+            <DropIndicator />
+          ) : (
             <button
               onClick={onAdd}
               className="flex items-center justify-center w-6 h-6 rounded-full bg-primary opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-primary-700 cursor-pointer"
@@ -315,10 +372,10 @@ const PageInsertDivider = ({ isVisible, onAdd, onDragOver, onDrop }: PageInsertD
           )}
         </div>
       )}
-      {/* isVisible=false(마지막 divider)일 때도 dragOver 시 파란 세로선 표시 */}
+      {/* isVisible=false(마지막/첫 divider)일 때도 dragOver 시 동일한 인디케이터 표시 */}
       {!isVisible && isDragOver && (
-        <div className="w-1 h-full pb-5 flex items-center justify-center">
-          <div className="w-1 h-full bg-primary rounded" />
+        <div className="w-2 h-full pb-5 flex items-center justify-center">
+          <DropIndicator />
         </div>
       )}
     </div>
@@ -507,6 +564,17 @@ const BottomBar = ({
     return map;
   }, [isPanelOpen, spellResults, spellActionMap]);
 
+  // 스토리북 생성 중인 페이지 ID 집합 — 썸네일 로딩 스피너 표시용
+  const storybookPending = useStorybookSceneStore((s) => s.pendingGenerations);
+  const storybookGeneratingPageIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const pg of storybookPending) {
+      if (pg.bannerPhase !== "generating") continue;
+      pg.storyPageIds.forEach((id) => set.add(id));
+    }
+    return set;
+  }, [storybookPending]);
+
   // keydown 핸들러의 클로저 문제를 피하기 위해 최신 값을 ref로 유지한다.
   const selectedPageIdsRef = useRef<string[]>([]);
   const selectedPageIdRef = useRef(selectedPageId);
@@ -590,16 +658,72 @@ const BottomBar = ({
     onDragStateChange: setIsDragging,
   });
 
+  // 드래그 중 커서가 하단 바 좌/우 가장자리에 가까워지면 자동으로 스크롤
+  useEffect(() => {
+    if (!isDragging) return;
+    const scroller = listRef.current;
+    if (!scroller) return;
+
+    const EDGE_PX = 80;
+    const MAX_SPEED = 18;
+    const MIN_SPEED = 4;
+    let rafId: number | null = null;
+    let speed = 0;
+
+    const step = () => {
+      if (speed !== 0) {
+        scroller.scrollLeft += speed;
+      }
+      rafId = requestAnimationFrame(step);
+    };
+
+    const handleDragOverEdge = (event: DragEvent) => {
+      const rect = scroller.getBoundingClientRect();
+      const leftDist = event.clientX - rect.left;
+      const rightDist = rect.right - event.clientX;
+      if (leftDist < EDGE_PX && leftDist >= 0) {
+        const ratio = 1 - leftDist / EDGE_PX;
+        speed = -Math.max(MIN_SPEED, Math.round(MAX_SPEED * ratio));
+      } else if (rightDist < EDGE_PX && rightDist >= 0) {
+        const ratio = 1 - rightDist / EDGE_PX;
+        speed = Math.max(MIN_SPEED, Math.round(MAX_SPEED * ratio));
+      } else {
+        speed = 0;
+      }
+    };
+
+    scroller.addEventListener("dragover", handleDragOverEdge);
+    rafId = requestAnimationFrame(step);
+    return () => {
+      scroller.removeEventListener("dragover", handleDragOverEdge);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [isDragging, listRef]);
+
   const [contextMenu, setContextMenu] = useState<{
     pageId: string;
     x: number;
     y: number;
   } | null>(null);
 
-  // selectedPageId가 단일 클릭으로 바뀌면 다중 선택 해제
+  // 활성 페이지가 묶음 밖으로 나갈 때만 묶음 해제 (묶음 안에서의 이동/재정렬에서는 유지)
   useEffect(() => {
-    setSelectedPageIds([]);
+    setSelectedPageIds((prev) => {
+      if (prev.length === 0) return prev;
+      if (prev.includes(selectedPageId)) return prev;
+      return [];
+    });
   }, [selectedPageId]);
+
+  // 페이지 목록이 바뀌면 삭제된 유령 ID를 자동 정리
+  useEffect(() => {
+    setSelectedPageIds((prev) => {
+      if (prev.length === 0) return prev;
+      const existing = new Set(pages.map((p) => p.id));
+      const filtered = prev.filter((id) => existing.has(id));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [pages]);
 
   const getCopiedPageId = () => {
     try {
@@ -631,6 +755,10 @@ const BottomBar = ({
         setSelectedPageIds([...base, pageId]);
       }
     } else {
+      // 묶음의 앵커(=현재 활성 페이지)를 다시 단일 클릭한 경우는 묶음 유지 no-op
+      const isAnchorReclick =
+        pageId === selectedPageId && selectedPageIds.includes(pageId) && selectedPageIds.length > 1;
+      if (isAnchorReclick) return;
       onSelectPage(pageId);
       setSelectedPageIds([]);
     }
@@ -731,6 +859,13 @@ const BottomBar = ({
       const currentSelectedPageId = selectedPageIdRef.current;
       const currentSelectedPageIds = selectedPageIdsRef.current;
 
+      // Escape: 묶음 선택이 있으면 해제 (없으면 무시하고 이벤트 전파)
+      if (event.key === "Escape" && currentSelectedPageIds.length > 0) {
+        setSelectedPageIds([]);
+        event.preventDefault();
+        return;
+      }
+
       // Ctrl+C: 다중 선택이 있으면 해당 목록을, 없으면 현재 페이지 단독을 저장
       if ((event.ctrlKey || event.metaKey) && event.key === "c") {
         const ids = currentSelectedPageIds.length > 0 ? currentSelectedPageIds : [currentSelectedPageId];
@@ -807,6 +942,22 @@ const BottomBar = ({
       >
         {isCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
       </button>
+      {/* 다중 선택 카운트 칩 (펼쳐진 상태에서만 표시) */}
+      {!isCollapsed && selectedPageIds.length > 1 && (
+        <div className="absolute -top-6 right-4 z-10 flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-1 shadow-sm">
+          <span className="text-12-semibold text-primary-700">
+            {selectedPageIds.length}개 선택됨
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedPageIds([])}
+            className="text-12-semibold text-primary-700 hover:text-primary-800"
+            title="선택 해제 (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {!isCollapsed && (
         <div
           ref={listRef}
@@ -815,6 +966,7 @@ const BottomBar = ({
           {items.map((item) => {
             if (item.type === "page") {
               const index = item.pageIndex;
+              const dragHandlers = createDragHandlers(item.page.id);
               return (
                 <div key={item.key}>
                   <PageThumbnail
@@ -824,15 +976,18 @@ const BottomBar = ({
                       selectedPageIds.includes(item.page.id)
                     }
                     isDragging={isDragging}
+                    isPartOfActiveDrag={dragHandlers.isPartOfSelection}
                     canMoveLeft={index > 0}
                     canMoveRight={index < pages.length - 1}
+                    readOnly={readOnly}
                     spellErrorCount={spellErrorCountByPageId.get(item.page.id)}
+                    isStorybookGenerating={storybookGeneratingPageIds.has(item.page.id)}
                     onSelect={handlePageClick}
                     onDuplicate={readOnly ? undefined : onDuplicatePage}
                     onDelete={readOnly ? (() => {}) : onDeletePage}
                     onMovePage={readOnly ? undefined : onMovePage}
                     onContextMenu={readOnly ? (() => {}) : handlePageContextMenu(item.page.id)}
-                    dragHandlers={createDragHandlers(item.page.id)}
+                    dragHandlers={dragHandlers}
                   />
                 </div>
               );
@@ -846,6 +1001,14 @@ const BottomBar = ({
               const isFirstDivider = item.insertBefore;
               const isLastDivider = !item.insertBefore && item.insertIndex === pages.length;
               const showAddButton = !isFirstDivider && !isLastDivider;
+              // 드래그 중 묶음에 포함된 페이지에 인접한 divider는 드롭 불가(의미 없는 이동)
+              const prevPageId = pages[item.insertIndex - 1]?.id;
+              const nextPageId = pages[item.insertIndex]?.id;
+              const isBetweenSelection =
+                isDragging &&
+                ((prevPageId && selectedPageIds.includes(prevPageId)) ||
+                  (nextPageId && selectedPageIds.includes(nextPageId))) &&
+                selectedPageIds.length > 1;
               return (
                 <PageInsertDivider
                   key={item.key}
@@ -854,9 +1017,16 @@ const BottomBar = ({
                     if (readOnly) return;
                     handleAddPageBetween(item.insertIndex);
                   }}
-                  onDragOver={handleDragOver}
+                  onDragOver={(event) => {
+                    if (isBetweenSelection) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "none";
+                      return;
+                    }
+                    handleDragOver(event);
+                  }}
                   onDrop={
-                    targetPageId
+                    targetPageId && !isBetweenSelection
                       ? (e) => handleDrop(e, targetPageId, item.insertBefore)
                       : undefined
                   }

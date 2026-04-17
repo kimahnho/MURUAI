@@ -13,6 +13,17 @@ type UseBottomBarDragParams = {
   onDragStateChange: (isDragging: boolean) => void;
 };
 
+export type PageDragHandlers = {
+  onDragStart: (event: ReactDragEvent<HTMLDivElement>) => void;
+  onDragOver: (event: ReactDragEvent<HTMLDivElement>) => void;
+  onDrop: (event: ReactDragEvent<HTMLDivElement>) => void;
+  onDragEnd: () => void;
+  // 다중 선택 중 이 썸네일이 함께 움직이는 묶음에 포함됐는지
+  isPartOfSelection: boolean;
+  // 묶음에 포함된 총 페이지 수 (단일 드래그면 1)
+  selectedCount: number;
+};
+
 export const useBottomBarDrag = ({
   pages,
   selectedPageIds,
@@ -31,26 +42,32 @@ export const useBottomBarDrag = ({
   }, [selectedPageIds]);
 
   const createDragHandlers = useCallback(
-    (pageId: string) => ({
-      onDragStart: (event: ReactDragEvent<HTMLDivElement>) => {
-        // 드래그 시작 페이지가 다중 선택에 포함되어 있으면 선택 전체를 이동
-        const ids = selectedPageIdsRef.current.includes(pageId)
-          ? selectedPageIdsRef.current
-          : [pageId];
-        handleDragStart(event, ids);
-        onDragStateChange(true);
-      },
-      onDragOver: handleDragOver,
-      onDrop: (event: ReactDragEvent<HTMLDivElement>) => {
-        handleDrop(event, pageId);
-        onDragStateChange(false);
-      },
-      // 드롭 없이 취소된 경우(Escape 등)에도 isDragging 해제
-      onDragEnd: () => {
-        onDragStateChange(false);
-      },
-    }),
-    [handleDragOver, handleDragStart, handleDrop, onDragStateChange],
+    (pageId: string): PageDragHandlers => {
+      const isPartOfSelection = selectedPageIds.includes(pageId) && selectedPageIds.length > 1;
+      const selectedCount = isPartOfSelection ? selectedPageIds.length : 1;
+      return {
+        onDragStart: (event: ReactDragEvent<HTMLDivElement>) => {
+          // 드래그 시작 페이지가 다중 선택에 포함되어 있으면 선택 전체를 이동
+          const ids = selectedPageIdsRef.current.includes(pageId)
+            ? selectedPageIdsRef.current
+            : [pageId];
+          handleDragStart(event, ids);
+          onDragStateChange(true);
+        },
+        onDragOver: handleDragOver,
+        onDrop: (event: ReactDragEvent<HTMLDivElement>) => {
+          handleDrop(event, pageId);
+          onDragStateChange(false);
+        },
+        // 드롭 없이 취소된 경우(Escape 등)에도 isDragging 해제
+        onDragEnd: () => {
+          onDragStateChange(false);
+        },
+        isPartOfSelection,
+        selectedCount,
+      };
+    },
+    [handleDragOver, handleDragStart, handleDrop, onDragStateChange, selectedPageIds],
   );
 
   return {
