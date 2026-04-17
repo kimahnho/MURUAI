@@ -33,7 +33,7 @@ const PALETTE_SECTIONS: { title: string; items: PaletteItem[] }[] = [
     title: "조음 · 음운",
     items: [
       { type: "arrow_transform", icon: "🔄", name: "변환 쌍", desc: "발음 변환 연습 (간→갈)" },
-      { type: "sequential_repeat", icon: "🔁", name: "반복 연습", desc: "반복 발음 연습 (바바바)" },
+
       { type: "selection_sentence", icon: "✋", name: "문장 선택", desc: "두 문장 중 맞는 것 고르기" },
       { type: "grid_NxM", icon: "⊞", name: "단어 카드", desc: "이미지+텍스트 카드 배열" },
     ],

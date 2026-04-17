@@ -4,7 +4,7 @@
  * 삽입된 컴포넌트가 없으면 렌더하지 않음.
  */
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 
 import { useWorksheetElementStore } from "@/features/editor/store/worksheetElementStore";
 import { COMPONENT_META } from "@/features/worksheet-editor/constants/defaults";
@@ -12,7 +12,7 @@ import type {
   WorksheetConfig,
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -33,7 +33,7 @@ import type {
 import {
   HeaderInstructionForm,
   ArrowTransformForm,
-  SequentialRepeatForm,
+
   SelectionSentenceForm,
   GridForm,
   RewardTrackerForm,
@@ -98,8 +98,7 @@ const renderForm = (
       return <HeaderInstructionForm config={comp.config as HeaderInstructionConfig} onUpdate={onUpdate} />;
     case "arrow_transform":
       return <ArrowTransformForm config={comp.config as ArrowTransformConfig} onUpdate={onUpdate} />;
-    case "sequential_repeat":
-      return <SequentialRepeatForm config={comp.config as SequentialRepeatConfig} onUpdate={onUpdate} />;
+
     case "selection_sentence":
       return <SelectionSentenceForm config={comp.config as SelectionSentenceConfig} onUpdate={onUpdate} />;
     case "grid_NxM":
@@ -142,13 +141,10 @@ const WorksheetRightPanel = () => {
   const isPanelVisible = useWorksheetElementStore((s) => s.isPanelVisible);
   const selectedComponentId = useWorksheetElementStore((s) => s.selectedComponentId);
   const updateComponentConfig = useWorksheetElementStore((s) => s.updateComponentConfig);
-  const moveInsertedComponent = useWorksheetElementStore((s) => s.moveInsertedComponent);
-  const reorderInsertedComponent = useWorksheetElementStore((s) => s.reorderInsertedComponent);
   const requestDeleteWithElements = useWorksheetElementStore((s) => s.requestDeleteWithElements);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(insertedComponents.length);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const dragIndexRef = useRef<number | null>(null);
+  const cardRefsMap = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // 새 컴포넌트 삽입 시 자동 펼침
   useEffect(() => {
@@ -161,10 +157,14 @@ const WorksheetRightPanel = () => {
     prevCountRef.current = insertedComponents.length;
   }, [insertedComponents]);
 
-  // 캔버스 클릭으로 selectedComponentId가 바뀌면 해당 카드 자동 펼침
+  // 선택된 컴포넌트 카드 자동 펼침 + 스크롤
   useEffect(() => {
     if (selectedComponentId) {
       setExpandedIds((prev) => new Set([...prev, selectedComponentId]));
+      requestAnimationFrame(() => {
+        const el = cardRefsMap.current.get(selectedComponentId);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [selectedComponentId]);
 
@@ -204,59 +204,26 @@ const WorksheetRightPanel = () => {
       {/* 컴포넌트 카드 목록 */}
       {insertedComponents.length > 0 && (
       <div className="p-3 flex flex-col gap-2.5">
-        {insertedComponents.map((comp, idx) => {
+        {insertedComponents.map((comp) => {
           const meta = COMPONENT_META[comp.type];
           const isExpanded = expandedIds.has(comp.id);
-          const isDragOver = dragOverIndex === idx;
           const isSelected = selectedComponentId === comp.id;
 
           return (
             <div
               key={comp.id}
-              onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx); }}
-              onDragLeave={() => { if (dragOverIndex === idx) setDragOverIndex(null); }}
-              onDrop={() => {
-                if (dragIndexRef.current !== null && dragIndexRef.current !== idx) {
-                  reorderInsertedComponent(dragIndexRef.current, idx);
-                }
-                dragIndexRef.current = null;
-                setDragOverIndex(null);
+              ref={(node) => {
+                if (node) cardRefsMap.current.set(comp.id, node);
+                else cardRefsMap.current.delete(comp.id);
               }}
               className={`rounded-xl border shadow-sm overflow-hidden transition-all ${
-                isDragOver
-                  ? "border-primary border-2 scale-[1.02] bg-white-100"
-                  : isSelected
-                    ? "border-primary-300 bg-primary-50 ring-2 ring-primary-200"
-                    : "border-black-25 bg-white-100"
+                isSelected
+                  ? "border-primary-300 bg-primary-50 ring-2 ring-primary-200"
+                  : "border-black-25 bg-white-100"
               }`}
             >
-              {/* 카드 헤더 — 드래그 가능 + 토글 + 순서 이동 + 삭제.
-                  draggable는 헤더에만 붙여서 바디(폼)의 슬라이더 드래그와 충돌하지 않게 한다. */}
-              <div
-                draggable
-                onDragStart={() => { dragIndexRef.current = idx; }}
-                onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
-                className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition cursor-grab active:cursor-grabbing">
-                {/* 순서 이동 ↑↓ */}
-                <div className="flex flex-col shrink-0">
-                  <button
-                    type="button"
-                    className="w-5 h-4 flex items-center justify-center text-black-40 hover:text-primary transition disabled:opacity-30"
-                    disabled={insertedComponents.indexOf(comp) === 0}
-                    onClick={() => moveInsertedComponent(comp.id, -1)}
-                  >
-                    <ArrowUp className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-5 h-4 flex items-center justify-center text-black-40 hover:text-primary transition disabled:opacity-30"
-                    disabled={insertedComponents.indexOf(comp) === insertedComponents.length - 1}
-                    onClick={() => moveInsertedComponent(comp.id, 1)}
-                  >
-                    <ArrowDown className="w-3 h-3" />
-                  </button>
-                </div>
-
+              {/* 카드 헤더 — 토글 + 삭제 */}
+              <div className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition">
                 {/* 아이콘 + 이름 — 클릭으로 토글 */}
                 <button
                   type="button"
