@@ -213,8 +213,6 @@ const WorksheetRightPanel = () => {
           return (
             <div
               key={comp.id}
-              draggable
-              onDragStart={() => { dragIndexRef.current = idx; }}
               onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx); }}
               onDragLeave={() => { if (dragOverIndex === idx) setDragOverIndex(null); }}
               onDrop={() => {
@@ -224,7 +222,6 @@ const WorksheetRightPanel = () => {
                 dragIndexRef.current = null;
                 setDragOverIndex(null);
               }}
-              onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
               className={`rounded-xl border shadow-sm overflow-hidden transition-all ${
                 isDragOver
                   ? "border-primary border-2 scale-[1.02] bg-white-100"
@@ -233,8 +230,13 @@ const WorksheetRightPanel = () => {
                     : "border-black-25 bg-white-100"
               }`}
             >
-              {/* 카드 헤더 — 드래그 가능 + 토글 + 순서 이동 + 삭제 */}
-              <div className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition cursor-grab active:cursor-grabbing">
+              {/* 카드 헤더 — 드래그 가능 + 토글 + 순서 이동 + 삭제.
+                  draggable는 헤더에만 붙여서 바디(폼)의 슬라이더 드래그와 충돌하지 않게 한다. */}
+              <div
+                draggable
+                onDragStart={() => { dragIndexRef.current = idx; }}
+                onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
+                className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-black-5 transition cursor-grab active:cursor-grabbing">
                 {/* 순서 이동 ↑↓ */}
                 <div className="flex flex-col shrink-0">
                   <button

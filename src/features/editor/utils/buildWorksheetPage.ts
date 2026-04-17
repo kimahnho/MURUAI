@@ -25,7 +25,7 @@ import type {
   CalendarConfig,
   MindMapConfig,
 } from "@/features/worksheet-editor/model/types";
-import { MIND_MAP_THEMES, computeDynamicSizes } from "@/features/worksheet-editor/utils/mindMapLayout";
+import { MIND_MAP_THEMES, computeDynamicSizes, generateMindMapNodes, MIND_MAP_L2_SHAPE_HIDDEN_THRESHOLD } from "@/features/worksheet-editor/utils/mindMapLayout";
 import { NOTEBOOK_SPECS, DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import type { WorksheetComponentType } from "@/features/worksheet-editor/model/types";
 import { withLogoCanvasElements } from "./logoElement";
@@ -1199,17 +1199,28 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements
 
 // --- Mind Map ---
 
-const buildMindMap = (config: MindMapConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildMindMap = (
+  config: MindMapConfig,
+  x: number,
+  y: number,
+  orientation: "horizontal" | "vertical" = "vertical",
+): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
   const isRect = (config.node_shape ?? "circle") === "rounded_rect";
 
-  // 콘텐츠 영역 크기 (px)
-  const areaW = CONTENT_W;
-  const areaH = CONTENT_W * (257 / 170); // A4 비율 유지
+  // 페이지 방향에 따라 콘텐츠 영역 산정 (마진 15mm 양쪽)
+  const pageWmm = orientation === "horizontal" ? 297 : 210;
+  const pageHmm = orientation === "horizontal" ? 210 : 297;
+  const areaW = mmToPx(pageWmm - 30);
+  const areaH = mmToPx(pageHmm - 30);
 
-  // 동적 노드 크기 (mm → px)
-  const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
+  // 동적 노드 크기 (mm → px) — 1차별 개별 2차 수(level2_counts)가 있으면 그것도 반영
+  const sizes = computeDynamicSizes(
+    config.level1_count,
+    config.level2_count_per_node,
+    config.level2_counts,
+  );
   const dPxByLevel = {
     0: mmToPx(sizes.d0),
     1: mmToPx(sizes.d1),
@@ -1237,8 +1248,12 @@ const buildMindMap = (config: MindMapConfig, x: number, y: number): { elements: 
     } as CanvasElement);
   }
 
+  // 1차가 많을 땐 2차 도형은 렌더하지 않는다 — 대신 위의 연결선만 짧은 가지처럼 남는다
+  const hideL2Shapes = config.level1_count >= MIND_MAP_L2_SHAPE_HIDDEN_THRESHOLD;
+
   // 노드 (앞쪽 레이어)
   for (const node of config.nodes) {
+    if (hideL2Shapes && node.level === 2) continue;
     const cx = x + node.position.x * areaW;
     const cy = y + node.position.y * areaH;
     const dPx = dPxByLevel[node.level];
@@ -1289,6 +1304,7 @@ const buildComponentElements = (
   comp: WorksheetComponent,
   x: number,
   y: number,
+  orientation: "horizontal" | "vertical" = "vertical",
 ): { elements: CanvasElement[]; height: number } => {
   switch (comp.type) {
     case "header_instruction":
@@ -1322,7 +1338,7 @@ const buildComponentElements = (
     case "matching_connect":
       return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
     case "mind_map":
-      return buildMindMap(comp.config as MindMapConfig, x, y);
+      return buildMindMap(comp.config as MindMapConfig, x, y, orientation);
     case "calendar":
       return buildCalendar(comp.config as CalendarConfig, x, y);
     case "date_name_field":
@@ -1341,9 +1357,24 @@ const buildComponentElements = (
 export const buildWorksheetComponentElements = (
   componentType: WorksheetComponentType,
   insertY: number,
+  orientation: "horizontal" | "vertical" = "vertical",
 ): CanvasElement[] => {
-  const config = structuredClone(DEFAULT_CONFIGS[componentType]);
-  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY);
+  let config = structuredClone(DEFAULT_CONFIGS[componentType]);
+  // 마인드맵 DEFAULT_CONFIGS는 세로 기준으로 생성되어 있다 — 가로 캔버스면 재생성
+  if (componentType === "mind_map" && orientation === "horizontal") {
+    const mm = config as MindMapConfig;
+    config = {
+      ...mm,
+      nodes: generateMindMapNodes(
+        mm.level1_count,
+        mm.level2_count_per_node,
+        mm.nodes,
+        mm.level2_counts,
+        "horizontal",
+      ),
+    } as WorksheetConfig;
+  }
+  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY, orientation);
 };
 
 /**
@@ -1354,6 +1385,7 @@ export const buildWorksheetComponentElementsFromConfig = (
   componentType: WorksheetComponentType,
   config: WorksheetConfig,
   insertY: number,
+  orientation: "horizontal" | "vertical" = "vertical",
 ): CanvasElement[] => {
   const comp: WorksheetComponent = {
     id: crypto.randomUUID(),
@@ -1361,7 +1393,8 @@ export const buildWorksheetComponentElementsFromConfig = (
     config,
     collapsed: false,
   };
-  const { elements } = buildComponentElements(comp, MARGIN, insertY);
+  // 가로 캔버스에서 마인드맵은 가로 콘텐츠 영역 기준으로 그려야 x=MARGIN + 실제 너비만큼 차지한다
+  const { elements } = buildComponentElements(comp, MARGIN, insertY, orientation);
   return elements;
 };
 

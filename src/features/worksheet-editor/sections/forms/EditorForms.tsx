@@ -1,5 +1,5 @@
 /** 컴포넌트별 속성 편집 폼 */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
@@ -1476,27 +1476,55 @@ export const CalendarForm = ({ config, onUpdate }: FormProps<CalendarConfig>) =>
 );
 
 // --- Mind Map ---
+const MIND_MAP_L1_MAX = 10;
+const MIND_MAP_L2_MAX = 4;
+const MIND_MAP_L2_HIDDEN_THRESHOLD = 7; // 1차 7+ 에서는 2차 도형 숨기고 짧은 가지선만
+
 export const MindMapForm = ({ config, onUpdate }: FormProps<MindMapConfig>) => {
   // 실제 노드 수를 계산 (캔버스에서 삭제되었을 수 있으므로)
   const actualL1 = config.nodes.filter((n) => n.level === 1).length;
   const l1Nodes = config.nodes.filter((n) => n.level === 1);
   // 1차 노드당 2차 노드 수의 최빈값 (동기화용)
-  const l2Counts = l1Nodes.map((l1) => config.nodes.filter((n) => n.level === 2 && n.parent_id === l1.id).length);
-  const actualL2PerNode = l2Counts.length > 0 ? Math.max(...l2Counts) : 0;
+  const actualL2Counts = l1Nodes.map((l1) => config.nodes.filter((n) => n.level === 2 && n.parent_id === l1.id).length);
+  const actualL2Max = actualL2Counts.length > 0 ? Math.max(...actualL2Counts) : 0;
+
+  const hasOverride = !!config.level2_counts && config.level2_counts.length > 0;
+
+  // 슬라이더 드래그 중에는 로컬 상태만 갱신 → 릴리즈 시 config 반영. 매 픽셀 재빌드되면
+  // 리렌더가 슬라이더 드래그 상태를 깨뜨려 "드래그 안 되는 버그"가 발생하므로 분리한다.
+  const [localL1, setLocalL1] = useState(config.level1_count);
+  const [localL2, setLocalL2] = useState(config.level2_count_per_node);
+  useEffect(() => { setLocalL1(config.level1_count); }, [config.level1_count]);
+  useEffect(() => { setLocalL2(config.level2_count_per_node); }, [config.level2_count_per_node]);
 
   const handleLevel1Change = (count: number) => {
-    const clamped = Math.max(1, Math.min(6, count));
+    const clamped = Math.max(1, Math.min(MIND_MAP_L1_MAX, count));
     onUpdate((prev) => {
-      const newNodes = generateMindMapNodes(clamped, prev.level2_count_per_node, prev.nodes);
-      return { ...prev, level1_count: clamped, nodes: newNodes };
+      // 1차 수 변경 시 override 길이도 맞춤 — 늘어나면 global로 채우고, 줄어들면 자름
+      let newCounts = prev.level2_counts;
+      if (newCounts && newCounts.length > 0) {
+        const resized: number[] = [];
+        for (let i = 0; i < clamped; i++) {
+          resized.push(newCounts[i] ?? prev.level2_count_per_node);
+        }
+        newCounts = resized;
+      }
+      const newNodes = generateMindMapNodes(clamped, prev.level2_count_per_node, prev.nodes, newCounts);
+      return { ...prev, level1_count: clamped, level2_counts: newCounts, nodes: newNodes };
     });
   };
 
   const handleLevel2Change = (count: number) => {
-    const clamped = Math.max(0, Math.min(4, count));
+    const clamped = Math.max(0, Math.min(MIND_MAP_L2_MAX, count));
+    // 일괄 슬라이더는 직관적으로 모든 1차에 동일하게 적용 — override 해제
     onUpdate((prev) => {
-      const newNodes = generateMindMapNodes(prev.level1_count, clamped, prev.nodes);
-      return { ...prev, level2_count_per_node: clamped, nodes: newNodes };
+      const newNodes = generateMindMapNodes(prev.level1_count, clamped, prev.nodes, undefined);
+      return {
+        ...prev,
+        level2_count_per_node: clamped,
+        level2_counts: undefined,
+        nodes: newNodes,
+      };
     });
   };
 
@@ -1511,16 +1539,24 @@ export const MindMapForm = ({ config, onUpdate }: FormProps<MindMapConfig>) => {
           <input
             type="range"
             min={1}
-            max={6}
-            value={config.level1_count}
-            onChange={(e) => handleLevel1Change(Number(e.target.value))}
+            max={MIND_MAP_L1_MAX}
+            value={localL1}
+            onChange={(e) => setLocalL1(Number(e.target.value))}
+            onMouseUp={(e) => handleLevel1Change(Number((e.target as HTMLInputElement).value))}
+            onTouchEnd={(e) => handleLevel1Change(Number((e.target as HTMLInputElement).value))}
+            onKeyUp={(e) => handleLevel1Change(Number((e.target as HTMLInputElement).value))}
             className="flex-1"
           />
-          <span className="text-14-semibold text-black-90 w-6 text-center">{config.level1_count}</span>
+          <span className="text-14-semibold text-black-90 w-6 text-center">{localL1}</span>
         </div>
         {actualL1 !== config.level1_count && (
           <div className="text-[10px] text-warning-700 mt-1">
             실제 노드 {actualL1}개 (캔버스에서 삭제됨)
+          </div>
+        )}
+        {config.level1_count >= MIND_MAP_L2_HIDDEN_THRESHOLD && (
+          <div className="mt-1.5 px-2.5 py-1.5 bg-primary-50 rounded-md text-[10.5px] text-primary-700 leading-relaxed">
+            💡 1차가 {MIND_MAP_L2_HIDDEN_THRESHOLD}개 이상이면 화면이 복잡해져서 2차 노드는 짧은 가지선으로만 보여요.
           </div>
         )}
       </div>
@@ -1531,16 +1567,24 @@ export const MindMapForm = ({ config, onUpdate }: FormProps<MindMapConfig>) => {
           <input
             type="range"
             min={0}
-            max={4}
-            value={config.level2_count_per_node}
-            onChange={(e) => handleLevel2Change(Number(e.target.value))}
+            max={MIND_MAP_L2_MAX}
+            value={localL2}
+            onChange={(e) => setLocalL2(Number(e.target.value))}
+            onMouseUp={(e) => handleLevel2Change(Number((e.target as HTMLInputElement).value))}
+            onTouchEnd={(e) => handleLevel2Change(Number((e.target as HTMLInputElement).value))}
+            onKeyUp={(e) => handleLevel2Change(Number((e.target as HTMLInputElement).value))}
             className="flex-1"
           />
-          <span className="text-14-semibold text-black-90 w-6 text-center">{config.level2_count_per_node}</span>
+          <span className="text-14-semibold text-black-90 w-6 text-center">{localL2}</span>
         </div>
-        {actualL2PerNode !== config.level2_count_per_node && config.level2_count_per_node > 0 && (
+        {!hasOverride && actualL2Max !== config.level2_count_per_node && config.level2_count_per_node > 0 && (
           <div className="text-[10px] text-warning-700 mt-1">
-            실제 최대 {actualL2PerNode}개/1차 노드
+            실제 최대 {actualL2Max}개/1차 노드
+          </div>
+        )}
+        {config.level1_count < MIND_MAP_L2_HIDDEN_THRESHOLD && (
+          <div className="mt-2 px-2.5 py-1.5 bg-primary-50 rounded-md text-[10.5px] text-primary-700 leading-relaxed">
+            💡 1차 노드를 클릭하면 옆에 <b>＋</b> 버튼이 나와요. 2차 노드를 개별로 추가할 수 있어요.
           </div>
         )}
       </div>

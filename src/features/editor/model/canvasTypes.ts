@@ -34,6 +34,10 @@ export type ElementType =
 export type WorksheetMeta = {
   componentId: string;   // InsertedWorksheetComponent.id
   componentType: string; // WorksheetComponentType
+  /** 마인드맵 전용: 이 요소가 대응하는 MindMapNode.id */
+  mindMapNodeId?: string;
+  /** 마인드맵 전용: 부모 노드의 id (center 또는 L1-N, 중심 노드는 null). 드래그 시 자식 추종에 사용 */
+  mindMapParentId?: string | null;
 };
 
 export type ElementBase = {

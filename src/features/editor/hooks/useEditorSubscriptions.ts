@@ -42,7 +42,8 @@ import {
 } from "../utils/tracingGridUtils";
 import { useWorksheetElementStore } from "../store/worksheetElementStore";
 import { buildWorksheetComponentElements, buildWorksheetComponentElementsFromConfig, reflowWorksheetComponents } from "../utils/buildWorksheetPage";
-import { MIND_MAP_THEMES } from "@/features/worksheet-editor/utils/mindMapLayout";
+import { MIND_MAP_THEMES, generateMindMapNodes, MIND_MAP_L2_SHAPE_HIDDEN_THRESHOLD } from "@/features/worksheet-editor/utils/mindMapLayout";
+import type { WorksheetConfig, MindMapConfig } from "@/features/worksheet-editor/model/types";
 import { addDateNameFieldElement, addClockFaceElement } from "../utils/pageFactory";
 import { DEFAULT_CONFIGS } from "@/features/worksheet-editor/constants/defaults";
 import { useWorksheetAnalytics } from "./useWorksheetAnalytics";
@@ -440,7 +441,8 @@ export const useEditorSubscriptions = ({
       }
       // 기존 요소가 없으면(로고만 있으면) 마진부터 시작, 있으면 기존 요소 뒤에 배치
       const insertY = maxY > SINGLE_MARGIN_PX ? maxY + 38 : SINGLE_MARGIN_PX;
-      const newElements = buildWorksheetComponentElements(compType, insertY);
+      const pageOrientation = page.orientation ?? "vertical";
+      const newElements = buildWorksheetComponentElements(compType, insertY, pageOrientation);
       if (newElements.length === 0) return;
 
       // 컴포넌트 ID 생성
@@ -456,10 +458,26 @@ export const useEditorSubscriptions = ({
         },
       }));
 
+      // 세로용 DEFAULT_CONFIGS 복사 후, 가로면 mind_map nodes 재생성된 값을 반영
+      let storedConfig: WorksheetConfig = structuredClone(DEFAULT_CONFIGS[compType]);
+      if (compType === "mind_map" && pageOrientation === "horizontal") {
+        const mm = storedConfig as MindMapConfig;
+        storedConfig = {
+          ...mm,
+          nodes: generateMindMapNodes(
+            mm.level1_count,
+            mm.level2_count_per_node,
+            mm.nodes,
+            mm.level2_counts,
+            "horizontal",
+          ),
+        } as WorksheetConfig;
+      }
+
       const wsComp: import("../model/pageTypes").PageWorksheetComponent = {
         id: wsCompId,
         type: compType,
-        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        config: storedConfig,
         elementIds: stampedElements.map((el) => el.id),
       };
 
@@ -475,14 +493,23 @@ export const useEditorSubscriptions = ({
             : p,
         ),
       );
-      setSelectedIds(stampedElements.map((el) => el.id));
+      // 마인드맵은 삽입 직후 첫 1차 노드만 단독 선택 → 캔버스의 "+ 2차 추가" 버튼이 바로 보이게 유도한다.
+      if (compType === "mind_map") {
+        const firstL1 = stampedElements.find((el) => {
+          const m = (el as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+          return m?.mindMapNodeId === "L1-0";
+        });
+        setSelectedIds(firstL1 ? [firstL1.id] : stampedElements.map((el) => el.id));
+      } else {
+        setSelectedIds(stampedElements.map((el) => el.id));
+      }
       setEditingTextId(null);
 
       // 인메모리 스토어에도 추가 (편집 패널용)
       useWorksheetElementStore.getState().addInsertedComponent({
         id: wsCompId,
         type: compType,
-        config: structuredClone(DEFAULT_CONFIGS[compType]),
+        config: storedConfig,
         elementIds: stampedElements.map((el) => el.id),
       });
     },
@@ -607,14 +634,57 @@ export const useEditorSubscriptions = ({
 
       // 마인드맵: 색상/모양 변경은 in-place 패치, 노드 수 변경 시만 재빌드 (텍스트 보존)
       if (comp.type === "mind_map") {
-        const mmConfig = comp.config as import("@/features/worksheet-editor/model/types").MindMapConfig;
+        let mmConfig = comp.config as import("@/features/worksheet-editor/model/types").MindMapConfig;
         const oldIds = new Set(comp.elementIds);
         const oldShapes = page.elements.filter((el) => oldIds.has(el.id) && el.type !== "line" && el.type !== "arrow");
 
-        // 노드 수가 바뀌었는지 확인
+        // 캔버스에 살아있는 노드 ID 집합
+        const aliveNodeIds = new Set<string>();
+        for (const s of oldShapes) {
+          const meta = (s as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+          if (meta?.mindMapNodeId) aliveNodeIds.add(meta.mindMapNodeId);
+        }
+
+        // 마지막 빌드 당시의 노드 목록 — 없으면(레거시 문서) "지금 config 전체가 이미 빌드됐다"고 가정한다.
+        // 이렇게 해두면, 로드 직후 캔버스에서 삭제가 이미 되어 있는 상태에서도
+        // "lastBuilt − alive"로 삭제된 노드를 복구 없이 골라낼 수 있다.
+        const lastBuilt = new Set(mmConfig.lastBuiltNodeIds ?? mmConfig.nodes.map((n) => n.id));
+
+        // 캔버스에서 삭제된(이전에 빌드됐지만 지금 alive가 아닌) 노드만 prune 대상으로 삼는다.
+        // 슬라이더로 새로 추가된(아직 빌드 전인) 노드는 lastBuilt에 없으므로 보존된다 — 이후 재빌드로 canvas에 그려진다.
+        const prunedIds = new Set<string>();
+        for (const id of lastBuilt) {
+          if (id !== "center" && !aliveNodeIds.has(id)) prunedIds.add(id);
+        }
+
+        if (prunedIds.size > 0) {
+          const reconciledNodes = mmConfig.nodes.filter((n) => !prunedIds.has(n.id));
+          // 부모가 사라진 2차는 고아이므로 함께 제거
+          const aliveIds = new Set(reconciledNodes.map((n) => n.id));
+          const finalNodes = reconciledNodes.filter(
+            (n) => n.parent_id === null || aliveIds.has(n.parent_id),
+          );
+          if (finalNodes.length !== mmConfig.nodes.length) {
+            mmConfig = { ...mmConfig, nodes: finalNodes };
+            useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
+          }
+        }
+
+        // 노드 수가 바뀌었는지 확인 (재조정된 config 기준)
         const needsRebuild = oldShapes.length !== mmConfig.nodes.length;
 
         if (needsRebuild) {
+          // 재빌드 전: 지금 선택된 요소가 이 컴포넌트에 속한다면, 같은 mindMapNodeId로 재선택할 수 있도록 저장.
+          // "+" 버튼으로 2차를 연속 추가할 때 1차 선택이 유지되게 하는 핵심 로직.
+          const selectedNodeIdsToKeep = new Set<string>();
+          for (const sid of selectedIdsRef.current) {
+            const selEl = page.elements.find((e) => e.id === sid);
+            const selMeta = (selEl as { worksheetMeta?: { mindMapNodeId?: string; componentId?: string } } | undefined)?.worksheetMeta;
+            if (selMeta?.componentId === comp.id && selMeta?.mindMapNodeId) {
+              selectedNodeIdsToKeep.add(selMeta.mindMapNodeId);
+            }
+          }
+
           // 재빌드 전: 현재 캔버스 요소의 텍스트를 config.nodes에 동기화
           for (const shape of oldShapes) {
             const meta = (shape as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
@@ -626,12 +696,40 @@ export const useEditorSubscriptions = ({
               configNode.text = (shape as { text: string }).text;
             }
           }
+          // 페이지 방향 기준으로 노드 위치를 재생성 — 슬라이더 핸들러는 기본(세로) 방향으로
+          // 생성해두므로, 가로 캔버스면 여기서 바로 잡아 레이아웃 어긋남을 방지한다.
+          const rebuildOrientation = page.orientation ?? "vertical";
+          const regeneratedNodes = generateMindMapNodes(
+            mmConfig.level1_count,
+            mmConfig.level2_count_per_node,
+            mmConfig.nodes,
+            mmConfig.level2_counts,
+            rebuildOrientation,
+          );
+          // 재생성은 캐노니컬 세트(L1-0..L1-N, L2-i-j)를 만들어내므로 방금 prune한 삭제 노드가
+          // 다시 살아날 수 있다. → prune 결과를 한 번 더 적용해 사용자의 캔버스 삭제를 유지한다.
+          let finalRegeneratedNodes = regeneratedNodes;
+          if (prunedIds.size > 0) {
+            const kept = regeneratedNodes.filter((n) => !prunedIds.has(n.id));
+            const keptSet = new Set(kept.map((n) => n.id));
+            finalRegeneratedNodes = kept.filter(
+              (n) => n.parent_id === null || keptSet.has(n.parent_id),
+            );
+          }
+          mmConfig = { ...mmConfig, nodes: finalRegeneratedNodes };
+          // 이번 빌드에 실제로 그려질 노드 ID만 lastBuiltNodeIds에 기록 (삭제 감지용).
+          // 1차 7+ 컴팩트 모드에서는 2차 shape를 그리지 않으므로 L2는 제외해야 prune 오작동을 피한다.
+          const hideL2ShapesForBuild = mmConfig.level1_count >= MIND_MAP_L2_SHAPE_HIDDEN_THRESHOLD;
+          const builtIds = mmConfig.nodes
+            .filter((n) => !hideL2ShapesForBuild || n.level !== 2)
+            .map((n) => n.id);
+          mmConfig = { ...mmConfig, lastBuiltNodeIds: builtIds };
           // config 업데이트를 store에 반영 (silent — 재빌드 트리거 안 함)
           useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
 
           const cleaned = page.elements.filter((el) => !oldIds.has(el.id));
           const newElements = buildWorksheetComponentElementsFromConfig(
-            comp.type, mmConfig, 56.7,
+            comp.type, mmConfig, 56.7, page.orientation ?? "vertical",
           ).map((el) => ({
             ...el,
             worksheetMeta: {
@@ -650,8 +748,29 @@ export const useEditorSubscriptions = ({
               };
             }),
           );
+
+          // 재빌드 후 선택 복원: 같은 mindMapNodeId를 가진 새 요소 ID로 재선택.
+          if (selectedNodeIdsToKeep.size > 0) {
+            const nextSelected = newElements
+              .filter((el) => {
+                const m = (el as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+                return !!m?.mindMapNodeId && selectedNodeIdsToKeep.has(m.mindMapNodeId);
+              })
+              .map((el) => el.id);
+            if (nextSelected.length > 0) setSelectedIds(nextSelected);
+          }
         } else {
-          // 색상 + 모양 in-place 패치 — 텍스트/위치 보존
+          // 색상 + 모양 in-place 패치 — 텍스트/위치 보존.
+          // lastBuiltNodeIds를 현재 "실제 그려진" 상태로 갱신 (컴팩트 모드면 L2 제외)
+          const hideL2ShapesInPlace = mmConfig.level1_count >= MIND_MAP_L2_SHAPE_HIDDEN_THRESHOLD;
+          const currentIds = mmConfig.nodes
+            .filter((n) => !hideL2ShapesInPlace || n.level !== 2)
+            .map((n) => n.id);
+          const lastIds = mmConfig.lastBuiltNodeIds ?? [];
+          if (currentIds.length !== lastIds.length || currentIds.some((id, i) => id !== lastIds[i])) {
+            mmConfig = { ...mmConfig, lastBuiltNodeIds: currentIds };
+            useWorksheetElementStore.getState().updateComponentConfigSilent(comp.id, mmConfig);
+          }
           const theme = MIND_MAP_THEMES[mmConfig.color_theme ?? "gray"];
           const targetShape = mmConfig.node_shape ?? "circle";
 

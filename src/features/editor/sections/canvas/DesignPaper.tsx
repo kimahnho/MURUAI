@@ -39,6 +39,7 @@ import {
   GroupSelectionOverlay,
   SelectionRectOverlay,
 } from "./DesignPaperOverlays";
+import MindMapAddChildOverlay from "./MindMapAddChildOverlay";
 import { useSmartGuides } from "../../model/useSmartGuides";
 import { useSideBarStore } from "../../store/sideBarStore";
 import { useFontStore } from "../../store/fontStore";
@@ -914,6 +915,13 @@ const DesignPaper = ({
               }
             }}
           />
+          {!readOnly && (
+            <MindMapAddChildOverlay
+              selectedIds={selectedIds}
+              elements={elements}
+              pageOrientation={orientation}
+            />
+          )}
         </>
       )}
       <DesignPaperContextMenu

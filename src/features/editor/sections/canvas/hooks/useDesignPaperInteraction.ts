@@ -318,13 +318,42 @@ export const useDesignPaperInteraction = ({
       const deltaY = nextRect.y - targetElement.y;
 
       // labelId 연동 또는 마인드맵 노드 연결선 추종
-      const meta = (targetElement as { worksheetMeta?: { mindMapNodeId?: string } }).worksheetMeta;
+      const meta = (targetElement as { worksheetMeta?: { mindMapNodeId?: string; componentId?: string } }).worksheetMeta;
       const hasMindMap = !!meta?.mindMapNodeId;
       const hasLabel = !!(targetElement as { labelId?: string }).labelId;
+
+      // 1차 노드를 드래그하면 그 자식(2차 노드)들도 함께 이동시킨다 — 같은 컴포넌트의
+      // mindMapParentId가 이 L1의 nodeId와 일치하는 요소들을 같은 delta로 옮긴다.
+      const draggingL1NodeId =
+        hasMindMap && meta?.mindMapNodeId && /^L1-\d+$/.test(meta.mindMapNodeId)
+          ? meta.mindMapNodeId
+          : null;
+      const sameCompId = meta?.componentId;
 
       if ((hasLabel || hasMindMap) && (deltaX !== 0 || deltaY !== 0)) {
         const nodeCenterX = nextRect.x + nextRect.width / 2;
         const nodeCenterY = nextRect.y + nextRect.height / 2;
+
+        // 1차 드래그면 이 L1의 자식(L2)들 중심 좌표를 미리 계산해둔다.
+        // 각 라인의 끝점이 L2 중심과 가까우면 delta만큼 함께 이동시킨다.
+        const l1ChildCenters: { x: number; y: number }[] = [];
+        // 컴팩트 모드(1차 7+)에서는 2차 도형이 캔버스에 없지만 라인 끝점은 있다.
+        // center 노드 위치를 알면 "L1 끝점이 아닌 쪽 & center도 아닌 쪽" 끝점 = L2 끝점으로 인식 가능.
+        let centerPoint: { x: number; y: number } | null = null;
+        if (draggingL1NodeId) {
+          for (const el of elements) {
+            const em = (el as { worksheetMeta?: { componentId?: string; mindMapParentId?: string; mindMapNodeId?: string } }).worksheetMeta;
+            if (em?.componentId !== sameCompId) continue;
+            if (em?.mindMapParentId === draggingL1NodeId && "x" in el && "y" in el && "w" in el && "h" in el) {
+              const e = el as { x: number; y: number; w: number; h: number };
+              l1ChildCenters.push({ x: e.x + e.w / 2, y: e.y + e.h / 2 });
+            }
+            if (em?.mindMapNodeId === "center" && "x" in el && "y" in el && "w" in el && "h" in el) {
+              const e = el as { x: number; y: number; w: number; h: number };
+              centerPoint = { x: e.x + e.w / 2, y: e.y + e.h / 2 };
+            }
+          }
+        }
 
         const nextElements = elements.map((element) => {
           if (element.id === elementId) {
@@ -344,6 +373,19 @@ export const useDesignPaperInteraction = ({
               y: element.y + deltaY,
             };
           }
+          // 1차 노드 드래그: 이 L1에 속한 2차 노드 도형을 같은 delta로 이동
+          if (
+            draggingL1NodeId &&
+            element.worksheetMeta?.componentId === sameCompId &&
+            element.worksheetMeta?.mindMapParentId === draggingL1NodeId &&
+            "x" in element && "y" in element
+          ) {
+            return {
+              ...element,
+              x: (element as { x: number }).x + deltaX,
+              y: (element as { y: number }).y + deltaY,
+            };
+          }
           // 마인드맵 연결선 추종: 같은 컴포넌트의 line만 매칭 (인접 마인드맵 간 간섭 방지)
           if (hasMindMap && (element.type === "line" || element.type === "arrow") &&
             element.worksheetMeta?.componentId === targetElement.worksheetMeta?.componentId) {
@@ -351,16 +393,40 @@ export const useDesignPaperInteraction = ({
             const oldCenterX = targetElement.x + targetElement.w / 2;
             const oldCenterY = targetElement.y + targetElement.h / 2;
             const tolerance = Math.max(targetElement.w, targetElement.h) / 2;
+            const childTol = 6;
+            const centerTol = 8;
             let changed = false;
             let newStart = line.start;
             let newEnd = line.end;
-            if (Math.abs(line.start.x - oldCenterX) < tolerance && Math.abs(line.start.y - oldCenterY) < tolerance) {
-              newStart = { x: nodeCenterX, y: nodeCenterY };
-              changed = true;
+            const startOnThis = Math.abs(line.start.x - oldCenterX) < tolerance && Math.abs(line.start.y - oldCenterY) < tolerance;
+            const endOnThis = Math.abs(line.end.x - oldCenterX) < tolerance && Math.abs(line.end.y - oldCenterY) < tolerance;
+            if (startOnThis) { newStart = { x: nodeCenterX, y: nodeCenterY }; changed = true; }
+            if (endOnThis) { newEnd = { x: nodeCenterX, y: nodeCenterY }; changed = true; }
+            // 자식(L2) 끝점과 일치하면 delta만큼 함께 이동 (center→L1 라인에는 해당 없음)
+            for (const c of l1ChildCenters) {
+              if (!startOnThis && Math.abs(line.start.x - c.x) < childTol && Math.abs(line.start.y - c.y) < childTol) {
+                newStart = { x: line.start.x + deltaX, y: line.start.y + deltaY };
+                changed = true;
+              }
+              if (!endOnThis && Math.abs(line.end.x - c.x) < childTol && Math.abs(line.end.y - c.y) < childTol) {
+                newEnd = { x: line.end.x + deltaX, y: line.end.y + deltaY };
+                changed = true;
+              }
             }
-            if (Math.abs(line.end.x - oldCenterX) < tolerance && Math.abs(line.end.y - oldCenterY) < tolerance) {
-              newEnd = { x: nodeCenterX, y: nodeCenterY };
-              changed = true;
+            // 컴팩트 모드(1차 7+): L2 도형 요소가 없어 l1ChildCenters가 비었을 수 있다.
+            // "이 라인의 한쪽이 L1 중심에 붙어 있고 + 반대쪽은 center도 아닌 경우" → 반대쪽은 L2 가지선 끝.
+            // 그 끝점을 delta만큼 이동시켜 가지선이 L1과 함께 이동하게 한다.
+            if (draggingL1NodeId && centerPoint) {
+              const otherEndIsCenter = (p: { x: number; y: number }) =>
+                Math.abs(p.x - centerPoint!.x) < centerTol && Math.abs(p.y - centerPoint!.y) < centerTol;
+              if (startOnThis && !endOnThis && !otherEndIsCenter(line.end)) {
+                newEnd = { x: line.end.x + deltaX, y: line.end.y + deltaY };
+                changed = true;
+              }
+              if (endOnThis && !startOnThis && !otherEndIsCenter(line.start)) {
+                newStart = { x: line.start.x + deltaX, y: line.start.y + deltaY };
+                changed = true;
+              }
             }
             if (changed) return { ...element, start: newStart, end: newEnd };
           }

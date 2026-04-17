@@ -5,7 +5,7 @@
  */
 import { create } from "zustand";
 import { mp } from "@/shared/utils/mixpanel";
-import type { WorksheetComponentType, WorksheetConfig, WorksheetComponent } from "@/features/worksheet-editor/model/types";
+import type { WorksheetComponentType, WorksheetConfig, WorksheetComponent, MindMapConfig } from "@/features/worksheet-editor/model/types";
 
 export interface InsertedWorksheetComponent {
   id: string;
@@ -100,9 +100,26 @@ export const useWorksheetElementStore = create<WorksheetElementStore>((set) => (
 
   insertedComponents: [],
   addInsertedComponent: (comp) => {
+    // 마인드맵은 삽입 직후 config.nodes가 전부 빌드된 상태 — 이를 기준선으로 기록해두면
+    // 이후 "캔버스 삭제" vs "슬라이더로 개수 늘림"을 구분할 수 있다.
+    let finalComp = comp;
+    if (comp.type === "mind_map") {
+      const mmCfg = comp.config as MindMapConfig;
+      if (!mmCfg.lastBuiltNodeIds) {
+        // 1차 7+ 컴팩트 모드에서는 L2 shape를 그리지 않으므로 lastBuiltNodeIds에서도 제외
+        const hideL2 = mmCfg.level1_count >= 7;
+        const builtIds = mmCfg.nodes
+          .filter((n) => !hideL2 || n.level !== 2)
+          .map((n) => n.id);
+        finalComp = {
+          ...comp,
+          config: { ...mmCfg, lastBuiltNodeIds: builtIds } as WorksheetConfig,
+        };
+      }
+    }
     set((state) => ({
-      insertedComponents: [...state.insertedComponents, comp],
-      selectedComponentId: comp.id,
+      insertedComponents: [...state.insertedComponents, finalComp],
+      selectedComponentId: finalComp.id,
     }));
   },
   updateComponentConfig: (id, config) => {

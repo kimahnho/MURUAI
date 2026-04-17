@@ -217,11 +217,18 @@ export type MindMapNodeShape = "circle" | "rounded_rect";
 
 export interface MindMapConfig {
   level1_count: number;
+  /** 1차 노드마다 공통으로 적용되는 기본 2차 노드 수 */
   level2_count_per_node: number;
+  /** 1차 노드별 2차 노드 수 개별 지정. 없으면 level2_count_per_node를 모든 1차에 적용 */
+  level2_counts?: number[];
   line_style: "straight";
   color_theme: MindMapColorTheme;
   node_shape: MindMapNodeShape;
   nodes: MindMapNode[];
+  /** 마지막으로 캔버스에 빌드된 노드 ID 목록.
+   * 사용자가 캔버스에서 개별 노드를 삭제한 것을 감지하여 색상 변경 시
+   * 삭제된 노드가 되살아나지 않도록 사용. (없으면 legacy 상태로 간주) */
+  lastBuiltNodeIds?: string[];
 }
 
 export type WorksheetConfig =
