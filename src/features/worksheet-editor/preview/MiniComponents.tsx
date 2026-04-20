@@ -4,7 +4,7 @@ import { useRef } from "react";
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -51,20 +51,6 @@ export const MiniArrowTransform = ({ config }: { config: ArrowTransformConfig })
         <div className="ws-arrow-box ws-orig">{p.original}</div>
         <div className="ws-arrow-mid">&rarr;</div>
         <div className="ws-arrow-box ws-trans">{p.transformed}</div>
-      </div>
-    ))}
-  </div>
-);
-
-// --- Sequential Repeat ---
-export const MiniSequentialRepeat = ({ config }: { config: SequentialRepeatConfig }) => (
-  <div>
-    {config.section_title && <div className="ws-seq-section-title">{config.section_title}</div>}
-    {config.rows.map((r, i) => (
-      <div key={i} className="ws-seq-row">
-        {Array.from({ length: r.repeat || 5 }).map((_, j) => (
-          <div key={j} className="ws-seq-syl">{r.syllable}</div>
-        ))}
       </div>
     ))}
   </div>

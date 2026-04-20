@@ -9,7 +9,7 @@ import type { WorksheetComponent, WorksheetConfig } from "@/features/worksheet-e
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -37,6 +37,12 @@ const PAGE_W = mmToPx(210);
 const MARGIN = mmToPx(15);
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const COMP_GAP = mmToPx(10);
+
+/** orientation에 따른 콘텐츠 영역 너비 계산 */
+export const getContentWidth = (orientation: "vertical" | "horizontal" = "vertical") => {
+  const pageW = orientation === "horizontal" ? mmToPx(297) : mmToPx(210);
+  return pageW - MARGIN * 2;
+};
 
 const uid = () => crypto.randomUUID();
 
@@ -68,7 +74,7 @@ const shapeEl = (
 
 // --- Component builders ---
 
-const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildHeader = (config: HeaderInstructionConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
@@ -79,7 +85,7 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
   const TITLE_FONT = 28;
   const titleH = mmToPx(10) * (TITLE_FONT / 28);
   els.push(textEl({
-    x, y: curY, w: CONTENT_W, h: titleH,
+    x, y: curY, w: cw, h: titleH,
     text: config.title,
     style: { fontSize: TITLE_FONT, fontWeight: "bold", color: "#2c2c2c", underline: false, alignX: titleAlign, alignY: "middle" },
   }));
@@ -88,7 +94,7 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
   // Instruction
   if (config.instruction) {
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(6),
+      x, y: curY, w: cw, h: mmToPx(6),
       text: config.instruction,
       style: { fontSize: 14, fontWeight: "normal", color: "#888888", underline: false, alignX: titleAlign, alignY: "top" },
     }));
@@ -100,10 +106,10 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
     const charWidth = 7; // fontSize 11 기준 한글 약 7px/자
     const textPadding = mmToPx(4); // 좌우 패딩
     const estimatedTextW = config.rule_note.length * charWidth + textPadding * 2;
-    const ruleW = Math.min(Math.max(estimatedTextW, mmToPx(30)), CONTENT_W); // 최소 30mm, 최대 전체
+    const ruleW = Math.min(Math.max(estimatedTextW, mmToPx(30)), cw); // 최소 30mm, 최대 전체
     // 정렬에 따라 박스 X 위치 결정
-    const ruleX = titleAlign === "center" ? x + (CONTENT_W - ruleW) / 2
-      : titleAlign === "right" ? x + CONTENT_W - ruleW
+    const ruleX = titleAlign === "center" ? x + (cw - ruleW) / 2
+      : titleAlign === "right" ? x + cw - ruleW
       : x;
 
     els.push(shapeEl({
@@ -121,7 +127,7 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
 
   // Bottom line
   els.push(shapeEl({
-    type: "rect", x, y: curY, w: CONTENT_W, h: 1.5,
+    type: "rect", x, y: curY, w: cw, h: 1.5,
     fill: "#e8e8e8",
   }));
   curY += mmToPx(2);
@@ -129,12 +135,12 @@ const buildHeader = (config: HeaderInstructionConfig, x: number, y: number): { e
   return { elements: els, height: curY - y };
 };
 
-const buildArrowTransform = (config: ArrowTransformConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildArrowTransform = (config: ArrowTransformConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const pairH = mmToPx(8);
   const gap = mmToPx(2);
   const boxW = mmToPx(50);
-  const centerX = x + CONTENT_W / 2;
+  const centerX = x + cw / 2;
   let curY = y;
 
   for (const pair of config.pairs) {
@@ -158,36 +164,7 @@ const buildArrowTransform = (config: ArrowTransformConfig, x: number, y: number)
   return { elements: els, height: curY - y };
 };
 
-const buildSequentialRepeat = (config: SequentialRepeatConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
-  const els: CanvasElement[] = [];
-  let curY = y;
-
-  if (config.section_title) {
-    els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
-      text: config.section_title,
-      style: { fontSize: 12, fontWeight: "bold", color: "#555555", underline: false, alignX: "left", alignY: "middle" },
-    }));
-    curY += mmToPx(6);
-  }
-
-  for (const row of config.rows) {
-    const sylW = mmToPx(8);
-    const sylGap = mmToPx(2);
-    for (let j = 0; j < (row.repeat || 5); j++) {
-      els.push(textEl({
-        x: x + j * (sylW + sylGap), y: curY, w: sylW, h: mmToPx(8),
-        text: row.syllable,
-        style: { fontSize: 20, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
-      }));
-    }
-    curY += mmToPx(10);
-  }
-
-  return { elements: els, height: curY - y };
-};
-
-const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
@@ -196,9 +173,9 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
     const display = s.template.replace(/\{([^}]+)\}/g, (_, ch: string) => `[ ${ch.split("/").join(" / ")} ]`);
 
     // Background
-    els.push(shapeEl({ type: "roundRect", x, y: curY, w: CONTENT_W, h: mmToPx(8), fill: "#e8f4fd", radius: 6 }));
+    els.push(shapeEl({ type: "roundRect", x, y: curY, w: cw, h: mmToPx(8), fill: "#e8f4fd", radius: 6 }));
     els.push(textEl({
-      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: mmToPx(8),
+      x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: mmToPx(8),
       text: `${i + 1}. ${display}`,
       style: { fontSize: 13, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
     }));
@@ -208,7 +185,7 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
   if (config.show_answer_key) {
     const answers = config.sentences.map((s, i) => `${i + 1}.${(s.correct_answers || []).join(",")}`).filter((a) => a.length > 2).join(" | ");
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      x, y: curY, w: cw, h: mmToPx(5),
       text: `정답: ${answers}`,
       style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
     }));
@@ -220,7 +197,7 @@ const buildSelectionSentence = (config: SelectionSentenceConfig, x: number, y: n
 
 const BLANK_MM_PER_UNDERSCORE = 5; // 밑줄 1개당 5mm, ___ = 15mm, ______ = 30mm
 
-const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
@@ -242,7 +219,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
       // 글자 수에 비례한 너비 (최소 10mm)
       const chipW = Math.max(mmToPx(10), mmToPx(4) + word.length * mmToPx(3.5));
       // 줄 넘김
-      if (rowX + chipW > CONTENT_W - padX && rowX > labelW + padX) {
+      if (rowX + chipW > cw - padX && rowX > labelW + padX) {
         rowX = labelW + padX;
         rowY += chipH + chipGap;
         rowCount++;
@@ -254,7 +231,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     // 배경 높이: 칩 줄 수에 따라 동적
     const bgH = padY * 2 + rowCount * chipH + (rowCount - 1) * chipGap;
     els.push(shapeEl({
-      type: "roundRect", x, y: curY, w: CONTENT_W, h: bgH,
+      type: "roundRect", x, y: curY, w: cw, h: bgH,
       fill: "#fafafa", radius: 4,
       border: { enabled: true, color: "#e0e0e0", width: 1, style: "solid" },
     }));
@@ -295,7 +272,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
     // 밑줄이 없으면 텍스트만
     if (parts.length <= 1) {
       els.push(textEl({
-        x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: lineH,
+        x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: lineH,
         text: fullText,
         style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
       }));
@@ -334,7 +311,7 @@ const buildSentenceCompletion = (config: SentenceCompletionConfig, x: number, y:
 
 const LINE_SPACING_MM: Record<string, number> = { compact: 6, normal: 10, wide: 14 };
 
-const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
   const spacingMm = LINE_SPACING_MM[config.line_spacing] || 10;
@@ -346,7 +323,7 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
     const words = config.word_bank.filter(Boolean).join(" / ");
     const bgH = mmToPx(10);
     els.push(shapeEl({
-      type: "roundRect", x, y: curY, w: CONTENT_W, h: bgH,
+      type: "roundRect", x, y: curY, w: cw, h: bgH,
       fill: "#EEF4FF", radius: 6,
       border: { enabled: true, color: "#C8D8EF", width: 1, style: "solid" },
     }));
@@ -356,7 +333,7 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
       style: { fontSize: 12, fontWeight: "bold", color: "#888888", underline: false, alignX: "left", alignY: "middle" },
     }));
     els.push(textEl({
-      x: x + mmToPx(13), y: curY, w: CONTENT_W - mmToPx(15), h: bgH,
+      x: x + mmToPx(13), y: curY, w: cw - mmToPx(15), h: bgH,
       text: words,
       style: { fontSize: 16, fontWeight: "bold", color: "#2E5A8E", underline: false, alignX: "left", alignY: "middle" },
     }));
@@ -370,7 +347,7 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
     const text = `${num}${s.template}`;
 
     els.push(textEl({
-      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: lineH,
+      x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: lineH,
       text,
       style: { fontSize: config.font_size, fontWeight: "normal", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
     }));
@@ -384,7 +361,7 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
         style: { fontSize: 12, fontWeight: "normal", color: "#cccccc", underline: false, alignX: "left", alignY: "middle" },
       }));
       els.push(shapeEl({
-        type: "rect", x: x + mmToPx(10), y: curY + mmToPx(4), w: CONTENT_W - mmToPx(14), h: 1.5,
+        type: "rect", x: x + mmToPx(10), y: curY + mmToPx(4), w: cw - mmToPx(14), h: 1.5,
         fill: "#cccccc",
       }));
       curY += mmToPx(6);
@@ -396,7 +373,7 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
     curY += mmToPx(3);
     const answers = config.sentences.map((s, i) => `${i + 1}.${s.correct_answer || "?"}`).join("  ");
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      x, y: curY, w: cw, h: mmToPx(5),
       text: `정답: ${answers}`,
       style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
     }));
@@ -409,14 +386,14 @@ const buildSentenceFill = (config: SentenceFillConfig, x: number, y: number): { 
 const ANSWER_LENGTH_RATIO: Record<string, number> = { short: 0.4, medium: 0.7, full: 1.0 };
 const MC_LABELS = ["①", "②", "③", "④", "⑤"];
 
-const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
   // 지시문 (선택)
   if (config.instruction) {
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(8),
+      x, y: curY, w: cw, h: mmToPx(8),
       text: config.instruction,
       widthMode: "fixed",
       style: { fontSize: 18, fontWeight: "bold", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
@@ -429,13 +406,13 @@ const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: numbe
     const passageFontSize = 15;
     const padX = mmToPx(4);
     const padY = mmToPx(3);
-    const textW = CONTENT_W - padX * 2;
+    const textW = cw - padX * 2;
     const charsPerLine = Math.floor(textW / (passageFontSize * 0.65));
     const lineCount = Math.max(1, Math.ceil(config.passage.length / Math.max(1, charsPerLine)));
     const passageH = padY * 2 + lineCount * passageFontSize * 1.8;
     const bg = config.passage_background || "#FFF9E6";
     els.push(shapeEl({
-      type: "roundRect", x, y: curY, w: CONTENT_W, h: passageH,
+      type: "roundRect", x, y: curY, w: cw, h: passageH,
       fill: bg, radius: 8,
       border: { enabled: true, color: "#E8E0C8", width: 1, style: "solid" },
     }));
@@ -458,7 +435,7 @@ const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: numbe
 
     // 질문 텍스트
     els.push(textEl({
-      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: mmToPx(7),
+      x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: mmToPx(7),
       text: `${numText}${q.question_text}`,
       widthMode: "fixed",
       style: { fontSize: 16, fontWeight: "bold", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
@@ -472,7 +449,7 @@ const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: numbe
       for (let ci = 0; ci < q.choices.length; ci++) {
         const label = MC_LABELS[ci] || `${ci + 1}`;
         els.push(textEl({
-          x: choiceIndent, y: curY, w: CONTENT_W - mmToPx(12), h: choiceH,
+          x: choiceIndent, y: curY, w: cw - mmToPx(12), h: choiceH,
           text: `${label} ${q.choices[ci] || ""}`,
           widthMode: "fixed",
           style: { fontSize: 14, fontWeight: "normal", color: "#555555", underline: false, alignX: "left", alignY: "middle" },
@@ -483,14 +460,14 @@ const buildPassageQuestion = (config: PassageQuestionConfig, x: number, y: numbe
       // 주관식 답변 공간 — 질문과 밑줄 사이 여백 확보
       curY += mmToPx(3);
       if (q.answer_space === "line") {
-        const lineW = (CONTENT_W - mmToPx(12)) * answerRatio;
+        const lineW = (cw - mmToPx(12)) * answerRatio;
         els.push(shapeEl({
           type: "rect", x: x + mmToPx(8), y: curY + mmToPx(5), w: lineW, h: 1.5,
           fill: "#cccccc",
         }));
         curY += mmToPx(7);
       } else if (q.answer_space === "box") {
-        const boxW = (CONTENT_W - mmToPx(12)) * answerRatio;
+        const boxW = (cw - mmToPx(12)) * answerRatio;
         els.push(shapeEl({
           type: "roundRect", x: x + mmToPx(8), y: curY + mmToPx(1), w: boxW, h: mmToPx(12),
           fill: "#ffffff", radius: 4,
@@ -520,13 +497,13 @@ const shuffleWithSeed = <T>(arr: T[], seed: number): T[] => {
 
 const CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
 
-const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
   const pairCount = config.pairs.length;
   const connectRatio = 0.25;
-  const sideW = (CONTENT_W * (1 - connectRatio)) / 2;
-  const connectW = CONTENT_W * connectRatio;
+  const sideW = (cw * (1 - connectRatio)) / 2;
+  const connectW = cw * connectRatio;
   const leftX = x;
   const rightX = x + sideW + connectW;
   const fs = config.item_style.font_size;
@@ -625,7 +602,7 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
   if (config.show_answer_key && config.answer_key_text) {
     curY += mmToPx(2);
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
+      x, y: curY, w: cw, h: mmToPx(5),
       text: `정답: ${config.answer_key_text}`,
       widthMode: "fixed",
       style: { fontSize: 10, fontWeight: "normal", color: "#999999", underline: false, alignX: "right", alignY: "middle" },
@@ -636,10 +613,10 @@ const buildMatchingConnect = (config: MatchingConnectConfig, x: number, y: numbe
   return { elements: els, height: curY - y };
 };
 
-const buildGrid = (config: GridConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildGrid = (config: GridConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const isImageMode = config.cell_content_type === "image_and_text";
-  const cellW = CONTENT_W / config.cols;
+  const cellW = cw / config.cols;
   const textH = mmToPx(8);
   const imgSize = Math.min(cellW - 8, mmToPx(40)); // 정사각형, 좌우 4px 패딩, 최대 40mm
   const cellH = isImageMode ? imgSize + textH + 4 : mmToPx(12);
@@ -700,17 +677,17 @@ const buildGrid = (config: GridConfig, x: number, y: number): { elements: Canvas
   return { elements: els, height: curY - y };
 };
 
-const buildRewardTracker = (config: RewardTrackerConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildRewardTracker = (config: RewardTrackerConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const slotSize = mmToPx(14); // 14mm (기존 6mm에서 2배+ 확대)
   const gap = mmToPx(4);
   const icon = (config as RewardTrackerConfig & { icon?: string }).icon || "☆";
   const totalW = config.slot_count * (slotSize + gap) - gap;
-  const startX = x + (CONTENT_W - totalW) / 2; // 중앙 정렬
+  const startX = x + (cw - totalW) / 2; // 중앙 정렬
 
   if (config.label) {
     els.push(textEl({
-      x, y, w: CONTENT_W, h: mmToPx(7),
+      x, y, w: cw, h: mmToPx(7),
       text: config.label,
       style: { fontSize: 16, fontWeight: "bold", color: "#666666", underline: false, alignX: "center", alignY: "middle" },
     }));
@@ -738,11 +715,11 @@ const buildRewardTracker = (config: RewardTrackerConfig, x: number, y: number): 
   return { elements: els, height: totalH };
 };
 
-const buildChecklist = (config: ChecklistTableConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildChecklist = (config: ChecklistTableConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const rows = config.rows.length + 1; // header + data
   const cols = 5;
   const rowH = mmToPx(8);
-  const w = CONTENT_W;
+  const w = cw;
   const h = rows * rowH;
   const colWidths = [w * 0.08, w * 0.32, w * 0.15, w * 0.15, w * 0.3];
 
@@ -783,12 +760,12 @@ const buildChecklist = (config: ChecklistTableConfig, x: number, y: number): { e
   return { elements: [table], height: h };
 };
 
-const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const boxH = mmToPx(25);
 
   // Background
-  els.push(shapeEl({ type: "roundRect", x, y, w: CONTENT_W, h: boxH, fill: "#f9f9ff", radius: 8, border: { enabled: true, color: "#e8e8f0", width: 1, style: "solid" } }));
+  els.push(shapeEl({ type: "roundRect", x, y, w: cw, h: boxH, fill: "#f9f9ff", radius: 8, border: { enabled: true, color: "#e8e8f0", width: 1, style: "solid" } }));
 
   // Character circle — 항상 표시 (이모지 비어있어도 회색 원)
   els.push(shapeEl({ type: "ellipse", x: x + mmToPx(3), y: y + mmToPx(3), w: mmToPx(16), h: mmToPx(16), fill: "#eeeeee" }));
@@ -801,7 +778,7 @@ const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number): { elemen
   }
 
   const textX = x + mmToPx(22);
-  const textW = CONTENT_W - mmToPx(26);
+  const textW = cw - mmToPx(26);
 
   if (config.speech) {
     els.push(textEl({
@@ -822,12 +799,12 @@ const buildInfoGuide = (config: InfoGuideConfig, x: number, y: number): { elemen
   return { elements: els, height: boxH + mmToPx(2) };
 };
 
-const buildOutlineTitle = (config: OutlineTitleConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildOutlineTitle = (config: OutlineTitleConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
   els.push(textEl({
-    x, y: curY, w: CONTENT_W, h: mmToPx(18),
+    x, y: curY, w: cw, h: mmToPx(18),
     text: config.text,
     style: {
       fontSize: 48,
@@ -847,7 +824,7 @@ const buildOutlineTitle = (config: OutlineTitleConfig, x: number, y: number): { 
 
   if (config.subtitle) {
     els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(6),
+      x, y: curY, w: cw, h: mmToPx(6),
       text: config.subtitle,
       style: { fontSize: 12, fontWeight: "normal", color: "#888888", underline: false, alignX: "center", alignY: "top" },
     }));
@@ -857,20 +834,20 @@ const buildOutlineTitle = (config: OutlineTitleConfig, x: number, y: number): { 
   return { elements: els, height: curY - y };
 };
 
-const buildWritingPractice = (config: WritingPracticeConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildWritingPractice = (config: WritingPracticeConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   let curY = y;
 
   const nb = NOTEBOOK_SPECS[config.notebook_type || "8칸"] ?? NOTEBOOK_SPECS["8칸"];
   const cellSizePx = mmToPx(parseInt(nb.cellSize));
   const gridW = nb.cols * cellSizePx;
-  const gridX = x + (CONTENT_W - gridW) / 2;
+  const gridX = x + (cw - gridW) / 2;
 
   // Model text
   if (config.show_model && config.text) {
-    els.push(shapeEl({ type: "roundRect", x, y: curY, w: CONTENT_W, h: mmToPx(7), fill: "#f9f9f9", radius: 4, border: { enabled: true, color: "#e0e0e0", width: 1, style: "solid" } }));
+    els.push(shapeEl({ type: "roundRect", x, y: curY, w: cw, h: mmToPx(7), fill: "#f9f9f9", radius: 4, border: { enabled: true, color: "#e0e0e0", width: 1, style: "solid" } }));
     els.push(textEl({
-      x: x + mmToPx(2), y: curY, w: CONTENT_W - mmToPx(4), h: mmToPx(7),
+      x: x + mmToPx(2), y: curY, w: cw - mmToPx(4), h: mmToPx(7),
       text: config.text,
       style: { fontSize: 14, fontWeight: "bold", color: "#333333", underline: false, alignX: "left", alignY: "middle" },
     }));
@@ -924,14 +901,14 @@ const buildWritingPractice = (config: WritingPracticeConfig, x: number, y: numbe
   return { elements: els, height: curY - y };
 };
 
-const buildColoringArea = (config: ColoringAreaConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildColoringArea = (config: ColoringAreaConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const h = mmToPx((config.size_ratio || 0.6) * 200);
   const els: CanvasElement[] = [];
 
   // 이미지 삽입 프레임 (imageSlot) — 도형 자체에 가이드 텍스트 내장
   // 이미지가 fill을 덮으면 텍스트도 자동으로 안 보임 (shouldClearPlaceholder 로직)
   els.push(shapeEl({
-    type: "roundRect", x, y, w: CONTENT_W, h,
+    type: "roundRect", x, y, w: cw, h,
     fill: "#f5f5f5", radius: 8,
     border: { enabled: true, color: "#e0e0e0", width: 1.5, style: "dashed" },
     subType: "imageSlot" as import("../model/canvasTypes").ShapeSubType,
@@ -957,8 +934,8 @@ const getCalendarData = (year: number, month: number, startDay: "sunday" | "mond
 const WEEKDAY_LABELS_SUN = ["일", "월", "화", "수", "목", "금", "토"];
 const WEEKDAY_LABELS_MON = ["월", "화", "수", "목", "금", "토", "일"];
 
-const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
-  const w = CONTENT_W;
+const buildCalendar = (config: CalendarConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
+  const w = cw;
 
   if (config.mode === "monthly") {
     // 타이틀 계산
@@ -1199,14 +1176,14 @@ const buildCalendar = (config: CalendarConfig, x: number, y: number): { elements
 
 // --- Mind Map ---
 
-const buildMindMap = (config: MindMapConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
+const buildMindMap = (config: MindMapConfig, x: number, y: number, cw: number): { elements: CanvasElement[]; height: number } => {
   const els: CanvasElement[] = [];
   const theme = MIND_MAP_THEMES[config.color_theme ?? "gray"];
   const isRect = (config.node_shape ?? "circle") === "rounded_rect";
 
   // 콘텐츠 영역 크기 (px)
-  const areaW = CONTENT_W;
-  const areaH = CONTENT_W * (257 / 170); // A4 비율 유지
+  const areaW = cw;
+  const areaH = cw * (257 / 170); // A4 비율 유지
 
   // 동적 노드 크기 (mm → px)
   const sizes = computeDynamicSizes(config.level1_count, config.level2_count_per_node);
@@ -1289,42 +1266,41 @@ const buildComponentElements = (
   comp: WorksheetComponent,
   x: number,
   y: number,
+  cw: number = CONTENT_W,
 ): { elements: CanvasElement[]; height: number } => {
   switch (comp.type) {
     case "header_instruction":
-      return buildHeader(comp.config as HeaderInstructionConfig, x, y);
+      return buildHeader(comp.config as HeaderInstructionConfig, x, y, cw);
     case "arrow_transform":
-      return buildArrowTransform(comp.config as ArrowTransformConfig, x, y);
-    case "sequential_repeat":
-      return buildSequentialRepeat(comp.config as SequentialRepeatConfig, x, y);
+      return buildArrowTransform(comp.config as ArrowTransformConfig, x, y, cw);
     case "selection_sentence":
-      return buildSelectionSentence(comp.config as SelectionSentenceConfig, x, y);
+      return buildSelectionSentence(comp.config as SelectionSentenceConfig, x, y, cw);
     case "grid_NxM":
-      return buildGrid(comp.config as GridConfig, x, y);
+      return buildGrid(comp.config as GridConfig, x, y, cw);
     case "reward_tracker":
-      return buildRewardTracker(comp.config as RewardTrackerConfig, x, y);
+      return buildRewardTracker(comp.config as RewardTrackerConfig, x, y, cw);
     case "checklist_table":
-      return buildChecklist(comp.config as ChecklistTableConfig, x, y);
+      return buildChecklist(comp.config as ChecklistTableConfig, x, y, cw);
     case "info_guide":
-      return buildInfoGuide(comp.config as InfoGuideConfig, x, y);
+      return buildInfoGuide(comp.config as InfoGuideConfig, x, y, cw);
     case "outline_title":
-      return buildOutlineTitle(comp.config as OutlineTitleConfig, x, y);
+      return buildOutlineTitle(comp.config as OutlineTitleConfig, x, y, cw);
     case "writing_practice":
-      return buildWritingPractice(comp.config as WritingPracticeConfig, x, y);
+      return buildWritingPractice(comp.config as WritingPracticeConfig, x, y, cw);
     case "coloring_area":
-      return buildColoringArea(comp.config as ColoringAreaConfig, x, y);
+      return buildColoringArea(comp.config as ColoringAreaConfig, x, y, cw);
     case "sentence_completion":
-      return buildSentenceCompletion(comp.config as SentenceCompletionConfig, x, y);
+      return buildSentenceCompletion(comp.config as SentenceCompletionConfig, x, y, cw);
     case "sentence_fill":
-      return buildSentenceFill(comp.config as SentenceFillConfig, x, y);
+      return buildSentenceFill(comp.config as SentenceFillConfig, x, y, cw);
     case "passage_question":
-      return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y);
+      return buildPassageQuestion(comp.config as PassageQuestionConfig, x, y, cw);
     case "matching_connect":
-      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y);
+      return buildMatchingConnect(comp.config as MatchingConnectConfig, x, y, cw);
     case "mind_map":
-      return buildMindMap(comp.config as MindMapConfig, x, y);
+      return buildMindMap(comp.config as MindMapConfig, x, y, cw);
     case "calendar":
-      return buildCalendar(comp.config as CalendarConfig, x, y);
+      return buildCalendar(comp.config as CalendarConfig, x, y, cw);
     case "date_name_field":
     case "clock_face":
       // 자유 배치 요소 — pageFactory에서 직접 삽입
@@ -1341,9 +1317,10 @@ const buildComponentElements = (
 export const buildWorksheetComponentElements = (
   componentType: WorksheetComponentType,
   insertY: number,
+  orientation: "vertical" | "horizontal" = "vertical",
 ): CanvasElement[] => {
   const config = structuredClone(DEFAULT_CONFIGS[componentType]);
-  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY);
+  return buildWorksheetComponentElementsFromConfig(componentType, config, insertY, orientation);
 };
 
 /**
@@ -1354,14 +1331,16 @@ export const buildWorksheetComponentElementsFromConfig = (
   componentType: WorksheetComponentType,
   config: WorksheetConfig,
   insertY: number,
+  orientation: "vertical" | "horizontal" = "vertical",
 ): CanvasElement[] => {
+  const cw = getContentWidth(orientation);
   const comp: WorksheetComponent = {
     id: crypto.randomUUID(),
     type: componentType,
     config,
     collapsed: false,
   };
-  const { elements } = buildComponentElements(comp, MARGIN, insertY);
+  const { elements } = buildComponentElements(comp, MARGIN, insertY, cw);
   return elements;
 };
 
@@ -1387,6 +1366,7 @@ export const reflowWorksheetComponents = (
   skipComponentId?: string,
   /** true면 드롭 시 X를 MARGIN으로 리셋 (기본 false — 드래그 중에는 X 건드리지 않음) */
   resetX = false,
+  _orientation: "vertical" | "horizontal" = "vertical",
 ): {
   elements: CanvasElement[];
   updatedElementIds: Map<string, string[]>;
