@@ -5,7 +5,7 @@ import type {
   WorksheetComponent,
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -20,7 +20,7 @@ import type {
 import {
   HeaderInstructionForm,
   ArrowTransformForm,
-  SequentialRepeatForm,
+
   SelectionSentenceForm,
   GridForm,
   RewardTrackerForm,
@@ -42,8 +42,7 @@ const renderForm = (
       return <HeaderInstructionForm config={comp.config as HeaderInstructionConfig} {...props} />;
     case "arrow_transform":
       return <ArrowTransformForm config={comp.config as ArrowTransformConfig} {...props} />;
-    case "sequential_repeat":
-      return <SequentialRepeatForm config={comp.config as SequentialRepeatConfig} {...props} />;
+
     case "selection_sentence":
       return <SelectionSentenceForm config={comp.config as SelectionSentenceConfig} {...props} />;
     case "grid_NxM":
