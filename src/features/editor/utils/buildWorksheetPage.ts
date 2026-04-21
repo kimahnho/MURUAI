@@ -9,7 +9,7 @@ import type { WorksheetComponent, WorksheetConfig } from "@/features/worksheet-e
 import type {
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -153,35 +153,6 @@ const buildArrowTransform = (config: ArrowTransformConfig, x: number, y: number)
     els.push(textEl({ x: transX, y: curY, w: boxW, h: pairH, text: pair.transformed, style: { fontSize: 20, fontWeight: "bold", color: "#2e6da4", underline: false, alignX: "center", alignY: "middle" } }));
 
     curY += pairH + gap;
-  }
-
-  return { elements: els, height: curY - y };
-};
-
-const buildSequentialRepeat = (config: SequentialRepeatConfig, x: number, y: number): { elements: CanvasElement[]; height: number } => {
-  const els: CanvasElement[] = [];
-  let curY = y;
-
-  if (config.section_title) {
-    els.push(textEl({
-      x, y: curY, w: CONTENT_W, h: mmToPx(5),
-      text: config.section_title,
-      style: { fontSize: 12, fontWeight: "bold", color: "#555555", underline: false, alignX: "left", alignY: "middle" },
-    }));
-    curY += mmToPx(6);
-  }
-
-  for (const row of config.rows) {
-    const sylW = mmToPx(8);
-    const sylGap = mmToPx(2);
-    for (let j = 0; j < (row.repeat || 5); j++) {
-      els.push(textEl({
-        x: x + j * (sylW + sylGap), y: curY, w: sylW, h: mmToPx(8),
-        text: row.syllable,
-        style: { fontSize: 20, fontWeight: "bold", color: "#333333", underline: false, alignX: "center", alignY: "middle" },
-      }));
-    }
-    curY += mmToPx(10);
   }
 
   return { elements: els, height: curY - y };
@@ -1295,8 +1266,7 @@ const buildComponentElements = (
       return buildHeader(comp.config as HeaderInstructionConfig, x, y);
     case "arrow_transform":
       return buildArrowTransform(comp.config as ArrowTransformConfig, x, y);
-    case "sequential_repeat":
-      return buildSequentialRepeat(comp.config as SequentialRepeatConfig, x, y);
+
     case "selection_sentence":
       return buildSelectionSentence(comp.config as SelectionSentenceConfig, x, y);
     case "grid_NxM":
