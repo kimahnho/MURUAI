@@ -3,7 +3,6 @@
 export type WorksheetComponentType =
   | "header_instruction"
   | "arrow_transform"
-  | "sequential_repeat"
   | "selection_sentence"
   | "grid_NxM"
   | "reward_tracker"
@@ -33,11 +32,6 @@ export interface HeaderInstructionConfig {
 
 export interface ArrowTransformConfig {
   pairs: { original: string; transformed: string }[];
-}
-
-export interface SequentialRepeatConfig {
-  section_title: string;
-  rows: { syllable: string; repeat: number }[];
 }
 
 export interface SelectionSentenceConfig {
@@ -227,7 +221,6 @@ export interface MindMapConfig {
 export type WorksheetConfig =
   | HeaderInstructionConfig
   | ArrowTransformConfig
-  | SequentialRepeatConfig
   | SelectionSentenceConfig
   | GridConfig
   | RewardTrackerConfig

@@ -4,7 +4,7 @@ import type {
   ComponentMeta,
   HeaderInstructionConfig,
   ArrowTransformConfig,
-  SequentialRepeatConfig,
+
   SelectionSentenceConfig,
   GridConfig,
   RewardTrackerConfig,
@@ -38,14 +38,6 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
       { original: "건", transformed: "걸" },
     ],
   } satisfies ArrowTransformConfig,
-
-  sequential_repeat: {
-    section_title: "",
-    rows: [
-      { syllable: "바", repeat: 5 },
-      { syllable: "빠", repeat: 5 },
-    ],
-  } satisfies SequentialRepeatConfig,
 
   selection_sentence: {
     sentences: [
@@ -227,7 +219,7 @@ export const DEFAULT_CONFIGS: Record<WorksheetComponentType, WorksheetConfig> = 
 export const COMPONENT_META: Record<WorksheetComponentType, ComponentMeta> = {
   header_instruction: { icon: "📝", name: "제목" },
   arrow_transform: { icon: "🔄", name: "변환 쌍" },
-  sequential_repeat: { icon: "🔁", name: "반복 연습" },
+
   selection_sentence: { icon: "✋", name: "문장 선택" },
   grid_NxM: { icon: "⊞", name: "단어 카드" },
   reward_tracker: { icon: "⭐", name: "칭찬 스탬프" },
